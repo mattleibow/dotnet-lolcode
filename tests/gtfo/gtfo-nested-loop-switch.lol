@@ -2,7 +2,7 @@ BTW Test GTFO in nested contexts (switch inside loop)
 BTW GTFO should break innermost context: switch, not the loop
 
 HAI 1.2
-  VISIBLE "NESTED SWITCH INSIDE LOOP:"
+  VISIBLE "NESTED SWITCH INSIDE LOOP::"
   IM IN YR outerloop UPPIN YR i TIL BOTH SAEM i AN 3
     VISIBLE "LOOP iteration " i
     I HAS A switch_val ITZ 2

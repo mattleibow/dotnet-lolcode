@@ -2,7 +2,7 @@ BTW Test GTFO breaks out of switch case context
 BTW GTFO in switch should break case execution, not anything else
 
 HAI 1.2
-  VISIBLE "TESTING GTFO IN SWITCH:"
+  VISIBLE "TESTING GTFO IN SWITCH::"
   I HAS A test_val ITZ 2
   test_val
   WTF?

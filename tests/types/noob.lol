@@ -34,9 +34,9 @@ HAI 1.2
 
   BTW explicit cast NOOB to YARN
   I HAS A noob5
-  VISIBLE "YARN:"
+  VISIBLE "YARN::"
   VISIBLE MAEK noob5 A YARN
-  VISIBLE ":END"
+  VISIBLE "::END"
 
   BTW NOOB in boolean expression (implicitly cast to FAIL)
   I HAS A noob6

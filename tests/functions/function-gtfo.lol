@@ -14,6 +14,6 @@ HAI 1.2
   I HAS A result2 ITZ I IZ earlyExit YR 10 MKAY
 
   BTW NOOB casts to empty string
-  VISIBLE "Result1: " result1
-  VISIBLE "Result2: " result2
+  VISIBLE "Result1:: " result1
+  VISIBLE "Result2:: " result2
 KTHXBYE

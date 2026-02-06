@@ -12,7 +12,7 @@ HAI 1.2
   VISIBLE "LINE 1:)LINE 2"
   VISIBLE "COL1:>COL2:>COL3"
   VISIBLE "HE SED ::HAI::!"
-  VISIBLE "SHE SED :\"OH RLY?:\""
+  VISIBLE "SHE SED :"OH RLY?:""
 
   BTW string interpolation with :{var}
   I HAS A animal ITZ "KITTEH"

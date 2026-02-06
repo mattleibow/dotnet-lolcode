@@ -11,7 +11,7 @@ HAI 1.2
   VISIBLE ""
 
   IM IN YR guessing UPPIN YR attempt TIL BOTH SAEM attempt AN 10
-    VISIBLE "GESS #" SUM OF attempt AN 1 ": "!
+    VISIBLE "GESS #" SUM OF attempt AN 1 ":: "!
     I HAS A input
     GIMMEH input
     input IS NOW A NUMBR

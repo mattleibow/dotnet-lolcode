@@ -5,9 +5,9 @@ HAI 1.2
 
   HOW IZ I testScope
     I HAS A x ITZ 42
-    VISIBLE "Inside function: " x
+    VISIBLE "Inside function:: " x
   IF U SAY SO
 
   I IZ testScope MKAY
-  VISIBLE "Outside function: " x
+  VISIBLE "Outside function:: " x
 KTHXBYE

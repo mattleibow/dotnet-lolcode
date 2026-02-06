@@ -41,7 +41,7 @@ HAI 1.2
   VISIBLE ""
 
   IM IN YR calcloop UPPIN YR round TIL BOTH SAEM round AN 100
-    VISIBLE "FIRST NUMBR: "!
+    VISIBLE "FIRST NUMBR:: "!
     I HAS A first
     GIMMEH first
 
@@ -50,11 +50,11 @@ HAI 1.2
       YA RLY, GTFO
     OIC
 
-    VISIBLE "OPERASHUN: "!
+    VISIBLE "OPERASHUN:: "!
     I HAS A op
     GIMMEH op
 
-    VISIBLE "SECOND NUMBR: "!
+    VISIBLE "SECOND NUMBR:: "!
     I HAS A second
     GIMMEH second
 

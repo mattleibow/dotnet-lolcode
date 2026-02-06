@@ -6,16 +6,16 @@ HAI 1.2
   I HAS A name ITZ "KITTEH"
   I HAS A truth ITZ WIN
 
-  VISIBLE "COUNT: :{count}"
-  VISIBLE "NAME: :{name}"
-  VISIBLE "TROOF: :{truth}"
+  VISIBLE "COUNT:: :{count}"
+  VISIBLE "NAME:: :{name}"
+  VISIBLE "TROOF:: :{truth}"
 
   BTW change variable values and ensure interpolation uses updated values
   count R 7
   name R "CEILING CAT"
   truth R FAIL
 
-  VISIBLE "UPDATED COUNT: :{count}"
-  VISIBLE "UPDATED NAME: :{name}"
-  VISIBLE "UPDATED TROOF: :{truth}"
+  VISIBLE "UPDATED COUNT:: :{count}"
+  VISIBLE "UPDATED NAME:: :{name}"
+  VISIBLE "UPDATED TROOF:: :{truth}"
 KTHXBYE

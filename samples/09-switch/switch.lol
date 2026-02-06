@@ -5,7 +5,7 @@ HAI 1.2
   BTW basic switch on a number
   I HAS A day ITZ 3
 
-  VISIBLE "DAY " day " IZ:"
+  VISIBLE "DAY " day " IZ::"
   day
   WTF?
     OMG 1
@@ -35,7 +35,7 @@ HAI 1.2
 
   BTW fall-through demo (no GTFO)
   VISIBLE ""
-  VISIBLE "FALL THRU DEMO WIF 2:"
+  VISIBLE "FALL THRU DEMO WIF 2::"
   I HAS A val ITZ 2
   val
   WTF?
@@ -53,7 +53,7 @@ HAI 1.2
   BTW switch for categorization
   VISIBLE ""
   I HAS A grade ITZ "B"
-  VISIBLE "GRADE " grade " MEANZ:"
+  VISIBLE "GRADE " grade " MEANZ::"
   grade
   WTF?
     OMG "A"

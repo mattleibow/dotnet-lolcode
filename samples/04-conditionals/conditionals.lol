@@ -19,13 +19,13 @@ HAI 1.2
   BOTH SAEM BIGGR OF score AN 90 AN score
   O RLY?
     YA RLY
-      VISIBLE "GRADE: A"
+      VISIBLE "GRADE:: A"
     MEBBE BOTH SAEM BIGGR OF score AN 80 AN score
-      VISIBLE "GRADE: B"
+      VISIBLE "GRADE:: B"
     MEBBE BOTH SAEM BIGGR OF score AN 70 AN score
-      VISIBLE "GRADE: C"
+      VISIBLE "GRADE:: C"
     NO WAI
-      VISIBLE "GRADE: F... OH NOES"
+      VISIBLE "GRADE:: F... OH NOES"
   OIC
 
   BTW truthiness examples

@@ -27,7 +27,7 @@ HAI 1.2
   IF U SAY SO
 
   BTW print first 20 fibonacci numbers
-  VISIBLE "FIRST 20 FIBONACCI NUMBRZ:"
+  VISIBLE "FIRST 20 FIBONACCI NUMBRZ::"
   IM IN YR printer UPPIN YR i TIL BOTH SAEM i AN 20
     I IZ fib_iter YR i MKAY
     VISIBLE "  FIB(" i ") = " IT

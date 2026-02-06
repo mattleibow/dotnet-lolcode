@@ -44,7 +44,7 @@ HAI 1.2
 
   BTW main game loop — all state managed here in main scope
   VISIBLE "=== LOLCODE ADVENTURE ==="
-  VISIBLE "COMMANDZ: north, south, take key, take sword, fight, quit"
+  VISIBLE "COMMANDZ:: north, south, take key, take sword, fight, quit"
   VISIBLE ""
 
   IM IN YR gameloop UPPIN YR turn TIL BOTH SAEM turn AN 1000

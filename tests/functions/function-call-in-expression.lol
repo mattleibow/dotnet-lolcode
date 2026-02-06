@@ -8,5 +8,5 @@ HAI 1.2
   I HAS A result ITZ SUM OF I IZ getValue MKAY AN 5
   VISIBLE result
 
-  VISIBLE "Result: " I IZ getValue MKAY
+  VISIBLE "Result:: " I IZ getValue MKAY
 KTHXBYE

@@ -3,8 +3,8 @@ HAI 1.2
 
   I HAS A x ITZ 42
   x
-  VISIBLE "IT is: " IT
+  VISIBLE "IT is:: " IT
 
   SUM OF 10 AN 20
-  VISIBLE "IT is now: " IT
+  VISIBLE "IT is now:: " IT
 KTHXBYE

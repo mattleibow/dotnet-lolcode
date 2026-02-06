@@ -14,19 +14,19 @@ HAI 1.2
   BTW escape sequences
   VISIBLE "LINE1:)LINE2"
   VISIBLE "COL1:>COL2"
-  VISIBLE "QUOTE: :\"HAI:\""
-  VISIBLE "COLON: ::"
+  VISIBLE "QUOTE:: :"HAI:""
+  VISIBLE "COLON:: ::"
   VISIBLE "BELL::o"
 
   BTW hex escape :(<hex>)
-  VISIBLE "HEX A: :(41)"
-  VISIBLE "HEX NEWLINE: :(0A)AFTER"
+  VISIBLE "HEX A:: :(41)"
+  VISIBLE "HEX NEWLINE:: :(0A)AFTER"
 
   BTW variable interpolation :{var}
   I HAS A name ITZ "CEILING CAT"
   I HAS A age ITZ 9
-  VISIBLE "NAME: :{name}"
-  VISIBLE "AGE: :{age}"
+  VISIBLE "NAME:: :{name}"
+  VISIBLE "AGE:: :{age}"
   VISIBLE ":{name} IS :{age} YEARS OLD"
 
   BTW string in string context

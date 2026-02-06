@@ -2,7 +2,7 @@ BTW Test infinite loop with GTFO break
 BTW Loop with no operation/condition that uses GTFO to exit
 
 HAI 1.2
-  VISIBLE "ENTERING INFINITE LOOP:"
+  VISIBLE "ENTERING INFINITE LOOP::"
   I HAS A count ITZ 0
   IM IN YR infiniteloop
     VISIBLE "  iteration " count

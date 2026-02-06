@@ -18,7 +18,7 @@ HAI 1.2
   BTW Function calls
   I IZ greet YR str MKAY
   I HAS A sum ITZ I IZ add YR 10 AN YR 20 MKAY
-  VISIBLE "Sum: " sum
+  VISIBLE "Sum:: " sum
 
   BTW Math operations
   I HAS A result ITZ SUM OF num AN 8
@@ -26,7 +26,7 @@ HAI 1.2
 
   BTW Boolean logic
   I HAS A logic ITZ BOTH OF WIN AN truth
-  VISIBLE "Both WIN: " logic
+  VISIBLE "Both WIN:: " logic
 
   BTW Comparison
   BOTH SAEM result AN 50
@@ -52,18 +52,18 @@ HAI 1.2
 
   BTW Loop
   IM IN YR loop UPPIN YR i TIL BOTH SAEM i AN 3
-    VISIBLE "Loop: " i
+    VISIBLE "Loop:: " i
   IM OUTTA YR loop
 
   BTW Casting
   I HAS A numStr ITZ "123"
   numStr IS NOW A NUMBR
   I HAS A doubled ITZ PRODUKT OF numStr AN 2
-  VISIBLE "Doubled: " doubled
+  VISIBLE "Doubled:: " doubled
 
   BTW Expression statement and IT
   DIFF OF 100 AN 50
-  VISIBLE "IT is: " IT
+  VISIBLE "IT is:: " IT
 
   VISIBLE "ALL DONE!"
 KTHXBYE

@@ -12,7 +12,7 @@ HAI 1.2
   VISIBLE "A::B"
 
   BTW quote escape :"
-  VISIBLE "SHE SED :\"OH RLY?:\""
+  VISIBLE "SHE SED :"OH RLY?:""
 
   BTW bell escape :o (prints something before and after bell)
   VISIBLE "BELL-START:oBELL-END"

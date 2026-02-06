@@ -19,8 +19,8 @@ HAI 1.2
   OIC
 
   BTW casting empty and non-empty YARN to TROOF
-  VISIBLE "MAEK \"\" A TROOF: " MAEK empty A TROOF
-  VISIBLE "MAEK \"LOL\" A TROOF: " MAEK nonempty A TROOF
+  VISIBLE "MAEK :":" A TROOF:: " MAEK empty A TROOF
+  VISIBLE "MAEK :"LOL:" A TROOF:: " MAEK nonempty A TROOF
 
   BTW concatenating with empty string
   I HAS A base ITZ ""

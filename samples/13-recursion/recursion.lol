@@ -34,7 +34,7 @@ HAI 1.2
   IF U SAY SO
 
   BTW test factorial
-  VISIBLE "FACTORIALZ:"
+  VISIBLE "FACTORIALZ::"
   IM IN YR factloop UPPIN YR i TIL BOTH SAEM i AN 11
     I IZ factorial YR i MKAY
     VISIBLE "  " i "! = " IT
@@ -42,7 +42,7 @@ HAI 1.2
 
   BTW test fibonacci
   VISIBLE ""
-  VISIBLE "FIBONACCI:"
+  VISIBLE "FIBONACCI::"
   IM IN YR fibloop UPPIN YR i TIL BOTH SAEM i AN 12
     I IZ fib YR i MKAY
     VISIBLE "  FIB(" i ") = " IT
@@ -50,7 +50,7 @@ HAI 1.2
 
   BTW test power
   VISIBLE ""
-  VISIBLE "POWERZ:"
+  VISIBLE "POWERZ::"
   VISIBLE "  2^8 = " I IZ power YR 2 AN YR 8 MKAY
   VISIBLE "  3^4 = " I IZ power YR 3 AN YR 4 MKAY
   VISIBLE "  5^3 = " I IZ power YR 5 AN YR 3 MKAY
