@@ -1,4 +1,4 @@
-namespace Lolcode.CodeAnalysis.Binding;
+namespace Lolcode.CodeAnalysis.BoundTree;
 
 /// <summary>
 /// Kinds of binary operators in LOLCODE bound trees.

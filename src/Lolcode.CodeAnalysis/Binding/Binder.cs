@@ -1,20 +1,10 @@
 using System.Collections.Immutable;
+using Lolcode.CodeAnalysis.BoundTree;
 using Lolcode.CodeAnalysis.Symbols;
 using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.CodeAnalysis.Text;
 
 namespace Lolcode.CodeAnalysis.Binding;
-
-/// <summary>
-/// Context tracking for GTFO resolution.
-/// </summary>
-public enum ControlFlowContext
-{
-    None,
-    Loop,
-    Switch,
-    Function
-}
 
 /// <summary>
 /// Performs semantic analysis on a parsed syntax tree, producing a bound tree.

@@ -1,7 +1,18 @@
 using System.Collections.Immutable;
 using Lolcode.CodeAnalysis.Symbols;
 
-namespace Lolcode.CodeAnalysis.Binding;
+namespace Lolcode.CodeAnalysis.BoundTree;
+
+/// <summary>
+/// Context tracking for GTFO resolution.
+/// </summary>
+public enum ControlFlowContext
+{
+    None,
+    Loop,
+    Switch,
+    Function
+}
 
 /// <summary>
 /// Base class for all bound nodes (output of semantic analysis).

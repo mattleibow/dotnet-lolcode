@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Lolcode.CodeAnalysis.Binding;
+using Lolcode.CodeAnalysis.BoundTree;
 using Lolcode.CodeAnalysis.Emit;
 using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.CodeAnalysis.Text;

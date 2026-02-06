@@ -5,6 +5,7 @@ using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
 using Lolcode.CodeAnalysis.Binding;
+using Lolcode.CodeAnalysis.BoundTree;
 
 namespace Lolcode.CodeAnalysis.Emit;
 
