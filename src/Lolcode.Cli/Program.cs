@@ -6,7 +6,7 @@ namespace Lolcode.Cli;
 /// <summary>
 /// Entry point for the LOLCODE CLI compiler.
 /// Usage: lolcode run &lt;file.lol&gt;
-///        lolcode compile &lt;file.lol&gt; [-o output.dll]
+///        lolcode compile &lt;file.lol&gt; [-o output.dll] [--emit-il] [--emit-csharp]
 /// </summary>
 public static class Program
 {
@@ -101,18 +101,28 @@ public static class Program
         if (args.Length == 0)
         {
             Console.Error.WriteLine("Error: No input file specified.");
-            Console.Error.WriteLine("Usage: lolcode compile <file.lol> [-o output.dll]");
+            Console.Error.WriteLine("Usage: lolcode compile <file.lol> [-o output.dll] [--emit-il] [--emit-csharp]");
             return 1;
         }
 
         string filePath = args[0];
         string? outputPath = null;
+        bool emitIl = false;
+        bool emitCsharp = false;
 
         for (int i = 1; i < args.Length; i++)
         {
             if (args[i] is "-o" or "--output" && i + 1 < args.Length)
             {
                 outputPath = args[++i];
+            }
+            else if (args[i] is "--emit-il")
+            {
+                emitIl = true;
+            }
+            else if (args[i] is "--emit-csharp" or "--emit-cs")
+            {
+                emitCsharp = true;
             }
         }
 
@@ -143,7 +153,84 @@ public static class Program
             File.Copy(runtimePath, runtimeDest, overwrite: true);
 
         Console.WriteLine($"Compiled successfully: {result.OutputPath}");
+
+        if (emitIl || emitCsharp)
+        {
+            EmitDecompiled(result.OutputPath!, emitIl ? "-il" : "");
+        }
+
         return 0;
+    }
+
+    private static void EmitDecompiled(string dllPath, string ilSpyArgs)
+    {
+        // Try to find ilspycmd
+        string? ilspycmd = FindIlSpyCmd();
+        if (ilspycmd == null)
+        {
+            Console.Error.WriteLine("Warning: ilspycmd not found. Install with: dotnet tool install -g ilspycmd");
+            return;
+        }
+
+        var process = new System.Diagnostics.Process
+        {
+            StartInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = ilspycmd,
+                Arguments = $"{ilSpyArgs} \"{dllPath}\"",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            }
+        };
+
+        process.Start();
+        string output = process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+
+        if (process.ExitCode == 0)
+        {
+            Console.WriteLine();
+            Console.WriteLine(output);
+        }
+        else
+        {
+            string error = process.StandardError.ReadToEnd();
+            Console.Error.WriteLine($"ilspycmd failed: {error}");
+        }
+    }
+
+    private static string? FindIlSpyCmd()
+    {
+        // Check PATH first
+        try
+        {
+            var which = new System.Diagnostics.Process
+            {
+                StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "which",
+                    Arguments = "ilspycmd",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = true,
+                }
+            };
+            which.Start();
+            string path = which.StandardOutput.ReadToEnd().Trim();
+            which.WaitForExit();
+            if (which.ExitCode == 0 && !string.IsNullOrEmpty(path))
+                return path;
+        }
+        catch { /* ignore */ }
+
+        // Check common .NET tool location
+        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string toolPath = Path.Combine(home, ".dotnet", "tools", "ilspycmd");
+        if (File.Exists(toolPath))
+            return toolPath;
+
+        return null;
     }
 
     private static void PrintDiagnostics(IEnumerable<Diagnostic> diagnostics)
@@ -185,14 +272,17 @@ public static class Program
             LOLCODE Compiler for .NET
 
             Usage:
-              lolcode run <file.lol>                  Compile and run a LOLCODE file
-              lolcode compile <file.lol> [-o out.dll]  Compile a LOLCODE file to a DLL
-              lolcode --help                           Show this help message
-              lolcode --version                        Show version information
+              lolcode run <file.lol>                           Compile and run a LOLCODE file
+              lolcode compile <file.lol> [-o out.dll]          Compile a LOLCODE file to a DLL
+              lolcode compile <file.lol> --emit-il             Compile and show IL disassembly
+              lolcode compile <file.lol> --emit-csharp         Compile and show decompiled C#
+              lolcode --help                                   Show this help message
+              lolcode --version                                Show version information
 
             Examples:
               lolcode run hello.lol
               lolcode compile hello.lol -o hello.dll
+              lolcode compile hello.lol --emit-il
               dotnet run --project src/Lolcode.Cli -- run samples/01-hello-world/hello.lol
             """);
         return 0;

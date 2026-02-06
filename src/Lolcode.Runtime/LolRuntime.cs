@@ -105,9 +105,9 @@ public static class LolRuntime
 
     /// <summary>
     /// Coerces a value to a numeric type for arithmetic.
-    /// If value is already int/double, returns as-is.
-    /// If string contains '.', parses as double; otherwise int.
-    /// bool: WIN→1, FAIL→0. NOOB→0.
+    /// NOOB → runtime error (per spec: "Any operations on a NOOB that assume another type result in an error").
+    /// Non-numeric YARN → runtime error.
+    /// bool: WIN→1, FAIL→0.
     /// </summary>
     private static object CoerceToNumeric(object? value)
     {
@@ -116,10 +116,14 @@ public static class LolRuntime
             int => value,
             double => value,
             bool b => b ? 1 : 0,
-            string s when s.Contains('.') => double.TryParse(s, CultureInfo.InvariantCulture, out double d) ? (object)d : 0,
-            string s => int.TryParse(s, CultureInfo.InvariantCulture, out int i) ? (object)i : 0,
-            null => 0,
-            _ => 0
+            string s when s.Contains('.') => double.TryParse(s, CultureInfo.InvariantCulture, out double d)
+                ? (object)d
+                : throw new LolRuntimeException("Cannot cast YARN to numeric: " + s),
+            string s => int.TryParse(s, CultureInfo.InvariantCulture, out int i)
+                ? (object)i
+                : throw new LolRuntimeException("Cannot cast YARN to numeric: " + s),
+            null => throw new LolRuntimeException("Cannot use NOOB in arithmetic"),
+            _ => throw new LolRuntimeException("Cannot use value in arithmetic: " + value)
         };
     }
 
@@ -296,4 +300,13 @@ public static class LolRuntime
     {
         return Console.ReadLine() ?? "";
     }
+}
+
+/// <summary>
+/// Exception thrown for runtime errors in LOLCODE programs.
+/// </summary>
+public class LolRuntimeException : Exception
+{
+    public LolRuntimeException(string message) : base(message) { }
+    public LolRuntimeException(string message, Exception inner) : base(message, inner) { }
 }
