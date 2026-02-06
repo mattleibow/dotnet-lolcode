@@ -30,4 +30,20 @@ jobs:
       run: dotnet build --no-restore --configuration Release
     
     - name: Test
-      run: dotnet test --no-build --configuration Release --verbosity normal
+      run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
+    
+    - name: Upload coverage reports to Codecov
+      if: matrix.os == 'ubuntu-latest'
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: false
+    
+    - name: Upload build artifacts
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: |
+          src/*/bin/Release/**/*.dll
+          src/*/bin/Release/**/*.pdb

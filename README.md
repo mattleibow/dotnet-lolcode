@@ -1,5 +1,8 @@
 # 🐱 dotnet-lolcode
 
+[![CI](https://github.com/mattleibow/dotnet-lolcode/actions/workflows/ci.yml/badge.svg)](https://github.com/mattleibow/dotnet-lolcode/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/mattleibow/dotnet-lolcode/branch/main/graph/badge.svg)](https://codecov.io/gh/mattleibow/dotnet-lolcode)
+
 A **LOLCODE 1.2 compiler** written in C# 14 that compiles `.lol` source files to valid .NET IL assemblies, runnable with `dotnet`.
 
 > HAI 1.2
