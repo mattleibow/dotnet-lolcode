@@ -19,7 +19,6 @@ src/Lolcode.CodeAnalysis/     # Core compiler library
 └── Text/                      # SourceText, TextSpan, TextLocation
 src/Lolcode.Runtime/           # Runtime helper library (referenced by compiled programs)
 src/Lolcode.Build/             # MSBuild task (Lolc) for SDK integration
-src/Lolcode.Cli/               # CLI tool (lolcode compile/run)
 src/Lolcode.NET.Sdk/           # MSBuild SDK package (Sdk.props, Sdk.targets)
 src/Lolcode.NET.Templates/    # dotnet new template pack (lolcode-console)
 tests/Lolcode.CodeAnalysis.Tests/  # xUnit tests for compiler
@@ -75,12 +74,16 @@ The compiler API mirrors Roslyn's structure:
 - Build command: `dotnet build`
 - Test command: `dotnet test`
 
-## CLI Usage
+## Usage
 ```
-lolcode run <file.lol>                    # Compile and run
-lolcode compile <file.lol> [-o out.dll]   # Compile to DLL
-lolcode compile <file.lol> --emit-il      # Show IL disassembly
-lolcode compile <file.lol> --emit-csharp  # Show decompiled C#
+# File-based (no project needed)
+dotnet run --file hello.lol     # Requires #:sdk Lolcode.NET.Sdk at top
+dotnet hello.lol                # Shorthand
+
+# Project-based
+dotnet new lolcode -n MyApp     # Create .lolproj project
+dotnet build                    # Compile .lol → .dll
+dotnet run                      # Compile and execute
 ```
 
 ## Language Spec Reference
@@ -111,6 +114,13 @@ lolcode compile <file.lol> --emit-csharp  # Show decompiled C#
 - `SkipCompilerExecution` property supports VS/VS Code design-time builds
 - `pack-local.sh` builds a local `.nupkg` for testing SDK changes
 - `local-dev-workflow.md` documents the full local SDK dev loop
+
+## File-Based Apps
+- `dotnet run --file hello.lol` works with `#:sdk Lolcode.NET.Sdk` at top of file
+- `dotnet hello.lol` shorthand also works
+- Lexer skips `#:` directives and `#!` shebang lines (treated as trivia)
+- `Sdk.targets` filters `@(Compile)` to `.lol` files only (prevents auto-generated .cs contamination)
+- `Sdk.props` sets `ImplicitUsings=disable` to suppress GlobalUsings.g.cs
 
 ## Known Limitations
 - TYPE type (bare word type values) is deferred — spec says "under current review"

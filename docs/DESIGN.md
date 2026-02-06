@@ -13,7 +13,7 @@ This document describes the internal architecture of the LOLCODE .NET compiler, 
   - [Binder](#3-binder-semantic-analysis)
   - [Lowering](#4-lowering)
   - [Code Generator](#5-code-generator-il-emission)
-  - [Driver](#6-driver-cli)
+  - [Usage](#6-usage)
   - [Diagnostics](#7-diagnostics)
 - [`IT` Variable Semantics](#it-variable-semantics)
 - [`GTFO` Context Sensitivity](#gtfo-context-sensitivity)
@@ -21,6 +21,7 @@ This document describes the internal architecture of the LOLCODE .NET compiler, 
 - [Runtime Type Representation](#runtime-type-representation)
 - [IL Emission Strategy](#il-emission-strategy)
 - [MSBuild SDK Integration](#msbuild-sdk-integration)
+- [File-Based App Support](#file-based-app-support)
 - [VS Code Extension Architecture](#vs-code-extension-architecture)
 - [Key .NET APIs](#key-net-apis)
 - [String Interpolation Strategy](#string-interpolation-strategy)
@@ -262,14 +263,29 @@ SyntaxNode (abstract)
 - `<name>.dll` — The compiled .NET assembly
 - `<name>.runtimeconfig.json` — Runtime configuration for `dotnet` host
 
-### 6. Driver (CLI)
+### 6. Usage
 
-**Commands:**
-- `lolcode compile <file.lol> [-o output.dll]` — Compile to DLL
-- `lolcode run <file.lol>` — Compile and execute
-- `lolcode repl` — Interactive LOLCODE session (stretch goal)
+**File-based (no project needed):**
+```bash
+# hello.lol:
+# #:sdk Lolcode.NET.Sdk
+# HAI 1.2
+#   VISIBLE "HAI WORLD!"
+# KTHXBYE
 
-**API flow:**
+dotnet run --file hello.lol   # compile and execute
+dotnet hello.lol              # shorthand
+```
+
+**Project-based (`.lolproj`):**
+```bash
+dotnet new lolcode -n MyApp   # scaffold project
+cd MyApp && dotnet run        # compile and execute
+dotnet build                  # compile only
+dotnet publish                # publish for deployment
+```
+
+**Compiler API:**
 ```csharp
 var tree = SyntaxTree.ParseText(source, filePath);
 var compilation = LolcodeCompilation.Create(tree);
@@ -519,6 +535,43 @@ Lolcode.NET.Sdk.nupkg/
 **`dotnet new` Template:** The `Lolcode.NET.Templates` package provides a `dotnet new lolcode` template that scaffolds a minimal `.lolproj` + `Program.lol`.
 
 This means `dotnet build`, `dotnet run`, `dotnet publish`, `dotnet clean`, and `dotnet watch` all work natively with `.lol` projects.
+
+---
+
+## File-Based App Support
+
+LOLCODE supports .NET 10's file-based app model, allowing single-file execution without a project:
+
+```lolcode
+#:sdk Lolcode.NET.Sdk
+HAI 1.2
+  VISIBLE "HAI WORLD!"
+KTHXBYE
+```
+
+```bash
+dotnet run --file hello.lol   # or: dotnet hello.lol
+```
+
+**How it works:**
+1. The .NET SDK parses the `#:sdk Lolcode.NET.Sdk` directive and generates a virtual project using our SDK
+2. Our `Sdk.props` sets `Language=LOLCODE`, disables C# auto-generated files (`ImplicitUsings=disable`, `GenerateAssemblyInfo=false`), and globs `**/*.lol`
+3. Our `Sdk.targets` filters `@(Compile)` to `.lol` files only (prevents any stray `.cs` files from being compiled as LOLCODE)
+4. The `Lolc` MSBuild task compiles the `.lol` file and produces a .NET assembly
+5. The .NET SDK runs the resulting assembly
+
+**Lexer support:** Lines starting with `#:` (directives) and `#!` (shebang) are treated as trivia and skipped by the lexer.
+
+**Shebang support (Unix):**
+```lolcode
+#!/usr/bin/env dotnet run --file
+#:sdk Lolcode.NET.Sdk
+HAI 1.2
+  VISIBLE "SHEBANG!"
+KTHXBYE
+```
+```bash
+chmod +x hello.lol && ./hello.lol
 
 ---
 

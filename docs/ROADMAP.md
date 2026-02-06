@@ -180,21 +180,19 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [x] Write `WTF?` fall-through tests (with and without GTFO)
 - [x] Verify: `dotnet <output>.dll` works for all sample programs
 
-## Phase 5: CLI Tool (**MVP Complete**)
-> Package the compiler as a usable command-line tool.
+## Phase 5: SDK & Tooling (**MVP Complete**)
+> Package the compiler as a usable MSBuild SDK with file-based app support.
 >
 > **Depends on:** Phase 4
 
-- [x] Implement `lolcode compile <file.lol> [-o output.dll]`
-- [x] Implement `lolcode run <file.lol>` (compile + execute in temp)
-- [x] Pretty-print diagnostics with source context and colors
-- [x] Exit codes: 0 = success, 1 = compile error, 2 = runtime error
-- [x] Package as .NET global tool
-- [x] Write CLI integration tests
 - [x] Create all 15 sample programs (graduated complexity)
 - [x] Run conformance test suite: all samples compile and run with correct stdout/exit codes (343+ tests passing)
 - [x] Write diagnostic snapshot tests (stable LOLxxxx IDs, error messages for common mistakes)
 - [x] Verify: all 15 sample programs compile and run correctly
+- [x] Pretty-print diagnostics with source context and colors
+- [x] Exit codes: 0 = success, 1 = compile error, 2 = runtime error
+
+> **Note:** The original CLI tool (`Lolcode.Cli`) was replaced by the MSBuild SDK approach. All functionality is now available via `dotnet build`, `dotnet run`, and `dotnet run --file`.
 
 ---
 
@@ -251,6 +249,10 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [x] Create `pack-local.sh` for local SDK development
 - [x] Test: `dotnet build` compiles `.lol` → `.dll`
 - [x] Test: `dotnet run` executes the program
+- [x] Enable file-based app support (`dotnet run --file hello.lol` with `#:sdk` directive)
+- [x] Lexer skips `#:` directives and `#!` shebang lines
+- [x] Sdk.targets filters `@(Compile)` to `.lol` files only
+- [x] Remove CLI project (replaced by SDK + file-based apps)
 
 ## Phase 8: Debugging Support (Bonus)
 > Enable VS Code debugging for LOLCODE programs.

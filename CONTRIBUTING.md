@@ -23,8 +23,11 @@ dotnet build
 # Run tests
 dotnet test
 
-# Run a sample
-dotnet run --project src/Lolcode.Cli -- run samples/01-hello-world/hello.lol
+# Run a sample (project-based)
+cd samples/sdk-hello-world && dotnet run
+
+# Run a sample (file-based)
+dotnet run --file samples/01-hello-world/hello.lol
 ```
 
 ## How to Contribute
@@ -90,7 +93,6 @@ The MSBuild SDK (`Lolcode.NET.Sdk`) lets users build `.lolproj` projects with `d
 | `src/Lolcode.CodeAnalysis/` | Core compiler library |
 | `src/Lolcode.Runtime/` | Runtime helper library |
 | `src/Lolcode.Build/` | MSBuild task (`Lolc`) for SDK integration |
-| `src/Lolcode.Cli/` | CLI tool |
 | `src/Lolcode.NET.Sdk/` | MSBuild SDK package (Sdk.props, Sdk.targets) |
 | `src/Lolcode.NET.Templates/` | `dotnet new` template pack |
 | `tests/` | All test projects |
