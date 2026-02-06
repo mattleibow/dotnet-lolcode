@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Lolcode.Cli</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lolcode.Compiler\Lolcode.Compiler.csproj" />
+    <ProjectReference Include="..\Lolcode.Runtime\Lolcode.Runtime.csproj" />
+  </ItemGroup>
+
+</Project>

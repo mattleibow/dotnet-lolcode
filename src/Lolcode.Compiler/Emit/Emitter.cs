@@ -1,0 +1,791 @@
+using System.Collections.Immutable;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
+using System.Reflection.PortableExecutable;
+using Lolcode.Compiler.Binding;
+
+namespace Lolcode.Compiler.Emit;
+
+/// <summary>
+/// Emits a .NET assembly from a bound tree using PersistedAssemblyBuilder.
+/// All LOLCODE variables are emitted as <see cref="object"/> locals.
+/// Runtime calls go through <c>Lolcode.Runtime.LolRuntime</c>.
+/// </summary>
+public sealed class Emitter
+{
+    private readonly BoundBlockStatement _boundTree;
+    private readonly string _assemblyName;
+    private readonly string _runtimeAssemblyPath;
+
+    private TypeBuilder _typeBuilder = null!;
+    private ILGenerator _il = null!;
+    private readonly Dictionary<string, LocalBuilder> _locals = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, MethodBuilder> _methods = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, BoundFunctionDeclaration> _functionBodies = new(StringComparer.Ordinal);
+
+    // Labels for break (GTFO) support
+    private readonly Stack<Label> _loopBreakLabels = new();
+    private readonly Stack<Label> _switchBreakLabels = new();
+    private Label _functionReturnLabel;
+    private LocalBuilder? _functionReturnValue;
+
+    // Runtime method references
+    private MethodInfo _printMethod = null!;
+    private MethodInfo _readLineMethod = null!;
+    private MethodInfo _addMethod = null!;
+    private MethodInfo _subtractMethod = null!;
+    private MethodInfo _multiplyMethod = null!;
+    private MethodInfo _divideMethod = null!;
+    private MethodInfo _moduloMethod = null!;
+    private MethodInfo _greaterMethod = null!;
+    private MethodInfo _smallerMethod = null!;
+    private MethodInfo _andMethod = null!;
+    private MethodInfo _orMethod = null!;
+    private MethodInfo _xorMethod = null!;
+    private MethodInfo _notMethod = null!;
+    private MethodInfo _bothSaemMethod = null!;
+    private MethodInfo _diffrintMethod = null!;
+    private MethodInfo _smooshMethod = null!;
+    private MethodInfo _isTruthyMethod = null!;
+    private MethodInfo _castToYarnMethod = null!;
+    private MethodInfo _castToNumbrMethod = null!;
+    private MethodInfo _castToNumbarMethod = null!;
+    private MethodInfo _castToTroofMethod = null!;
+    private MethodInfo _explicitCastMethod = null!;
+
+    /// <summary>
+    /// Creates a new emitter.
+    /// </summary>
+    /// <param name="boundTree">The bound tree to emit.</param>
+    /// <param name="assemblyName">The output assembly name.</param>
+    /// <param name="runtimeAssemblyPath">Path to Lolcode.Runtime.dll.</param>
+    public Emitter(BoundBlockStatement boundTree, string assemblyName, string runtimeAssemblyPath)
+    {
+        _boundTree = boundTree;
+        _assemblyName = assemblyName;
+        _runtimeAssemblyPath = runtimeAssemblyPath;
+    }
+
+    /// <summary>
+    /// Emits the assembly to the specified output path.
+    /// </summary>
+    /// <returns>The path to the emitted DLL.</returns>
+    public string Emit(string outputPath)
+    {
+        var runtimeAssembly = Assembly.LoadFrom(_runtimeAssemblyPath);
+        var runtimeType = runtimeAssembly.GetType("Lolcode.Runtime.LolRuntime")
+            ?? throw new InvalidOperationException("Could not find LolRuntime type");
+
+        ResolveRuntimeMethods(runtimeType);
+
+        var assemblyBuilder = new PersistedAssemblyBuilder(
+            new AssemblyName(_assemblyName),
+            typeof(object).Assembly);
+
+        var moduleBuilder = assemblyBuilder.DefineDynamicModule(_assemblyName);
+        _typeBuilder = moduleBuilder.DefineType(
+            "Program",
+            TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Abstract | TypeAttributes.Sealed);
+
+        // First pass: define all function methods
+        foreach (var statement in _boundTree.Statements)
+        {
+            if (statement is BoundFunctionDeclaration funcDecl)
+            {
+                var paramTypes = new Type[funcDecl.Parameters.Length];
+                Array.Fill(paramTypes, typeof(object));
+
+                var method = _typeBuilder.DefineMethod(
+                    funcDecl.Name,
+                    MethodAttributes.Public | MethodAttributes.Static,
+                    typeof(object),
+                    paramTypes);
+
+                for (int i = 0; i < funcDecl.Parameters.Length; i++)
+                    method.DefineParameter(i + 1, ParameterAttributes.None, funcDecl.Parameters[i]);
+
+                _methods[funcDecl.Name] = method;
+                _functionBodies[funcDecl.Name] = funcDecl;
+            }
+        }
+
+        // Define Main entry point
+        var mainMethod = _typeBuilder.DefineMethod(
+            "Main",
+            MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig,
+            typeof(void),
+            Type.EmptyTypes);
+
+        // Emit function bodies
+        foreach (var kv in _functionBodies)
+        {
+            EmitFunction(kv.Key, kv.Value);
+        }
+
+        // Emit Main body
+        _il = mainMethod.GetILGenerator();
+        _locals.Clear();
+
+        // Declare IT
+        var itLocal = _il.DeclareLocal(typeof(object));
+        _locals["IT"] = itLocal;
+        _il.Emit(OpCodes.Ldnull);
+        _il.Emit(OpCodes.Stloc, itLocal);
+
+        foreach (var statement in _boundTree.Statements)
+        {
+            if (statement is not BoundFunctionDeclaration)
+                EmitStatement(statement);
+        }
+
+        _il.Emit(OpCodes.Ret);
+
+        _typeBuilder.CreateType();
+
+        // Save assembly
+        var metadataBuilder = assemblyBuilder.GenerateMetadata(out var ilStream, out _);
+        var entryPointHandle = MetadataTokens.MethodDefinitionHandle(mainMethod.MetadataToken);
+
+        var peBuilder = new ManagedPEBuilder(
+            header: new PEHeaderBuilder(
+                imageCharacteristics: Characteristics.ExecutableImage,
+                subsystem: Subsystem.WindowsCui),
+            metadataRootBuilder: new MetadataRootBuilder(metadataBuilder),
+            ilStream: ilStream,
+            entryPoint: entryPointHandle);
+
+        var peBlob = new BlobBuilder();
+        peBuilder.Serialize(peBlob);
+
+        var dllPath = outputPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
+            ? outputPath
+            : Path.ChangeExtension(outputPath, ".dll");
+
+        Directory.CreateDirectory(Path.GetDirectoryName(dllPath) ?? ".");
+
+        using (var fs = new FileStream(dllPath, FileMode.Create, FileAccess.Write))
+        {
+            peBlob.WriteContentTo(fs);
+        }
+
+        // Also write runtime config
+        WriteRuntimeConfig(dllPath);
+
+        return dllPath;
+    }
+
+    private void ResolveRuntimeMethods(Type runtimeType)
+    {
+        _printMethod = runtimeType.GetMethod("Print")!;
+        _readLineMethod = runtimeType.GetMethod("ReadLine")!;
+        _addMethod = runtimeType.GetMethod("Add")!;
+        _subtractMethod = runtimeType.GetMethod("Subtract")!;
+        _multiplyMethod = runtimeType.GetMethod("Multiply")!;
+        _divideMethod = runtimeType.GetMethod("Divide")!;
+        _moduloMethod = runtimeType.GetMethod("Modulo")!;
+        _greaterMethod = runtimeType.GetMethod("Greater")!;
+        _smallerMethod = runtimeType.GetMethod("Smaller")!;
+        _andMethod = runtimeType.GetMethod("And")!;
+        _orMethod = runtimeType.GetMethod("Or")!;
+        _xorMethod = runtimeType.GetMethod("Xor")!;
+        _notMethod = runtimeType.GetMethod("Not")!;
+        _bothSaemMethod = runtimeType.GetMethod("BothSaem")!;
+        _diffrintMethod = runtimeType.GetMethod("Diffrint")!;
+        _smooshMethod = runtimeType.GetMethod("Smoosh")!;
+        _isTruthyMethod = runtimeType.GetMethod("IsTruthy")!;
+        _castToYarnMethod = runtimeType.GetMethod("CastToYarn")!;
+        _castToNumbrMethod = runtimeType.GetMethod("CastToNumbr")!;
+        _castToNumbarMethod = runtimeType.GetMethod("CastToNumbar")!;
+        _castToTroofMethod = runtimeType.GetMethod("CastToTroof")!;
+        _explicitCastMethod = runtimeType.GetMethod("ExplicitCast")!;
+    }
+
+    private void EmitFunction(string name, BoundFunctionDeclaration decl)
+    {
+        var method = _methods[name];
+        _il = method.GetILGenerator();
+        _locals.Clear();
+
+        // IT variable for this function
+        var itLocal = _il.DeclareLocal(typeof(object));
+        _locals["IT"] = itLocal;
+        _il.Emit(OpCodes.Ldnull);
+        _il.Emit(OpCodes.Stloc, itLocal);
+
+        // Parameters are accessible by name
+        for (int i = 0; i < decl.Parameters.Length; i++)
+        {
+            var local = _il.DeclareLocal(typeof(object));
+            _locals[decl.Parameters[i]] = local;
+            _il.Emit(OpCodes.Ldarg, i);
+            _il.Emit(OpCodes.Stloc, local);
+        }
+
+        // Return handling
+        _functionReturnLabel = _il.DefineLabel();
+        _functionReturnValue = _il.DeclareLocal(typeof(object));
+        _il.Emit(OpCodes.Ldnull);
+        _il.Emit(OpCodes.Stloc, _functionReturnValue);
+
+        foreach (var statement in decl.Body.Statements)
+            EmitStatement(statement);
+
+        // Return IT by default (if no FOUND YR)
+        _il.MarkLabel(_functionReturnLabel);
+        _il.Emit(OpCodes.Ldloc, _functionReturnValue);
+        _il.Emit(OpCodes.Ret);
+    }
+
+    private void EmitStatement(BoundStatement statement)
+    {
+        switch (statement)
+        {
+            case BoundVariableDeclaration s:
+                EmitVariableDeclaration(s);
+                break;
+            case BoundAssignment s:
+                EmitAssignment(s);
+                break;
+            case BoundVisibleStatement s:
+                EmitVisible(s);
+                break;
+            case BoundGimmehStatement s:
+                EmitGimmeh(s);
+                break;
+            case BoundExpressionStatement s:
+                EmitExpressionStatement(s);
+                break;
+            case BoundIfStatement s:
+                EmitIf(s);
+                break;
+            case BoundSwitchStatement s:
+                EmitSwitch(s);
+                break;
+            case BoundLoopStatement s:
+                EmitLoop(s);
+                break;
+            case BoundGtfoStatement s:
+                EmitGtfo(s);
+                break;
+            case BoundReturnStatement s:
+                EmitReturn(s);
+                break;
+            case BoundCastStatement s:
+                EmitCastStatement(s);
+                break;
+            case BoundFunctionDeclaration:
+                // Already handled in first pass
+                break;
+        }
+    }
+
+    private void EmitVariableDeclaration(BoundVariableDeclaration decl)
+    {
+        var local = _il.DeclareLocal(typeof(object));
+        _locals[decl.Name] = local;
+
+        if (decl.Initializer != null)
+        {
+            EmitExpression(decl.Initializer);
+        }
+        else
+        {
+            _il.Emit(OpCodes.Ldnull); // NOOB
+        }
+
+        _il.Emit(OpCodes.Stloc, local);
+    }
+
+    private void EmitAssignment(BoundAssignment assignment)
+    {
+        EmitExpression(assignment.Expression);
+
+        if (_locals.TryGetValue(assignment.Name, out var local))
+        {
+            _il.Emit(OpCodes.Stloc, local);
+        }
+    }
+
+    private void EmitVisible(BoundVisibleStatement visible)
+    {
+        // Create object[] array
+        _il.Emit(OpCodes.Ldc_I4, visible.Arguments.Length);
+        _il.Emit(OpCodes.Newarr, typeof(object));
+
+        for (int i = 0; i < visible.Arguments.Length; i++)
+        {
+            _il.Emit(OpCodes.Dup);
+            _il.Emit(OpCodes.Ldc_I4, i);
+            EmitExpression(visible.Arguments[i]);
+            _il.Emit(OpCodes.Stelem_Ref);
+        }
+
+        // Push suppressNewline
+        _il.Emit(visible.SuppressNewline ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
+
+        _il.Emit(OpCodes.Call, _printMethod);
+    }
+
+    private void EmitGimmeh(BoundGimmehStatement gimmeh)
+    {
+        _il.Emit(OpCodes.Call, _readLineMethod);
+
+        if (_locals.TryGetValue(gimmeh.VariableName, out var local))
+        {
+            _il.Emit(OpCodes.Stloc, local);
+        }
+    }
+
+    private void EmitExpressionStatement(BoundExpressionStatement exprStmt)
+    {
+        EmitExpression(exprStmt.Expression);
+        // Store result in IT
+        if (_locals.TryGetValue("IT", out var itLocal))
+        {
+            _il.Emit(OpCodes.Stloc, itLocal);
+        }
+        else
+        {
+            _il.Emit(OpCodes.Pop);
+        }
+    }
+
+    private void EmitIf(BoundIfStatement ifStmt)
+    {
+        var endLabel = _il.DefineLabel();
+
+        // Check IT (the condition is already in IT from previous expression statement)
+        EmitLoadLocal("IT");
+        _il.Emit(OpCodes.Call, _isTruthyMethod);
+        var yaRlyFalse = _il.DefineLabel();
+        _il.Emit(OpCodes.Brfalse, yaRlyFalse);
+
+        // YA RLY body
+        EmitBlock(ifStmt.ThenBlock);
+        _il.Emit(OpCodes.Br, endLabel);
+
+        _il.MarkLabel(yaRlyFalse);
+
+        // MEBBE clauses
+        for (int i = 0; i < ifStmt.MebbeClauses.Length; i++)
+        {
+            var clause = ifStmt.MebbeClauses[i];
+            EmitExpression(clause.Condition);
+            _il.Emit(OpCodes.Call, _isTruthyMethod);
+            var nextClause = _il.DefineLabel();
+            _il.Emit(OpCodes.Brfalse, nextClause);
+
+            EmitBlock(clause.Body);
+            _il.Emit(OpCodes.Br, endLabel);
+
+            _il.MarkLabel(nextClause);
+        }
+
+        // NO WAI
+        if (ifStmt.ElseBlock != null)
+        {
+            EmitBlock(ifStmt.ElseBlock);
+        }
+
+        _il.MarkLabel(endLabel);
+    }
+
+    private void EmitSwitch(BoundSwitchStatement switchStmt)
+    {
+        var endLabel = _il.DefineLabel();
+        _switchBreakLabels.Push(endLabel);
+
+        // IT is the switch expression — we need it for comparison
+        // For fall-through: we use a "matched" flag
+        var matched = _il.DeclareLocal(typeof(bool));
+        _il.Emit(OpCodes.Ldc_I4_0);
+        _il.Emit(OpCodes.Stloc, matched);
+
+        foreach (var clause in switchStmt.OmgClauses)
+        {
+            var skipBody = _il.DefineLabel();
+            var enterBody = _il.DefineLabel();
+
+            // If already matched (fall-through), skip comparison
+            _il.Emit(OpCodes.Ldloc, matched);
+            _il.Emit(OpCodes.Brtrue, enterBody);
+
+            // Compare IT with clause value
+            EmitLoadLocal("IT");
+            EmitLiteralValue(clause.LiteralValue);
+            _il.Emit(OpCodes.Call, _bothSaemMethod);
+            _il.Emit(OpCodes.Brfalse, skipBody);
+
+            // Mark as matched
+            _il.MarkLabel(enterBody);
+            _il.Emit(OpCodes.Ldc_I4_1);
+            _il.Emit(OpCodes.Stloc, matched);
+
+            EmitBlock(clause.Body);
+            // Fall through to next case (no implicit break)
+
+            _il.MarkLabel(skipBody);
+        }
+
+        // OMGWTF default
+        if (switchStmt.DefaultBlock != null)
+        {
+            var skipDefault = _il.DefineLabel();
+            _il.Emit(OpCodes.Ldloc, matched);
+            _il.Emit(OpCodes.Brtrue, skipDefault);
+
+            EmitBlock(switchStmt.DefaultBlock);
+
+            _il.MarkLabel(skipDefault);
+        }
+
+        _il.MarkLabel(endLabel);
+        _switchBreakLabels.Pop();
+    }
+
+    private void EmitLoop(BoundLoopStatement loop)
+    {
+        var loopStart = _il.DefineLabel();
+        var loopEnd = _il.DefineLabel();
+        _loopBreakLabels.Push(loopEnd);
+
+        // Initialize loop variable to 0 if UPPIN/NERFIN
+        if (loop.VariableName != null)
+        {
+            var loopVar = _il.DeclareLocal(typeof(object));
+            _locals[loop.VariableName] = loopVar;
+            _il.Emit(OpCodes.Ldc_I4_0);
+            _il.Emit(OpCodes.Box, typeof(int));
+            _il.Emit(OpCodes.Stloc, loopVar);
+        }
+
+        _il.MarkLabel(loopStart);
+
+        // Check condition if present
+        if (loop.Condition != null)
+        {
+            EmitExpression(loop.Condition);
+            _il.Emit(OpCodes.Call, _isTruthyMethod);
+
+            if (loop.IsTil == true)
+            {
+                // TIL: exit when condition is true
+                _il.Emit(OpCodes.Brtrue, loopEnd);
+            }
+            else
+            {
+                // WILE: exit when condition is false
+                _il.Emit(OpCodes.Brfalse, loopEnd);
+            }
+        }
+
+        // Body
+        EmitBlock(loop.Body);
+
+        // Increment/decrement loop variable
+        if (loop.VariableName != null && loop.Operation != null)
+        {
+            if (loop.Operation == "UPPIN")
+            {
+                EmitLoadLocal(loop.VariableName);
+                EmitLiteralValue(1);
+                _il.Emit(OpCodes.Call, _addMethod);
+                EmitStoreLocal(loop.VariableName);
+            }
+            else if (loop.Operation == "NERFIN")
+            {
+                EmitLoadLocal(loop.VariableName);
+                EmitLiteralValue(1);
+                _il.Emit(OpCodes.Call, _subtractMethod);
+                EmitStoreLocal(loop.VariableName);
+            }
+        }
+
+        _il.Emit(OpCodes.Br, loopStart);
+        _il.MarkLabel(loopEnd);
+
+        _loopBreakLabels.Pop();
+    }
+
+    private void EmitGtfo(BoundGtfoStatement gtfo)
+    {
+        switch (gtfo.Context)
+        {
+            case "loop" when _loopBreakLabels.Count > 0:
+                _il.Emit(OpCodes.Br, _loopBreakLabels.Peek());
+                break;
+            case "switch" when _switchBreakLabels.Count > 0:
+                _il.Emit(OpCodes.Br, _switchBreakLabels.Peek());
+                break;
+            case "function":
+                // Store IT as return value and jump to return label
+                if (_functionReturnValue != null)
+                {
+                    EmitLoadLocal("IT");
+                    _il.Emit(OpCodes.Stloc, _functionReturnValue);
+                }
+                _il.Emit(OpCodes.Br, _functionReturnLabel);
+                break;
+        }
+    }
+
+    private void EmitReturn(BoundReturnStatement ret)
+    {
+        EmitExpression(ret.Expression);
+        if (_functionReturnValue != null)
+        {
+            _il.Emit(OpCodes.Stloc, _functionReturnValue);
+        }
+        _il.Emit(OpCodes.Br, _functionReturnLabel);
+    }
+
+    private void EmitCastStatement(BoundCastStatement cast)
+    {
+        EmitLoadLocal(cast.VariableName);
+        _il.Emit(OpCodes.Ldstr, cast.TargetType);
+        _il.Emit(OpCodes.Call, _explicitCastMethod);
+        EmitStoreLocal(cast.VariableName);
+    }
+
+    private void EmitBlock(BoundBlockStatement block)
+    {
+        foreach (var statement in block.Statements)
+            EmitStatement(statement);
+    }
+
+    private void EmitExpression(BoundExpression expression)
+    {
+        switch (expression)
+        {
+            case BoundLiteralExpression e:
+                EmitLiteralValue(e.Value);
+                break;
+            case BoundVariableExpression e:
+                EmitLoadLocal(e.Name);
+                break;
+            case BoundItExpression:
+                EmitLoadLocal("IT");
+                break;
+            case BoundUnaryExpression e:
+                EmitExpression(e.Operand);
+                _il.Emit(OpCodes.Call, _notMethod);
+                _il.Emit(OpCodes.Box, typeof(bool));
+                break;
+            case BoundBinaryExpression e:
+                EmitBinary(e);
+                break;
+            case BoundSmooshExpression e:
+                EmitSmoosh(e);
+                break;
+            case BoundAllOfExpression e:
+                EmitAllOf(e);
+                break;
+            case BoundAnyOfExpression e:
+                EmitAnyOf(e);
+                break;
+            case BoundComparisonExpression e:
+                EmitComparison(e);
+                break;
+            case BoundCastExpression e:
+                EmitCast(e);
+                break;
+            case BoundFunctionCallExpression e:
+                EmitFunctionCall(e);
+                break;
+        }
+    }
+
+    private void EmitLiteralValue(object? value)
+    {
+        switch (value)
+        {
+            case null:
+                _il.Emit(OpCodes.Ldnull);
+                break;
+            case int i:
+                _il.Emit(OpCodes.Ldc_I4, i);
+                _il.Emit(OpCodes.Box, typeof(int));
+                break;
+            case double d:
+                _il.Emit(OpCodes.Ldc_R8, d);
+                _il.Emit(OpCodes.Box, typeof(double));
+                break;
+            case string s:
+                _il.Emit(OpCodes.Ldstr, s);
+                break;
+            case bool b:
+                _il.Emit(b ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
+                _il.Emit(OpCodes.Box, typeof(bool));
+                break;
+        }
+    }
+
+    private void EmitBinary(BoundBinaryExpression binary)
+    {
+        EmitExpression(binary.Left);
+        EmitExpression(binary.Right);
+
+        MethodInfo method = binary.Operator switch
+        {
+            "SUM" => _addMethod,
+            "DIFF" => _subtractMethod,
+            "PRODUKT" => _multiplyMethod,
+            "QUOSHUNT" => _divideMethod,
+            "MOD" => _moduloMethod,
+            "BIGGR" => _greaterMethod,
+            "SMALLR" => _smallerMethod,
+            "BOTH" => _andMethod,
+            "EITHER" => _orMethod,
+            "WON" => _xorMethod,
+            _ => throw new InvalidOperationException($"Unknown operator: {binary.Operator}")
+        };
+
+        _il.Emit(OpCodes.Call, method);
+
+        // Boolean operators return bool, need to box
+        if (binary.Operator is "BOTH" or "EITHER" or "WON")
+        {
+            _il.Emit(OpCodes.Box, typeof(bool));
+        }
+    }
+
+    private void EmitSmoosh(BoundSmooshExpression smoosh)
+    {
+        // Create object[] params array
+        _il.Emit(OpCodes.Ldc_I4, smoosh.Operands.Length);
+        _il.Emit(OpCodes.Newarr, typeof(object));
+
+        for (int i = 0; i < smoosh.Operands.Length; i++)
+        {
+            _il.Emit(OpCodes.Dup);
+            _il.Emit(OpCodes.Ldc_I4, i);
+            EmitExpression(smoosh.Operands[i]);
+            _il.Emit(OpCodes.Stelem_Ref);
+        }
+
+        _il.Emit(OpCodes.Call, _smooshMethod);
+    }
+
+    private void EmitAllOf(BoundAllOfExpression allOf)
+    {
+        // ALL OF: short-circuit AND — if any is FAIL, result is FAIL
+        var falseLabel = _il.DefineLabel();
+        var endLabel = _il.DefineLabel();
+
+        foreach (var operand in allOf.Operands)
+        {
+            EmitExpression(operand);
+            _il.Emit(OpCodes.Call, _isTruthyMethod);
+            _il.Emit(OpCodes.Brfalse, falseLabel);
+        }
+
+        _il.Emit(OpCodes.Ldc_I4_1);
+        _il.Emit(OpCodes.Br, endLabel);
+
+        _il.MarkLabel(falseLabel);
+        _il.Emit(OpCodes.Ldc_I4_0);
+
+        _il.MarkLabel(endLabel);
+        _il.Emit(OpCodes.Box, typeof(bool));
+    }
+
+    private void EmitAnyOf(BoundAnyOfExpression anyOf)
+    {
+        // ANY OF: short-circuit OR — if any is WIN, result is WIN
+        var trueLabel = _il.DefineLabel();
+        var endLabel = _il.DefineLabel();
+
+        foreach (var operand in anyOf.Operands)
+        {
+            EmitExpression(operand);
+            _il.Emit(OpCodes.Call, _isTruthyMethod);
+            _il.Emit(OpCodes.Brtrue, trueLabel);
+        }
+
+        _il.Emit(OpCodes.Ldc_I4_0);
+        _il.Emit(OpCodes.Br, endLabel);
+
+        _il.MarkLabel(trueLabel);
+        _il.Emit(OpCodes.Ldc_I4_1);
+
+        _il.MarkLabel(endLabel);
+        _il.Emit(OpCodes.Box, typeof(bool));
+    }
+
+    private void EmitComparison(BoundComparisonExpression cmp)
+    {
+        EmitExpression(cmp.Left);
+        EmitExpression(cmp.Right);
+
+        if (cmp.IsEquality)
+            _il.Emit(OpCodes.Call, _bothSaemMethod);
+        else
+            _il.Emit(OpCodes.Call, _diffrintMethod);
+
+        _il.Emit(OpCodes.Box, typeof(bool));
+    }
+
+    private void EmitCast(BoundCastExpression cast)
+    {
+        EmitExpression(cast.Operand);
+        _il.Emit(OpCodes.Ldstr, cast.TargetType);
+        _il.Emit(OpCodes.Call, _explicitCastMethod);
+    }
+
+    private void EmitFunctionCall(BoundFunctionCallExpression call)
+    {
+        // Push arguments
+        foreach (var arg in call.Arguments)
+        {
+            EmitExpression(arg);
+        }
+
+        if (_methods.TryGetValue(call.FunctionName, out var method))
+        {
+            _il.Emit(OpCodes.Call, method);
+        }
+    }
+
+    private void EmitLoadLocal(string name)
+    {
+        if (_locals.TryGetValue(name, out var local))
+        {
+            _il.Emit(OpCodes.Ldloc, local);
+        }
+        else
+        {
+            _il.Emit(OpCodes.Ldnull);
+        }
+    }
+
+    private void EmitStoreLocal(string name)
+    {
+        if (_locals.TryGetValue(name, out var local))
+        {
+            _il.Emit(OpCodes.Stloc, local);
+        }
+        else
+        {
+            _il.Emit(OpCodes.Pop);
+        }
+    }
+
+    private static void WriteRuntimeConfig(string dllPath)
+    {
+        var configPath = Path.ChangeExtension(dllPath, ".runtimeconfig.json");
+        var config = """
+            {
+              "runtimeOptions": {
+                "tfm": "net10.0",
+                "framework": {
+                  "name": "Microsoft.NETCore.App",
+                  "version": "10.0.0"
+                }
+              }
+            }
+            """;
+        File.WriteAllText(configPath, config);
+    }
+}
