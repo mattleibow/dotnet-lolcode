@@ -1,33 +1,105 @@
 # LOLCODE 1.2 Language Specification
 
-This document defines the LOLCODE 1.2 language as implemented by the dotnet-lolcode compiler. It is based on the [original LOLCODE spec](https://github.com/justinmeza/lolcode-spec/blob/master/v1.2/lolcode-spec-v1.2.md) with clarifications and implementation-specific notes.
+This document defines the LOLCODE 1.2 language as implemented by the dotnet-lolcode compiler. It is based on the [official LOLCODE 1.2 spec](https://github.com/justinmeza/lolcode-spec/blob/master/v1.2/lolcode-spec-v1.2.md) (Final Draft — 12 July 2007).
 
 ## Table of Contents
 
-- [Program Structure](#program-structure)
-- [Whitespace and Line Endings](#whitespace-and-line-endings)
-- [Comments](#comments)
+- [Formatting](#formatting)
+  - [Whitespace](#whitespace)
+  - [Comments](#comments)
+  - [File Creation](#file-creation)
 - [Variables](#variables)
+  - [Scope](#scope)
+  - [Naming](#naming)
+  - [Declaration and Assignment](#declaration-and-assignment)
 - [Types](#types)
-- [Literals](#literals)
+  - [Untyped (NOOB)](#untyped-noob)
+  - [Booleans (TROOF)](#booleans-troof)
+  - [Numerical Types (NUMBR, NUMBAR)](#numerical-types-numbr-numbar)
+  - [Strings (YARN)](#strings-yarn)
+  - [Arrays (BUKKIT)](#arrays-bukkit)
+  - [Types (TYPE)](#types-type)
 - [Operators](#operators)
+  - [Calling Syntax and Precedence](#calling-syntax-and-precedence)
+  - [Math](#math)
+  - [Boolean](#boolean)
+  - [Comparison](#comparison)
+  - [Concatenation](#concatenation)
+  - [Casting](#casting)
 - [Input/Output](#inputoutput)
-- [Conditionals](#conditionals)
-- [Switch (WTF?)](#switch-wtf)
-- [Loops](#loops)
+- [Statements](#statements)
+  - [Expression Statements](#expression-statements)
+  - [Assignment Statements](#assignment-statements)
+- [Flow Control](#flow-control)
+  - [If-Then](#if-then)
+  - [Case (WTF?)](#case-wtf)
+  - [Loops](#loops)
 - [Functions](#functions)
-- [The IT Variable](#the-it-variable)
-- [Type Casting](#type-casting)
-- [String Operations](#string-operations)
-- [Boolean Operations](#boolean-operations)
-- [Comparison](#comparison)
+  - [Definition](#definition)
+  - [Returning](#returning)
+  - [Calling](#calling)
 - [Keywords Reference](#keywords-reference)
 
 ---
 
-## Program Structure
+## Formatting
 
-Every LOLCODE program must begin with `HAI` and end with `KTHXBYE`:
+### Whitespace
+
+- Spaces are used to demarcate tokens in the language, although some keyword constructs may include spaces.
+- Multiple spaces and tabs are treated as single spaces and are otherwise irrelevant.
+- Indentation is irrelevant.
+- A command starts at the beginning of a line and a newline indicates the end of a command, except in special cases.
+- A newline will be Carriage Return (`\r`), a Line Feed (`\n`), or both (`\r\n`) depending on the implementing system. This is only in regards to LOLCODE code itself, and does not indicate how these should be treated in strings or files during execution.
+- Multiple commands can be put on a single line if they are separated by a comma (`,`). In this case, the comma acts as a virtual newline or a soft-command-break.
+- Multiple lines can be combined into a single command by including three periods (`...`) or the Unicode ellipsis character (`…`) at the end of the line. This causes the contents of the next line to be evaluated as if it were on the same line.
+- Lines with line continuation can be strung together, many in a row, to allow a single command to stretch over more than one or two lines. As long as each line is ended with three periods, the next line is included, until a line without three periods is reached, at which point, the entire command may be processed.
+- A line with line continuation **may not** be followed by an empty line. Three periods may be by themselves on a single line, in which case, the empty line is "included" in the command (doing nothing), and the next line is included as well.
+- A single-line comment is always terminated by a newline. Line continuation (`...`) and soft-command-breaks (`,`) after the comment (`BTW`) are ignored.
+- Line continuation and soft-command-breaks are ignored inside quoted strings. An unterminated string literal (no closing quote) will cause an error.
+
+### Comments
+
+Single line comments are begun by `BTW`, and may occur either after a line of code, on a separate line, or following a line of code following a line separator (`,`).
+
+All of these are valid single line comments:
+
+```lolcode
+I HAS A VAR ITZ 12 BTW VAR = 12
+```
+
+```lolcode
+I HAS A VAR ITZ 12, BTW VAR = 12
+```
+
+```lolcode
+I HAS A VAR ITZ 12
+BTW VAR = 12
+```
+
+Multi-line comments are begun by `OBTW` and ended with `TLDR`, and should be started on their own lines, or following a line of code after a line separator.
+
+```lolcode
+I HAS A VAR ITZ 12
+OBTW this is a long comment block
+  see, i have more comments here
+  and here
+TLDR
+I HAS A FISH ITZ BOB
+```
+
+```lolcode
+I HAS A VAR ITZ 12, OBTW this is a long comment block
+  see, i have more comments here
+  and here
+TLDR, I HAS A FISH ITZ BOB
+```
+
+### File Creation
+
+All LOLCODE programs must be opened with the command `HAI`. `HAI` should then be followed with the current LOLCODE language version number (`1.2`, in this case). There is no current standard behavior for implementations to treat the version number, though.
+
+A LOLCODE file is closed by the keyword `KTHXBYE` which closes the `HAI` code-block.
 
 ```lolcode
 HAI 1.2
@@ -35,159 +107,258 @@ HAI 1.2
 KTHXBYE
 ```
 
-The version number (`1.2`) after `HAI` is optional but recommended.
-
-## Whitespace and Line Endings
-
-- Statements are **newline-delimited** (no semicolons)
-- A comma (`,`) can be used as a **statement separator** on a single line
-- Lines can be continued with `...` (line continuation, must be at end of line)
-- Leading/trailing whitespace on lines is ignored
-- Indentation is optional and for readability only
-
-```lolcode
-HAI 1.2
-  I HAS A x ITZ 10, I HAS A y ITZ 20    BTW two statements on one line
-  VISIBLE SUM OF x...
-    AN y                                   BTW line continuation
-KTHXBYE
-```
-
-## Comments
-
-### Single-line comments
-
-```lolcode
-BTW This is a comment
-VISIBLE "hai" BTW inline comment
-```
-
-`BTW` makes the rest of the line a comment.
-
-### Multi-line comments
-
-```lolcode
-OBTW
-  This is a multi-line comment.
-  It can span many lines.
-TLDR
-```
-
-`OBTW` must be the first token on a line. `TLDR` must also be the first token on its line.
+---
 
 ## Variables
 
-### Declaration
+### Scope
+
+All variable scope, as of this version, is local to the enclosing function or to the main program block. Variables are only accessible after declaration, and there is no global scope.
+
+### Naming
+
+Variable identifiers may be in all uppercase or lowercase letters (or a mixture of the two). They must begin with a letter and may be followed only by other letters, numbers, and underscores. No spaces, dashes, or other symbols are allowed. Variable identifiers are **case-sensitive** — `cheezburger`, `CheezBurger`, and `CHEEZBURGER` would all be different variables.
+
+### Declaration and Assignment
+
+To declare a variable, the keyword is `I HAS A` followed by the variable name. To assign the variable a value within the same statement, you can then follow the variable name with `ITZ <value>`.
+
+Assignment of a variable is accomplished with an assignment statement, `<variable> R <expression>`.
 
 ```lolcode
-I HAS A var              BTW declares var with value NOOB
-I HAS A var ITZ 42       BTW declares and initializes to NUMBR 42
-I HAS A var ITZ "hai"    BTW declares and initializes to YARN "hai"
+I HAS A VAR            BTW VAR is null and untyped
+VAR R "THREE"          BTW VAR is now a YARN and equals "THREE"
+VAR R 3                BTW VAR is now a NUMBR and equals 3
 ```
 
-### Assignment
-
-```lolcode
-var R 100                BTW assign 100 to var
-var R "string"           BTW assign "string" to var
-var R SUM OF 3 AN 5      BTW assign expression result to var
-```
-
-### Rules
-- Variable names may contain letters, numbers, and underscores
-- Variable names must start with a letter
-- Variables are **function-scoped** (not block-scoped)
-- All variables start as `NOOB` (untyped/null) if not initialized
+---
 
 ## Types
 
-LOLCODE has five types:
+The variable types that LOLCODE currently recognizes are: strings (`YARN`), integers (`NUMBR`), floats (`NUMBAR`), and booleans (`TROOF`). Arrays (`BUKKIT`) are reserved for future expansion. Typing is handled dynamically. Until a variable is given an initial value, it is untyped (`NOOB`). Casting operations operate on `TYPE` types, as well.
 
-| Type | Description | .NET Equivalent | Example |
-|------|------------|----------------|---------|
-| `NUMBR` | Integer | `int` (Int32) | `42`, `-7`, `0` |
-| `NUMBAR` | Floating-point | `double` (Double) | `3.14`, `-0.5` |
-| `YARN` | String | `string` | `"HAI"`, `""` |
-| `TROOF` | Boolean | `bool` | `WIN`, `FAIL` |
-| `NOOB` | Untyped/null | `null` | (default for uninitialized vars) |
+| Type | Description | .NET Equivalent |
+|------|------------|----------------|
+| `NUMBR` | Integer | `System.Int32` |
+| `NUMBAR` | Floating-point | `System.Double` |
+| `YARN` | String | `System.String` |
+| `TROOF` | Boolean | `System.Boolean` |
+| `NOOB` | Untyped/null | `System.Object` (null) |
+| `TYPE` | Type identifier | `System.String` (as bare word) |
+| `BUKKIT` | Array/dictionary (reserved) | `Dictionary<string, object>` |
 
-### Type Inference
-Variables are **dynamically typed** — their type is determined by the assigned value and can change at any time.
+### Untyped (NOOB)
 
-## Literals
+The untyped type (`NOOB`) cannot be implicitly cast into any type except a `TROOF`. A cast into `TROOF` makes the variable `FAIL`. Any operations on a `NOOB` that assume another type (e.g., math) result in an error.
 
-### Integer (NUMBR)
-```lolcode
-42
--7
-0
-```
+Explicit casts of a `NOOB` (untyped, uninitialized) variable are to empty/zero values for all other types:
 
-### Float (NUMBAR)
-```lolcode
-3.14
--0.5
-100.0
-```
+| Explicit Cast | Result |
+|--------------|--------|
+| `NOOB` → `TROOF` | `FAIL` |
+| `NOOB` → `NUMBR` | `0` |
+| `NOOB` → `NUMBAR` | `0.0` |
+| `NOOB` → `YARN` | `""` |
 
-### String (YARN)
-Strings are enclosed in double quotes:
-```lolcode
-"HAI WORLD"
-""
-```
+### Booleans (TROOF)
 
-**Escape sequences** (using `:` as escape character):
+The two boolean (`TROOF`) values are `WIN` (true) and `FAIL` (false). The empty string (`""`), an empty array, and numerical zero are all cast to `FAIL`. All other values evaluate to `WIN`.
+
+### Numerical Types (NUMBR, NUMBAR)
+
+A `NUMBR` is an integer as specified in the host implementation/architecture. Any contiguous sequence of digits outside of a quoted `YARN` and not containing a decimal point (`.`) is considered a `NUMBR`. A `NUMBR` may have a leading hyphen (`-`) to signify a negative number.
+
+A `NUMBAR` is a float as specified in the host implementation/architecture. It is represented as a contiguous string of digits containing exactly one decimal point. Casting a `NUMBAR` to a `NUMBR` truncates the decimal portion of the floating point number. Casting a `NUMBAR` to a `YARN` (by printing it, for example), truncates the output to a default of **two decimal places**. A `NUMBAR` may have a leading hyphen (`-`) to signify a negative number.
+
+Casting of a string to a numerical type parses the string as if it were not in quotes. If there are any non-numerical, non-hyphen, non-period characters, then it results in an error. Casting `WIN` to a numerical type results in `1` or `1.0`; casting `FAIL` results in a numerical zero.
+
+### Strings (YARN)
+
+String literals (`YARN`) are demarked with double quotation marks (`"`). Line continuation and soft-command-breaks are ignored inside quoted strings. An unterminated string literal (no closing quote) will cause an error.
+
+Within a string, all characters represent their literal value except the colon (`:`), which is the escape character. Characters immediately following the colon also take on a special meaning.
 
 | Escape | Character |
 |--------|-----------|
 | `:)` | Newline (`\n`) |
 | `:>` | Tab (`\t`) |
-| `::` | Literal colon (`:`) |
+| `:o` | Bell/beep (`\a`) |
 | `:"` | Literal double quote (`"`) |
-| `:o` | Bell character (0x07) |
-| `:(XX)` | Unicode character by hex code |
-| `:[name]` | Unicode character by name |
+| `::` | Literal colon (`:`) |
 
-### Boolean (TROOF)
+The colon may also introduce more verbose escapes enclosed within some form of bracket:
+
+| Escape | Meaning |
+|--------|---------|
+| `:(<hex>)` | Resolves the hex number into the corresponding Unicode code point |
+| `:{<var>}` | Interpolates the current value of the enclosed variable, cast as a string |
+| `:[<char name>]` | Resolves the `<char name>` in capital letters to the corresponding Unicode normative name |
+
+**String interpolation** example:
 ```lolcode
-WIN                      BTW true
-FAIL                     BTW false
+I HAS A name ITZ "CEILING CAT"
+VISIBLE "OH HAI :{name}!"         BTW prints: OH HAI CEILING CAT!
 ```
 
-### NOOB
-There is no literal for `NOOB` — it is only the default value of uninitialized variables.
+### Arrays (BUKKIT)
+
+Array and dictionary types are currently under-specified in the official LOLCODE 1.2 spec. There is general will to unify them, but indexing and definition is still under discussion. The compiler will implement `BUKKIT` as a dictionary-style container (`Dictionary<string, object>`).
+
+### Types (TYPE)
+
+The `TYPE` type only has the values of `TROOF`, `NOOB`, `NUMBR`, `NUMBAR`, `YARN`, and `TYPE`, as bare words. They may be legally cast to `TROOF` (all true except for `NOOB`) or `YARN`.
+
+```lolcode
+I HAS A mytype ITZ NUMBR          BTW mytype is a TYPE with value NUMBR
+BOTH SAEM mytype AN NUMBR         BTW WIN — type comparison
+MAEK mytype A YARN                BTW "NUMBR"
+MAEK NOOB A TROOF                 BTW FAIL — NOOB is falsy as TYPE
+```
+
+---
 
 ## Operators
 
-All operators use **prefix notation** with `AN` separating operands.
+### Calling Syntax and Precedence
 
-### Arithmetic
+Mathematical operators and functions in general rely on prefix notation. By doing this, it is possible to call and compose operations with a minimum of explicit grouping. When all operators and functions have known arity, no grouping markers are necessary. In cases where operators have variable arity, the operation is closed with `MKAY`. An `MKAY` may be omitted if it coincides with the end of the line/statement, in which case the EOL stands in for as many `MKAY`s as there are open variadic functions.
 
-| Operator | Meaning | Example |
-|----------|---------|---------|
-| `SUM OF x AN y` | Addition (x + y) | `SUM OF 3 AN 5` → 8 |
-| `DIFF OF x AN y` | Subtraction (x - y) | `DIFF OF 10 AN 3` → 7 |
-| `PRODUKT OF x AN y` | Multiplication (x * y) | `PRODUKT OF 4 AN 5` → 20 |
-| `QUOSHUNT OF x AN y` | Division (x / y) | `QUOSHUNT OF 10 AN 3` → 3 |
-| `MOD OF x AN y` | Modulo (x % y) | `MOD OF 10 AN 3` → 1 |
-| `BIGGR OF x AN y` | Maximum | `BIGGR OF 3 AN 7` → 7 |
-| `SMALLR OF x AN y` | Minimum | `SMALLR OF 3 AN 7` → 3 |
-
-**Type rules:**
-- If both operands are `NUMBR`, result is `NUMBR`
-- If either operand is `NUMBAR`, result is `NUMBAR`
-- `YARN` operands are cast to numeric types before operation
-- Integer division truncates toward zero
-
-### Operators are nestable:
-```lolcode
-SUM OF PRODUKT OF 3 AN 4 AN 5   BTW (3 * 4) + 5 = 17
+Calling unary operators then has the following syntax:
 ```
+<operator> <expression1>
+```
+
+The `AN` keyword can **optionally** be used to separate arguments, so a binary operator expression has the following syntax:
+```
+<operator> <expression1> [AN] <expression2>
+```
+
+An expression containing an operator with infinite arity can then be expressed with the following syntax:
+```
+<operator> <expr1> [[[AN] <expr2>] [AN] <expr3> ...] MKAY
+```
+
+### Math
+
+The basic math operators are binary prefix operators.
+
+```lolcode
+SUM OF <x> AN <y>       BTW +
+DIFF OF <x> AN <y>      BTW -
+PRODUKT OF <x> AN <y>   BTW *
+QUOSHUNT OF <x> AN <y>  BTW /
+MOD OF <x> AN <y>       BTW modulo
+BIGGR OF <x> AN <y>     BTW max
+SMALLR OF <x> AN <y>    BTW min
+```
+
+`<x>` and `<y>` may each be expressions in the above, so mathematical operators can be nested and grouped indefinitely.
+
+Math is performed as integer math in the presence of two `NUMBR`s, but if either of the expressions are `NUMBAR`s, then floating point math takes over.
+
+If one or both arguments are a `YARN`, they get interpreted as `NUMBAR`s if the `YARN` has a decimal point, and `NUMBR`s otherwise, then execution proceeds as above.
+
+If one or another of the arguments cannot be safely cast to a numerical type, then it fails with an error.
+
+### Boolean
+
+Boolean operators working on `TROOF`s are as follows:
+
+```lolcode
+BOTH OF <x> [AN] <y>          BTW and: WIN iff x=WIN, y=WIN
+EITHER OF <x> [AN] <y>        BTW or: FAIL iff x=FAIL, y=FAIL
+WON OF <x> [AN] <y>           BTW xor: FAIL if x=y
+NOT <x>                        BTW unary negation: WIN if x=FAIL
+ALL OF <x> [AN] <y> ... MKAY  BTW infinite arity AND
+ANY OF <x> [AN] <y> ... MKAY  BTW infinite arity OR
+```
+
+`<x>` and `<y>` in the expression syntaxes above are automatically cast as `TROOF` values if they are not already so.
+
+For `ALL OF` and `ANY OF`, `MKAY` terminates the argument list but may be omitted if it coincides with the end of the line/statement.
+
+### Comparison
+
+Comparison is done with two binary equality operators:
+
+```lolcode
+BOTH SAEM <x> [AN] <y>    BTW WIN iff x == y
+DIFFRINT <x> [AN] <y>     BTW WIN iff x != y
+```
+
+Comparisons are performed as integer math in the presence of two `NUMBR`s, but if either of the expressions are `NUMBAR`s, then floating point math takes over. Otherwise, **there is no automatic casting in the equality**, so `BOTH SAEM "3" AN 3` is `FAIL`.
+
+There are no special numerical comparison operators. Greater-than and similar comparisons are done idiomatically using the minimum and maximum operators:
+
+```lolcode
+BOTH SAEM <x> AN BIGGR OF <x> AN <y>    BTW x >= y
+BOTH SAEM <x> AN SMALLR OF <x> AN <y>   BTW x <= y
+DIFFRINT <x> AN SMALLR OF <x> AN <y>    BTW x > y
+DIFFRINT <x> AN BIGGR OF <x> AN <y>     BTW x < y
+```
+
+If `<x>` in the above formulations is too verbose or difficult to compute, the automatically created `IT` temporary variable can be used:
+```lolcode
+<expression>, DIFFRINT IT AN SMALLR OF IT AN <y>
+```
+
+### Concatenation
+
+An indefinite number of `YARN`s may be explicitly concatenated with the `SMOOSH...MKAY` operator. Arguments may optionally be separated with `AN`. As `SMOOSH` expects strings as its input arguments, it will implicitly cast all input values of other types to `YARN`s. The line ending may safely implicitly close the `SMOOSH` operator without needing an `MKAY`.
+
+```lolcode
+SMOOSH "HAI " AN var AN "!" MKAY       BTW explicit MKAY
+I HAS A x ITZ SMOOSH "A" AN "B"        BTW MKAY omitted (end of line)
+```
+
+### Casting
+
+Operators that work on specific types implicitly cast parameter values of other types. If the value cannot be safely cast, then it results in an error.
+
+An expression's value may be explicitly cast with the binary `MAEK` operator:
+
+```lolcode
+MAEK <expression> [A] <type>
+```
+
+Where `<type>` is one of `TROOF`, `YARN`, `NUMBR`, `NUMBAR`, or `NOOB`. This is only for local casting: only the resultant value is cast, not the underlying variable(s), if any.
+
+To explicitly re-cast a variable, you may create a normal assignment statement with the `MAEK` operator, or use a casting assignment statement as follows:
+
+```lolcode
+<variable> IS NOW A <type>         BTW equivalent to:
+<variable> R MAEK <variable> [A] <type>
+```
+
+### Casting Rules Summary
+
+| From → To | Result |
+|-----------|--------|
+| `NUMBR` → `YARN` | String representation (`42` → `"42"`) |
+| `NUMBAR` → `YARN` | Truncated to two decimal places (`3.14159` → `"3.14"`) |
+| `TROOF` → `YARN` | `"WIN"` or `"FAIL"` |
+| `YARN` → `NUMBR` | Parse integer; decimal YARN → truncate (non-numeric → error) |
+| `YARN` → `NUMBAR` | Parse float (non-numeric → error) |
+| `YARN` → `TROOF` | `""` → `FAIL`, non-empty → `WIN` |
+| `NUMBR` → `TROOF` | `0` → `FAIL`, nonzero → `WIN` |
+| `NUMBAR` → `TROOF` | `0.0` → `FAIL`, nonzero → `WIN` |
+| `TROOF` → `NUMBR` | `WIN` → `1`, `FAIL` → `0` |
+| `TROOF` → `NUMBAR` | `WIN` → `1.0`, `FAIL` → `0.0` |
+| `NOOB` → `TROOF` | `FAIL` (only implicit cast from NOOB) |
+| `NOOB` → other (explicit) | `0`, `0.0`, `""` (default for target type) |
+| `TYPE` → `TROOF` | All `WIN` except `NOOB` → `FAIL` |
+| `TYPE` → `YARN` | Type name as string (e.g., `"NUMBR"`) |
+
+---
 
 ## Input/Output
 
-### Output (VISIBLE)
+The print (to STDOUT or the terminal) operator is `VISIBLE`. It has infinite arity and implicitly concatenates all of its arguments after casting them to `YARN`s. It is terminated by the statement delimiter (line end or comma). The output is automatically terminated with a carriage return (`:)`), unless the final token is terminated with an exclamation point (`!`), in which case the carriage return is suppressed.
+
+```lolcode
+VISIBLE <expression> [<expression> ...][!]
+```
+
 ```lolcode
 VISIBLE "HAI WORLD!"             BTW prints with newline
 VISIBLE "NO NEWLINE"!            BTW prints without newline (! suppresses)
@@ -195,91 +366,140 @@ VISIBLE x                        BTW prints variable value
 VISIBLE "x is " x " and y is " y  BTW concatenates and prints
 ```
 
-Multiple arguments to `VISIBLE` are concatenated with no separator.
+To accept input from the user, the keyword is `GIMMEH`:
 
-### Input (GIMMEH)
 ```lolcode
-GIMMEH var                       BTW reads a line of input into var as YARN
+GIMMEH <variable>
 ```
 
-`GIMMEH` always reads input as a `YARN` (string). Cast afterwards if needed:
+Which takes `YARN` for input and stores the value in the given variable. Cast afterwards if needed:
+
 ```lolcode
 GIMMEH x
 x IS NOW A NUMBR                BTW cast to integer
 ```
 
-## Conditionals
+---
 
-### If/Else (O RLY?)
+## Statements
 
-The `O RLY?` construct tests the value of `IT` (the implicit variable):
+### Expression Statements
+
+A bare expression (e.g. a function call or math operation), without any assignment, is a legal statement in LOLCODE. Aside from any side-effects from the expression when evaluated, the final value is placed in the temporary variable `IT`. `IT`'s value remains in local scope and exists until the next time it is replaced with a bare expression.
 
 ```lolcode
-expression                       BTW result goes to IT
+SUM OF 3 AN 5                   BTW IT is now 8
+VISIBLE IT                       BTW prints 8
+O RLY?                           BTW tests IT (which is 8, truthy)
+  YA RLY, VISIBLE "truthy!"
+OIC
+```
+
+### Assignment Statements
+
+Assignment statements have no side effects with `IT`. They are generally of the form:
+
+```lolcode
+<variable> R <expression>
+```
+
+The variable being assigned may be used in the expression.
+
+---
+
+## Flow Control
+
+### If-Then
+
+The traditional if/then construct operates on the implicit `IT` variable. In the base form, there are four keywords: `O RLY?`, `YA RLY`, `NO WAI`, and `OIC`.
+
+`O RLY?` branches to the block begun with `YA RLY` if `IT` can be cast to `WIN`, and branches to the `NO WAI` block if `IT` is `FAIL`. The `NO WAI` block is closed with `OIC`. The general form is:
+
+```lolcode
+<expression>
 O RLY?
-  YA RLY                         BTW if IT is WIN (truthy)
-    BTW true branch
-  MEBBE other_condition           BTW else if (optional, repeatable)
-    BTW else-if branch
-  NO WAI                          BTW else (optional)
-    BTW false branch
-OIC                               BTW end if
-```
-
-**Truthiness:**
-- `WIN` → truthy
-- `FAIL` → falsy
-- `NOOB` → falsy
-- `NUMBR 0` → falsy, nonzero → truthy
-- `NUMBAR 0.0` → falsy, nonzero → truthy
-- `YARN ""` → falsy, non-empty → truthy
-
-### Shorthand
-```lolcode
-BOTH SAEM x AN 5, O RLY?
-  YA RLY, VISIBLE "x is 5"
-  NO WAI, VISIBLE "x is not 5"
+  YA RLY
+    <code block>
+  NO WAI
+    <code block>
 OIC
 ```
 
-## Switch (WTF?)
-
-Tests `IT` against literal values:
+Multiple statements on a line separated by a comma:
 
 ```lolcode
-x                                BTW result goes to IT
+BOTH SAEM ANIMAL AN "CAT", O RLY?
+  YA RLY, VISIBLE "J00 HAV A CAT"
+  NO WAI, VISIBLE "J00 SUX"
+OIC
+```
+
+The elseif construction: optional `MEBBE <expression>` blocks may appear between `YA RLY` and `NO WAI`. If the `<expression>` following `MEBBE` is `WIN`, then that block is performed; if not, the block is skipped until the following `MEBBE`, `NO WAI`, or `OIC`.
+
+```lolcode
+<expression>
+O RLY?
+  YA RLY
+    <code block>
+  [MEBBE <expression>
+    <code block>
+  [MEBBE <expression>
+    <code block>
+  ...]]
+  [NO WAI
+    <code block>]
+OIC
+```
+
+### Case (WTF?)
+
+The `WTF?` operates on `IT` as being the expression value for comparison. A comparison block is opened by `OMG` and **must be a literal, not an expression**. (A literal, in this case, excludes any `YARN` containing variable interpolation (`:{var}`).) Each literal must be unique.
+
+The `OMG` block can be followed by any number of statements and may be terminated by a `GTFO`, which breaks to the end of the `WTF` statement. If an `OMG` block is not terminated by a `GTFO`, then the next `OMG` block is executed as is the next until a `GTFO` or the end of the `WTF` block is reached. The optional default case is signified by `OMGWTF`.
+
+```lolcode
 WTF?
-  OMG 1                          BTW case 1
-    VISIBLE "one"
-    GTFO                         BTW break (fall-through without GTFO)
-  OMG 2                          BTW case 2
-    VISIBLE "two"
-    GTFO
-  OMG 3                          BTW case 3 (falls through to default)
-  OMGWTF                         BTW default case
-    VISIBLE "other"
+  OMG <value literal>
+    <code block>
+  [OMG <value literal>
+    <code block> ...]
+  [OMGWTF
+    <code block>]
 OIC
 ```
 
-- `OMG` cases compare `IT` to a literal value
-- Without `GTFO`, execution **falls through** to the next case
-- `OMGWTF` is the default case (optional)
-
-## Loops
-
+Example:
 ```lolcode
-IM IN YR label [operation YR var] [condition]
-  BTW loop body
-IM OUTTA YR label
+COLOR, WTF?
+  OMG "R"
+    VISIBLE "RED FISH"
+    GTFO
+  OMG "Y"
+    VISIBLE "YELLOW FISH"
+  OMG "G"
+  OMG "B"
+    VISIBLE "FISH HAS A FLAVOR"
+    GTFO
+  OMGWTF
+    VISIBLE "FISH IS TRANSPARENT"
+OIC
 ```
 
-### Components:
-- **label** — loop identifier (used to match `IM IN YR` with `IM OUTTA YR`)
-- **operation** — `UPPIN` (increment) or `NERFIN` (decrement)
-- **var** — loop variable (auto-declared if not existing)
-- **condition** — `TIL expr` (loop until true) or `WILE expr` (loop while true)
+Without `GTFO`, execution **falls through** to the next case.
 
-### Examples:
+### Loops
+
+Simple loops are demarcated with `IM IN YR <label>` and `IM OUTTA YR <label>`. Loops defined this way are infinite loops that must be explicitly exited with a `GTFO` break. The `<label>` is required but is currently unused except for marking the start and end of the loop.
+
+Iteration loops have the form:
+
+```lolcode
+IM IN YR <label> <operation> YR <variable> [TIL|WILE <expression>]
+  <code block>
+IM OUTTA YR <label>
+```
+
+Where `<operation>` may be `UPPIN` (increment by one), `NERFIN` (decrement by one), or any unary function. That operation/function is applied to the `<variable>`, which is **temporary, and local to the loop**. The `TIL <expression>` evaluates the expression as a `TROOF`: if it evaluates as `FAIL`, the loop continues once more, if not, then loop execution stops, and continues after the matching `IM OUTTA YR <label>`. The `WILE <expression>` is the converse: if the expression is `WIN`, execution continues, otherwise the loop exits.
 
 ```lolcode
 BTW count from 0 to 9
@@ -294,34 +514,49 @@ IM IN YR loop
     YA RLY, GTFO
   OIC
 IM OUTTA YR loop
-
-BTW count down from 10 to 1
-IM IN YR countdown NERFIN YR i TIL BOTH SAEM i AN 0
-  VISIBLE i
-IM OUTTA YR countdown
 ```
 
-### Loop Control:
+Loop control:
 - `GTFO` — break out of the current loop
+
+---
 
 ## Functions
 
-### Declaration:
+### Definition
+
+A function is demarked with the opening keyword `HOW IZ I` and the closing keyword `IF U SAY SO`:
+
 ```lolcode
-HOW IZ I functionName [YR param1 [AN YR param2 ...]]
-  BTW function body
-  FOUND YR returnValue             BTW return a value
+HOW IZ I <function name> [YR <argument1> [AN YR <argument2> …]]
+  <code block>
 IF U SAY SO
 ```
 
-### Calling:
+Currently, the number of arguments in a function can only be defined as a fixed number. The `<argument>`s are single-word identifiers that act as variables within the scope of the function's code. The calling parameters' values are then the initial values for the variables within the function's code block when the function is called.
+
+**Functions do not have access to the outer/calling code block's variables.**
+
+### Returning
+
+Return from the function is accomplished in one of the following ways:
+
+- `FOUND YR <expression>` returns the value of the expression.
+- `GTFO` returns with no value (`NOOB`).
+- In the absence of any explicit break, when the end of the code block is reached (`IF U SAY SO`), the value in `IT` is returned.
+
+### Calling
+
+A function of given arity is called with:
+
 ```lolcode
-I IZ functionName [YR arg1 [AN YR arg2 ...]] MKAY
+I IZ <function name> [YR <expression1> [AN YR <expression2> [AN YR <expression3> ...]]] MKAY
 ```
+
+An expression is formed by the function name followed by any arguments. Those arguments may themselves be expressions. The expressions' values are obtained before the function is called. The arity of the function is determined in the definition.
 
 The return value of a function call is stored in `IT`.
 
-### Example:
 ```lolcode
 HOW IZ I add YR a AN YR b
   FOUND YR SUM OF a AN b
@@ -331,96 +566,7 @@ I IZ add YR 3 AN YR 5 MKAY
 VISIBLE IT                         BTW prints 8
 ```
 
-### Rules:
-- Functions must be declared before they are called
-- Parameters are passed by value
-- A function without `FOUND YR` returns `NOOB`
-- `GTFO` inside a function returns `NOOB` (like a void return)
-
-## The IT Variable
-
-`IT` is a special implicit variable:
-- Every expression result is automatically stored in `IT`
-- `O RLY?` and `WTF?` test `IT` by default
-- `IT` can be used explicitly like any other variable
-- Each scope has its own `IT`
-
-```lolcode
-SUM OF 3 AN 5                    BTW IT is now 8
-VISIBLE IT                        BTW prints 8
-O RLY?                            BTW tests IT (which is 8, truthy)
-  YA RLY, VISIBLE "truthy!"
-OIC
-```
-
-## Type Casting
-
-### Expression cast (doesn't modify variable):
-```lolcode
-MAEK var A NUMBR                 BTW cast var to NUMBR (expression)
-MAEK var A YARN                  BTW cast var to YARN
-```
-
-### In-place cast (modifies variable):
-```lolcode
-var IS NOW A NUMBR               BTW cast var in-place to NUMBR
-var IS NOW A YARN                BTW cast var in-place to YARN
-```
-
-### Casting rules:
-
-| From → To | Result |
-|-----------|--------|
-| `NUMBR` → `YARN` | String representation (`42` → `"42"`) |
-| `NUMBAR` → `YARN` | String representation (`3.14` → `"3.14"`) |
-| `TROOF` → `YARN` | `"WIN"` or `"FAIL"` |
-| `YARN` → `NUMBR` | Parse integer (fail → 0) |
-| `YARN` → `NUMBAR` | Parse float (fail → 0.0) |
-| `YARN` → `TROOF` | `""` → `FAIL`, non-empty → `WIN` |
-| `NUMBR` → `TROOF` | `0` → `FAIL`, nonzero → `WIN` |
-| `NUMBAR` → `TROOF` | `0.0` → `FAIL`, nonzero → `WIN` |
-| `TROOF` → `NUMBR` | `WIN` → `1`, `FAIL` → `0` |
-| `NOOB` → any | Default value for target type |
-
-## String Operations
-
-### Concatenation (SMOOSH):
-```lolcode
-SMOOSH "HAI " AN var AN "!" MKAY
-SMOOSH x AN y MKAY
-```
-
-- All operands are implicitly cast to `YARN`
-- `MKAY` terminates the argument list
-- Result is a `YARN`
-
-## Boolean Operations
-
-| Operator | Meaning | Example |
-|----------|---------|---------|
-| `BOTH OF x AN y` | AND | `BOTH OF WIN AN FAIL` → `FAIL` |
-| `EITHER OF x AN y` | OR | `EITHER OF WIN AN FAIL` → `WIN` |
-| `WON OF x AN y` | XOR | `WON OF WIN AN WIN` → `FAIL` |
-| `NOT x` | NOT | `NOT WIN` → `FAIL` |
-| `ALL OF x AN y ... MKAY` | N-ary AND | `ALL OF WIN AN WIN AN WIN MKAY` → `WIN` |
-| `ANY OF x AN y ... MKAY` | N-ary OR | `ANY OF FAIL AN FAIL AN WIN MKAY` → `WIN` |
-
-Operands are implicitly cast to `TROOF` before evaluation.
-
-## Comparison
-
-| Operator | Meaning | Example |
-|----------|---------|---------|
-| `BOTH SAEM x AN y` | Equality (x == y) | `BOTH SAEM 3 AN 3` → `WIN` |
-| `DIFFRINT x AN y` | Inequality (x != y) | `DIFFRINT 3 AN 5` → `WIN` |
-
-**Greater than / less than** (idiomatic):
-```lolcode
-BOTH SAEM x AN BIGGR OF x AN y  BTW x >= y
-BOTH SAEM x AN SMALLR OF x AN y BTW x <= y
-DIFFRINT x AN SMALLR OF x AN y  BTW x > y
-DIFFRINT x AN BIGGR OF x AN y   BTW x < y
-```
+---
 
 ## Keywords Reference
 
@@ -458,9 +604,9 @@ DIFFRINT x AN BIGGR OF x AN y   BTW x < y
 ### Boolean
 | Keyword | Purpose |
 |---------|---------|
-| `BOTH OF ... AN` | AND |
-| `EITHER OF ... AN` | OR |
-| `WON OF ... AN` | XOR |
+| `BOTH OF ... [AN]` | AND |
+| `EITHER OF ... [AN]` | OR |
+| `WON OF ... [AN]` | XOR |
 | `NOT` | NOT |
 | `ALL OF ... MKAY` | N-ary AND |
 | `ANY OF ... MKAY` | N-ary OR |
@@ -468,8 +614,8 @@ DIFFRINT x AN BIGGR OF x AN y   BTW x < y
 ### Comparison
 | Keyword | Purpose |
 |---------|---------|
-| `BOTH SAEM ... AN` | Equality |
-| `DIFFRINT ... AN` | Inequality |
+| `BOTH SAEM ... [AN]` | Equality |
+| `DIFFRINT ... [AN]` | Inequality |
 
 ### Conditionals
 | Keyword | Purpose |
@@ -484,7 +630,7 @@ DIFFRINT x AN BIGGR OF x AN y   BTW x < y
 | Keyword | Purpose |
 |---------|---------|
 | `WTF?` | Begin switch (tests IT) |
-| `OMG` | Case label |
+| `OMG` | Case label (literal only, no `:{var}`) |
 | `OMGWTF` | Default case |
 | `GTFO` | Break |
 
@@ -515,13 +661,23 @@ DIFFRINT x AN BIGGR OF x AN y   BTW x < y
 | `YARN` | String type |
 | `TROOF` | Boolean type |
 | `NOOB` | Untyped/null type |
+| `TYPE` | Type type |
+| `BUKKIT` | Array/dictionary type (reserved) |
 | `MAEK` | Expression cast |
+| `A` | Optional keyword in cast (`MAEK x A YARN`) |
 | `IS NOW A` | In-place cast |
 
 ### Strings
 | Keyword | Purpose |
 |---------|---------|
 | `SMOOSH ... MKAY` | String concatenation |
+| `:{var}` | Variable interpolation in strings |
+
+### Boolean Literals
+| Keyword | Purpose |
+|---------|---------|
+| `WIN` | Boolean true |
+| `FAIL` | Boolean false |
 
 ### Comments
 | Keyword | Purpose |
@@ -533,10 +689,8 @@ DIFFRINT x AN BIGGR OF x AN y   BTW x < y
 ### Misc
 | Keyword | Purpose |
 |---------|---------|
-| `AN` | Operand separator |
-| `MKAY` | Expression list terminator |
-| `WIN` | Boolean true |
-| `FAIL` | Boolean false |
-| `,` | Statement separator |
-| `...` | Line continuation |
+| `AN` | Optional operand separator |
+| `MKAY` | Variadic expression terminator (may be omitted at EOL) |
+| `,` | Statement separator (soft-command-break) |
+| `...` / `…` | Line continuation |
 | `!` | Suppress newline (after VISIBLE) |

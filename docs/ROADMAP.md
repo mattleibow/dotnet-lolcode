@@ -15,6 +15,8 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 
 ## Phase 1: Lexer (Tokenizer)
 > Convert source text into a classified token stream.
+>
+> **Depends on:** Phase 0
 
 - [ ] Define `SyntaxKind` enum (all keywords, operators, literals, trivia)
 - [ ] Implement `SyntaxToken` record (Kind, Text, Value, Span)
@@ -25,15 +27,20 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
   - [ ] Single-character tokens (commas, newlines)
   - [ ] Number literals (NUMBR and NUMBAR)
   - [ ] String literals with LOLCODE escape sequences
+  - [ ] String interpolation `:{var}` handling
+  - [ ] Unicode escapes `:(<hex>)` and `:[<name>]`
   - [ ] Multi-word keyword recognition with lookahead
-  - [ ] Identifier recognition
+  - [ ] Identifier recognition (case-sensitive)
   - [ ] Comment handling (BTW, OBTW/TLDR)
-  - [ ] Line continuation (`...`)
+  - [ ] Line continuation (`...` and `…`)
+  - [ ] Soft-command-break (`,`) as virtual newline
 - [ ] Write lexer tests for all token types
 - [ ] Verify: can tokenize all sample programs
 
 ## Phase 2: Parser (AST Construction)
 > Build an Abstract Syntax Tree from the token stream using recursive descent.
+>
+> **Depends on:** Phase 1
 
 - [ ] Define AST node base classes (`SyntaxNode`, `StatementSyntax`, `ExpressionSyntax`)
 - [ ] Define all statement node types
@@ -72,47 +79,70 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 
 ## Phase 3: Binder (Semantic Analysis)
 > Validate semantics, resolve types, and produce a bound tree.
+>
+> **Depends on:** Phase 2
 
-- [ ] Define type symbols (`TypeSymbol` for NUMBR, NUMBAR, YARN, TROOF, NOOB)
+- [ ] Define type symbols (`TypeSymbol` for NUMBR, NUMBAR, YARN, TROOF, NOOB, TYPE, BUKKIT)
 - [ ] Define `VariableSymbol` and `FunctionSymbol`
 - [ ] Implement `BoundScope` (nested scopes for variables/functions)
 - [ ] Define bound node hierarchy (mirrors syntax nodes with type info)
 - [ ] Implement `Binder`
   - [ ] Variable declaration and lookup
   - [ ] Function declaration and lookup
+  - [ ] Enforce function scope isolation (no outer variable access)
   - [ ] Type inference from literals and expressions
-  - [ ] Implicit type coercion rules
+  - [ ] Implicit type coercion rules (NOOB → TROOF only; YARN in math → parse as NUMBR/NUMBAR)
+  - [ ] NOOB restriction enforcement (error on implicit cast except TROOF)
   - [ ] `IT` variable management per scope
+  - [ ] Implicit `IT` return from functions (when no FOUND YR)
+  - [ ] No automatic casting in equality comparisons
   - [ ] Semantic error reporting
 - [ ] Write binder tests
 - [ ] Verify: all sample programs pass semantic analysis
 
 ## Phase 4: IL Emitter (Code Generation)
 > Generate .NET IL from the bound tree and save as a runnable DLL.
+>
+> **Depends on:** Phase 3
 
+- [ ] Create `Lolcode.Runtime` support library (runtime helpers)
+  - [ ] `LolRuntime.IsTruthy(object)` → truthiness evaluation
+  - [ ] `LolRuntime.Coerce(object, LolType)` → explicit casting
+  - [ ] `LolRuntime.Add/Subtract/Multiply/Divide/Modulo` → type-aware arithmetic
+  - [ ] `LolRuntime.Equal/NotEqual` → type-aware comparison
+  - [ ] `LolRuntime.Concat(object[])` → SMOOSH implementation
+  - [ ] `LolRuntime.Print(object, bool)` → VISIBLE with newline suppression
+  - [ ] `LolRuntime.ReadInput()` → GIMMEH wrapper
 - [ ] Implement `Emitter` with `PersistedAssemblyBuilder`
   - [ ] Assembly and module setup
   - [ ] Entry point (`Main` method) generation
-  - [ ] Local variable allocation
+  - [ ] Local variable allocation (as `object` for dynamic typing)
+  - [ ] Static type specialization (use native opcodes when types are known)
   - [ ] Literal loading (ldstr, ldc.i4, ldc.r8)
   - [ ] Variable load/store (ldloc, stloc)
-  - [ ] `VISIBLE` → `Console.WriteLine`
+  - [ ] `VISIBLE` → `LolRuntime.Print` or `Console.WriteLine`
   - [ ] `GIMMEH` → `Console.ReadLine`
-  - [ ] Arithmetic → IL math opcodes (add, sub, mul, div, rem)
-  - [ ] Comparison → ceq + branch instructions
+  - [ ] Arithmetic → runtime helpers or native IL opcodes
+  - [ ] Comparison → runtime helpers (no auto-cast across types)
   - [ ] Boolean logic → and, or, xor, not
   - [ ] Conditionals → brfalse/brtrue + labels
   - [ ] Loops → labels + br (branch back)
   - [ ] Functions → DefineMethod + call
-  - [ ] String concatenation → String.Concat
-  - [ ] Type casting → conversion opcodes
+  - [ ] String concatenation → `LolRuntime.Concat` or `String.Concat`
+  - [ ] String interpolation → expand `:{var}` at compile time
+  - [ ] Type casting → conversion opcodes / runtime helpers
   - [ ] `BIGGR OF` / `SMALLR OF` → Math.Max / Math.Min
+  - [ ] TYPE values → string representations
+  - [ ] BUKKIT → Dictionary<string, object> operations
 - [ ] Generate `.runtimeconfig.json` alongside DLL
+- [ ] Reference `Lolcode.Runtime.dll` in output
 - [ ] Write emitter tests (compile → run → assert stdout)
 - [ ] Verify: `dotnet <output>.dll` works for all sample programs
 
 ## Phase 5: CLI Tool (**MVP Complete**)
 > Package the compiler as a usable command-line tool.
+>
+> **Depends on:** Phase 4
 
 - [ ] Implement `lolcode compile <file.lol> [-o output.dll]`
 - [ ] Implement `lolcode run <file.lol>` (compile + execute in temp)
@@ -130,11 +160,13 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 
 ## Phase 6: VS Code Extension
 > Syntax highlighting, snippets, and build integration for VS Code.
+>
+> **Depends on:** Phase 5 (CLI tool must exist for build tasks)
 
 - [ ] Scaffold VS Code extension (`yo code`)
 - [ ] Create TextMate grammar (`lolcode.tmLanguage.json`)
   - [ ] Keywords (HAI, KTHXBYE, VISIBLE, etc.)
-  - [ ] Type names (NUMBR, NUMBAR, YARN, TROOF, NOOB)
+  - [ ] Type names (NUMBR, NUMBAR, YARN, TROOF, NOOB, TYPE, BUKKIT)
   - [ ] Comments (BTW, OBTW...TLDR)
   - [ ] Strings with escape sequences
   - [ ] Number literals
@@ -156,17 +188,24 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 
 ## Phase 7: MSBuild SDK Integration
 > Enable `dotnet build` and `dotnet run` for `.lol` projects.
+>
+> **Depends on:** Phase 5 (compiler CLI must work)
 
 - [ ] Create `Lolcode.Sdk` NuGet package
-- [ ] Implement `Sdk.props` (default properties, item groups)
-- [ ] Implement `Sdk.targets` (CompileLolcode target)
+- [ ] Implement `Sdk.props` (default properties, item groups, framework refs)
+- [ ] Implement `Sdk.targets` (CompileLolcode target with Inputs/Outputs for incremental builds)
 - [ ] Implement `LolcodeCompileTask` (custom MSBuild task)
+- [ ] Auto-reference `Lolcode.Runtime.dll` in output
+- [ ] Generate `.runtimeconfig.json` in build targets
+- [ ] Handle design-time builds gracefully (VS/VS Code)
 - [ ] Support `<Project Sdk="Lolcode.Sdk">` in project files
 - [ ] Test: `dotnet build` compiles `.lol` → `.dll`
 - [ ] Test: `dotnet run` executes the program
 
 ## Phase 8: Debugging Support (Bonus)
 > Enable VS Code debugging for LOLCODE programs.
+>
+> **Depends on:** Phase 4 (emitter) + Phase 6 (VS Code extension)
 
 - [ ] Emit PDB debug symbols with source mapping
 - [ ] Implement Debug Adapter Protocol (DAP) server

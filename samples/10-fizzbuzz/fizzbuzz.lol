@@ -2,13 +2,8 @@ BTW FizzBuzz - The classic programming challenge in LOLCODE
 BTW Demonstrates: loops, conditionals, modulo, string ops, combined logic
 
 HAI 1.2
+  I HAS A i ITZ 1
   IM IN YR fizzbuzz UPPIN YR i TIL BOTH SAEM i AN 101
-    BTW skip zero
-    BOTH SAEM i AN 0
-    O RLY?
-      YA RLY, GTFO
-    OIC
-
     I HAS A out ITZ ""
 
     BTW check divisible by 3

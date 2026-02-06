@@ -86,6 +86,8 @@ Source Text (.lol)
 - Produces `SyntaxToken` records: `(SyntaxKind Kind, string Text, object? Value, TextSpan Span)`
 - Multi-word keywords (e.g., `I HAS A`, `IM IN YR`) are recognized as single tokens via lookahead
 - Handles LOLCODE-specific escapes in strings (`:)` = newline, `:>` = tab, `::` = colon, `:"` = quote)
+- Handles string interpolation `:{var}` within YARN literals
+- `AN` keyword is optional between operands per spec
 
 **Key challenges:**
 - LOLCODE has many multi-word keywords requiring lookahead
@@ -130,6 +132,7 @@ SyntaxNode (abstract)
     ├── ComparisonExpressionSyntax # BOTH SAEM x AN y
     ├── CastExpressionSyntax       # MAEK x A NUMBR
     ├── SmooshExpressionSyntax     # SMOOSH x AN y MKAY
+    ├── InterpolatedStringExpressionSyntax # "hai :{var}!"
     ├── FunctionCallExpressionSyntax # I IZ func YR arg MKAY
     └── NaryExpressionSyntax       # ALL OF x AN y AN z MKAY
 ```
@@ -146,12 +149,13 @@ SyntaxNode (abstract)
 - Error reporting for: undeclared variables, type mismatches, invalid operations, etc.
 
 **Type coercion rules (LOLCODE-specific):**
-- `NOOB` + numeric context → 0
-- `NOOB` + string context → `""`
-- `NOOB` + boolean context → `FAIL`
+- `NOOB` → `TROOF` = `FAIL` (this is the **only** implicit NOOB cast)
+- `NOOB` in any other context without explicit cast = **runtime error**
 - `NUMBR` + `NUMBAR` → `NUMBAR` (float wins)
-- `YARN` in arithmetic → attempt parse to `NUMBR`/`NUMBAR`
+- `YARN` in arithmetic → attempt parse to `NUMBR` (no decimal point) or `NUMBAR` (has decimal point); non-numeric YARN = error
 - Any type → `TROOF`: empty/zero/null = `FAIL`, everything else = `WIN`
+- **Equality comparisons have NO automatic casting**: `BOTH SAEM "3" AN 3` is `FAIL`
+- Functions with no explicit `FOUND YR` return the value of `IT` at the end of the code block
 
 **Output:** `BoundTree` with `BoundNode` hierarchy (mirrors AST but with resolved type information)
 
@@ -229,7 +233,63 @@ error LOL0001: Undeclared variable 'x'
 | `NUMBAR` | `System.Double` | `float64` | `0.0` |
 | `YARN` | `System.String` | `string` | `""` |
 | `TROOF` | `System.Boolean` | `bool` | `FAIL` (false) |
-| `NOOB` | `System.Object?` | `object` | `null` |
+| `NOOB` | `System.Object` (null) | `object` | `null` |
+| `TYPE` | `System.String` (bare word) | `string` | N/A |
+| `BUKKIT` | `Dictionary<string, object>` | `object` | empty dictionary |
+
+---
+
+## Runtime Type Representation
+
+LOLCODE is dynamically typed — variables can change type at any time. This poses a challenge for .NET IL, which is statically typed at the opcode level.
+
+### Strategy: Object-Backed Variables with Runtime Helpers
+
+All LOLCODE variables are emitted as `System.Object` locals in IL. Arithmetic, comparison, and boolean operations use **runtime helper methods** that:
+1. Inspect the runtime type of operands
+2. Perform implicit coercion per LOLCODE rules
+3. Execute the operation
+4. Return the result (boxed if needed)
+
+### Runtime Helper Library (`Lolcode.Runtime`)
+
+A small runtime support assembly provides these helpers, referenced by all compiled LOLCODE programs:
+
+| Helper Method | Purpose |
+|--------------|---------|
+| `LolRuntime.IsTruthy(object)` → `bool` | Evaluate truthiness per LOLCODE rules |
+| `LolRuntime.Coerce(object, LolType)` → `object` | Explicit cast with LOLCODE semantics |
+| `LolRuntime.Add(object, object)` → `object` | `SUM OF` with type promotion |
+| `LolRuntime.Subtract(object, object)` → `object` | `DIFF OF` with type promotion |
+| `LolRuntime.Multiply(object, object)` → `object` | `PRODUKT OF` with type promotion |
+| `LolRuntime.Divide(object, object)` → `object` | `QUOSHUNT OF` with type promotion |
+| `LolRuntime.Modulo(object, object)` → `object` | `MOD OF` with type promotion |
+| `LolRuntime.Equal(object, object)` → `bool` | `BOTH SAEM` with type awareness |
+| `LolRuntime.Concat(object[])` → `string` | `SMOOSH` — cast all to YARN and join |
+| `LolRuntime.Print(object, bool)` → `void` | `VISIBLE` with optional newline suppression |
+| `LolRuntime.ReadInput()` → `string` | `GIMMEH` wrapper |
+
+### IL Emission Example (Dynamic)
+
+For `SUM OF x AN y` where `x` and `y` are dynamically typed:
+```
+ldloc x           // push object
+ldloc y           // push object
+call LolRuntime.Add(object, object)  // returns object
+stloc result      // store result
+```
+
+### Optimization: Static Type Specialization
+
+When the binder can **prove** the types at compile time (e.g., `I HAS A x ITZ 42` is always `NUMBR`), the emitter can use native IL opcodes directly:
+```
+ldloc.0           // load int32
+ldloc.1           // load int32
+add               // native int add
+stloc.2           // store int32
+```
+
+This optimization avoids boxing/unboxing overhead for the common case where types are known.
 
 ---
 
@@ -281,9 +341,26 @@ The `Lolcode.Sdk` package enables:
 ```
 
 **Implementation:**
-- `Sdk.props` — Sets default properties, defines `*.lol` item group
-- `Sdk.targets` — Defines `CompileLolcode` target that runs before `Build`
-- `LolcodeCompileTask` — Custom MSBuild task invoking the compiler
+- `Sdk.props` — Sets default properties, defines `*.lol` item group, imports framework references
+- `Sdk.targets` — Defines `CompileLolcode` target that runs before `Build`, with proper `Inputs`/`Outputs` for incremental build support
+- `LolcodeCompileTask` — Custom MSBuild task invoking the compiler library directly (in-process) or via CLI tool
+
+**NuGet SDK Package Layout:**
+```
+Lolcode.Sdk.nupkg/
+├── Sdk/
+│   ├── Sdk.props          # Auto-imported before project file
+│   └── Sdk.targets        # Auto-imported after project file
+├── tools/
+│   └── LolcodeCompileTask.dll  # The MSBuild task assembly
+└── Lolcode.Sdk.nuspec
+```
+
+**Key considerations:**
+- Incremental builds: `Inputs` are `*.lol` files, `Outputs` are the compiled DLL — MSBuild skips compilation if inputs haven't changed
+- Design-time builds: The SDK must handle VS/VS Code design-time builds gracefully (no compilation, just provide item metadata)
+- Dependency acquisition: `Lolcode.Runtime.dll` (the runtime helper library) must be included as a reference automatically
+- The `Sdk.targets` generates the `.runtimeconfig.json` alongside the output DLL
 
 This means `dotnet build` and `dotnet run` work natively with `.lol` projects.
 
