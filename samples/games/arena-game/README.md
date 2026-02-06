@@ -9,7 +9,7 @@ A text-based RPG arena game written entirely in LOLCODE, built with the `Lolcode
 dotnet build dotnet-lolcode.slnx
 
 # Then run the game:
-cd samples/sdk-arena-game
+cd samples/games/arena-game
 dotnet run
 ```
 

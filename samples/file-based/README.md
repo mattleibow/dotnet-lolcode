@@ -22,4 +22,4 @@ dotnet build dotnet-lolcode.slnx
 
 > **Note:** File-based apps use NuGet to resolve the `#:sdk` directive, so local testing
 > requires the SDK to be published as a NuGet package. For development, use the project-based
-> samples (`samples/sdk-hello-world/`) which work directly from the source tree.
+> samples (`samples/basics/hello-world/`) which work directly from the source tree.

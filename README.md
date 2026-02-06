@@ -122,7 +122,7 @@ dotnet new lolcode -n MyApp
 cd MyApp && dotnet run
 ```
 
-See [samples/sdk-hello-world](samples/sdk-hello-world/) for a complete example.
+See [samples/basics/hello-world](samples/basics/hello-world/) for a complete example.
 
 ## Example: Hello World
 
@@ -182,7 +182,7 @@ dotnet-lolcode/
 ├── tests/
 │   ├── Lolcode.CodeAnalysis.Tests/ # Unit + end-to-end + conformance tests
 │   └── ...                       # 18 test categories, 117 test pairs
-├── samples/                      # Example programs + SDK samples
+├── samples/                      # Example programs (basics, programs, games)
 └── docs/                         # Design documents and language spec
 ```
 
@@ -243,23 +243,38 @@ dotnet test --filter "ConformanceTests"
 
 ## Sample Programs
 
-| # | Sample | Concepts |
-|---|--------|----------|
-| 01 | [Hello World](samples/01-hello-world/hello.lol) | Program structure, VISIBLE |
-| 02 | [Variables](samples/02-variables/variables.lol) | I HAS A, ITZ, R, types |
-| 03 | [Math](samples/03-math/math.lol) | SUM OF, DIFF OF, PRODUKT OF, etc. |
-| 04 | [Conditionals](samples/04-conditionals/conditionals.lol) | O RLY?, YA RLY, NO WAI, MEBBE |
-| 05 | [Loops](samples/05-loops/loops.lol) | IM IN YR, UPPIN, NERFIN, TIL, WILE |
-| 06 | [Functions](samples/06-functions/functions.lol) | HOW IZ I, FOUND YR, IF U SAY SO |
-| 07 | [String Ops](samples/07-string-ops/strings.lol) | SMOOSH, string escapes |
-| 08 | [Casting](samples/08-casting/casting.lol) | MAEK, IS NOW A |
-| 09 | [Switch](samples/09-switch/switch.lol) | WTF?, OMG, OMGWTF |
-| 10 | [FizzBuzz](samples/10-fizzbuzz/fizzbuzz.lol) | Combined: loops + conditionals + math |
-| 11 | [Fibonacci](samples/11-fibonacci/fibonacci.lol) | Functions + recursion |
-| 12 | [Guessing Game](samples/12-guessing-game/guess.lol) | I/O + loops + conditionals |
-| 13 | [Recursion](samples/13-recursion/recursion.lol) | Recursive functions |
-| 14 | [Calculator](samples/14-string-calculator/calculator.lol) | Parsing + switch + functions |
-| 15 | [Adventure Game](samples/15-adventure-game/adventure.lol) | Full program: I/O, state, functions |
+See [samples/](samples/) for the full list. Every sample is runnable with `dotnet run`:
+
+**Basics** — one concept per sample:
+
+| Sample | Run | Concepts |
+|--------|-----|----------|
+| [Hello World](samples/basics/hello-world/) | `dotnet run --project samples/basics/hello-world` | Program structure, VISIBLE |
+| [Variables](samples/basics/variables/) | `dotnet run --project samples/basics/variables` | I HAS A, ITZ, R, types |
+| [Math](samples/basics/math/) | `dotnet run --project samples/basics/math` | SUM OF, DIFF OF, PRODUKT OF, etc. |
+| [Conditionals](samples/basics/conditionals/) | `dotnet run --project samples/basics/conditionals` | O RLY?, YA RLY, NO WAI, MEBBE |
+| [Loops](samples/basics/loops/) | `dotnet run --project samples/basics/loops` | IM IN YR, UPPIN, NERFIN, TIL, WILE |
+| [Functions](samples/basics/functions/) | `dotnet run --project samples/basics/functions` | HOW IZ I, FOUND YR, IF U SAY SO |
+| [String Ops](samples/basics/string-ops/) | `dotnet run --project samples/basics/string-ops` | SMOOSH, string escapes |
+| [Casting](samples/basics/casting/) | `dotnet run --project samples/basics/casting` | MAEK, IS NOW A |
+| [Switch](samples/basics/switch/) | `dotnet run --project samples/basics/switch` | WTF?, OMG, OMGWTF |
+
+**Programs** — algorithmic demos:
+
+| Sample | Run | Concepts |
+|--------|-----|----------|
+| [FizzBuzz](samples/programs/fizzbuzz/) | `dotnet run --project samples/programs/fizzbuzz` | Loops + conditionals + math |
+| [Fibonacci](samples/programs/fibonacci/) | `dotnet run --project samples/programs/fibonacci` | Functions + recursion |
+| [Recursion](samples/programs/recursion/) | `dotnet run --project samples/programs/recursion` | Recursive functions |
+| [Calculator](samples/programs/string-calculator/) | `dotnet run --project samples/programs/string-calculator` | Parsing + switch + functions |
+
+**Games** — interactive programs:
+
+| Sample | Run | Description |
+|--------|-----|-------------|
+| [Guessing Game](samples/games/guessing-game/) | `dotnet run --project samples/games/guessing-game` | Number guessing |
+| [Adventure Game](samples/games/adventure-game/) | `dotnet run --project samples/games/adventure-game` | Room-based text adventure |
+| [Arena Game](samples/games/arena-game/) | `dotnet run --project samples/games/arena-game` | Turn-based RPG battle |
 
 ## License
 

@@ -3,9 +3,9 @@ using System.Diagnostics;
 namespace Lolcode.CodeAnalysis.Tests;
 
 /// <summary>
-/// Integration tests that build and run sample projects using the LOLCODE SDK.
-/// These tests verify the MSBuild integration works end-to-end by invoking
-/// <c>dotnet build</c> and <c>dotnet run</c> on real <c>.lolproj</c> files.
+/// Integration tests that build sample projects using the LOLCODE SDK.
+/// Verifies the MSBuild integration works end-to-end by invoking
+/// <c>dotnet build</c> on real <c>.lolproj</c> files.
 /// </summary>
 public class SdkSampleTests
 {
@@ -43,33 +43,38 @@ public class SdkSampleTests
         return (process.ExitCode, stdout, stderr);
     }
 
-    [Fact]
-    public void SdkHelloWorld_Builds()
+    /// <summary>
+    /// Discovers all .lolproj sample projects for parameterized testing.
+    /// </summary>
+    public static IEnumerable<object[]> GetSampleProjects()
     {
-        var sampleDir = Path.Combine(RepoRoot, "samples", "sdk-hello-world");
-        var (exitCode, stdout, stderr) = RunDotnet("build", sampleDir);
+        string samplesDir = Path.Combine(RepoRoot, "samples");
+        foreach (string projFile in Directory.EnumerateFiles(samplesDir, "*.lolproj", SearchOption.AllDirectories))
+        {
+            string relativePath = Path.GetRelativePath(RepoRoot, Path.GetDirectoryName(projFile)!);
+            yield return [relativePath];
+        }
+    }
 
-        exitCode.Should().Be(0, $"dotnet build failed:\n{stderr}");
+    [Theory]
+    [MemberData(nameof(GetSampleProjects))]
+    public void Sample_Builds(string sampleDir)
+    {
+        var fullPath = Path.Combine(RepoRoot, sampleDir);
+        var (exitCode, stdout, stderr) = RunDotnet("build", fullPath);
+
+        exitCode.Should().Be(0, $"dotnet build failed for {sampleDir}:\n{stderr}\n{stdout}");
     }
 
     [Fact]
-    public void SdkHelloWorld_Runs_CorrectOutput()
+    public void HelloWorld_Runs_CorrectOutput()
     {
-        var sampleDir = Path.Combine(RepoRoot, "samples", "sdk-hello-world");
+        var sampleDir = Path.Combine(RepoRoot, "samples", "basics", "hello-world");
         var (exitCode, stdout, stderr) = RunDotnet("run", sampleDir);
 
         exitCode.Should().Be(0, $"dotnet run failed:\n{stderr}");
 
         var output = stdout.Replace("\r\n", "\n").TrimEnd('\n');
-        output.Should().Be("HAI WORLD!\nI CAN HAS .NET LOLCODE SDK!");
-    }
-
-    [Fact]
-    public void SdkArenaGame_Builds()
-    {
-        var sampleDir = Path.Combine(RepoRoot, "samples", "sdk-arena-game");
-        var (exitCode, stdout, stderr) = RunDotnet("build", sampleDir);
-
-        exitCode.Should().Be(0, $"dotnet build failed:\n{stderr}");
+        output.Should().Be("HAI WORLD!");
     }
 }

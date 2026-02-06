@@ -245,7 +245,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [x] Handle design-time builds (`SkipCompilerExecution` property)
 - [x] Support `<Project Sdk="Lolcode.NET.Sdk">` in `.lolproj` files
 - [x] Create `dotnet new lolcode` template (`src/Lolcode.NET.Templates/`)
-- [x] Create SDK sample project (`samples/sdk-hello-world/`)
+- [x] Create SDK sample project (`samples/basics/hello-world/`)
 - [x] Create `pack-local.sh` for local SDK development (replaced by source-tree imports)
 - [x] Test: `dotnet build` compiles `.lol` → `.dll`
 - [x] Test: `dotnet run` executes the program

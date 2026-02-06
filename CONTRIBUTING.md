@@ -24,10 +24,10 @@ dotnet build
 dotnet test
 
 # Run a sample (project-based)
-cd samples/sdk-hello-world && dotnet run
+cd samples/basics/hello-world && dotnet run
 
 # Run a sample (file-based)
-dotnet run --file samples/01-hello-world/hello.lol
+dotnet run --file samples/file-based/hello.lol
 ```
 
 ## How to Contribute
@@ -83,7 +83,7 @@ Sample programs live in `samples/` and are numbered by complexity. If you add a 
 The MSBuild SDK (`Lolcode.NET.Sdk`) lets users build `.lolproj` projects with `dotnet build`. Sample projects in `samples/` import the SDK directly from the source tree — no NuGet packaging needed:
 
 1. Build the solution: `dotnet build dotnet-lolcode.slnx`
-2. Test a sample: `cd samples/sdk-hello-world && dotnet build && dotnet run`
+2. Test a sample: `cd samples/basics/hello-world && dotnet build && dotnet run`
 
 The `samples/Directory.Build.props` overrides the compiler tools path to point at the source-built `Lolcode.Build` output. Changes to the compiler or SDK are picked up immediately after rebuilding the solution.
 

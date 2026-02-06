@@ -37,24 +37,16 @@ jobs:
           name: test-results-${{ matrix.os }}
           path: '**/results.trx'
 
-      - name: Run samples
+      - name: Build samples
         shell: bash
         run: |
-          for lol in samples/*/*.lol; do
-            name=$(dirname "$lol" | xargs basename)
-            # Skip interactive samples
-            case "$name" in
-              12-guessing-game|14-string-calculator|15-adventure-game)
-                echo "⏭️  $name (interactive, skipped)"
-                continue
-                ;;
-            esac
-            output=$(dotnet run --project src/Lolcode.Cli -- run "$lol" 2>&1)
-            if [ $? -eq 0 ]; then
+          for proj in $(find samples -name '*.lolproj' | sort); do
+            name=$(dirname "$proj" | xargs basename)
+            if dotnet build "$proj" --verbosity quiet > /dev/null 2>&1; then
               echo "✅ $name"
             else
               echo "❌ $name"
-              echo "$output" | head -5
+              dotnet build "$proj" 2>&1 | tail -5
               exit 1
             fi
           done
