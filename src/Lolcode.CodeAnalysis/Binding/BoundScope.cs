@@ -8,7 +8,7 @@ namespace Lolcode.CodeAnalysis.Binding;
 /// Lexical scope for symbol resolution during binding.
 /// Supports nested scopes via parent chain (Roslyn's nested binder pattern).
 /// </summary>
-public sealed class BoundScope
+internal sealed class BoundScope
 {
     private readonly Dictionary<string, VariableSymbol> _variables = new(StringComparer.Ordinal);
     private readonly Dictionary<string, FunctionSymbol> _functions = new(StringComparer.Ordinal);

@@ -7,7 +7,7 @@ namespace Lolcode.CodeAnalysis;
 /// <summary>
 /// A mutable bag for collecting diagnostics during compilation.
 /// </summary>
-public sealed class DiagnosticBag : IEnumerable<Diagnostic>
+internal sealed class DiagnosticBag : IEnumerable<Diagnostic>
 {
     private readonly List<Diagnostic> _diagnostics = [];
 

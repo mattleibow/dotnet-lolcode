@@ -14,7 +14,7 @@ namespace Lolcode.CodeAnalysis.CodeGen;
 /// All LOLCODE variables are emitted as <see cref="object"/> locals.
 /// Runtime calls go through <c>Lolcode.Runtime.LolRuntime</c>.
 /// </summary>
-public sealed class CodeGenerator
+internal sealed class CodeGenerator
 {
     private readonly BoundBlockStatement _boundTree;
     private readonly string _assemblyName;

@@ -7,7 +7,7 @@ namespace Lolcode.CodeAnalysis.Syntax;
 /// Recursive descent parser for LOLCODE 1.2.
 /// Produces a <see cref="CompilationUnitSyntax"/> from a list of tokens.
 /// </summary>
-public sealed class Parser
+internal sealed class Parser
 {
     private readonly IReadOnlyList<SyntaxToken> _tokens;
     private readonly SourceText _text;

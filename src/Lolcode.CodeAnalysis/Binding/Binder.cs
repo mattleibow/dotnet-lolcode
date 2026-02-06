@@ -10,7 +10,7 @@ namespace Lolcode.CodeAnalysis.Binding;
 /// Performs semantic analysis on a parsed syntax tree, producing a bound tree.
 /// Resolves variable references, validates control flow, and checks types.
 /// </summary>
-public sealed class Binder
+internal sealed class Binder
 {
     private readonly DiagnosticBag _diagnostics = new();
     private readonly SourceText _text;

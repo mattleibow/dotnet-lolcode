@@ -3,7 +3,7 @@ namespace Lolcode.CodeAnalysis.BoundTree;
 /// <summary>
 /// Kinds of binary operators in LOLCODE bound trees.
 /// </summary>
-public enum BoundBinaryOperatorKind
+internal enum BoundBinaryOperatorKind
 {
     /// <summary>SUM OF — addition.</summary>
     Addition,
@@ -45,7 +45,7 @@ public enum BoundBinaryOperatorKind
 /// <summary>
 /// Kinds of unary operators in LOLCODE bound trees.
 /// </summary>
-public enum BoundUnaryOperatorKind
+internal enum BoundUnaryOperatorKind
 {
     /// <summary>NOT — logical negation.</summary>
     LogicalNot,

@@ -9,7 +9,7 @@ namespace Lolcode.CodeAnalysis.Lowering;
 /// Currently an identity pass — returns the tree unchanged.
 /// Future: desugar complex constructs into simpler primitives.
 /// </summary>
-public sealed class Lowerer
+internal sealed class Lowerer
 {
     private Lowerer() { }
 

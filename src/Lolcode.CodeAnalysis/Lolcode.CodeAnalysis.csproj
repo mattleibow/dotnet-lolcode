@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Lolcode.CodeAnalysis.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Lolcode.Runtime\Lolcode.Runtime.csproj" />
   </ItemGroup>
 

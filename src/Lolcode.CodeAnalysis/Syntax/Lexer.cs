@@ -5,7 +5,7 @@ namespace Lolcode.CodeAnalysis.Syntax;
 /// <summary>
 /// Tokenizes LOLCODE 1.2 source text into a sequence of <see cref="SyntaxToken"/>s.
 /// </summary>
-public sealed class Lexer
+internal sealed class Lexer
 {
     private readonly SourceText _text;
     private readonly DiagnosticBag _diagnostics = new();
