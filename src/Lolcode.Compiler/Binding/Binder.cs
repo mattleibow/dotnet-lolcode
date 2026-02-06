@@ -66,7 +66,7 @@ public sealed class Binder
                 if (_functions.ContainsKey(name))
                 {
                     var location = TextLocation.FromSpan(_text, funcDecl.NameToken.Span);
-                    _diagnostics.ReportVariableAlreadyDeclared(location, name);
+                    _diagnostics.ReportFunctionAlreadyDeclared(location, name);
                 }
                 else
                 {

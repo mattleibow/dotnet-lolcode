@@ -110,6 +110,12 @@ public sealed class DiagnosticBag : IEnumerable<Diagnostic>
         ReportError("LOL2002", location, $"Variable '{name}' has already been declared.");
     }
 
+    /// <summary>Reports a function that has already been declared.</summary>
+    public void ReportFunctionAlreadyDeclared(TextLocation location, string name)
+    {
+        ReportError("LOL2002", location, $"Function '{name}' has already been declared.");
+    }
+
     /// <summary>Reports an undefined function.</summary>
     public void ReportUndefinedFunction(TextLocation location, string name)
     {

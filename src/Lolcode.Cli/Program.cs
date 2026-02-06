@@ -64,7 +64,7 @@ public static class Program
 
             if (!result.Success)
             {
-                PrintDiagnostics(result.Diagnostics);
+                PrintDiagnostics(result.Diagnostics, filePath);
                 return 1;
             }
 
@@ -142,7 +142,7 @@ public static class Program
 
         if (!result.Success)
         {
-            PrintDiagnostics(result.Diagnostics);
+            PrintDiagnostics(result.Diagnostics, filePath);
             return 1;
         }
 
@@ -233,8 +233,15 @@ public static class Program
         return null;
     }
 
-    private static void PrintDiagnostics(IEnumerable<Diagnostic> diagnostics)
+    private static void PrintDiagnostics(IEnumerable<Diagnostic> diagnostics, string? sourceFilePath = null)
     {
+        string[]? sourceLines = null;
+        if (sourceFilePath != null && File.Exists(sourceFilePath))
+        {
+            try { sourceLines = File.ReadAllLines(sourceFilePath); }
+            catch { /* best effort */ }
+        }
+
         foreach (var diagnostic in diagnostics)
         {
             var color = diagnostic.Severity switch
@@ -247,6 +254,22 @@ public static class Program
             Console.ForegroundColor = color;
             Console.Error.WriteLine(diagnostic);
             Console.ResetColor();
+
+            // Show source context if available
+            if (sourceLines != null)
+            {
+                int lineIndex = diagnostic.Location.StartLine;
+                if (lineIndex >= 0 && lineIndex < sourceLines.Length)
+                {
+                    string lineText = sourceLines[lineIndex];
+                    int col = diagnostic.Location.StartCharacter;
+
+                    Console.Error.WriteLine($"  {lineText}");
+                    Console.ForegroundColor = color;
+                    Console.Error.WriteLine($"  {new string(' ', Math.Max(0, col))}^");
+                    Console.ResetColor();
+                }
+            }
         }
     }
 
