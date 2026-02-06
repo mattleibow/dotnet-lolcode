@@ -9,6 +9,7 @@
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <IsPackable>true</IsPackable>
     <PackageType>MSBuildSdk</PackageType>
     <PackageId>Lolcode.NET.Sdk</PackageId>
     <PackageDescription>MSBuild SDK for compiling LOLCODE 1.2 programs to .NET assemblies. Use with Project Sdk="Lolcode.NET.Sdk" in .lolproj files.</PackageDescription>

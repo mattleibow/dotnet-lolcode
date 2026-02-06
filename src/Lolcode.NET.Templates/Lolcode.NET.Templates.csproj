@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <IsPackable>true</IsPackable>
     <PackageType>Template</PackageType>
     <PackageId>Lolcode.NET.Templates</PackageId>
     <PackageDescription>Project templates for LOLCODE .NET projects. Install with: dotnet new install Lolcode.NET.Templates</PackageDescription>

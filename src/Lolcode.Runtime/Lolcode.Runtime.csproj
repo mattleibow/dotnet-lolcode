@@ -3,6 +3,7 @@
   <PropertyGroup>
     <RootNamespace>Lolcode.Runtime</RootNamespace>
     <IsPackable>true</IsPackable>
+    <Description>Runtime library for LOLCODE programs compiled with the Lolcode.NET.Sdk.</Description>
     <PackageId>Lolcode.Runtime</PackageId>
     <PackageDescription>Runtime support library for compiled LOLCODE programs. Provides type coercion, arithmetic, boolean operations, I/O, and string operations.</PackageDescription>
     <PackageTags>lolcode;runtime</PackageTags>
