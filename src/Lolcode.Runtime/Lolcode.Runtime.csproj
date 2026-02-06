@@ -8,6 +8,11 @@
     <PackageDescription>Runtime support library for compiled LOLCODE programs. Provides type coercion, arithmetic, boolean operations, I/O, and string operations.</PackageDescription>
     <PackageTags>lolcode;runtime</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
 </Project>

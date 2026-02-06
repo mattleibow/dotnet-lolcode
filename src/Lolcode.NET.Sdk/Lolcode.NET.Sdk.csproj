@@ -17,12 +17,14 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/mattleibow/dotnet-lolcode</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <NoWarn>$(NoWarn);NU5100;NU5128</NoWarn>
   </PropertyGroup>
 
   <!-- SDK entry points (Sdk/Sdk.props + Sdk/Sdk.targets) -->
   <ItemGroup>
     <Content Include="Sdk\**" PackagePath="Sdk\" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <!-- MSBuild task and compiler (build-time tool dependencies) -->
