@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
-    <RootNamespace>Lolcode.Compiler.Tests</RootNamespace>
+    <RootNamespace>Lolcode.CodeAnalysis.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Lolcode.Compiler\Lolcode.Compiler.csproj" />
+    <ProjectReference Include="..\..\src\Lolcode.CodeAnalysis\Lolcode.CodeAnalysis.csproj" />
     <ProjectReference Include="..\..\src\Lolcode.Runtime\Lolcode.Runtime.csproj" />
   </ItemGroup>
 

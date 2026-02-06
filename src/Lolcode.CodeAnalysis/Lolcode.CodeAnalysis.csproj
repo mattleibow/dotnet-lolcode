@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RootNamespace>Lolcode.Compiler</RootNamespace>
+    <RootNamespace>Lolcode.CodeAnalysis</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

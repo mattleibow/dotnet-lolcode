@@ -8,10 +8,10 @@ Roslyn-inspired pipeline: Lexer → Parser → Binder → Emitter → DLL
 
 ## Project Structure
 ```
-src/Lolcode.Compiler/     # Core compiler library (lexer, parser, binder, emitter)
+src/Lolcode.CodeAnalysis/     # Core compiler library (lexer, parser, binder, emitter)
 src/Lolcode.Runtime/       # Runtime helper library (referenced by compiled programs)
 src/Lolcode.Cli/           # CLI tool (lolcode compile/run)
-tests/Lolcode.Compiler.Tests/  # xUnit tests for compiler
+tests/Lolcode.CodeAnalysis.Tests/  # xUnit tests for compiler
 tests/                     # .lol/.txt conformance test pairs (18 categories, 116 pairs)
 samples/                   # 15 example programs
 docs/                      # Design docs, language spec, roadmap
@@ -44,7 +44,7 @@ docs/                      # Design docs, language spec, roadmap
 
 ## Testing
 - Conformance tests: `.lol` + `.txt` pairs in `tests/` — compile, run, compare stdout
-- Unit tests: xUnit + FluentAssertions in `tests/Lolcode.Compiler.Tests/`
+- Unit tests: xUnit + FluentAssertions in `tests/Lolcode.CodeAnalysis.Tests/`
 - End-to-end tests: compile LOLCODE source, run output DLL, assert stdout
 - Use `ilspycmd` to inspect emitted IL when debugging emitter issues
 - Use `--emit-il` or `--emit-csharp` CLI flags for quick IL inspection

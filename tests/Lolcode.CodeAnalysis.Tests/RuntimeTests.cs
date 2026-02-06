@@ -1,6 +1,6 @@
 using Lolcode.Runtime;
 
-namespace Lolcode.Compiler.Tests;
+namespace Lolcode.CodeAnalysis.Tests;
 
 /// <summary>
 /// Tests for the LolRuntime helper methods.

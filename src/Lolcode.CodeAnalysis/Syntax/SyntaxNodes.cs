@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
-using Lolcode.Compiler.Text;
+using Lolcode.CodeAnalysis.Text;
 
-namespace Lolcode.Compiler.Syntax;
+namespace Lolcode.CodeAnalysis.Syntax;
 
 /// <summary>
 /// Base class for all syntax nodes in the AST.

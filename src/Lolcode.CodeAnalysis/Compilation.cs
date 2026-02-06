@@ -1,10 +1,10 @@
 using System.Collections.Immutable;
-using Lolcode.Compiler.Binding;
-using Lolcode.Compiler.Emit;
-using Lolcode.Compiler.Syntax;
-using Lolcode.Compiler.Text;
+using Lolcode.CodeAnalysis.Binding;
+using Lolcode.CodeAnalysis.Emit;
+using Lolcode.CodeAnalysis.Syntax;
+using Lolcode.CodeAnalysis.Text;
 
-namespace Lolcode.Compiler;
+namespace Lolcode.CodeAnalysis;
 
 /// <summary>
 /// Represents the result of a compilation.

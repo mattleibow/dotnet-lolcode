@@ -1,6 +1,6 @@
-using Lolcode.Compiler.Text;
+using Lolcode.CodeAnalysis.Text;
 
-namespace Lolcode.Compiler;
+namespace Lolcode.CodeAnalysis;
 
 /// <summary>
 /// Represents a compiler diagnostic (error, warning, or info).

@@ -1,4 +1,4 @@
-namespace Lolcode.Compiler;
+namespace Lolcode.CodeAnalysis;
 
 /// <summary>
 /// Represents the severity of a diagnostic message.

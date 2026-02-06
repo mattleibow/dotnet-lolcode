@@ -8,9 +8,9 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [ ] Initialize git repo with `.gitignore`
 - [ ] Create `dotnet-lolcode.sln`
 - [ ] Create `Directory.Build.props` (net10.0, C# 14, nullable, implicit usings)
-- [ ] Create `Lolcode.Compiler` class library project
+- [ ] Create `Lolcode.CodeAnalysis` class library project
 - [ ] Create `Lolcode.Cli` console project
-- [ ] Create `Lolcode.Compiler.Tests` xUnit test project
+- [ ] Create `Lolcode.CodeAnalysis.Tests` xUnit test project
 - [ ] Verify `dotnet build` and `dotnet test` work
 - [ ] Prototype: emit a minimal "hello world" IL assembly using `PersistedAssemblyBuilder` to validate the API works on target platform
 

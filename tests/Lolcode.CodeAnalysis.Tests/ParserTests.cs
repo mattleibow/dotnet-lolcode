@@ -1,8 +1,8 @@
-using Lolcode.Compiler;
-using Lolcode.Compiler.Syntax;
-using Lolcode.Compiler.Text;
+using Lolcode.CodeAnalysis;
+using Lolcode.CodeAnalysis.Syntax;
+using Lolcode.CodeAnalysis.Text;
 
-namespace Lolcode.Compiler.Tests;
+namespace Lolcode.CodeAnalysis.Tests;
 
 /// <summary>
 /// Tests for the LOLCODE parser.

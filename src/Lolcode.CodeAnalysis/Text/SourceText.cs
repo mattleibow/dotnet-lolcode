@@ -1,4 +1,4 @@
-namespace Lolcode.Compiler.Text;
+namespace Lolcode.CodeAnalysis.Text;
 
 /// <summary>
 /// Represents a source text with line tracking capabilities.

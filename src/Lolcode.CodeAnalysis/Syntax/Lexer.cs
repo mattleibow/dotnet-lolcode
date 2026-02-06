@@ -1,6 +1,6 @@
-using Lolcode.Compiler.Text;
+using Lolcode.CodeAnalysis.Text;
 
-namespace Lolcode.Compiler.Syntax;
+namespace Lolcode.CodeAnalysis.Syntax;
 
 /// <summary>
 /// Tokenizes LOLCODE 1.2 source text into a sequence of <see cref="SyntaxToken"/>s.

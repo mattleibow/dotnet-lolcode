@@ -1,4 +1,4 @@
-namespace Lolcode.Compiler.Text;
+namespace Lolcode.CodeAnalysis.Text;
 
 /// <summary>
 /// Represents a line in a <see cref="SourceText"/>.

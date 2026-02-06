@@ -79,7 +79,7 @@ Sample programs live in `samples/` and are numbered by complexity. If you add a 
 
 | Directory | Purpose |
 |-----------|---------|
-| `src/Lolcode.Compiler/` | Core compiler library |
+| `src/Lolcode.CodeAnalysis/` | Core compiler library |
 | `src/Lolcode.Cli/` | CLI tool |
 | `src/Lolcode.Sdk/` | MSBuild SDK integration |
 | `tests/` | All test projects |

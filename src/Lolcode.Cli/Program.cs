@@ -1,5 +1,5 @@
-using Lolcode.Compiler;
-using Lolcode.Compiler.Text;
+using Lolcode.CodeAnalysis;
+using Lolcode.CodeAnalysis.Text;
 
 namespace Lolcode.Cli;
 

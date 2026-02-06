@@ -1,4 +1,4 @@
-namespace Lolcode.Compiler.Text;
+namespace Lolcode.CodeAnalysis.Text;
 
 /// <summary>
 /// Represents a location in source code with file, line, and column information.

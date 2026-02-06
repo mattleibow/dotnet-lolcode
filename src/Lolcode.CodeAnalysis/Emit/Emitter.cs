@@ -4,9 +4,9 @@ using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
-using Lolcode.Compiler.Binding;
+using Lolcode.CodeAnalysis.Binding;
 
-namespace Lolcode.Compiler.Emit;
+namespace Lolcode.CodeAnalysis.Emit;
 
 /// <summary>
 /// Emits a .NET assembly from a bound tree using PersistedAssemblyBuilder.

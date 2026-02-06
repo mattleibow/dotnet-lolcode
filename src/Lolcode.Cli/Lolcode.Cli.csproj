@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Lolcode.Compiler\Lolcode.Compiler.csproj" />
+    <ProjectReference Include="..\Lolcode.CodeAnalysis\Lolcode.CodeAnalysis.csproj" />
     <ProjectReference Include="..\Lolcode.Runtime\Lolcode.Runtime.csproj" />
   </ItemGroup>
 

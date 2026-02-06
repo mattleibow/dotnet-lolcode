@@ -107,11 +107,11 @@ KTHXBYE
 ```
 dotnet-lolcode/
 ├── src/
-│   ├── Lolcode.Compiler/     # Core compiler (lexer, parser, binder, emitter)
+│   ├── Lolcode.CodeAnalysis/     # Core compiler (lexer, parser, binder, emitter)
 │   ├── Lolcode.Runtime/       # Runtime helper library (referenced by compiled programs)
 │   └── Lolcode.Cli/           # CLI tool (compile/run commands)
 ├── tests/
-│   ├── Lolcode.Compiler.Tests/ # Unit + end-to-end + conformance tests
+│   ├── Lolcode.CodeAnalysis.Tests/ # Unit + end-to-end + conformance tests
 │   ├── arithmetic/            # Conformance test pairs (.lol + .txt)
 │   ├── booleans/
 │   ├── casting/

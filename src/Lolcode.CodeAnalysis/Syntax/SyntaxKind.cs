@@ -1,4 +1,4 @@
-namespace Lolcode.Compiler.Syntax;
+namespace Lolcode.CodeAnalysis.Syntax;
 
 /// <summary>
 /// Enumerates all token and node kinds in the LOLCODE syntax.

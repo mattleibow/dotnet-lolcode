@@ -1,10 +1,10 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Lolcode.Cli/Lolcode.Cli.csproj" />
-    <Project Path="src/Lolcode.Compiler/Lolcode.Compiler.csproj" />
+    <Project Path="src/Lolcode.CodeAnalysis/Lolcode.CodeAnalysis.csproj" />
     <Project Path="src/Lolcode.Runtime/Lolcode.Runtime.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Lolcode.Compiler.Tests/Lolcode.Compiler.Tests.csproj" />
+    <Project Path="tests/Lolcode.CodeAnalysis.Tests/Lolcode.CodeAnalysis.Tests.csproj" />
   </Folder>
 </Solution>

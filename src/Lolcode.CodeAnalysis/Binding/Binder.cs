@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
-using Lolcode.Compiler.Syntax;
-using Lolcode.Compiler.Text;
+using Lolcode.CodeAnalysis.Syntax;
+using Lolcode.CodeAnalysis.Text;
 
-namespace Lolcode.Compiler.Binding;
+namespace Lolcode.CodeAnalysis.Binding;
 
 /// <summary>
 /// Context tracking for GTFO resolution.

@@ -1,7 +1,7 @@
 using System.Collections;
-using Lolcode.Compiler.Text;
+using Lolcode.CodeAnalysis.Text;
 
-namespace Lolcode.Compiler;
+namespace Lolcode.CodeAnalysis;
 
 /// <summary>
 /// A mutable bag for collecting diagnostics during compilation.

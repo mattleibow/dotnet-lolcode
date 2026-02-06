@@ -1,8 +1,8 @@
 using System.Diagnostics;
-using Lolcode.Compiler;
-using Lolcode.Compiler.Text;
+using Lolcode.CodeAnalysis;
+using Lolcode.CodeAnalysis.Text;
 
-namespace Lolcode.Compiler.Tests;
+namespace Lolcode.CodeAnalysis.Tests;
 
 /// <summary>
 /// End-to-end tests that compile LOLCODE programs, run the resulting DLL,

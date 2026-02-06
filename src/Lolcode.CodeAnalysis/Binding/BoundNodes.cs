@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace Lolcode.Compiler.Binding;
+namespace Lolcode.CodeAnalysis.Binding;
 
 /// <summary>
 /// Base class for all bound nodes (output of semantic analysis).

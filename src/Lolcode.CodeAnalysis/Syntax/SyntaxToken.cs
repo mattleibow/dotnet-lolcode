@@ -1,6 +1,6 @@
-using Lolcode.Compiler.Text;
+using Lolcode.CodeAnalysis.Text;
 
-namespace Lolcode.Compiler.Syntax;
+namespace Lolcode.CodeAnalysis.Syntax;
 
 /// <summary>
 /// Represents a single token produced by the lexer.
