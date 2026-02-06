@@ -28,27 +28,33 @@ This project is a from-scratch compiler for the [LOLCODE](http://www.lolcode.org
 
 ## Features
 
-- 🐱 **LOLCODE 1.2** — variables, types, math, conditionals, loops, functions, casting, string ops, TYPE
+- 🐱 **Full LOLCODE 1.2** — variables, types, math, booleans, conditionals, loops, functions, casting, string ops
 - 🎯 **Compiles to .NET IL** — produces real .NET assemblies (not interpreted)
-- 🔧 **CLI tool** — `lolcode compile`, `lolcode run`
-- 🎨 **VS Code extension** — syntax highlighting, snippets, build tasks
-- 📦 **MSBuild SDK** — `dotnet build` / `dotnet run` integration for `.lol` files
-- 🐛 **Debugging** — (planned) VS Code debugging via Debug Adapter Protocol
+- 🔧 **CLI tool** — `lolcode compile`, `lolcode run`, `--emit-il`, `--emit-csharp`
+- 📊 **Pretty diagnostics** — error messages with source context and line/column info
+- 🧪 **319 tests** — unit tests + conformance test suite (116 `.lol`/`.txt` test pairs)
+- 🔍 **IL inspection** — `--emit-il` and `--emit-csharp` flags for debugging via `ilspycmd`
 
 ## Quick Start
 
 ```bash
-# Install the CLI tool
-dotnet tool install -g lolcode
+# Clone and build
+git clone https://github.com/mattleibow/dotnet-lolcode.git
+cd dotnet-lolcode
+dotnet build
 
-# Compile a LOLCODE program
-lolcode compile hello.lol
+# Run a LOLCODE program
+dotnet run --project src/Lolcode.Cli -- run samples/01-hello-world/hello.lol
 
-# Run it
+# Compile to a DLL
+dotnet run --project src/Lolcode.Cli -- compile hello.lol -o hello.dll
 dotnet hello.dll
 
-# Or compile and run in one step
-lolcode run hello.lol
+# View generated IL
+dotnet run --project src/Lolcode.Cli -- compile hello.lol --emit-il
+
+# View decompiled C#
+dotnet run --project src/Lolcode.Cli -- compile hello.lol --emit-csharp
 ```
 
 ## Example: Hello World
@@ -63,7 +69,6 @@ KTHXBYE
 
 ```lolcode
 HAI 1.2
-  I HAS A i ITZ 1
   IM IN YR fizzbuzz UPPIN YR i TIL BOTH SAEM i AN 101
     I HAS A out ITZ ""
     BOTH SAEM MOD OF i AN 3 AN 0, O RLY?
@@ -80,6 +85,23 @@ HAI 1.2
 KTHXBYE
 ```
 
+## Example: Recursive Factorial
+
+```lolcode
+HAI 1.2
+  HOW IZ I factorial YR n
+    BOTH SAEM n AN 0
+    O RLY?
+      YA RLY
+        FOUND YR 1
+    OIC
+    FOUND YR PRODUKT OF n AN I IZ factorial YR DIFF OF n AN 1 MKAY
+  IF U SAY SO
+
+  VISIBLE I IZ factorial YR 10 MKAY  BTW prints 3628800
+KTHXBYE
+```
+
 ## Project Structure
 
 ```
@@ -87,15 +109,56 @@ dotnet-lolcode/
 ├── src/
 │   ├── Lolcode.Compiler/     # Core compiler (lexer, parser, binder, emitter)
 │   ├── Lolcode.Runtime/       # Runtime helper library (referenced by compiled programs)
-│   ├── Lolcode.Cli/          # CLI tool
-│   └── Lolcode.Sdk/          # MSBuild SDK for dotnet build integration
+│   └── Lolcode.Cli/           # CLI tool (compile/run commands)
 ├── tests/
-│   └── Lolcode.Compiler.Tests/
+│   ├── Lolcode.Compiler.Tests/ # Unit + end-to-end + conformance tests
+│   ├── arithmetic/            # Conformance test pairs (.lol + .txt)
+│   ├── booleans/
+│   ├── casting/
+│   ├── ...                    # 18 test categories, 116 test pairs
+│   └── variables/
 ├── samples/                   # 15 example programs (graduated complexity)
-├── editor/
-│   └── vscode-lolcode/       # VS Code extension
-└── docs/                      # Design documents
+└── docs/                      # Design documents and language spec
 ```
+
+## Running Tests
+
+```bash
+# Run all 319 tests
+dotnet test
+
+# Run specific test category
+dotnet test --filter "EndToEndTests"
+dotnet test --filter "ConformanceTests"
+dotnet test --filter "LexerTests"
+```
+
+## Supported Language Features
+
+| Feature | Syntax | Status |
+|---------|--------|--------|
+| Variables | `I HAS A x ITZ 42` | ✅ |
+| Assignment | `x R 100` | ✅ |
+| NUMBR (int) | `42`, `-7` | ✅ |
+| NUMBAR (float) | `3.14` | ✅ |
+| YARN (string) | `"hello"` with escapes | ✅ |
+| TROOF (bool) | `WIN`, `FAIL` | ✅ |
+| NOOB (null) | uninitialized variables | ✅ |
+| Print | `VISIBLE "text"` | ✅ |
+| Input | `GIMMEH var` | ✅ |
+| Math | `SUM OF`, `DIFF OF`, `PRODUKT OF`, `QUOSHUNT OF`, `MOD OF`, `BIGGR OF`, `SMALLR OF` | ✅ |
+| Comparison | `BOTH SAEM`, `DIFFRINT` | ✅ |
+| Boolean | `BOTH OF`, `EITHER OF`, `WON OF`, `NOT`, `ALL OF`, `ANY OF` | ✅ |
+| Conditionals | `O RLY?`, `YA RLY`, `MEBBE`, `NO WAI`, `OIC` | ✅ |
+| Switch | `WTF?`, `OMG`, `OMGWTF`, `OIC` (with fall-through) | ✅ |
+| Loops | `IM IN YR`, `UPPIN`, `NERFIN`, `TIL`, `WILE`, `GTFO` | ✅ |
+| Functions | `HOW IZ I`, `IF U SAY SO`, `FOUND YR`, `I IZ func MKAY` | ✅ |
+| Casting | `MAEK x A NUMBR`, `x IS NOW A YARN` | ✅ |
+| Strings | `SMOOSH`, string interpolation `:{var}`, escape sequences | ✅ |
+| Comments | `BTW` (line), `OBTW...TLDR` (block) | ✅ |
+| IT variable | Implicit per-scope variable | ✅ |
+| Line continuation | `...` and `…` | ✅ |
+| TYPE type | Bare word type values | 🚧 Deferred |
 
 ## Documentation
 
@@ -111,8 +174,8 @@ dotnet-lolcode/
 - **Runtime:** .NET 10 / C# 14
 - **IL Emission:** `System.Reflection.Emit.PersistedAssemblyBuilder`
 - **Parser:** Hand-rolled recursive descent (Roslyn-inspired)
-- **VS Code:** TextMate grammar + Language Server Protocol
 - **Testing:** xUnit + FluentAssertions
+- **CI:** GitHub Actions (Ubuntu, macOS, Windows)
 
 ## Sample Programs
 
