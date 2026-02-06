@@ -12,7 +12,7 @@ mkdir -p "$REPO_ROOT/local-feed"
 
 PKG_DIR=$(mktemp -d)
 mkdir -p "$PKG_DIR/Sdk" "$PKG_DIR/tools/net10.0"
-cp "$REPO_ROOT/Sdk/Sdk.props" "$REPO_ROOT/Sdk/Sdk.targets" "$PKG_DIR/Sdk/"
+cp "$REPO_ROOT/src/Lolcode.NET.Sdk/Sdk/Sdk.props" "$REPO_ROOT/src/Lolcode.NET.Sdk/Sdk/Sdk.targets" "$PKG_DIR/Sdk/"
 cp "$REPO_ROOT/src/Lolcode.Build/bin/Debug/net10.0/Lolcode.Build.dll" \
    "$REPO_ROOT/src/Lolcode.Build/bin/Debug/net10.0/Lolcode.Build.deps.json" \
    "$REPO_ROOT/src/Lolcode.Build/bin/Debug/net10.0/Lolcode.CodeAnalysis.dll" \

@@ -3,6 +3,8 @@
     <Project Path="src/Lolcode.Build/Lolcode.Build.csproj" />
     <Project Path="src/Lolcode.Cli/Lolcode.Cli.csproj" />
     <Project Path="src/Lolcode.CodeAnalysis/Lolcode.CodeAnalysis.csproj" />
+    <Project Path="src/Lolcode.NET.Sdk/Lolcode.NET.Sdk.csproj" />
+    <Project Path="src/Lolcode.NET.Templates/Lolcode.NET.Templates.csproj" />
     <Project Path="src/Lolcode.Runtime/Lolcode.Runtime.csproj" />
   </Folder>
   <Folder Name="/tests/">

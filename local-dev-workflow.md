@@ -17,7 +17,7 @@
 
    # Create the NuGet package
    mkdir -p /tmp/lolcode-pkg/Sdk /tmp/lolcode-pkg/tools/net10.0
-   cp Sdk/Sdk.props Sdk/Sdk.targets /tmp/lolcode-pkg/Sdk/
+   cp src/Lolcode.NET.Sdk/Sdk/Sdk.props src/Lolcode.NET.Sdk/Sdk/Sdk.targets /tmp/lolcode-pkg/Sdk/
    cp src/Lolcode.Build/bin/Debug/net10.0/Lolcode.Build.dll /tmp/lolcode-pkg/tools/net10.0/
    cp src/Lolcode.Build/bin/Debug/net10.0/Lolcode.Build.deps.json /tmp/lolcode-pkg/tools/net10.0/
    cp src/Lolcode.Build/bin/Debug/net10.0/Lolcode.CodeAnalysis.dll /tmp/lolcode-pkg/tools/net10.0/

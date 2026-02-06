@@ -14,7 +14,7 @@
     <PackageDescription>MSBuild SDK for compiling LOLCODE 1.2 programs to .NET assemblies. Use with Project Sdk="Lolcode.NET.Sdk" in .lolproj files.</PackageDescription>
     <PackageTags>lolcode;compiler;msbuild;sdk;dotnet</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/yourusername/dotnet-languages</RepositoryUrl>
+    <RepositoryUrl>https://github.com/mattleibow/dotnet-lolcode</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <NoWarn>$(NoWarn);NU5100;NU5128</NoWarn>
   </PropertyGroup>
@@ -26,15 +26,15 @@
 
   <!-- MSBuild task and compiler (build-time tool dependencies) -->
   <ItemGroup>
-    <Content Include="src\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Build.dll" PackagePath="tools\net10.0\" />
-    <Content Include="src\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Build.deps.json" PackagePath="tools\net10.0\" />
-    <Content Include="src\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.CodeAnalysis.dll" PackagePath="tools\net10.0\" />
-    <Content Include="src\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Runtime.dll" PackagePath="tools\net10.0\" />
+    <Content Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Build.dll" PackagePath="tools\net10.0\" />
+    <Content Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Build.deps.json" PackagePath="tools\net10.0\" />
+    <Content Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.CodeAnalysis.dll" PackagePath="tools\net10.0\" />
+    <Content Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Runtime.dll" PackagePath="tools\net10.0\" />
   </ItemGroup>
 
   <!-- Ensure dependencies are built first -->
   <ItemGroup>
-    <ProjectReference Include="src\Lolcode.Build\Lolcode.Build.csproj" PrivateAssets="all" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\Lolcode.Build\Lolcode.Build.csproj" PrivateAssets="all" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>
