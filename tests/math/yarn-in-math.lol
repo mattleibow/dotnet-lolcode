@@ -1,0 +1,8 @@
+BTW YARN numeric parsing in math: integer and float strings
+HAI 1.2
+  VISIBLE SUM OF "42" AN 8
+  VISIBLE SUM OF "3.14" AN 0
+  VISIBLE DIFF OF "100" AN "58"
+  VISIBLE PRODUKT OF "2.5" AN "4"
+  VISIBLE QUOSHUNT OF "7.0" AN "2"
+KTHXBYE

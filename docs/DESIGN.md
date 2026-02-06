@@ -10,15 +10,21 @@ This document describes the internal architecture of the LOLCODE .NET compiler, 
   - [Lexer](#1-lexer-tokenizer)
   - [Parser](#2-parser-ast-construction)
   - [Binder](#3-binder-semantic-analysis)
-  - [Lowering](#4-lowering-optional)
+  - [Lowering](#4-lowering)
   - [Emitter](#5-emitter-il-code-generation)
   - [Driver](#6-driver-cli)
   - [Diagnostics](#7-diagnostics)
+- [`IT` Variable Semantics](#it-variable-semantics)
+- [`GTFO` Context Sensitivity](#gtfo-context-sensitivity)
 - [Type System Mapping](#type-system-mapping)
+- [Runtime Type Representation](#runtime-type-representation)
 - [IL Emission Strategy](#il-emission-strategy)
 - [MSBuild SDK Integration](#msbuild-sdk-integration)
 - [VS Code Extension Architecture](#vs-code-extension-architecture)
 - [Key .NET APIs](#key-net-apis)
+- [String Interpolation Strategy](#string-interpolation-strategy)
+- [`HAI` Version Handling](#hai-version-handling)
+- [Spec Deviations and Clarifications](#spec-deviations-and-clarifications)
 - [Risks and Mitigations](#risks-and-mitigations)
 
 ---
@@ -159,15 +165,19 @@ SyntaxNode (abstract)
 
 **Output:** `BoundTree` with `BoundNode` hierarchy (mirrors AST but with resolved type information)
 
-### 4. Lowering (Optional)
+### 4. Lowering
 
-**Purpose:** Transform complex bound nodes into simpler primitives for easier IL emission.
+**Purpose:** Transform complex bound nodes into simpler primitives for easier IL emission. This phase keeps the emitter simple by reducing the number of bound node types it must handle.
 
-**Examples:**
+**Transforms:**
 - `IM IN YR` loop with `UPPIN`/`NERFIN` → while-loop with explicit increment/decrement
-- `SMOOSH` with multiple arguments → chain of string concatenations
-- `ALL OF` / `ANY OF` → chain of `AND` / `OR` operations
+- `SMOOSH` with multiple arguments → chain of `String.Concat` calls
+- `ALL OF` / `ANY OF` → short-circuit chain of `BOTH OF` / `EITHER OF` operations
 - `BIGGR OF` / `SMALLR OF` → conditional branch
+- `VISIBLE` with multiple arguments → concatenation of YARN-cast values + print
+- Interpolated strings → `SMOOSH`-equivalent concatenation of segments
+
+> **Note:** Although listed separately, lowering is integrated into the end of Phase 3 (Binder) rather than being a standalone phase. The binder produces a bound tree, then the lowerer simplifies it before handing off to the emitter.
 
 ### 5. Emitter (IL Code Generation)
 
@@ -225,6 +235,50 @@ error LOL0001: Undeclared variable 'x'
 
 ---
 
+## `IT` Variable Semantics
+
+The implicit `IT` variable is central to LOLCODE's control flow. These rules govern its behavior:
+
+**Scope:**
+- Each scope (main program block, each function body) has its own independent `IT` variable.
+- `IT` is **not** passed into functions and is not accessible from outer scopes.
+- Loop bodies share the same `IT` as their enclosing scope (loops do not create a new `IT`).
+- `IT` starts as `NOOB` at the beginning of each scope.
+
+**Updates:**
+- Any bare expression statement (not an assignment, not a declaration) stores its result in `IT`.
+- `IT` retains its value until the next bare expression replaces it.
+- Assignment statements (`x R expr`) do **not** update `IT`.
+- Variable declarations with initialization (`I HAS A x ITZ expr`) do **not** update `IT`.
+
+**Usage in control flow:**
+- `O RLY?` reads `IT` and branches based on its truthiness (cast to `TROOF`).
+- `WTF?` reads `IT` as the scrutinee for `OMG` comparisons.
+- These constructs expect `IT` to have been set by a preceding expression; using them when `IT` is `NOOB` is valid (NOOB is `FAIL` for `O RLY?`, no match for `WTF?`).
+
+**Function returns:**
+- If a function reaches `IF U SAY SO` without an explicit `FOUND YR` or `GTFO`, the current value of `IT` in that function's scope is returned.
+
+**IL representation:**
+- `IT` is emitted as a regular `System.Object` local variable in each method/scope.
+
+---
+
+## `GTFO` Context Sensitivity
+
+`GTFO` has different semantics depending on the enclosing context:
+
+| Context | Behavior |
+|---------|----------|
+| Inside a loop (`IM IN YR ... IM OUTTA YR`) | Breaks out of the innermost loop |
+| Inside a switch (`WTF? ... OIC`) | Breaks out of the current `OMG` case (prevents fall-through) |
+| Inside a function (`HOW IZ I ... IF U SAY SO`) | Returns `NOOB` from the function |
+| Nested loop inside switch (or vice versa) | Breaks the **innermost** enclosing loop or switch |
+
+The binder must maintain a **control-flow context stack** to determine the correct behavior for each `GTFO` statement and to report errors if `GTFO` appears outside any valid context.
+
+---
+
 ## Type System Mapping
 
 | LOLCODE Type | .NET Type | IL Type | Default Value |
@@ -269,6 +323,9 @@ A small runtime support assembly provides these helpers, referenced by all compi
 | `LolRuntime.Concat(object[])` → `string` | `SMOOSH` — cast all to YARN and join |
 | `LolRuntime.Print(object, bool)` → `void` | `VISIBLE` with optional newline suppression |
 | `LolRuntime.ReadInput()` → `string` | `GIMMEH` wrapper |
+| `LolRuntime.Greater(object, object)` → `object` | `BIGGR OF` (max) |
+| `LolRuntime.Smaller(object, object)` → `object` | `SMALLR OF` (min) |
+| `LolRuntime.CastToYarn(object)` → `string` | To-string with NUMBAR 2-decimal truncation |
 
 ### IL Emission Example (Dynamic)
 
@@ -401,6 +458,48 @@ This means `dotnet build` and `dotnet run` work natively with `.lol` projects.
 | `System.CommandLine` | NuGet | CLI argument parsing |
 | `OmniSharp.Extensions.LanguageServer` | NuGet | LSP server (VS Code integration) |
 
+## String Interpolation Strategy
+
+String interpolation (`:{var}`) spans multiple compiler phases:
+
+1. **Lexer:** Scans an interpolated string and emits a sequence of tokens — `InterpolatedStringStart`, `InterpolatedStringText` (literal segments), `InterpolatedStringVariable` (variable references), and `InterpolatedStringEnd`. The lexer does **not** resolve variables.
+2. **Parser:** Consumes the interpolated string tokens and builds an `InterpolatedStringExpressionSyntax` node containing `LiteralExpressionSyntax` segments and `VariableExpressionSyntax` references.
+3. **Binder:** Resolves variable references within the interpolated string. Reports errors for undeclared variables.
+4. **Lowering:** Transforms `InterpolatedStringExpression` into the equivalent of `SMOOSH segment1 AN segment2 ... MKAY` (a chain of YARN casts and concatenation).
+5. **Emitter:** Emits the lowered concatenation as `LolRuntime.Concat` or `String.Concat` calls.
+
+> **Note:** `OMG` case labels in `WTF?` blocks must be literals. Interpolated strings containing `:{var}` are **not** literals and must be rejected by the binder.
+
+---
+
+## `HAI` Version Handling
+
+The parser validates the `HAI` version number:
+- `HAI 1.2` — accepted (target version)
+- `HAI` without a version — accepted with a warning (assumes 1.2)
+- `HAI <other>` — accepted with an informational diagnostic noting the version is not 1.2
+- Missing `HAI` — error
+- Missing `KTHXBYE` — error
+
+---
+
+## Spec Deviations and Clarifications
+
+This section records intentional implementation decisions where the LOLCODE 1.2 spec is ambiguous or under-specified:
+
+| Area | Spec Says | This Compiler Does |
+|------|-----------|-------------------|
+| **`BUKKIT` type** | "Reserved for future expansion" | Produces error `LOL0xxx: BUKKIT is not supported in LOLCODE 1.2` |
+| **`TYPE` equality** | "Under current review" | Compares TYPE values as strings (e.g., `BOTH SAEM mytype AN NUMBR` → string equality) |
+| **Integer overflow** | Not specified | Wraps (standard .NET `int32` overflow behavior, unchecked) |
+| **Float precision** | Not specified | Uses `System.Double` (IEEE 754 double-precision) |
+| **`NUMBAR` → `YARN`** | "Truncates to two decimal places" | Uses `value.ToString("F2")` |
+| **`:o` escape** | "Bell (beep)" | Maps to `\a` (U+0007, ASCII BEL) |
+| **`:[<name>]`** | "Unicode normative name" | Supported with a curated subset of common Unicode names; unsupported names produce an error |
+| **`HAI` version** | "No current standard behavior" | Accepts any version with informational diagnostic; targets 1.2 semantics |
+| **Unary function in loop** | `<operation>` can be "any unary function" | Supports `UPPIN`, `NERFIN`, and user-defined unary functions by name |
+| **`NOOB` in non-TROOF context** | "Results in an error" | Runtime error via `LolRuntime` helpers (binder warns when statically provable) |
+
 ---
 
 ## Risks and Mitigations
@@ -408,8 +507,11 @@ This means `dotnet build` and `dotnet run` work natively with `.lol` projects.
 | Risk | Impact | Mitigation |
 |------|--------|-----------|
 | LOLCODE grammar ambiguities | Parser complexity | Reference existing implementations, document deviations from spec |
-| `PersistedAssemblyBuilder` limitations | Can't emit certain constructs | Fall back to `System.Reflection.Metadata` for edge cases |
-| IL bugs are hard to debug | Time spent debugging emitter | Use `ildasm` / ILSpy to inspect output, compare with C# compiler output |
-| Multi-word keyword parsing | Lexer complexity | Careful lookahead design, extensive keyword tests |
-| Loose typing / coercion edge cases | Runtime errors | Document all coercion rules, comprehensive type tests |
-| Scope creep | Project never finishes | Strict phase gates — Phase 4 (working compiler) is MVP |
+| `PersistedAssemblyBuilder` limitations | Can't emit certain constructs | Fall back to `System.Reflection.Metadata` for edge cases; prototype IL emission early (Phase 0) |
+| IL bugs are hard to debug | Time spent debugging emitter | Use `ildasm` / ILSpy to inspect output, compare with C# compiler output; add `--emit-il` flag in Phase 4 |
+| Multi-word keyword parsing | Lexer complexity | Careful lookahead design, extensive keyword tests, state machine for multi-word tokens |
+| Loose typing / coercion edge cases | Runtime errors | Document all coercion rules, comprehensive type tests, conformance test matrix |
+| Scope creep | Project never finishes | Strict phase gates — Phase 5 (working compiler) is MVP; Phases 6–9 are post-MVP enhancements |
+| `IT` variable semantics | Subtle semantic bugs | Rigorous definition (see §IT Variable Semantics above), dedicated test suite |
+| `GTFO` context sensitivity | Wrong break/return behavior | Control-flow context stack in binder (see §GTFO Context Sensitivity above) |
+| Dynamic typing performance | Boxing/unboxing overhead | Object-backed variables for MVP; static type specialization as optional Phase 4 optimization |

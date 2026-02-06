@@ -1,0 +1,9 @@
+BEFORE LOOP: i = 99
+  IN LOOP: i = 0
+  IN LOOP: i = 1
+  IN LOOP: i = 2
+AFTER LOOP: i = 99
+BEFORE SECOND LOOP: counter = 42
+  IN LOOP2: counter = 0
+  IN LOOP2: counter = 1
+AFTER SECOND LOOP: counter = 42

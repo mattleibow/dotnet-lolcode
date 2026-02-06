@@ -1,0 +1,9 @@
+BTW BOTH SAEM: equality for same type same value vs diff value
+HAI 1.2
+  VISIBLE BOTH SAEM 3 AN 3
+  VISIBLE BOTH SAEM 3 AN 4
+  VISIBLE BOTH SAEM "hai" AN "hai"
+  VISIBLE BOTH SAEM "hai" AN "hai!"
+  VISIBLE BOTH SAEM WIN AN WIN
+  VISIBLE BOTH SAEM FAIL AN WIN
+KTHXBYE

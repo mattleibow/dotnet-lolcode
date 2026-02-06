@@ -12,6 +12,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [ ] Create `Lolcode.Cli` console project
 - [ ] Create `Lolcode.Compiler.Tests` xUnit test project
 - [ ] Verify `dotnet build` and `dotnet test` work
+- [ ] Prototype: emit a minimal "hello world" IL assembly using `PersistedAssemblyBuilder` to validate the API works on target platform
 
 ## Phase 1: Lexer (Tokenizer)
 > Convert source text into a classified token stream.
@@ -25,16 +26,22 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [ ] Implement `DiagnosticBag` for error collection
 - [ ] Implement `Lexer` — hand-rolled character scanner
   - [ ] Single-character tokens (commas, newlines)
-  - [ ] Number literals (NUMBR and NUMBAR)
-  - [ ] String literals with LOLCODE escape sequences
-  - [ ] String interpolation `:{var}` handling
-  - [ ] Unicode escapes `:(<hex>)` and `:[<name>]`
-  - [ ] Multi-word keyword recognition with lookahead
-  - [ ] Identifier recognition (case-sensitive)
-  - [ ] Comment handling (BTW, OBTW/TLDR)
-  - [ ] Line continuation (`...` and `…`)
+  - [ ] Number literals (NUMBR and NUMBAR), including leading hyphen (`-`) for negatives
+  - [ ] String literals with LOLCODE escape sequences (`:)`, `:>`, `:o`, `:"`, `::`)
+  - [ ] String interpolation `:{var}` — emit `InterpolatedStringStart`/`Text`/`Variable`/`End` tokens
+  - [ ] Unicode escapes `:(<hex>)` and `:[<name>]` (curated subset of Unicode names)
+  - [ ] Multi-word keyword recognition with lookahead (state machine for `I HAS A`, `IM IN YR`, `HOW IZ I`, `BOTH SAEM`, etc.)
+  - [ ] Identifier recognition (case-sensitive, letters/digits/underscores, must start with letter)
+  - [ ] Comment handling (BTW to end of line, OBTW...TLDR block comments)
+  - [ ] Line continuation (`...` and `…`) — including rule: may not be followed by an empty line
   - [ ] Soft-command-break (`,`) as virtual newline
+  - [ ] `!` token after VISIBLE (newline suppression)
+  - [ ] Commas and line continuation ignored inside quoted strings
+  - [ ] BTW ignores trailing `...` and `,` (comment always terminates at real newline)
+  - [ ] Report error for unterminated string literals
 - [ ] Write lexer tests for all token types
+- [ ] Write lexer edge case tests (partial multi-word keywords, `IM` as identifier, nested escapes)
+- [ ] Write lexer error tests (unterminated strings, continuation before empty line, invalid escapes)
 - [ ] Verify: can tokenize all sample programs
 
 ## Phase 2: Parser (AST Construction)
@@ -44,13 +51,13 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 
 - [ ] Define AST node base classes (`SyntaxNode`, `StatementSyntax`, `ExpressionSyntax`)
 - [ ] Define all statement node types
-  - [ ] `CompilationUnitSyntax` (HAI ... KTHXBYE)
+  - [ ] `CompilationUnitSyntax` (HAI version ... KTHXBYE)
   - [ ] `VariableDeclarationSyntax` (I HAS A)
   - [ ] `AssignmentSyntax` (R)
-  - [ ] `PrintSyntax` (VISIBLE)
+  - [ ] `PrintSyntax` (VISIBLE) — infinite arity, multiple expressions, `!` newline suppression flag
   - [ ] `InputSyntax` (GIMMEH)
   - [ ] `IfSyntax` (O RLY? / YA RLY / MEBBE / NO WAI / OIC)
-  - [ ] `SwitchSyntax` (WTF? / OMG / OMGWTF / OIC)
+  - [ ] `SwitchSyntax` (WTF? / OMG / OMGWTF / OIC) — OMG values must be literal tokens
   - [ ] `LoopSyntax` (IM IN YR / IM OUTTA YR)
   - [ ] `FunctionDeclarationSyntax` (HOW IZ I / IF U SAY SO)
   - [ ] `ReturnSyntax` (FOUND YR)
@@ -60,25 +67,30 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [ ] Define all expression node types
   - [ ] `LiteralExpressionSyntax` (numbers, strings, WIN, FAIL)
   - [ ] `VariableExpressionSyntax` (identifiers, IT)
-  - [ ] `BinaryExpressionSyntax` (SUM OF, DIFF OF, etc.)
+  - [ ] `BinaryExpressionSyntax` (SUM OF, DIFF OF, PRODUKT OF, QUOSHUNT OF, MOD OF, BIGGR OF, SMALLR OF)
   - [ ] `UnaryExpressionSyntax` (NOT)
   - [ ] `ComparisonExpressionSyntax` (BOTH SAEM, DIFFRINT)
   - [ ] `BooleanExpressionSyntax` (BOTH OF, EITHER OF, WON OF)
-  - [ ] `NaryExpressionSyntax` (ALL OF, ANY OF)
-  - [ ] `CastExpressionSyntax` (MAEK)
-  - [ ] `SmooshExpressionSyntax` (SMOOSH)
-  - [ ] `FunctionCallExpressionSyntax` (I IZ ... MKAY)
+  - [ ] `NaryExpressionSyntax` (ALL OF, ANY OF) — terminated by MKAY or EOL
+  - [ ] `CastExpressionSyntax` (MAEK ... [A] type)
+  - [ ] `SmooshExpressionSyntax` (SMOOSH ... MKAY) — terminated by MKAY or EOL
+  - [ ] `InterpolatedStringExpressionSyntax` (string with `:{var}` segments)
+  - [ ] `FunctionCallExpressionSyntax` (I IZ ... MKAY) — MKAY may be omitted at EOL
 - [ ] Implement `Parser` — recursive descent
   - [ ] Token consumption helpers (Match, Expect, Peek)
-  - [ ] Error recovery (sync on newlines)
+  - [ ] Error recovery (sync on newlines and commas)
   - [ ] Statement parsing
   - [ ] Expression parsing (prefix notation)
+  - [ ] Handle optional `AN` separator between binary operator arguments
+  - [ ] Handle `MKAY` omission at end of line/statement for variadic operators
   - [ ] Comma as statement separator
+  - [ ] HAI version number parsing and validation
 - [ ] Write parser tests for each language construct
+- [ ] Write parser error recovery tests
 - [ ] Verify: can parse all sample programs
 
-## Phase 3: Binder (Semantic Analysis)
-> Validate semantics, resolve types, and produce a bound tree.
+## Phase 3: Binder & Lowering (Semantic Analysis)
+> Validate semantics, resolve types, produce a bound tree, and lower complex constructs.
 >
 > **Depends on:** Phase 2
 
@@ -92,12 +104,34 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
   - [ ] Enforce function scope isolation (no outer variable access)
   - [ ] Type inference from literals and expressions
   - [ ] Implicit type coercion rules (NOOB → TROOF only; YARN in math → parse as NUMBR/NUMBAR)
-  - [ ] NOOB restriction enforcement (error on implicit cast except TROOF)
-  - [ ] `IT` variable management per scope
+  - [ ] NOOB restriction enforcement (error on implicit cast except TROOF; warn when statically provable)
+  - [ ] `IT` variable management per scope (see DESIGN.md §IT Variable Semantics)
   - [ ] Implicit `IT` return from functions (when no FOUND YR)
-  - [ ] No automatic casting in equality comparisons
+  - [ ] No automatic casting in equality comparisons (BOTH SAEM, DIFFRINT)
+  - [ ] Boolean operators auto-cast operands to TROOF
+  - [ ] Math type promotion: NUMBR+NUMBR=NUMBR, any NUMBAR→NUMBAR
+  - [ ] Comparison type promotion: same as math for numeric types
+  - [ ] NUMBAR → YARN truncation to 2 decimal places (casting rule)
+  - [ ] `WTF?` validation: OMG values must be literals (no expressions, no interpolated strings)
+  - [ ] `WTF?` validation: each OMG literal must be unique within the switch
+  - [ ] `GTFO` context tracking: control-flow stack for loop/switch/function (see DESIGN.md §GTFO Context Sensitivity)
+  - [ ] Loop iteration variable scoping (temporary, local to the loop)
+  - [ ] Loop operation validation: UPPIN, NERFIN, or valid unary function name
+  - [ ] `TYPE` type handling (bare word values, TYPE → TROOF casting, TYPE → YARN casting)
+  - [ ] `BUKKIT` usage detection → produce error diagnostic
+  - [ ] `GIMMEH` always stores as YARN type
+  - [ ] `HAI` version number handling (accept 1.2, warn on others)
   - [ ] Semantic error reporting
-- [ ] Write binder tests
+- [ ] Implement `Lowerer` (simplifies bound tree for emitter)
+  - [ ] `UPPIN`/`NERFIN` loops → while-loop with explicit increment/decrement
+  - [ ] `SMOOSH` n-ary → chain of `String.Concat` calls
+  - [ ] `ALL OF` / `ANY OF` → short-circuit chain of `BOTH OF` / `EITHER OF`
+  - [ ] `BIGGR OF` / `SMALLR OF` → conditional branch or `Math.Max`/`Math.Min`
+  - [ ] `VISIBLE` with multiple args → concatenate YARN-cast values + print
+  - [ ] Interpolated strings → SMOOSH-equivalent concatenation
+- [ ] Write binder tests (positive and negative cases)
+- [ ] Write binder error tests (undeclared vars, type mismatches, NOOB misuse, BUKKIT usage)
+- [ ] Create conformance test matrix (one test per LANGUAGE_SPEC section × positive × negative)
 - [ ] Verify: all sample programs pass semantic analysis
 
 ## Phase 4: IL Emitter (Code Generation)
@@ -107,35 +141,42 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 
 - [ ] Create `Lolcode.Runtime` support library (runtime helpers)
   - [ ] `LolRuntime.IsTruthy(object)` → truthiness evaluation
-  - [ ] `LolRuntime.Coerce(object, LolType)` → explicit casting
-  - [ ] `LolRuntime.Add/Subtract/Multiply/Divide/Modulo` → type-aware arithmetic
-  - [ ] `LolRuntime.Equal/NotEqual` → type-aware comparison
-  - [ ] `LolRuntime.Concat(object[])` → SMOOSH implementation
-  - [ ] `LolRuntime.Print(object, bool)` → VISIBLE with newline suppression
-  - [ ] `LolRuntime.ReadInput()` → GIMMEH wrapper
+  - [ ] `LolRuntime.Coerce(object, LolType)` → explicit casting with LOLCODE semantics
+  - [ ] `LolRuntime.Add/Subtract/Multiply/Divide/Modulo` → type-aware arithmetic with NUMBR/NUMBAR promotion
+  - [ ] `LolRuntime.Greater/Smaller` → type-aware BIGGR OF / SMALLR OF
+  - [ ] `LolRuntime.Equal/NotEqual` → type-aware comparison (no auto-cast across types)
+  - [ ] `LolRuntime.Concat(object[])` → SMOOSH implementation (cast all to YARN and join)
+  - [ ] `LolRuntime.CastToYarn(object)` → to-string with NUMBAR 2-decimal truncation (`"F2"`)
+  - [ ] `LolRuntime.Print(object[], bool)` → VISIBLE with infinite arity and newline suppression
+  - [ ] `LolRuntime.ReadInput()` → GIMMEH wrapper (always returns YARN)
 - [ ] Implement `Emitter` with `PersistedAssemblyBuilder`
   - [ ] Assembly and module setup
   - [ ] Entry point (`Main` method) generation
   - [ ] Local variable allocation (as `object` for dynamic typing)
-  - [ ] Static type specialization (use native opcodes when types are known)
-  - [ ] Literal loading (ldstr, ldc.i4, ldc.r8)
+  - [ ] Literal loading (ldstr, ldc.i4, ldc.r8, ldnull for NOOB)
   - [ ] Variable load/store (ldloc, stloc)
-  - [ ] `VISIBLE` → `LolRuntime.Print` or `Console.WriteLine`
-  - [ ] `GIMMEH` → `Console.ReadLine`
-  - [ ] Arithmetic → runtime helpers or native IL opcodes
+  - [ ] `IT` variable allocation and management per scope
+  - [ ] `VISIBLE` → `LolRuntime.Print` (handles multiple args + `!` suppression)
+  - [ ] `GIMMEH` → `LolRuntime.ReadInput` (stores as YARN)
+  - [ ] Arithmetic → runtime helpers (or native IL opcodes when types statically known)
   - [ ] Comparison → runtime helpers (no auto-cast across types)
-  - [ ] Boolean logic → and, or, xor, not
+  - [ ] Boolean logic → IsTruthy + and/or/xor/not
   - [ ] Conditionals → brfalse/brtrue + labels
-  - [ ] Loops → labels + br (branch back)
-  - [ ] Functions → DefineMethod + call
+  - [ ] `WTF?` switch → labels per case with fall-through (no GTFO = continue to next OMG block)
+  - [ ] Loops → labels + br (branch back); GTFO → br to loop exit label
+  - [ ] Functions → DefineMethod + call; GTFO in function → ldnull + ret
   - [ ] String concatenation → `LolRuntime.Concat` or `String.Concat`
-  - [ ] String interpolation → expand `:{var}` at compile time
+  - [ ] String interpolation → lowered to concatenation (handled by lowerer)
   - [ ] Type casting → conversion opcodes / runtime helpers
-  - [ ] `BIGGR OF` / `SMALLR OF` → Math.Max / Math.Min
   - [ ] TYPE values → string representations
 - [ ] Generate `.runtimeconfig.json` alongside DLL
 - [ ] Reference `Lolcode.Runtime.dll` in output
+- [ ] Implement `--emit-il` flag to dump human-readable IL for debugging
 - [ ] Write emitter tests (compile → run → assert stdout)
+- [ ] Write IL structure tests (verify labels, branches, call sites using `--emit-il` or ILSpy)
+- [ ] Write coercion/casting test suite (every row in LANGUAGE_SPEC Casting Rules Summary)
+- [ ] Write `IT` lifetime tests (IT after function call, IT in nested conditionals, IT in loops)
+- [ ] Write `WTF?` fall-through tests (with and without GTFO)
 - [ ] Verify: `dotnet <output>.dll` works for all sample programs
 
 ## Phase 5: CLI Tool (**MVP Complete**)
@@ -149,6 +190,9 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [ ] Exit codes: 0 = success, 1 = compile error, 2 = runtime error
 - [ ] Package as .NET global tool
 - [ ] Write CLI integration tests
+- [ ] Create all 15 sample programs (graduated complexity)
+- [ ] Run conformance test suite: all samples compile and run with correct stdout/exit codes
+- [ ] Write diagnostic snapshot tests (stable LOLxxxx IDs, error messages for common mistakes)
 - [ ] Verify: all 15 sample programs compile and run correctly
 
 ---
@@ -227,4 +271,3 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [ ] All 15 samples verified working end-to-end
 - [ ] Consider: REPL mode (`lolcode repl`)
 - [ ] Consider: Language Server Protocol for rich VS Code features
-- [ ] Consider: `--emit-il` flag to dump human-readable IL

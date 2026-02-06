@@ -1,0 +1,6 @@
+100
+message
+WIN
+you
+string
+150

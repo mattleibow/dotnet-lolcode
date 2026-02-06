@@ -1,0 +1,6 @@
+ENTERING INFINITE LOOP:
+  iteration 0
+  iteration 1
+  iteration 2
+  breaking at count = 3
+LOOP EXITED

@@ -24,9 +24,9 @@ HAI 1.2
   I HAS A result ITZ SUM OF PRODUKT OF 3 AN 4 AN 5
   VISIBLE "SUM OF PRODUKT OF 3 AN 4 AN 5 = " result
 
-  BTW floating point
+  BTW floating point (NUMBAR → YARN = 2 decimal places)
   I HAS A pi ITZ 3.14159
   I HAS A r ITZ 5.0
   I HAS A area ITZ PRODUKT OF pi AN PRODUKT OF r AN r
-  VISIBLE "AREA OF CIRCLE WIF RADIUS " r " = " area
+  VISIBLE "AREA OF CIRCLE WIF RADIUS " r " = " area   BTW prints 5.00 and 78.54
 KTHXBYE

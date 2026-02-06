@@ -1,0 +1,6 @@
+WIN
+FAIL
+WIN
+WIN
+FAIL
+WIN

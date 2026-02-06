@@ -1,0 +1,11 @@
+NESTED LOOP TEST:
+OUTER i = 0
+  INNER j = 0
+  INNER j = 1
+OUTER i = 1
+  INNER j = 0
+  INNER j = 1
+OUTER i = 2
+  INNER j = 0
+  INNER j = 1
+DONE

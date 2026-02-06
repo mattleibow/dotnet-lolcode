@@ -1,0 +1,5 @@
+UPPIN COUNTER STARTING VALUE:
+  counter = 0
+  counter = 1
+  counter = 2
+FIRST VALUE WAS 0, NOT 1

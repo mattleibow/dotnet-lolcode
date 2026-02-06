@@ -14,7 +14,7 @@ HAI 1.2
   BTW print all variables
   VISIBLE "NAME: " name
   VISIBLE "AGE: " age
-  VISIBLE "WEIGHT: " weight
+  VISIBLE "WEIGHT: " weight                BTW prints 4.20 (NUMBAR → YARN = 2 decimal places)
   VISIBLE "HAPPY: " happy
   VISIBLE "MYSTERY: " mystery
 

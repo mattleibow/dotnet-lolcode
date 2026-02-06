@@ -1,0 +1,76 @@
+BTW Test TROOF (boolean) type
+BTW Per spec: WIN (true) and FAIL (false)
+
+HAI 1.2
+  BTW boolean literals
+  I HAS A yes ITZ WIN
+  I HAS A no ITZ FAIL
+
+  VISIBLE yes
+  VISIBLE no
+
+  BTW booleans in conditionals
+  yes
+  O RLY?
+    YA RLY
+      VISIBLE "YES IS TRUTHY"
+  OIC
+
+  no
+  O RLY?
+    YA RLY
+      VISIBLE "NO IS TRUTHY"
+    NO WAI
+      VISIBLE "NO IS FALSY"
+  OIC
+
+  BTW boolean operators
+  VISIBLE BOTH OF WIN AN WIN
+  VISIBLE BOTH OF WIN AN FAIL
+  VISIBLE EITHER OF WIN AN FAIL
+  VISIBLE EITHER OF FAIL AN FAIL
+  VISIBLE WON OF WIN AN FAIL
+  VISIBLE WON OF WIN AN WIN
+  VISIBLE NOT WIN
+  VISIBLE NOT FAIL
+
+  BTW truthiness casting
+  BTW empty string is FAIL
+  ""
+  O RLY?
+    YA RLY, VISIBLE "EMPTY STRING TRUTHY"
+    NO WAI, VISIBLE "EMPTY STRING FALSY"
+  OIC
+
+  BTW zero is FAIL
+  0
+  O RLY?
+    YA RLY, VISIBLE "ZERO TRUTHY"
+    NO WAI, VISIBLE "ZERO FALSY"
+  OIC
+
+  BTW 0.0 is FAIL
+  0.0
+  O RLY?
+    YA RLY, VISIBLE "0.0 TRUTHY"
+    NO WAI, VISIBLE "0.0 FALSY"
+  OIC
+
+  BTW non-empty string is WIN
+  "HAI"
+  O RLY?
+    YA RLY, VISIBLE "NON-EMPTY STRING TRUTHY"
+  OIC
+
+  BTW non-zero is WIN
+  42
+  O RLY?
+    YA RLY, VISIBLE "NON-ZERO TRUTHY"
+  OIC
+
+  BTW negative non-zero is WIN
+  -1
+  O RLY?
+    YA RLY, VISIBLE "NEGATIVE TRUTHY"
+  OIC
+KTHXBYE

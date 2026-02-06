@@ -17,7 +17,7 @@ HAI 1.2
   BTW number to float
   I HAS A whole ITZ 7
   whole IS NOW A NUMBAR
-  VISIBLE "7 AS NUMBAR: " whole
+  VISIBLE "7 AS NUMBAR: " whole          BTW prints 7.00 (NUMBAR → YARN = 2 decimal places)
 
   BTW float to integer (truncates)
   I HAS A pi ITZ 3.14159

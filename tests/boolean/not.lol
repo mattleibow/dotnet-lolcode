@@ -1,0 +1,10 @@
+BTW NOT: unary negation with truthiness auto-cast
+HAI 1.2
+  VISIBLE NOT WIN
+  VISIBLE NOT FAIL
+  VISIBLE NOT 0
+  VISIBLE NOT 42
+  VISIBLE NOT ""
+  VISIBLE NOT "hai"
+  VISIBLE NOT NOOB
+KTHXBYE

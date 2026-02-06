@@ -1,0 +1,2 @@
+Inside function: 42
+Outside function: 100

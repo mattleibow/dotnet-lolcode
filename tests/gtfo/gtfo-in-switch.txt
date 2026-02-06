@@ -1,0 +1,3 @@
+TESTING GTFO IN SWITCH:
+  case 2 - before GTFO
+AFTER SWITCH

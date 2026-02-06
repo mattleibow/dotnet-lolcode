@@ -1,0 +1,18 @@
+BTW Greater-than-or-equal idiom: BOTH SAEM x AN BIGGR OF x AN y
+HAI 1.2
+  I HAS A x ITZ 5
+  I HAS A y ITZ 3
+  VISIBLE BOTH SAEM x AN BIGGR OF x AN y
+  x R 3
+  y R 5
+  VISIBLE BOTH SAEM x AN BIGGR OF x AN y
+  x R 5
+  y R 5
+  VISIBLE BOTH SAEM x AN BIGGR OF x AN y
+  x R 3.0
+  y R 3
+  VISIBLE BOTH SAEM x AN BIGGR OF x AN y
+  x R 2
+  y R 2.5
+  VISIBLE BOTH SAEM x AN BIGGR OF x AN y
+KTHXBYE
