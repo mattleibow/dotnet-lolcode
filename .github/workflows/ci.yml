@@ -110,48 +110,15 @@ jobs:
           VERSION=$(basename "$SDK_PKG" | sed 's/Lolcode.NET.Sdk.\(.*\).nupkg/\1/')
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Test SDK package
+      - name: Test packages
         shell: bash
         run: |
-          mkdir -p test-project && cd test-project
+          VERSION="${{ steps.version.outputs.version }}"
 
-          cat > NuGet.config << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <configuration>
-            <packageSources>
-              <clear />
-              <add key="local" value="../packages" />
-              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-            </packageSources>
-          </configuration>
-          EOF
-
-          cat > Test.lolproj << EOF
-          <Project Sdk="Lolcode.NET.Sdk/${{ steps.version.outputs.version }}">
-            <PropertyGroup>
-              <OutputType>Exe</OutputType>
-              <TargetFramework>net10.0</TargetFramework>
-            </PropertyGroup>
-          </Project>
-          EOF
-
-          cat > Program.lol << 'EOF'
-          HAI 1.2
-            VISIBLE "NuGet SDK works!"
-          KTHXBYE
-          EOF
-
-          dotnet build Test.lolproj
-          OUTPUT=$(dotnet run --project Test.lolproj)
-          [ "$OUTPUT" = "NuGet SDK works!" ] || { echo "❌ Unexpected output: $OUTPUT"; exit 1; }
-          echo "✅ SDK package works end-to-end"
-
-      - name: Test dotnet new template
-        shell: bash
-        run: |
+          # Install template and create project
           TEMPLATE_PKG=$(ls packages/Lolcode.NET.Templates.*.nupkg | head -1)
           dotnet new install "$TEMPLATE_PKG"
-          mkdir -p template-test && cd template-test
+          mkdir -p test-app && cd test-app
 
           cat > NuGet.config << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -164,8 +131,16 @@ jobs:
           </configuration>
           EOF
 
-          dotnet new lolcode -n TemplateTest
+          dotnet new lolcode -n MyApp
+
+          # Verify version is baked into .lolproj
           echo "Generated .lolproj:"
-          cat TemplateTest/TemplateTest.lolproj
-          dotnet build TemplateTest/TemplateTest.lolproj
-          echo "✅ dotnet new lolcode template works"
+          cat MyApp/MyApp.lolproj
+          grep -q "Lolcode.NET.Sdk/$VERSION" MyApp/MyApp.lolproj || { echo "❌ SDK version not found in .lolproj"; exit 1; }
+          echo "✅ Version $VERSION baked into template"
+
+          # Build and run
+          dotnet build MyApp/MyApp.lolproj
+          OUTPUT=$(dotnet run --project MyApp/MyApp.lolproj)
+          [ "$OUTPUT" = "HAI WORLD!" ] || { echo "❌ Unexpected output: $OUTPUT"; exit 1; }
+          echo "✅ Template project builds and runs"
