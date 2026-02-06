@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Lolcode.CodeAnalysis.Binding;
 using Lolcode.CodeAnalysis.BoundTree;
 using Lolcode.CodeAnalysis.CodeGen;
+using Lolcode.CodeAnalysis.Errors;
 using Lolcode.CodeAnalysis.Lowering;
 using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.CodeAnalysis.Text;
@@ -81,7 +82,7 @@ public sealed class LolcodeCompilation
         {
             var bag = new DiagnosticBag();
             bag.AddRange(diagnostics);
-            bag.ReportError("LOL9001", default, $"Internal compiler error: {ex.Message}");
+            bag.Report(DiagnosticDescriptors.InternalError, default, ex.Message);
             return new EmitResult(false, bag.ToImmutableArray(), null);
         }
     }

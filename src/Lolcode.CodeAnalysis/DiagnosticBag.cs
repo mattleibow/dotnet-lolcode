@@ -1,4 +1,5 @@
 using System.Collections;
+using Lolcode.CodeAnalysis.Errors;
 using Lolcode.CodeAnalysis.Text;
 
 namespace Lolcode.CodeAnalysis;
@@ -21,7 +22,7 @@ public sealed class DiagnosticBag : IEnumerable<Diagnostic>
     public bool HasErrors => _diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error);
 
     /// <summary>
-    /// Adds all diagnostics from another bag.
+    /// Adds all diagnostics from another source.
     /// </summary>
     public void AddRange(IEnumerable<Diagnostic> diagnostics)
     {
@@ -29,134 +30,98 @@ public sealed class DiagnosticBag : IEnumerable<Diagnostic>
     }
 
     /// <summary>
-    /// Reports an error diagnostic.
+    /// Reports a diagnostic from a descriptor and format arguments.
+    /// </summary>
+    public void Report(DiagnosticDescriptor descriptor, TextLocation location, params object[] args)
+    {
+        _diagnostics.Add(Diagnostic.Create(descriptor, location, args));
+    }
+
+    /// <summary>
+    /// Reports an error diagnostic with a raw ID and message (for internal errors).
     /// </summary>
     public void ReportError(string id, TextLocation location, string message)
     {
         _diagnostics.Add(new Diagnostic(id, location, message, DiagnosticSeverity.Error));
     }
 
-    /// <summary>
-    /// Reports a warning diagnostic.
-    /// </summary>
-    public void ReportWarning(string id, TextLocation location, string message)
-    {
-        _diagnostics.Add(new Diagnostic(id, location, message, DiagnosticSeverity.Warning));
-    }
-
     // --- Lexer Diagnostics ---
 
     /// <summary>Reports an unexpected character.</summary>
     public void ReportUnexpectedCharacter(TextLocation location, char character)
-    {
-        ReportError("LOL0001", location, $"Unexpected character '{character}'.");
-    }
+        => Report(DiagnosticDescriptors.UnexpectedCharacter, location, character);
 
     /// <summary>Reports an unterminated string literal.</summary>
     public void ReportUnterminatedString(TextLocation location)
-    {
-        ReportError("LOL0002", location, "Unterminated string literal.");
-    }
+        => Report(DiagnosticDescriptors.UnterminatedString, location);
 
     /// <summary>Reports an invalid number literal.</summary>
     public void ReportInvalidNumber(TextLocation location, string text)
-    {
-        ReportError("LOL0003", location, $"Invalid number literal '{text}'.");
-    }
+        => Report(DiagnosticDescriptors.InvalidNumber, location, text);
 
     /// <summary>Reports an invalid escape sequence.</summary>
     public void ReportInvalidEscapeSequence(TextLocation location, string sequence)
-    {
-        ReportError("LOL0004", location, $"Invalid escape sequence '{sequence}'.");
-    }
+        => Report(DiagnosticDescriptors.InvalidEscapeSequence, location, sequence);
 
     // --- Parser Diagnostics ---
 
     /// <summary>Reports an unexpected token.</summary>
     public void ReportUnexpectedToken(TextLocation location, string actual, string expected)
-    {
-        ReportError("LOL1001", location, $"Unexpected token '{actual}', expected {expected}.");
-    }
+        => Report(DiagnosticDescriptors.UnexpectedToken, location, actual, expected);
 
     /// <summary>Reports a missing expected token.</summary>
     public void ReportExpectedToken(TextLocation location, string expected)
-    {
-        ReportError("LOL1002", location, $"Expected {expected}.");
-    }
+        => Report(DiagnosticDescriptors.ExpectedToken, location, expected);
 
     /// <summary>Reports a missing HAI statement.</summary>
     public void ReportMissingHai(TextLocation location)
-    {
-        ReportError("LOL1003", location, "Program must start with 'HAI'.");
-    }
+        => Report(DiagnosticDescriptors.MissingHai, location);
 
     /// <summary>Reports a missing KTHXBYE statement.</summary>
     public void ReportMissingKthxbye(TextLocation location)
-    {
-        ReportError("LOL1004", location, "Program must end with 'KTHXBYE'.");
-    }
+        => Report(DiagnosticDescriptors.MissingKthxbye, location);
 
     // --- Binder Diagnostics ---
 
     /// <summary>Reports an undeclared variable.</summary>
     public void ReportUndeclaredVariable(TextLocation location, string name)
-    {
-        ReportError("LOL2001", location, $"Variable '{name}' has not been declared.");
-    }
+        => Report(DiagnosticDescriptors.UndeclaredVariable, location, name);
 
     /// <summary>Reports a variable that has already been declared.</summary>
     public void ReportVariableAlreadyDeclared(TextLocation location, string name)
-    {
-        ReportError("LOL2002", location, $"Variable '{name}' has already been declared.");
-    }
+        => Report(DiagnosticDescriptors.VariableAlreadyDeclared, location, name);
 
     /// <summary>Reports a function that has already been declared.</summary>
     public void ReportFunctionAlreadyDeclared(TextLocation location, string name)
-    {
-        ReportError("LOL2002", location, $"Function '{name}' has already been declared.");
-    }
+        => Report(DiagnosticDescriptors.FunctionAlreadyDeclared, location, name);
 
     /// <summary>Reports an undefined function.</summary>
     public void ReportUndefinedFunction(TextLocation location, string name)
-    {
-        ReportError("LOL2003", location, $"Function '{name}' is not defined.");
-    }
+        => Report(DiagnosticDescriptors.UndefinedFunction, location, name);
 
     /// <summary>Reports wrong argument count for a function call.</summary>
     public void ReportWrongArgumentCount(TextLocation location, string name, int expected, int actual)
-    {
-        ReportError("LOL2004", location, $"Function '{name}' expects {expected} argument(s) but got {actual}.");
-    }
+        => Report(DiagnosticDescriptors.WrongArgumentCount, location, name, expected, actual);
 
     /// <summary>Reports an invalid cast.</summary>
     public void ReportInvalidCast(TextLocation location, string fromType, string toType)
-    {
-        ReportError("LOL2005", location, $"Cannot cast '{fromType}' to '{toType}'.");
-    }
+        => Report(DiagnosticDescriptors.InvalidCast, location, fromType, toType);
 
     /// <summary>Reports GTFO used outside of loop, switch, or function.</summary>
     public void ReportInvalidGtfo(TextLocation location)
-    {
-        ReportError("LOL2006", location, "'GTFO' is not valid in this context.");
-    }
+        => Report(DiagnosticDescriptors.InvalidGtfo, location);
 
     /// <summary>Reports FOUND YR used outside of a function.</summary>
     public void ReportInvalidFoundYr(TextLocation location)
-    {
-        ReportError("LOL2007", location, "'FOUND YR' is not valid outside a function.");
-    }
+        => Report(DiagnosticDescriptors.InvalidFoundYr, location);
 
     /// <summary>Reports duplicate OMG literal in WTF? block.</summary>
     public void ReportDuplicateOmgLiteral(TextLocation location, string value)
-    {
-        ReportError("LOL2008", location, $"Duplicate OMG case value '{value}'.");
-    }
+        => Report(DiagnosticDescriptors.DuplicateOmgLiteral, location, value);
 
     /// <summary>Reports non-literal in OMG case.</summary>
     public void ReportOmgRequiresLiteral(TextLocation location)
-    {
-        ReportError("LOL2009", location, "OMG case values must be literals.");
-    }
+        => Report(DiagnosticDescriptors.OmgRequiresLiteral, location);
 
     /// <inheritdoc/>
     public IEnumerator<Diagnostic> GetEnumerator() => _diagnostics.GetEnumerator();

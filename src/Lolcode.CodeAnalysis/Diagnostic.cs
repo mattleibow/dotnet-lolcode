@@ -15,6 +15,24 @@ public sealed record Diagnostic(
     string Message,
     DiagnosticSeverity Severity = DiagnosticSeverity.Error)
 {
+    /// <summary>The descriptor that produced this diagnostic, if any.</summary>
+    public DiagnosticDescriptor? Descriptor { get; init; }
+
+    /// <summary>
+    /// Creates a diagnostic from a descriptor, location, and format arguments.
+    /// </summary>
+    public static Diagnostic Create(DiagnosticDescriptor descriptor, TextLocation location, params object[] args)
+    {
+        var message = args.Length > 0
+            ? string.Format(descriptor.MessageFormat, args)
+            : descriptor.MessageFormat;
+
+        return new Diagnostic(descriptor.Id, location, message, descriptor.DefaultSeverity)
+        {
+            Descriptor = descriptor
+        };
+    }
+
     /// <inheritdoc/>
     public override string ToString()
     {

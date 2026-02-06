@@ -1,0 +1,34 @@
+<Project>
+  <!-- Sdk.props - Imported first, sets up defaults -->
+  
+  <PropertyGroup>
+    <!-- Default to executable output -->
+    <OutputType Condition="'$(OutputType)' == ''">Exe</OutputType>
+    
+    <!-- Default target framework if not specified -->
+    <TargetFramework Condition="'$(TargetFramework)' == '' and '$(TargetFrameworks)' == ''">net10.0</TargetFramework>
+    
+    <!-- Enable nullable by default -->
+    <Nullable Condition="'$(Nullable)' == ''">enable</Nullable>
+    
+    <!-- Use latest C# language version -->
+    <LangVersion Condition="'$(LangVersion)' == ''">latest</LangVersion>
+    
+    <!-- Default source file extension -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);**/*.lol</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <!-- Include LOLCODE source files -->
+  <ItemGroup>
+    <LolcodeCompile Include="**/*.lol" Exclude="$(DefaultItemExcludes)" />
+  </ItemGroup>
+
+  <!-- Reference the runtime library -->
+  <ItemGroup>
+    <Reference Include="Lolcode.Runtime">
+      <HintPath>$(MSBuildThisFileDirectory)../lib/$(TargetFramework)/Lolcode.Runtime.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

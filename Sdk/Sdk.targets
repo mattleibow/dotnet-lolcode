@@ -1,0 +1,58 @@
+<Project>
+  <!-- Sdk.targets - Imported last, defines build logic -->
+
+  <!-- Define the LOLCODE compilation task -->
+  <UsingTask TaskName="LolcodeCompileTask" 
+             AssemblyFile="$(MSBuildThisFileDirectory)../tools/net10.0/Lolcode.Build.dll" />
+
+  <!-- Hook into the build process -->
+  <PropertyGroup>
+    <CoreCompileDependsOn>
+      LolcodeCompile;
+      $(CoreCompileDependsOn)
+    </CoreCompileDependsOn>
+  </PropertyGroup>
+
+  <!-- LOLCODE compilation target -->
+  <Target Name="LolcodeCompile" 
+          BeforeTargets="CoreCompile" 
+          Inputs="@(LolcodeCompile)" 
+          Outputs="$(IntermediateOutputPath)$(TargetName)$(TargetExt)">
+    
+    <Message Text="Compiling LOLCODE files..." Importance="high" />
+    
+    <!-- Invoke the LOLCODE compiler MSBuild task -->
+    <LolcodeCompileTask 
+      SourceFiles="@(LolcodeCompile)"
+      OutputAssembly="$(IntermediateOutputPath)$(TargetName)$(TargetExt)"
+      TargetFramework="$(TargetFramework)"
+      AssemblyName="$(AssemblyName)"
+      RootNamespace="$(RootNamespace)" />
+
+    <!-- Mark the compiled assembly as the primary output -->
+    <ItemGroup>
+      <IntermediateAssembly Include="$(IntermediateOutputPath)$(TargetName)$(TargetExt)" />
+    </ItemGroup>
+
+  </Target>
+
+  <!-- Copy runtime config -->
+  <Target Name="GenerateRuntimeConfigurationFiles" AfterTargets="LolcodeCompile">
+    <ItemGroup>
+      <RuntimeConfigFile Include="$(OutputPath)$(TargetName).runtimeconfig.json" />
+    </ItemGroup>
+    
+    <WriteLinesToFile File="@(RuntimeConfigFile)" 
+                      Lines='{
+  "runtimeOptions": {
+    "tfm": "$(TargetFramework)",
+    "framework": {
+      "name": "Microsoft.NETCore.App",
+      "version": "$(MicrosoftNETCoreAppVersion)"
+    }
+  }
+}' 
+                      Overwrite="true" />
+  </Target>
+
+</Project>
