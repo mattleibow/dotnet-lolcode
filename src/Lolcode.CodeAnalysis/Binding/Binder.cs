@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Lolcode.CodeAnalysis.Symbols;
 using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.CodeAnalysis.Text;
 
@@ -7,7 +8,7 @@ namespace Lolcode.CodeAnalysis.Binding;
 /// <summary>
 /// Context tracking for GTFO resolution.
 /// </summary>
-internal enum ControlFlowContext
+public enum ControlFlowContext
 {
     None,
     Loop,
@@ -23,8 +24,7 @@ public sealed class Binder
 {
     private readonly DiagnosticBag _diagnostics = new();
     private readonly SourceText _text;
-    private readonly Dictionary<string, bool> _variables = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, int> _functions = new(StringComparer.Ordinal);
+    private BoundScope _scope;
     private readonly Stack<ControlFlowContext> _contextStack = new();
 
     /// <summary>
@@ -38,8 +38,7 @@ public sealed class Binder
     public Binder(SourceText text)
     {
         _text = text;
-        // IT is always available
-        _variables["IT"] = true;
+        _scope = new BoundScope();
     }
 
     /// <summary>
@@ -61,16 +60,15 @@ public sealed class Binder
             if (statement is FunctionDeclarationSyntax funcDecl)
             {
                 string name = funcDecl.NameToken.Text;
-                int paramCount = funcDecl.Parameters.Length;
+                var parameters = funcDecl.Parameters.Select((p, i) =>
+                    new ParameterSymbol(p.Text, i)).ToImmutableArray();
 
-                if (_functions.ContainsKey(name))
+                var function = new FunctionSymbol(name, parameters);
+
+                if (!_scope.TryDeclareFunction(function))
                 {
                     var location = TextLocation.FromSpan(_text, funcDecl.NameToken.Span);
                     _diagnostics.ReportFunctionAlreadyDeclared(location, name);
-                }
-                else
-                {
-                    _functions[name] = paramCount;
                 }
             }
         }
@@ -113,34 +111,34 @@ public sealed class Binder
     private BoundVariableDeclaration BindVariableDeclaration(VariableDeclarationSyntax syntax)
     {
         string name = syntax.NameToken.Text;
+        var variable = new VariableSymbol(name);
 
-        if (_variables.ContainsKey(name))
+        if (!_scope.TryDeclareVariable(variable))
         {
             var location = TextLocation.FromSpan(_text, syntax.NameToken.Span);
             _diagnostics.ReportVariableAlreadyDeclared(location, name);
         }
 
-        _variables[name] = true;
-
         BoundExpression? initializer = null;
         if (syntax.Initializer != null)
             initializer = BindExpression(syntax.Initializer);
 
-        return new BoundVariableDeclaration(name, initializer);
+        return new BoundVariableDeclaration(variable, initializer);
     }
 
     private BoundAssignment BindAssignment(AssignmentStatementSyntax syntax)
     {
         string name = syntax.NameToken.Text;
 
-        if (!_variables.ContainsKey(name))
+        if (!_scope.TryLookupVariable(name, out var variable))
         {
             var location = TextLocation.FromSpan(_text, syntax.NameToken.Span);
             _diagnostics.ReportUndeclaredVariable(location, name);
+            variable = new VariableSymbol(name);
         }
 
         var expression = BindExpression(syntax.Expression);
-        return new BoundAssignment(name, expression);
+        return new BoundAssignment(variable, expression);
     }
 
     private BoundVisibleStatement BindVisible(VisibleStatementSyntax syntax)
@@ -152,12 +150,13 @@ public sealed class Binder
     private BoundGimmehStatement BindGimmeh(GimmehStatementSyntax syntax)
     {
         string name = syntax.NameToken.Text;
-        if (!_variables.ContainsKey(name))
+        if (!_scope.TryLookupVariable(name, out var variable))
         {
             var location = TextLocation.FromSpan(_text, syntax.NameToken.Span);
             _diagnostics.ReportUndeclaredVariable(location, name);
+            variable = new VariableSymbol(name);
         }
-        return new BoundGimmehStatement(name);
+        return new BoundGimmehStatement(variable);
     }
 
     private BoundExpressionStatement BindExpressionStatement(ExpressionStatementSyntax syntax)
@@ -232,10 +231,14 @@ public sealed class Binder
         string? variableName = syntax.VariableToken?.Text;
         bool? isTil = null;
         BoundExpression? condition = null;
+        VariableSymbol? loopVariable = null;
 
-        // Loop variable is local to the loop
+        // Loop variable is local to the loop — declare in scope
         if (variableName != null)
-            _variables[variableName] = true;
+        {
+            loopVariable = new VariableSymbol(variableName);
+            _scope.TryDeclareVariable(loopVariable);
+        }
 
         if (syntax.ConditionKeyword != null)
         {
@@ -247,28 +250,21 @@ public sealed class Binder
         var body = BindBlock(syntax.Body.Statements);
         _contextStack.Pop();
 
-        return new BoundLoopStatement(label, operation, variableName, isTil, condition, body);
+        return new BoundLoopStatement(label, operation, loopVariable, isTil, condition, body);
     }
 
     private BoundGtfoStatement BindGtfo(GtfoStatementSyntax syntax)
     {
-        string context;
+        ControlFlowContext context;
         if (_contextStack.Count == 0)
         {
-            // In top-level code — invalid
             var location = TextLocation.FromSpan(_text, syntax.Keyword.Span);
             _diagnostics.ReportInvalidGtfo(location);
-            context = "none";
+            context = ControlFlowContext.None;
         }
         else
         {
-            context = _contextStack.Peek() switch
-            {
-                ControlFlowContext.Loop => "loop",
-                ControlFlowContext.Switch => "switch",
-                ControlFlowContext.Function => "function",
-                _ => "none"
-            };
+            context = _contextStack.Peek();
         }
 
         return new BoundGtfoStatement(context);
@@ -277,26 +273,30 @@ public sealed class Binder
     private BoundFunctionDeclaration BindFunctionDeclaration(FunctionDeclarationSyntax syntax)
     {
         string name = syntax.NameToken.Text;
-        var parameters = syntax.Parameters.Select(p => p.Text).ToImmutableArray();
 
-        // Create a new scope for the function
-        var savedVariables = new Dictionary<string, bool>(_variables);
-        _variables.Clear();
-        _variables["IT"] = true;
+        if (!_scope.TryLookupFunction(name, out var function))
+        {
+            // Should have been collected in first pass; create a placeholder
+            var parameters = syntax.Parameters.Select((p, i) =>
+                new ParameterSymbol(p.Text, i)).ToImmutableArray();
+            function = new FunctionSymbol(name, parameters);
+        }
 
-        foreach (var param in parameters)
-            _variables[param] = true;
+        // Create a new scope for the function (chained to global for function visibility)
+        var outerScope = _scope;
+        _scope = new BoundScope(outerScope);
+
+        foreach (var param in function.Parameters)
+            _scope.TryDeclareVariable(new VariableSymbol(param.Name));
 
         _contextStack.Push(ControlFlowContext.Function);
         var body = BindBlock(syntax.Body.Statements);
         _contextStack.Pop();
 
         // Restore outer scope
-        _variables.Clear();
-        foreach (var kv in savedVariables)
-            _variables[kv.Key] = kv.Value;
+        _scope = outerScope;
 
-        return new BoundFunctionDeclaration(name, parameters, body);
+        return new BoundFunctionDeclaration(function, body);
     }
 
     private BoundReturnStatement BindReturn(ReturnStatementSyntax syntax)
@@ -314,14 +314,15 @@ public sealed class Binder
     private BoundCastStatement BindCastStatement(CastStatementSyntax syntax)
     {
         string name = syntax.NameToken.Text;
-        if (!_variables.ContainsKey(name))
+        if (!_scope.TryLookupVariable(name, out var variable))
         {
             var location = TextLocation.FromSpan(_text, syntax.NameToken.Span);
             _diagnostics.ReportUndeclaredVariable(location, name);
+            variable = new VariableSymbol(name);
         }
 
         string targetType = syntax.TypeToken.Text;
-        return new BoundCastStatement(name, targetType);
+        return new BoundCastStatement(variable, targetType);
     }
 
     private BoundExpression BindExpression(ExpressionSyntax syntax)
@@ -364,18 +365,15 @@ public sealed class Binder
             int nextInterp = template.IndexOf(":{", pos, StringComparison.Ordinal);
             if (nextInterp < 0)
             {
-                // Rest is literal text
                 parts.Add(new BoundLiteralExpression(template[pos..]));
                 break;
             }
 
-            // Add text before the interpolation
             if (nextInterp > pos)
             {
                 parts.Add(new BoundLiteralExpression(template[pos..nextInterp]));
             }
 
-            // Find closing }
             int closingBrace = template.IndexOf('}', nextInterp + 2);
             if (closingBrace < 0)
             {
@@ -385,14 +383,13 @@ public sealed class Binder
 
             string varName = template[(nextInterp + 2)..closingBrace];
 
-            if (!_variables.ContainsKey(varName))
+            if (!_scope.TryLookupVariable(varName, out var variable))
             {
-                // Can't report proper location here; just add the raw text
                 parts.Add(new BoundLiteralExpression($":{{{varName}}}"));
             }
             else
             {
-                parts.Add(new BoundVariableExpression(varName));
+                parts.Add(new BoundVariableExpression(variable));
             }
 
             pos = closingBrace + 1;
@@ -407,18 +404,19 @@ public sealed class Binder
     private BoundExpression BindVariableExpression(VariableExpressionSyntax syntax)
     {
         string name = syntax.NameToken.Text;
-        if (!_variables.ContainsKey(name))
+        if (!_scope.TryLookupVariable(name, out var variable))
         {
             var location = TextLocation.FromSpan(_text, syntax.NameToken.Span);
             _diagnostics.ReportUndeclaredVariable(location, name);
+            variable = new VariableSymbol(name);
         }
-        return new BoundVariableExpression(name);
+        return new BoundVariableExpression(variable);
     }
 
     private BoundUnaryExpression BindUnary(UnaryExpressionSyntax syntax)
     {
         var operand = BindExpression(syntax.Operand);
-        return new BoundUnaryExpression(operand);
+        return new BoundUnaryExpression(BoundUnaryOperatorKind.LogicalNot, operand);
     }
 
     private BoundBinaryExpression BindBinary(BinaryExpressionSyntax syntax)
@@ -426,7 +424,23 @@ public sealed class Binder
         string op = syntax.OperatorToken.Text;
         var left = BindExpression(syntax.Left);
         var right = BindExpression(syntax.Right);
-        return new BoundBinaryExpression(op, left, right);
+
+        var kind = op switch
+        {
+            "SUM" => BoundBinaryOperatorKind.Addition,
+            "DIFF" => BoundBinaryOperatorKind.Subtraction,
+            "PRODUKT" => BoundBinaryOperatorKind.Multiplication,
+            "QUOSHUNT" => BoundBinaryOperatorKind.Division,
+            "MOD" => BoundBinaryOperatorKind.Modulo,
+            "BIGGR" => BoundBinaryOperatorKind.Maximum,
+            "SMALLR" => BoundBinaryOperatorKind.Minimum,
+            "BOTH" => BoundBinaryOperatorKind.LogicalAnd,
+            "EITHER" => BoundBinaryOperatorKind.LogicalOr,
+            "WON" => BoundBinaryOperatorKind.LogicalXor,
+            _ => throw new InvalidOperationException($"Unknown operator: {op}")
+        };
+
+        return new BoundBinaryExpression(kind, left, right);
     }
 
     private BoundSmooshExpression BindSmoosh(SmooshExpressionSyntax syntax)
@@ -451,22 +465,22 @@ public sealed class Binder
     {
         string name = syntax.NameToken.Text;
 
-        if (!_functions.ContainsKey(name))
+        if (!_scope.TryLookupFunction(name, out var function))
         {
             var location = TextLocation.FromSpan(_text, syntax.NameToken.Span);
             _diagnostics.ReportUndefinedFunction(location, name);
+            function = new FunctionSymbol(name, ImmutableArray<ParameterSymbol>.Empty);
         }
         else
         {
-            int expectedArgs = _functions[name];
-            if (syntax.Arguments.Length != expectedArgs)
+            if (syntax.Arguments.Length != function.Parameters.Length)
             {
                 var location = TextLocation.FromSpan(_text, syntax.NameToken.Span);
-                _diagnostics.ReportWrongArgumentCount(location, name, expectedArgs, syntax.Arguments.Length);
+                _diagnostics.ReportWrongArgumentCount(location, name, function.Parameters.Length, syntax.Arguments.Length);
             }
         }
 
         var args = syntax.Arguments.Select(BindExpression).ToImmutableArray();
-        return new BoundFunctionCallExpression(name, args);
+        return new BoundFunctionCallExpression(function, args);
     }
 }

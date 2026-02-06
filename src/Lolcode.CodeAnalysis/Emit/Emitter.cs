@@ -58,9 +58,6 @@ public sealed class Emitter
     /// <summary>
     /// Creates a new emitter.
     /// </summary>
-    /// <param name="boundTree">The bound tree to emit.</param>
-    /// <param name="assemblyName">The output assembly name.</param>
-    /// <param name="runtimeAssemblyPath">Path to Lolcode.Runtime.dll.</param>
     public Emitter(BoundBlockStatement boundTree, string assemblyName, string runtimeAssemblyPath)
     {
         _boundTree = boundTree;
@@ -94,20 +91,20 @@ public sealed class Emitter
         {
             if (statement is BoundFunctionDeclaration funcDecl)
             {
-                var paramTypes = new Type[funcDecl.Parameters.Length];
+                var paramTypes = new Type[funcDecl.Function.Parameters.Length];
                 Array.Fill(paramTypes, typeof(object));
 
                 var method = _typeBuilder.DefineMethod(
-                    funcDecl.Name,
+                    funcDecl.Function.Name,
                     MethodAttributes.Public | MethodAttributes.Static,
                     typeof(object),
                     paramTypes);
 
-                for (int i = 0; i < funcDecl.Parameters.Length; i++)
-                    method.DefineParameter(i + 1, ParameterAttributes.None, funcDecl.Parameters[i]);
+                for (int i = 0; i < funcDecl.Function.Parameters.Length; i++)
+                    method.DefineParameter(i + 1, ParameterAttributes.None, funcDecl.Function.Parameters[i].Name);
 
-                _methods[funcDecl.Name] = method;
-                _functionBodies[funcDecl.Name] = funcDecl;
+                _methods[funcDecl.Function.Name] = method;
+                _functionBodies[funcDecl.Function.Name] = funcDecl;
             }
         }
 
@@ -215,10 +212,10 @@ public sealed class Emitter
         _il.Emit(OpCodes.Stloc, itLocal);
 
         // Parameters are accessible by name
-        for (int i = 0; i < decl.Parameters.Length; i++)
+        for (int i = 0; i < decl.Function.Parameters.Length; i++)
         {
             var local = _il.DeclareLocal(typeof(object));
-            _locals[decl.Parameters[i]] = local;
+            _locals[decl.Function.Parameters[i].Name] = local;
             _il.Emit(OpCodes.Ldarg, i);
             _il.Emit(OpCodes.Stloc, local);
         }
@@ -287,7 +284,7 @@ public sealed class Emitter
     private void EmitVariableDeclaration(BoundVariableDeclaration decl)
     {
         var local = _il.DeclareLocal(typeof(object));
-        _locals[decl.Name] = local;
+        _locals[decl.Variable.Name] = local;
 
         if (decl.Initializer != null)
         {
@@ -305,7 +302,7 @@ public sealed class Emitter
     {
         EmitExpression(assignment.Expression);
 
-        if (_locals.TryGetValue(assignment.Name, out var local))
+        if (_locals.TryGetValue(assignment.Variable.Name, out var local))
         {
             _il.Emit(OpCodes.Stloc, local);
         }
@@ -313,7 +310,6 @@ public sealed class Emitter
 
     private void EmitVisible(BoundVisibleStatement visible)
     {
-        // Create object[] array
         _il.Emit(OpCodes.Ldc_I4, visible.Arguments.Length);
         _il.Emit(OpCodes.Newarr, typeof(object));
 
@@ -325,9 +321,7 @@ public sealed class Emitter
             _il.Emit(OpCodes.Stelem_Ref);
         }
 
-        // Push suppressNewline
         _il.Emit(visible.SuppressNewline ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
-
         _il.Emit(OpCodes.Call, _printMethod);
     }
 
@@ -335,7 +329,7 @@ public sealed class Emitter
     {
         _il.Emit(OpCodes.Call, _readLineMethod);
 
-        if (_locals.TryGetValue(gimmeh.VariableName, out var local))
+        if (_locals.TryGetValue(gimmeh.Variable.Name, out var local))
         {
             _il.Emit(OpCodes.Stloc, local);
         }
@@ -344,7 +338,6 @@ public sealed class Emitter
     private void EmitExpressionStatement(BoundExpressionStatement exprStmt)
     {
         EmitExpression(exprStmt.Expression);
-        // Store result in IT
         if (_locals.TryGetValue("IT", out var itLocal))
         {
             _il.Emit(OpCodes.Stloc, itLocal);
@@ -359,19 +352,16 @@ public sealed class Emitter
     {
         var endLabel = _il.DefineLabel();
 
-        // Check IT (the condition is already in IT from previous expression statement)
         EmitLoadLocal("IT");
         _il.Emit(OpCodes.Call, _isTruthyMethod);
         var yaRlyFalse = _il.DefineLabel();
         _il.Emit(OpCodes.Brfalse, yaRlyFalse);
 
-        // YA RLY body
         EmitBlock(ifStmt.ThenBlock);
         _il.Emit(OpCodes.Br, endLabel);
 
         _il.MarkLabel(yaRlyFalse);
 
-        // MEBBE clauses
         for (int i = 0; i < ifStmt.MebbeClauses.Length; i++)
         {
             var clause = ifStmt.MebbeClauses[i];
@@ -386,7 +376,6 @@ public sealed class Emitter
             _il.MarkLabel(nextClause);
         }
 
-        // NO WAI
         if (ifStmt.ElseBlock != null)
         {
             EmitBlock(ifStmt.ElseBlock);
@@ -400,8 +389,6 @@ public sealed class Emitter
         var endLabel = _il.DefineLabel();
         _switchBreakLabels.Push(endLabel);
 
-        // IT is the switch expression — we need it for comparison
-        // For fall-through: we use a "matched" flag
         var matched = _il.DeclareLocal(typeof(bool));
         _il.Emit(OpCodes.Ldc_I4_0);
         _il.Emit(OpCodes.Stloc, matched);
@@ -411,28 +398,23 @@ public sealed class Emitter
             var skipBody = _il.DefineLabel();
             var enterBody = _il.DefineLabel();
 
-            // If already matched (fall-through), skip comparison
             _il.Emit(OpCodes.Ldloc, matched);
             _il.Emit(OpCodes.Brtrue, enterBody);
 
-            // Compare IT with clause value
             EmitLoadLocal("IT");
             EmitLiteralValue(clause.LiteralValue);
             _il.Emit(OpCodes.Call, _bothSaemMethod);
             _il.Emit(OpCodes.Brfalse, skipBody);
 
-            // Mark as matched
             _il.MarkLabel(enterBody);
             _il.Emit(OpCodes.Ldc_I4_1);
             _il.Emit(OpCodes.Stloc, matched);
 
             EmitBlock(clause.Body);
-            // Fall through to next case (no implicit break)
 
             _il.MarkLabel(skipBody);
         }
 
-        // OMGWTF default
         if (switchStmt.DefaultBlock != null)
         {
             var skipDefault = _il.DefineLabel();
@@ -455,13 +437,13 @@ public sealed class Emitter
         _loopBreakLabels.Push(loopEnd);
 
         // Loop variable is ALWAYS local to the loop (per spec)
-        // Save any existing variable with same name and restore after loop
         LocalBuilder? savedLocal = null;
-        if (loop.VariableName != null)
+        string? varName = loop.Variable?.Name;
+        if (varName != null)
         {
-            _locals.TryGetValue(loop.VariableName, out savedLocal);
+            _locals.TryGetValue(varName, out savedLocal);
             var loopVar = _il.DeclareLocal(typeof(object));
-            _locals[loop.VariableName] = loopVar;
+            _locals[varName] = loopVar;
             _il.Emit(OpCodes.Ldc_I4_0);
             _il.Emit(OpCodes.Box, typeof(int));
             _il.Emit(OpCodes.Stloc, loopVar);
@@ -469,43 +451,35 @@ public sealed class Emitter
 
         _il.MarkLabel(loopStart);
 
-        // Check condition if present
         if (loop.Condition != null)
         {
             EmitExpression(loop.Condition);
             _il.Emit(OpCodes.Call, _isTruthyMethod);
 
             if (loop.IsTil == true)
-            {
-                // TIL: exit when condition is true
                 _il.Emit(OpCodes.Brtrue, loopEnd);
-            }
             else
-            {
-                // WILE: exit when condition is false
                 _il.Emit(OpCodes.Brfalse, loopEnd);
-            }
         }
 
-        // Body
         EmitBlock(loop.Body);
 
         // Increment/decrement loop variable
-        if (loop.VariableName != null && loop.Operation != null)
+        if (varName != null && loop.Operation != null)
         {
             if (loop.Operation == "UPPIN")
             {
-                EmitLoadLocal(loop.VariableName);
+                EmitLoadLocal(varName);
                 EmitLiteralValue(1);
                 _il.Emit(OpCodes.Call, _addMethod);
-                EmitStoreLocal(loop.VariableName);
+                EmitStoreLocal(varName);
             }
             else if (loop.Operation == "NERFIN")
             {
-                EmitLoadLocal(loop.VariableName);
+                EmitLoadLocal(varName);
                 EmitLiteralValue(1);
                 _il.Emit(OpCodes.Call, _subtractMethod);
-                EmitStoreLocal(loop.VariableName);
+                EmitStoreLocal(varName);
             }
         }
 
@@ -515,12 +489,12 @@ public sealed class Emitter
         _loopBreakLabels.Pop();
 
         // Restore the previous variable binding
-        if (loop.VariableName != null)
+        if (varName != null)
         {
             if (savedLocal != null)
-                _locals[loop.VariableName] = savedLocal;
+                _locals[varName] = savedLocal;
             else
-                _locals.Remove(loop.VariableName);
+                _locals.Remove(varName);
         }
     }
 
@@ -528,14 +502,13 @@ public sealed class Emitter
     {
         switch (gtfo.Context)
         {
-            case "loop" when _loopBreakLabels.Count > 0:
+            case ControlFlowContext.Loop when _loopBreakLabels.Count > 0:
                 _il.Emit(OpCodes.Br, _loopBreakLabels.Peek());
                 break;
-            case "switch" when _switchBreakLabels.Count > 0:
+            case ControlFlowContext.Switch when _switchBreakLabels.Count > 0:
                 _il.Emit(OpCodes.Br, _switchBreakLabels.Peek());
                 break;
-            case "function":
-                // GTFO in function returns NOOB (null)
+            case ControlFlowContext.Function:
                 if (_functionReturnValue != null)
                 {
                     _il.Emit(OpCodes.Ldnull);
@@ -558,10 +531,10 @@ public sealed class Emitter
 
     private void EmitCastStatement(BoundCastStatement cast)
     {
-        EmitLoadLocal(cast.VariableName);
+        EmitLoadLocal(cast.Variable.Name);
         _il.Emit(OpCodes.Ldstr, cast.TargetType);
         _il.Emit(OpCodes.Call, _explicitCastMethod);
-        EmitStoreLocal(cast.VariableName);
+        EmitStoreLocal(cast.Variable.Name);
     }
 
     private void EmitBlock(BoundBlockStatement block)
@@ -578,7 +551,7 @@ public sealed class Emitter
                 EmitLiteralValue(e.Value);
                 break;
             case BoundVariableExpression e:
-                EmitLoadLocal(e.Name);
+                EmitLoadLocal(e.Variable.Name);
                 break;
             case BoundItExpression:
                 EmitLoadLocal("IT");
@@ -642,25 +615,27 @@ public sealed class Emitter
         EmitExpression(binary.Left);
         EmitExpression(binary.Right);
 
-        MethodInfo method = binary.Operator switch
+        MethodInfo method = binary.OperatorKind switch
         {
-            "SUM" => _addMethod,
-            "DIFF" => _subtractMethod,
-            "PRODUKT" => _multiplyMethod,
-            "QUOSHUNT" => _divideMethod,
-            "MOD" => _moduloMethod,
-            "BIGGR" => _greaterMethod,
-            "SMALLR" => _smallerMethod,
-            "BOTH" => _andMethod,
-            "EITHER" => _orMethod,
-            "WON" => _xorMethod,
-            _ => throw new InvalidOperationException($"Unknown operator: {binary.Operator}")
+            BoundBinaryOperatorKind.Addition => _addMethod,
+            BoundBinaryOperatorKind.Subtraction => _subtractMethod,
+            BoundBinaryOperatorKind.Multiplication => _multiplyMethod,
+            BoundBinaryOperatorKind.Division => _divideMethod,
+            BoundBinaryOperatorKind.Modulo => _moduloMethod,
+            BoundBinaryOperatorKind.Maximum => _greaterMethod,
+            BoundBinaryOperatorKind.Minimum => _smallerMethod,
+            BoundBinaryOperatorKind.LogicalAnd => _andMethod,
+            BoundBinaryOperatorKind.LogicalOr => _orMethod,
+            BoundBinaryOperatorKind.LogicalXor => _xorMethod,
+            _ => throw new InvalidOperationException($"Unknown operator kind: {binary.OperatorKind}")
         };
 
         _il.Emit(OpCodes.Call, method);
 
         // Boolean operators return bool, need to box
-        if (binary.Operator is "BOTH" or "EITHER" or "WON")
+        if (binary.OperatorKind is BoundBinaryOperatorKind.LogicalAnd
+            or BoundBinaryOperatorKind.LogicalOr
+            or BoundBinaryOperatorKind.LogicalXor)
         {
             _il.Emit(OpCodes.Box, typeof(bool));
         }
@@ -668,7 +643,6 @@ public sealed class Emitter
 
     private void EmitSmoosh(BoundSmooshExpression smoosh)
     {
-        // Create object[] params array
         _il.Emit(OpCodes.Ldc_I4, smoosh.Operands.Length);
         _il.Emit(OpCodes.Newarr, typeof(object));
 
@@ -685,7 +659,6 @@ public sealed class Emitter
 
     private void EmitAllOf(BoundAllOfExpression allOf)
     {
-        // ALL OF: short-circuit AND — if any is FAIL, result is FAIL
         var falseLabel = _il.DefineLabel();
         var endLabel = _il.DefineLabel();
 
@@ -708,7 +681,6 @@ public sealed class Emitter
 
     private void EmitAnyOf(BoundAnyOfExpression anyOf)
     {
-        // ANY OF: short-circuit OR — if any is WIN, result is WIN
         var trueLabel = _il.DefineLabel();
         var endLabel = _il.DefineLabel();
 
@@ -751,13 +723,12 @@ public sealed class Emitter
 
     private void EmitFunctionCall(BoundFunctionCallExpression call)
     {
-        // Push arguments
         foreach (var arg in call.Arguments)
         {
             EmitExpression(arg);
         }
 
-        if (_methods.TryGetValue(call.FunctionName, out var method))
+        if (_methods.TryGetValue(call.Function.Name, out var method))
         {
             _il.Emit(OpCodes.Call, method);
         }

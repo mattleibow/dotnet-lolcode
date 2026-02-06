@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Lolcode.CodeAnalysis.Symbols;
 
 namespace Lolcode.CodeAnalysis.Binding;
 
@@ -8,11 +9,11 @@ namespace Lolcode.CodeAnalysis.Binding;
 public abstract class BoundNode
 {
     /// <summary>The kind of bound node.</summary>
-    public abstract BoundNodeKind Kind { get; }
+    public abstract BoundKind Kind { get; }
 }
 
 /// <summary>Enumerates bound node types.</summary>
-public enum BoundNodeKind
+public enum BoundKind
 {
     // Statements
     BlockStatement,
@@ -53,33 +54,33 @@ public sealed class BoundBlockStatement : BoundStatement
 {
     public ImmutableArray<BoundStatement> Statements { get; }
     public BoundBlockStatement(ImmutableArray<BoundStatement> statements) => Statements = statements;
-    public override BoundNodeKind Kind => BoundNodeKind.BlockStatement;
+    public override BoundKind Kind => BoundKind.BlockStatement;
 }
 
 /// <summary>Variable declaration: I HAS A x [ITZ expr]</summary>
 public sealed class BoundVariableDeclaration : BoundStatement
 {
-    public string Name { get; }
+    public VariableSymbol Variable { get; }
     public BoundExpression? Initializer { get; }
-    public BoundVariableDeclaration(string name, BoundExpression? initializer)
+    public BoundVariableDeclaration(VariableSymbol variable, BoundExpression? initializer)
     {
-        Name = name;
+        Variable = variable;
         Initializer = initializer;
     }
-    public override BoundNodeKind Kind => BoundNodeKind.VariableDeclaration;
+    public override BoundKind Kind => BoundKind.VariableDeclaration;
 }
 
 /// <summary>Assignment: x R expr</summary>
 public sealed class BoundAssignment : BoundStatement
 {
-    public string Name { get; }
+    public VariableSymbol Variable { get; }
     public BoundExpression Expression { get; }
-    public BoundAssignment(string name, BoundExpression expression)
+    public BoundAssignment(VariableSymbol variable, BoundExpression expression)
     {
-        Name = name;
+        Variable = variable;
         Expression = expression;
     }
-    public override BoundNodeKind Kind => BoundNodeKind.Assignment;
+    public override BoundKind Kind => BoundKind.Assignment;
 }
 
 /// <summary>VISIBLE statement.</summary>
@@ -92,15 +93,15 @@ public sealed class BoundVisibleStatement : BoundStatement
         Arguments = arguments;
         SuppressNewline = suppressNewline;
     }
-    public override BoundNodeKind Kind => BoundNodeKind.VisibleStatement;
+    public override BoundKind Kind => BoundKind.VisibleStatement;
 }
 
 /// <summary>GIMMEH statement.</summary>
 public sealed class BoundGimmehStatement : BoundStatement
 {
-    public string VariableName { get; }
-    public BoundGimmehStatement(string variableName) => VariableName = variableName;
-    public override BoundNodeKind Kind => BoundNodeKind.GimmehStatement;
+    public VariableSymbol Variable { get; }
+    public BoundGimmehStatement(VariableSymbol variable) => Variable = variable;
+    public override BoundKind Kind => BoundKind.GimmehStatement;
 }
 
 /// <summary>Expression statement (sets IT).</summary>
@@ -108,7 +109,7 @@ public sealed class BoundExpressionStatement : BoundStatement
 {
     public BoundExpression Expression { get; }
     public BoundExpressionStatement(BoundExpression expression) => Expression = expression;
-    public override BoundNodeKind Kind => BoundNodeKind.ExpressionStatement;
+    public override BoundKind Kind => BoundKind.ExpressionStatement;
 }
 
 /// <summary>O RLY? conditional.</summary>
@@ -123,7 +124,7 @@ public sealed class BoundIfStatement : BoundStatement
         MebbeClauses = mebbeClauses;
         ElseBlock = elseBlock;
     }
-    public override BoundNodeKind Kind => BoundNodeKind.IfStatement;
+    public override BoundKind Kind => BoundKind.IfStatement;
 }
 
 /// <summary>Bound MEBBE clause.</summary>
@@ -148,7 +149,7 @@ public sealed class BoundSwitchStatement : BoundStatement
         OmgClauses = omgClauses;
         DefaultBlock = defaultBlock;
     }
-    public override BoundNodeKind Kind => BoundNodeKind.SwitchStatement;
+    public override BoundKind Kind => BoundKind.SwitchStatement;
 }
 
 /// <summary>Bound OMG clause.</summary>
@@ -171,8 +172,8 @@ public sealed class BoundLoopStatement : BoundStatement
     /// <summary>"UPPIN", "NERFIN", or a custom function name. Null for infinite loops.</summary>
     public string? Operation { get; }
 
-    /// <summary>The loop variable name. Null for infinite loops.</summary>
-    public string? VariableName { get; }
+    /// <summary>The loop variable. Null for infinite loops.</summary>
+    public VariableSymbol? Variable { get; }
 
     /// <summary>True for TIL, false for WILE. Null if no condition.</summary>
     public bool? IsTil { get; }
@@ -183,41 +184,39 @@ public sealed class BoundLoopStatement : BoundStatement
     public BoundBlockStatement Body { get; }
 
     public BoundLoopStatement(
-        string label, string? operation, string? variableName,
+        string label, string? operation, VariableSymbol? variable,
         bool? isTil, BoundExpression? condition, BoundBlockStatement body)
     {
         Label = label;
         Operation = operation;
-        VariableName = variableName;
+        Variable = variable;
         IsTil = isTil;
         Condition = condition;
         Body = body;
     }
-    public override BoundNodeKind Kind => BoundNodeKind.LoopStatement;
+    public override BoundKind Kind => BoundKind.LoopStatement;
 }
 
 /// <summary>GTFO statement.</summary>
 public sealed class BoundGtfoStatement : BoundStatement
 {
-    /// <summary>The context: "loop", "switch", or "function".</summary>
-    public string Context { get; }
-    public BoundGtfoStatement(string context) => Context = context;
-    public override BoundNodeKind Kind => BoundNodeKind.GtfoStatement;
+    /// <summary>The resolved control flow context.</summary>
+    public ControlFlowContext Context { get; }
+    public BoundGtfoStatement(ControlFlowContext context) => Context = context;
+    public override BoundKind Kind => BoundKind.GtfoStatement;
 }
 
 /// <summary>HOW IZ I function declaration.</summary>
 public sealed class BoundFunctionDeclaration : BoundStatement
 {
-    public string Name { get; }
-    public ImmutableArray<string> Parameters { get; }
+    public FunctionSymbol Function { get; }
     public BoundBlockStatement Body { get; }
-    public BoundFunctionDeclaration(string name, ImmutableArray<string> parameters, BoundBlockStatement body)
+    public BoundFunctionDeclaration(FunctionSymbol function, BoundBlockStatement body)
     {
-        Name = name;
-        Parameters = parameters;
+        Function = function;
         Body = body;
     }
-    public override BoundNodeKind Kind => BoundNodeKind.FunctionDeclaration;
+    public override BoundKind Kind => BoundKind.FunctionDeclaration;
 }
 
 /// <summary>FOUND YR return.</summary>
@@ -225,20 +224,20 @@ public sealed class BoundReturnStatement : BoundStatement
 {
     public BoundExpression Expression { get; }
     public BoundReturnStatement(BoundExpression expression) => Expression = expression;
-    public override BoundNodeKind Kind => BoundNodeKind.ReturnStatement;
+    public override BoundKind Kind => BoundKind.ReturnStatement;
 }
 
 /// <summary>IS NOW A cast statement.</summary>
 public sealed class BoundCastStatement : BoundStatement
 {
-    public string VariableName { get; }
+    public VariableSymbol Variable { get; }
     public string TargetType { get; }
-    public BoundCastStatement(string variableName, string targetType)
+    public BoundCastStatement(VariableSymbol variable, string targetType)
     {
-        VariableName = variableName;
+        Variable = variable;
         TargetType = targetType;
     }
-    public override BoundNodeKind Kind => BoundNodeKind.CastStatement;
+    public override BoundKind Kind => BoundKind.CastStatement;
 }
 
 // ============ Bound Expressions ============
@@ -251,39 +250,43 @@ public sealed class BoundLiteralExpression : BoundExpression
 {
     public object? Value { get; }
     public BoundLiteralExpression(object? value) => Value = value;
-    public override BoundNodeKind Kind => BoundNodeKind.LiteralExpression;
+    public override BoundKind Kind => BoundKind.LiteralExpression;
 }
 
 /// <summary>Variable reference.</summary>
 public sealed class BoundVariableExpression : BoundExpression
 {
-    public string Name { get; }
-    public BoundVariableExpression(string name) => Name = name;
-    public override BoundNodeKind Kind => BoundNodeKind.VariableExpression;
+    public VariableSymbol Variable { get; }
+    public BoundVariableExpression(VariableSymbol variable) => Variable = variable;
+    public override BoundKind Kind => BoundKind.VariableExpression;
 }
 
 /// <summary>NOT expr.</summary>
 public sealed class BoundUnaryExpression : BoundExpression
 {
+    public BoundUnaryOperatorKind OperatorKind { get; }
     public BoundExpression Operand { get; }
-    public BoundUnaryExpression(BoundExpression operand) => Operand = operand;
-    public override BoundNodeKind Kind => BoundNodeKind.UnaryExpression;
+    public BoundUnaryExpression(BoundUnaryOperatorKind operatorKind, BoundExpression operand)
+    {
+        OperatorKind = operatorKind;
+        Operand = operand;
+    }
+    public override BoundKind Kind => BoundKind.UnaryExpression;
 }
 
 /// <summary>Binary arithmetic/boolean operation.</summary>
 public sealed class BoundBinaryExpression : BoundExpression
 {
-    /// <summary>The operator: "SUM", "DIFF", "PRODUKT", "QUOSHUNT", "MOD", "BIGGR", "SMALLR", "BOTH", "EITHER", "WON"</summary>
-    public string Operator { get; }
+    public BoundBinaryOperatorKind OperatorKind { get; }
     public BoundExpression Left { get; }
     public BoundExpression Right { get; }
-    public BoundBinaryExpression(string @operator, BoundExpression left, BoundExpression right)
+    public BoundBinaryExpression(BoundBinaryOperatorKind operatorKind, BoundExpression left, BoundExpression right)
     {
-        Operator = @operator;
+        OperatorKind = operatorKind;
         Left = left;
         Right = right;
     }
-    public override BoundNodeKind Kind => BoundNodeKind.BinaryExpression;
+    public override BoundKind Kind => BoundKind.BinaryExpression;
 }
 
 /// <summary>SMOOSH concatenation.</summary>
@@ -291,7 +294,7 @@ public sealed class BoundSmooshExpression : BoundExpression
 {
     public ImmutableArray<BoundExpression> Operands { get; }
     public BoundSmooshExpression(ImmutableArray<BoundExpression> operands) => Operands = operands;
-    public override BoundNodeKind Kind => BoundNodeKind.SmooshExpression;
+    public override BoundKind Kind => BoundKind.SmooshExpression;
 }
 
 /// <summary>ALL OF variadic AND.</summary>
@@ -299,7 +302,7 @@ public sealed class BoundAllOfExpression : BoundExpression
 {
     public ImmutableArray<BoundExpression> Operands { get; }
     public BoundAllOfExpression(ImmutableArray<BoundExpression> operands) => Operands = operands;
-    public override BoundNodeKind Kind => BoundNodeKind.AllOfExpression;
+    public override BoundKind Kind => BoundKind.AllOfExpression;
 }
 
 /// <summary>ANY OF variadic OR.</summary>
@@ -307,7 +310,7 @@ public sealed class BoundAnyOfExpression : BoundExpression
 {
     public ImmutableArray<BoundExpression> Operands { get; }
     public BoundAnyOfExpression(ImmutableArray<BoundExpression> operands) => Operands = operands;
-    public override BoundNodeKind Kind => BoundNodeKind.AnyOfExpression;
+    public override BoundKind Kind => BoundKind.AnyOfExpression;
 }
 
 /// <summary>BOTH SAEM or DIFFRINT comparison.</summary>
@@ -323,7 +326,7 @@ public sealed class BoundComparisonExpression : BoundExpression
         Left = left;
         Right = right;
     }
-    public override BoundNodeKind Kind => BoundNodeKind.ComparisonExpression;
+    public override BoundKind Kind => BoundKind.ComparisonExpression;
 }
 
 /// <summary>MAEK cast expression.</summary>
@@ -336,24 +339,24 @@ public sealed class BoundCastExpression : BoundExpression
         Operand = operand;
         TargetType = targetType;
     }
-    public override BoundNodeKind Kind => BoundNodeKind.CastExpression;
+    public override BoundKind Kind => BoundKind.CastExpression;
 }
 
 /// <summary>I IZ function call.</summary>
 public sealed class BoundFunctionCallExpression : BoundExpression
 {
-    public string FunctionName { get; }
+    public FunctionSymbol Function { get; }
     public ImmutableArray<BoundExpression> Arguments { get; }
-    public BoundFunctionCallExpression(string functionName, ImmutableArray<BoundExpression> arguments)
+    public BoundFunctionCallExpression(FunctionSymbol function, ImmutableArray<BoundExpression> arguments)
     {
-        FunctionName = functionName;
+        Function = function;
         Arguments = arguments;
     }
-    public override BoundNodeKind Kind => BoundNodeKind.FunctionCallExpression;
+    public override BoundKind Kind => BoundKind.FunctionCallExpression;
 }
 
 /// <summary>IT implicit variable reference.</summary>
 public sealed class BoundItExpression : BoundExpression
 {
-    public override BoundNodeKind Kind => BoundNodeKind.ItExpression;
+    public override BoundKind Kind => BoundKind.ItExpression;
 }
