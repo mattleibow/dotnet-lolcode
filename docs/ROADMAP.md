@@ -217,6 +217,8 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 
 ## Phase 9: Polish & Documentation
 > Final polish, CI/CD, and community readiness.
+>
+> **Depends on:** All prior phases
 
 - [ ] Comprehensive README with getting started guide
 - [ ] Ensure all docs are accurate and complete
