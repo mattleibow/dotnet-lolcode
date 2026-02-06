@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Lolcode.CodeAnalysis.Binding;
 using Lolcode.CodeAnalysis.BoundTree;
-using Lolcode.CodeAnalysis.Emit;
+using Lolcode.CodeAnalysis.CodeGen;
 using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.CodeAnalysis.Text;
 
@@ -72,8 +72,8 @@ public sealed class LolcodeCompilation
         try
         {
             var assemblyName = Path.GetFileNameWithoutExtension(outputPath);
-            var emitter = new Emitter(_boundTree!, assemblyName, runtimeAssemblyPath);
-            var dllPath = emitter.Emit(outputPath);
+            var generator = new CodeGenerator(_boundTree!, assemblyName, runtimeAssemblyPath);
+            var dllPath = generator.Emit(outputPath);
             return new EmitResult(true, diagnostics, dllPath);
         }
         catch (Exception ex)

@@ -7,14 +7,14 @@ using System.Reflection.PortableExecutable;
 using Lolcode.CodeAnalysis.Binding;
 using Lolcode.CodeAnalysis.BoundTree;
 
-namespace Lolcode.CodeAnalysis.Emit;
+namespace Lolcode.CodeAnalysis.CodeGen;
 
 /// <summary>
-/// Emits a .NET assembly from a bound tree using PersistedAssemblyBuilder.
+/// Generates a .NET assembly from a bound tree using PersistedAssemblyBuilder.
 /// All LOLCODE variables are emitted as <see cref="object"/> locals.
 /// Runtime calls go through <c>Lolcode.Runtime.LolRuntime</c>.
 /// </summary>
-public sealed class Emitter
+public sealed class CodeGenerator
 {
     private readonly BoundBlockStatement _boundTree;
     private readonly string _assemblyName;
@@ -59,7 +59,7 @@ public sealed class Emitter
     /// <summary>
     /// Creates a new emitter.
     /// </summary>
-    public Emitter(BoundBlockStatement boundTree, string assemblyName, string runtimeAssemblyPath)
+    public CodeGenerator(BoundBlockStatement boundTree, string assemblyName, string runtimeAssemblyPath)
     {
         _boundTree = boundTree;
         _assemblyName = assemblyName;
