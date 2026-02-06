@@ -2,7 +2,7 @@
 
 This document defines the LOLCODE 1.2 language as implemented by the dotnet-lolcode compiler. It is based on the [official LOLCODE 1.2 spec](https://github.com/justinmeza/lolcode-spec/blob/master/v1.2/lolcode-spec-v1.2.md) (Final Draft — 12 July 2007).
 
-> *The goal of the original specification is to act as a baseline for all following LOLCODE specifications. As such, some traditionally expected language features may appear "incomplete." This is most likely deliberate, as it will be easier to add to the language than to change and introduce further incompatibilities.*
+> *The goal of this specification is to act as a baseline for all following LOLCODE specifications. As such, some traditionally expected language features may appear "incomplete." This is most likely deliberate, as it will be easier to add to the language than to change and introduce further incompatibilities.*
 
 ## Table of Contents
 
@@ -62,6 +62,8 @@ This document defines the LOLCODE 1.2 language as implemented by the dotnet-lolc
 
 ### Comments
 
+*(from 1.1)*
+
 Single line comments are begun by `BTW`, and may occur either after a line of code, on a separate line, or following a line of code following a line separator (`,`).
 
 All of these are valid single line comments:
@@ -99,6 +101,8 @@ TLDR, I HAS A FISH ITZ BOB
 
 ### File Creation
 
+*(modified from 1.1)*
+
 All LOLCODE programs must be opened with the command `HAI`. `HAI` should then be followed with the current LOLCODE language version number (`1.2`, in this case). There is no current standard behavior for implementations to treat the version number, though.
 
 A LOLCODE file is closed by the keyword `KTHXBYE` which closes the `HAI` code-block.
@@ -115,15 +119,19 @@ KTHXBYE
 
 ### Scope
 
-*([to be revisited and refined](docs/archive/lolcode-spec-v1.2.md) — see also [1.3 Changes](LANGUAGE_SPEC_1.3_CHANGES.md))*
+*([to be revisited and refined](archive/lolcode-spec-v1.2.md) — see also [1.3 Changes](LANGUAGE_SPEC_1.3_CHANGES.md))*
 
 All variable scope, as of this version, is local to the enclosing function or to the main program block. Variables are only accessible after declaration, and there is no global scope.
 
 ### Naming
 
+*(from 1.1)*
+
 Variable identifiers may be in all uppercase or lowercase letters (or a mixture of the two). They must begin with a letter and may be followed only by other letters, numbers, and underscores. No spaces, dashes, or other symbols are allowed. Variable identifiers are **case-sensitive** — `cheezburger`, `CheezBurger`, and `CHEEZBURGER` would all be different variables.
 
 ### Declaration and Assignment
+
+*(modified from 1.1)*
 
 To declare a variable, the keyword is `I HAS A` followed by the variable name. To assign the variable a value within the same statement, you can then follow the variable name with `ITZ <value>`.
 
@@ -138,6 +146,8 @@ VAR R 3                BTW VAR is now a NUMBR and equals 3
 ---
 
 ## Types
+
+*(updated from 1.1)*
 
 The variable types that LOLCODE currently recognizes are: strings (`YARN`), integers (`NUMBR`), floats (`NUMBAR`), and booleans (`TROOF`). Arrays (`BUKKIT`) are reserved for future expansion. Typing is handled dynamically. Until a variable is given an initial value, it is untyped (`NOOB`). ~~Casting operations operate on TYPE types, as well.~~
 
@@ -197,7 +207,7 @@ The colon may also introduce more verbose escapes enclosed within some form of b
 |--------|---------|
 | `:(<hex>)` | Resolves the hex number into the corresponding Unicode code point |
 | `:{<var>}` | Interpolates the current value of the enclosed variable, cast as a string |
-| `:[<char name>]` | Resolves the `<char name>` in capital letters to the corresponding Unicode normative name |
+| `:[<char name>]` | Resolves the `<char name>` in capital letters to the corresponding Unicode [normative name](http://www.unicode.org/Public/4.1.0/ucd/NamesList.txt) |
 
 **String interpolation** example:
 ```lolcode
@@ -417,10 +427,14 @@ OIC
 Assignment statements have no side effects with `IT`. They are generally of the form:
 
 ```lolcode
-<variable> R <expression>
+<variable> <assignment operator> <expression>
 ```
 
-The variable being assigned may be used in the expression.
+Where the assignment operator is `R`. The variable being assigned may be used in the expression.
+
+```lolcode
+<variable> R <expression>
+```
 
 ### Flow Control Statements
 
@@ -484,6 +498,8 @@ OIC
 ```
 
 ### Case (WTF?)
+
+*(modified from 1.1)*
 
 The `WTF?` operates on `IT` as being the expression value for comparison. A comparison block is opened by `OMG` and **must be a literal, not an expression**. (A literal, in this case, excludes any `YARN` containing variable interpolation (`:{var}`).) Each literal must be unique.
 
@@ -597,9 +613,9 @@ A function of given arity is called with:
 I IZ <function name> [YR <expression1> [AN YR <expression2> [AN YR <expression3> ...]]] MKAY
 ```
 
-An expression is formed by the function name followed by any arguments. Those arguments may themselves be expressions. The expressions' values are obtained before the function is called. The arity of the function is determined in the definition.
+That is, an expression is formed by the function name followed by any arguments. Those arguments may themselves be expressions. The expressions' values are obtained before the function is called. The arity of the function is determined in the definition.
 
-The return value of a function call is stored in `IT`.
+A function call used as an [expression statement](#expression-statements) stores its return value in `IT`.
 
 ```lolcode
 HOW IZ I add YR a AN YR b
