@@ -58,3 +58,6 @@ coverage/
 # Compiled LOLCODE output (samples)
 samples/**/*.dll
 samples/**/*.runtimeconfig.json
+
+# Local SDK development feed
+local-feed/
