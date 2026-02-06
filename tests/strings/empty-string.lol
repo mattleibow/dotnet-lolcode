@@ -6,8 +6,8 @@ HAI 1.2
   I HAS A nonempty ITZ "LOL"
 
   BTW show empty string in brackets
-  VISIBLE "EMPTY:[" empty "]"
-  VISIBLE "NONEMPTY:[" nonempty "]"
+  VISIBLE "EMPTY::[" empty "]"
+  VISIBLE "NONEMPTY::[" nonempty "]"
 
   BTW empty string is falsy in O RLY?
   empty

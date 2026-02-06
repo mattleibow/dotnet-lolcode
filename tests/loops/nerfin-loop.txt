@@ -1,7 +1,7 @@
-COUNTING DOWN FROM 5 TO 1:
-  j = 5
-  j = 4
-  j = 3
-  j = 2
-  j = 1
+COUNTING DOWN FROM 0 TO -4:
+  j = 0
+  j = -1
+  j = -2
+  j = -3
+  j = -4
 DONE

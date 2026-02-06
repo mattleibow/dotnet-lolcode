@@ -40,7 +40,9 @@ public static class LolRuntime
             int i => i,
             double d => (int)d,
             bool b => b ? 1 : 0,
-            string s => int.TryParse(s, CultureInfo.InvariantCulture, out int result) ? result : 0,
+            string s when int.TryParse(s, CultureInfo.InvariantCulture, out int iResult) => iResult,
+            string s when double.TryParse(s, CultureInfo.InvariantCulture, out double dResult) => (int)dResult,
+            string => 0,
             _ => 0
         };
     }

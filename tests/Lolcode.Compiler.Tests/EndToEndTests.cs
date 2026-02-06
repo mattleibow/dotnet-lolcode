@@ -424,14 +424,16 @@ public class EndToEndTests : IDisposable
     {
         AssertOutput("""
             HAI 1.2
+              I HAS A found ITZ 0
               IM IN YR loop UPPIN YR i TIL BOTH SAEM i AN 100
                 BOTH SAEM i AN 3
                 O RLY?
                   YA RLY
+                    found R i
                     GTFO
                 OIC
               IM OUTTA YR loop
-              VISIBLE i
+              VISIBLE found
             KTHXBYE
             """, "3");
     }

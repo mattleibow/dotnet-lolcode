@@ -102,8 +102,8 @@ public sealed class Lexer
             return ReadWhitespace();
         }
 
-        // Line continuation (three dots)
-        if (Current == '.' && Lookahead == '.' && Peek(2) == '.')
+        // Line continuation (three dots or Unicode ellipsis)
+        if ((Current == '.' && Lookahead == '.' && Peek(2) == '.') || Current == '\u2026')
         {
             return ReadLineContinuation();
         }
@@ -161,7 +161,12 @@ public sealed class Lexer
     private SyntaxToken ReadLineContinuation()
     {
         int start = _position;
-        _position += 3; // skip ...
+
+        // Skip ... or … (Unicode ellipsis is 1 char, ASCII is 3)
+        if (_text[_position] == '\u2026')
+            _position += 1;
+        else
+            _position += 3;
 
         // Consume the rest of the line (it's part of the continuation)
         while (_position < _text.Length && Current != '\n' && Current != '\r')

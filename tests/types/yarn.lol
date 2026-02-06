@@ -16,7 +16,7 @@ HAI 1.2
   VISIBLE "COL1:>COL2"
   VISIBLE "QUOTE:: :"HAI:""
   VISIBLE "COLON:: ::"
-  VISIBLE "BELL::o"
+  VISIBLE "BELL:::o"
 
   BTW hex escape :(<hex>)
   VISIBLE "HEX A:: :(41)"

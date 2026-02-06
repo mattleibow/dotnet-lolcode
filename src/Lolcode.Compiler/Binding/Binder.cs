@@ -328,7 +328,7 @@ public sealed class Binder
     {
         return syntax switch
         {
-            LiteralExpressionSyntax s => new BoundLiteralExpression(s.Value),
+            LiteralExpressionSyntax s => BindLiteral(s),
             VariableExpressionSyntax s => BindVariableExpression(s),
             UnaryExpressionSyntax s => BindUnary(s),
             BinaryExpressionSyntax s => BindBinary(s),
@@ -342,6 +342,66 @@ public sealed class Binder
             ItExpressionSyntax => new BoundItExpression(),
             _ => new BoundLiteralExpression(null),
         };
+    }
+
+    private BoundExpression BindLiteral(LiteralExpressionSyntax syntax)
+    {
+        // Check for string interpolation :{varname}
+        if (syntax.Value is string strValue && strValue.Contains(":{"))
+        {
+            return BindInterpolatedString(strValue);
+        }
+        return new BoundLiteralExpression(syntax.Value);
+    }
+
+    private BoundExpression BindInterpolatedString(string template)
+    {
+        var parts = new List<BoundExpression>();
+        int pos = 0;
+
+        while (pos < template.Length)
+        {
+            int nextInterp = template.IndexOf(":{", pos, StringComparison.Ordinal);
+            if (nextInterp < 0)
+            {
+                // Rest is literal text
+                parts.Add(new BoundLiteralExpression(template[pos..]));
+                break;
+            }
+
+            // Add text before the interpolation
+            if (nextInterp > pos)
+            {
+                parts.Add(new BoundLiteralExpression(template[pos..nextInterp]));
+            }
+
+            // Find closing }
+            int closingBrace = template.IndexOf('}', nextInterp + 2);
+            if (closingBrace < 0)
+            {
+                parts.Add(new BoundLiteralExpression(template[nextInterp..]));
+                break;
+            }
+
+            string varName = template[(nextInterp + 2)..closingBrace];
+
+            if (!_variables.ContainsKey(varName))
+            {
+                // Can't report proper location here; just add the raw text
+                parts.Add(new BoundLiteralExpression($":{{{varName}}}"));
+            }
+            else
+            {
+                parts.Add(new BoundVariableExpression(varName));
+            }
+
+            pos = closingBrace + 1;
+        }
+
+        if (parts.Count == 1)
+            return parts[0];
+
+        return new BoundSmooshExpression(parts.ToImmutableArray());
     }
 
     private BoundExpression BindVariableExpression(VariableExpressionSyntax syntax)

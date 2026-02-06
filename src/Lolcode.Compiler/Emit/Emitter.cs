@@ -232,7 +232,10 @@ public sealed class Emitter
         foreach (var statement in decl.Body.Statements)
             EmitStatement(statement);
 
-        // Return IT by default (if no FOUND YR)
+        // If no FOUND YR was executed, return IT by default
+        EmitLoadLocal("IT");
+        _il.Emit(OpCodes.Stloc, _functionReturnValue);
+
         _il.MarkLabel(_functionReturnLabel);
         _il.Emit(OpCodes.Ldloc, _functionReturnValue);
         _il.Emit(OpCodes.Ret);
@@ -451,9 +454,12 @@ public sealed class Emitter
         var loopEnd = _il.DefineLabel();
         _loopBreakLabels.Push(loopEnd);
 
-        // Initialize loop variable to 0 if UPPIN/NERFIN
+        // Loop variable is ALWAYS local to the loop (per spec)
+        // Save any existing variable with same name and restore after loop
+        LocalBuilder? savedLocal = null;
         if (loop.VariableName != null)
         {
+            _locals.TryGetValue(loop.VariableName, out savedLocal);
             var loopVar = _il.DeclareLocal(typeof(object));
             _locals[loop.VariableName] = loopVar;
             _il.Emit(OpCodes.Ldc_I4_0);
@@ -507,6 +513,15 @@ public sealed class Emitter
         _il.MarkLabel(loopEnd);
 
         _loopBreakLabels.Pop();
+
+        // Restore the previous variable binding
+        if (loop.VariableName != null)
+        {
+            if (savedLocal != null)
+                _locals[loop.VariableName] = savedLocal;
+            else
+                _locals.Remove(loop.VariableName);
+        }
     }
 
     private void EmitGtfo(BoundGtfoStatement gtfo)
@@ -520,10 +535,10 @@ public sealed class Emitter
                 _il.Emit(OpCodes.Br, _switchBreakLabels.Peek());
                 break;
             case "function":
-                // Store IT as return value and jump to return label
+                // GTFO in function returns NOOB (null)
                 if (_functionReturnValue != null)
                 {
-                    EmitLoadLocal("IT");
+                    _il.Emit(OpCodes.Ldnull);
                     _il.Emit(OpCodes.Stloc, _functionReturnValue);
                 }
                 _il.Emit(OpCodes.Br, _functionReturnLabel);
