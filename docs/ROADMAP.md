@@ -6,10 +6,10 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 > Set up the solution structure, build configuration, and initial project files.
 
 - [x] Initialize git repo with `.gitignore`
-- [x] Create `dotnet-lolcode.sln`
+- [x] Create `dotnet-lolcode.slnx`
 - [x] Create `Directory.Build.props` (net10.0, C# 14, nullable, implicit usings)
 - [x] Create `Lolcode.CodeAnalysis` class library project
-- [x] Create `Lolcode.Cli` console project
+- [x] Create `Lolcode.Cli` console project (later removed — replaced by MSBuild SDK)
 - [x] Create `Lolcode.CodeAnalysis.Tests` xUnit test project
 - [x] Verify `dotnet build` and `dotnet test` work
 - [x] Prototype: emit a minimal "hello world" IL assembly using `PersistedAssemblyBuilder` to validate the API works on target platform
@@ -185,10 +185,10 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 >
 > **Depends on:** Phase 4
 
-- [x] Create all 15 sample programs (graduated complexity)
-- [x] Run conformance test suite: all samples compile and run with correct stdout/exit codes (343+ tests passing)
+- [x] Create all 16 sample programs (basics, programs, games — graduated complexity)
+- [x] Run test suite: all samples compile and run with correct stdout/exit codes (289 tests passing)
 - [x] Write diagnostic snapshot tests (stable LOLxxxx IDs, error messages for common mistakes)
-- [x] Verify: all 15 sample programs compile and run correctly
+- [x] Verify: all 16 sample programs compile and run correctly
 - [x] Pretty-print diagnostics with source context and colors
 - [x] Exit codes: 0 = success, 1 = compile error, 2 = runtime error
 
@@ -206,8 +206,6 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 
 ## Phase 6: VS Code Extension
 > Syntax highlighting, snippets, and build integration for VS Code.
->
-> **Depends on:** Phase 5 (CLI tool must exist for build tasks)
 
 - [ ] Scaffold VS Code extension (`yo code`)
 - [ ] Create TextMate grammar (`lolcode.tmLanguage.json`)
@@ -228,14 +226,12 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
   - [ ] `if` → conditional template
   - [ ] `loop` → loop template
   - [ ] `func` → function template
-- [ ] Add build task definition for `lolcode compile`
+- [ ] Add build task definition
 - [ ] Test highlighting on all sample programs
 - [ ] Package as `.vsix`
 
 ## Phase 7: MSBuild SDK Integration ✅
 > Enable `dotnet build` and `dotnet run` for `.lol` projects.
->
-> **Depends on:** Phase 5 (compiler CLI must work)
 
 - [x] Create `Lolcode.NET.Sdk` NuGet package (`src/Lolcode.NET.Sdk/`)
 - [x] Implement `Sdk.props` (language defaults, `**/*.lol` glob, disable C# analyzers)
@@ -246,7 +242,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [x] Support `<Project Sdk="Lolcode.NET.Sdk">` in `.lolproj` files
 - [x] Create `dotnet new lolcode` template (`src/Lolcode.NET.Templates/`)
 - [x] Create SDK sample project (`samples/basics/hello-world/`)
-- [x] Create `pack-local.sh` for local SDK development (replaced by source-tree imports)
+- [x] Source-tree imports for local development (`samples/Directory.Build.props`)
 - [x] Test: `dotnet build` compiles `.lol` → `.dll`
 - [x] Test: `dotnet run` executes the program
 - [x] Enable file-based app support (`dotnet run --file hello.lol` with `#:sdk` directive)
@@ -256,8 +252,6 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 
 ## Phase 8: Debugging Support (Bonus)
 > Enable VS Code debugging for LOLCODE programs.
->
-> **Depends on:** Phase 4 (code generator) + Phase 6 (VS Code extension)
 
 - [ ] Emit PDB debug symbols with source mapping
 - [ ] Implement Debug Adapter Protocol (DAP) server
@@ -267,16 +261,21 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [ ] Support variable inspection
 - [ ] Add `launch.json` template to extension
 
-## Phase 9: Polish & Documentation
-> Final polish, CI/CD, and community readiness.
->
-> **Depends on:** All prior phases
+## Phase 9: Polish & Documentation ✅
+> CI/CD, test infrastructure, and community readiness.
 
-- [ ] Comprehensive README with getting started guide
-- [ ] Ensure all docs are accurate and complete
-- [ ] Add GitHub Actions CI/CD (build + test on push/PR)
-- [ ] Create release workflow (NuGet + VSIX publishing)
+- [x] Comprehensive README with getting started guide
+- [x] Ensure all docs are accurate and complete
+- [x] Add GitHub Actions CI (build + test on push/PR, 3 OS matrix)
+- [x] Add CI pack verification (timestamped CI version, package validation)
+- [x] Add CI package testing (SDK + template E2E on 3 OSes)
+- [x] Create release workflow (tag-triggered: pack → push NuGet → GitHub Release)
+- [x] Tag-based versioning (`v0.1.0` → NuGet version `0.1.0`)
+- [x] Centralized `Version` in `Directory.Build.props` with `IsPackable` controls
+- [x] 3 publishable NuGet packages: `Lolcode.NET.Sdk`, `Lolcode.Runtime`, `Lolcode.NET.Templates`
+- [x] All 16 samples verified working end-to-end
+- [x] Restructured tests: 2 projects, 19 E2E category classes, 289 total tests
+- [x] Sample organization: basics/, programs/, games/, file-based/ with `.lolproj` per sample
 - [ ] Record demo GIF for README
-- [ ] All 15 samples verified working end-to-end
-- [ ] Consider: REPL mode (`lolcode repl`)
+- [ ] Consider: REPL mode
 - [ ] Consider: Language Server Protocol for rich VS Code features

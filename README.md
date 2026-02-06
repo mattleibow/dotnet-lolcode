@@ -49,7 +49,7 @@ if (!result.Success)
 - 📦 **MSBuild SDK** — `dotnet build` and `dotnet run` for `.lolproj` projects
 - 🚀 **File-based apps** — `dotnet run --file hello.lol` with no project needed
 - 📊 **Pretty diagnostics** — error messages with source context and line/column info
-- 🧪 **343 tests** — unit tests + conformance test suite (116 `.lol`/`.txt` test pairs)
+- 🧪 **289 tests** — unit tests, runtime tests, end-to-end compiler tests, SDK integration tests
 
 ## Quick Start
 
@@ -180,21 +180,27 @@ dotnet-lolcode/
 │   ├── Lolcode.NET.Sdk/          # MSBuild SDK package (Sdk.props, Sdk.targets)
 │   └── Lolcode.NET.Templates/    # dotnet new template pack
 ├── tests/
-│   ├── Lolcode.CodeAnalysis.Tests/ # Unit + end-to-end + conformance tests
-│   └── ...                       # 18 test categories, 117 test pairs
-├── samples/                      # Example programs (basics, programs, games)
+│   ├── Lolcode.CodeAnalysis.Tests/ # Unit tests (lexer, parser, runtime)
+│   └── Lolcode.EndToEnd.Tests/     # End-to-end compiler tests (19 categories)
+├── samples/                      # 16 example programs (basics, programs, games)
 └── docs/                         # Design documents and language spec
 ```
 
 ## Running Tests
 
 ```bash
-# Run all 343 tests
+# Run all 289 tests
 dotnet test
 
-# Run specific test category
-dotnet test --filter "EndToEndTests"
-dotnet test --filter "ConformanceTests"
+# Run only unit tests (lexer, parser, runtime)
+dotnet test --filter "Lolcode.CodeAnalysis.Tests"
+
+# Run only end-to-end tests
+dotnet test --filter "Lolcode.EndToEnd.Tests"
+
+# Run a specific test category
+dotnet test --filter "MathTests"
+dotnet test --filter "StringTests"
 ```
 
 ## Supported Language Features

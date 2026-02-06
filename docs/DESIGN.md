@@ -65,7 +65,6 @@ The compiler follows a **Roslyn-inspired architecture**, mirroring key types and
 │   └── LolcodeCompilation.cs, EmitResult, Diagnostic, DiagnosticDescriptor, DiagnosticBag
 ├── Lolcode.Runtime/         → Runtime helper library (referenced by compiled programs)
 ├── Lolcode.Build/           → MSBuild task (Lolc) for SDK integration
-├── Lolcode.Cli/             → CLI tool (lolcode compile/run)
 ├── Lolcode.NET.Sdk/         → MSBuild SDK package (Sdk.props, Sdk.targets)
 └── Lolcode.NET.Templates/   → dotnet new template pack
 ```

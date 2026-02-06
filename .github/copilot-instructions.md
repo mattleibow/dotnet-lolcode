@@ -21,9 +21,9 @@ src/Lolcode.Runtime/           # Runtime helper library (referenced by compiled 
 src/Lolcode.Build/             # MSBuild task (Lolc) for SDK integration
 src/Lolcode.NET.Sdk/           # MSBuild SDK package (Sdk.props, Sdk.targets)
 src/Lolcode.NET.Templates/    # dotnet new template pack (lolcode-console)
-tests/Lolcode.CodeAnalysis.Tests/  # xUnit tests for compiler
-tests/                         # .lol/.txt conformance test pairs (18 categories, 117 pairs)
-samples/                       # 15 example programs + SDK samples
+tests/Lolcode.CodeAnalysis.Tests/  # Unit tests (lexer, parser, runtime)
+tests/Lolcode.EndToEnd.Tests/      # E2E tests (19 category classes + SDK sample tests)
+samples/                       # 16 example programs (basics, programs, games, file-based)
 docs/                          # Design docs, language spec, roadmap
 ```
 
@@ -66,11 +66,9 @@ The compiler API mirrors Roslyn's structure:
 - Division by zero: integer returns 0, float returns Infinity/NaN
 
 ## Testing
-- Conformance tests: `.lol` + `.txt` pairs in `tests/` — compile, run, compare stdout
-- Unit tests: xUnit + FluentAssertions in `tests/Lolcode.CodeAnalysis.Tests/`
-- End-to-end tests: compile LOLCODE source, run output DLL, assert stdout
-- Use `ilspycmd` to inspect emitted IL when debugging emitter issues
-- Use `--emit-il` or `--emit-csharp` CLI flags for quick IL inspection
+- Unit tests: xUnit + FluentAssertions in `tests/Lolcode.CodeAnalysis.Tests/` (lexer, parser, runtime)
+- End-to-end tests: 19 category classes in `tests/Lolcode.EndToEnd.Tests/` (compile → run → assert stdout)
+- SDK sample tests: parameterized build tests for all 16 `.lolproj` samples
 - Build command: `dotnet build`
 - Test command: `dotnet test`
 
