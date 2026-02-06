@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Lolcode.CodeAnalysis.Binding;
 using Lolcode.CodeAnalysis.BoundTree;
 using Lolcode.CodeAnalysis.CodeGen;
+using Lolcode.CodeAnalysis.Lowering;
 using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.CodeAnalysis.Text;
 
@@ -94,5 +95,8 @@ public sealed class LolcodeCompilation
         var binder = new Binder(tree.Text);
         _boundTree = binder.BindCompilationUnit(tree.Root);
         _bindDiagnostics = binder.Diagnostics.ToImmutableArray();
+
+        // Lower the bound tree (simplify for code generation)
+        _boundTree = Lowerer.Lower(_boundTree);
     }
 }
