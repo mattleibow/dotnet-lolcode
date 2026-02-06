@@ -116,6 +116,14 @@ internal sealed class Lexer
             return new SyntaxToken(SyntaxKind.ExclamationToken, start, "!");
         }
 
+        // File-based app directives (#:sdk, #:package, etc.) and shebang (#!)
+        // These appear at the top of .lol files for dotnet run --file support.
+        // Skip the entire line as trivia.
+        if (Current == '#' && (Lookahead == ':' || Lookahead == '!'))
+        {
+            return ReadHashDirective();
+        }
+
         // String literal
         if (Current == '"')
         {
@@ -183,6 +191,18 @@ internal sealed class Lexer
 
         string text = _text.ToString(start, _position - start);
         return new SyntaxToken(SyntaxKind.LineContinuationToken, start, text);
+    }
+
+    private SyntaxToken ReadHashDirective()
+    {
+        // Reads #: directives (e.g., #:sdk Lolcode.NET.Sdk) and #! shebang lines.
+        // Skips the entire line, returning a SingleLineCommentToken (trivia).
+        int start = _position;
+        while (_position < _text.Length && Current != '\n' && Current != '\r')
+            _position++;
+
+        string text = _text.ToString(start, _position - start);
+        return new SyntaxToken(SyntaxKind.SingleLineCommentToken, start, text);
     }
 
     private SyntaxToken ReadString()

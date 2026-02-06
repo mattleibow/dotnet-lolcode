@@ -20,8 +20,9 @@
     <!-- Disable reference assembly generation (not needed for LOLCODE) -->
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
 
-    <!-- Disable source generators and analyzers -->
+    <!-- Disable auto-generated C# files (GlobalUsings.g.cs, AssemblyAttributes.cs) -->
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
 
   <!-- Disable default C# compile globbing, then add LOLCODE glob -->

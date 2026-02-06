@@ -47,7 +47,12 @@
           Inputs="@(Compile);@(ReferencePathWithRefAssemblies);$(MSBuildAllProjects)"
           Outputs="@(IntermediateAssembly)">
 
-    <Lolc Sources="@(Compile)"
+    <!-- Filter out any non-.lol files (e.g., auto-generated .cs files from file-based apps) -->
+    <ItemGroup>
+      <_LolSources Include="@(Compile)" Condition="'%(Extension)' == '.lol'" />
+    </ItemGroup>
+
+    <Lolc Sources="@(_LolSources)"
           ReferencePath="@(ReferencePathWithRefAssemblies)"
           OutputAssembly="@(IntermediateAssembly)"
           RuntimeAssemblyPath="$(LolcodeRuntimeAssemblyPath)"
