@@ -8,15 +8,15 @@ A **LOLCODE 1.2 compiler** written in C# 14 that compiles `.lol` source files to
 
 ## What Is This?
 
-This project is a from-scratch compiler for the [LOLCODE](http://www.lolcode.org/) esoteric programming language, targeting the .NET 10 runtime. It uses a **hand-rolled, Roslyn-inspired architecture** — no parser generators, no transpiling to C# — just raw lexer → parser → binder → IL emitter producing real .NET assemblies.
+This project is a from-scratch compiler for the [LOLCODE](http://www.lolcode.org/) esoteric programming language, targeting the .NET 10 runtime. It uses a **hand-rolled, Roslyn-inspired architecture** — no parser generators, no transpiling to C# — just raw lexer → parser → binder → lowerer → code generator producing real .NET assemblies.
 
 ## Architecture
 
 ```
-┌─────────────┐    ┌─────────────┐    ┌──────────────┐    ┌──────────────┐    ┌─────────────┐
-│  Source      │    │   Lexer     │    │    Parser    │    │   Binder     │    │  IL Emitter  │
-│  (.lol file) │───▶│  (Tokenizer)│───▶│  (AST Build) │───▶│  (Semantics) │───▶│  (DLL out)   │
-└─────────────┘    └─────────────┘    └──────────────┘    └──────────────┘    └─────────────┘
+┌─────────────┐    ┌─────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌────────────────┐
+│  Source      │    │   Lexer     │    │    Parser    │    │   Binder     │    │   Lowerer    │    │ Code Generator │
+│  (.lol file) │───▶│  (Tokenizer)│───▶│  (AST Build) │───▶│  (Semantics) │───▶│  (Desugar)   │───▶│  (DLL out)     │
+└─────────────┘    └─────────────┘    └──────────────┘    └──────────────┘    └──────────────┘    └────────────────┘
 ```
 
 | Stage | What It Does |
@@ -24,7 +24,23 @@ This project is a from-scratch compiler for the [LOLCODE](http://www.lolcode.org
 | **Lexer** | Scans source text into tokens (`VISIBLE`, `HAI`, `42`, `"YARN"`, ...) |
 | **Parser** | Recursive descent parser builds an Abstract Syntax Tree (AST) |
 | **Binder** | Resolves types, validates semantics, produces a bound tree with diagnostics |
-| **Emitter** | Walks the bound tree, emits CIL opcodes via `PersistedAssemblyBuilder`, saves `.dll` |
+| **Lowerer** | Desugars complex bound nodes into simpler forms for emission |
+| **Code Generator** | Walks the lowered tree, emits CIL opcodes via `PersistedAssemblyBuilder`, saves `.dll` |
+
+## Compiler API
+
+```csharp
+// Parse source code
+var tree = SyntaxTree.ParseText("HAI 1.2\nVISIBLE \"HAI WORLD!\"\nKTHXBYE");
+
+// Create compilation and emit
+var compilation = LolcodeCompilation.Create(tree);
+var result = compilation.Emit("output.dll", runtimeAssemblyPath);
+
+if (!result.Success)
+    foreach (var d in result.Diagnostics)
+        Console.Error.WriteLine(d);
+```
 
 ## Features
 
@@ -32,7 +48,7 @@ This project is a from-scratch compiler for the [LOLCODE](http://www.lolcode.org
 - 🎯 **Compiles to .NET IL** — produces real .NET assemblies (not interpreted)
 - 🔧 **CLI tool** — `lolcode compile`, `lolcode run`, `--emit-il`, `--emit-csharp`
 - 📊 **Pretty diagnostics** — error messages with source context and line/column info
-- 🧪 **319 tests** — unit tests + conformance test suite (116 `.lol`/`.txt` test pairs)
+- 🧪 **343 tests** — unit tests + conformance test suite (116 `.lol`/`.txt` test pairs)
 - 🔍 **IL inspection** — `--emit-il` and `--emit-csharp` flags for debugging via `ilspycmd`
 
 ## Quick Start
@@ -107,24 +123,20 @@ KTHXBYE
 ```
 dotnet-lolcode/
 ├── src/
-│   ├── Lolcode.CodeAnalysis/     # Core compiler (lexer, parser, binder, emitter)
-│   ├── Lolcode.Runtime/       # Runtime helper library (referenced by compiled programs)
-│   └── Lolcode.Cli/           # CLI tool (compile/run commands)
+│   ├── Lolcode.CodeAnalysis/     # Core compiler (lexer, parser, binder, lowerer, code generator)
+│   ├── Lolcode.Runtime/          # Runtime helper library
+│   └── Lolcode.Cli/              # CLI tool (compile/run commands)
 ├── tests/
 │   ├── Lolcode.CodeAnalysis.Tests/ # Unit + end-to-end + conformance tests
-│   ├── arithmetic/            # Conformance test pairs (.lol + .txt)
-│   ├── booleans/
-│   ├── casting/
-│   ├── ...                    # 18 test categories, 116 test pairs
-│   └── variables/
-├── samples/                   # 15 example programs (graduated complexity)
-└── docs/                      # Design documents and language spec
+│   └── ...                       # 18 test categories, 116 test pairs
+├── samples/                      # 15 example programs
+└── docs/                         # Design documents and language spec
 ```
 
 ## Running Tests
 
 ```bash
-# Run all 319 tests
+# Run all 343 tests
 dotnet test
 
 # Run specific test category
@@ -173,7 +185,7 @@ dotnet test --filter "LexerTests"
 
 - **Runtime:** .NET 10 / C# 14
 - **IL Emission:** `System.Reflection.Emit.PersistedAssemblyBuilder`
-- **Parser:** Hand-rolled recursive descent (Roslyn-inspired)
+- **Parser:** Hand-rolled recursive descent (Roslyn-inspired architecture)
 - **Testing:** xUnit + FluentAssertions
 - **CI:** GitHub Actions (Ubuntu, macOS, Windows)
 

@@ -4,17 +4,24 @@
 This is a LOLCODE 1.2 compiler targeting .NET 10, written in C# 14. It compiles `.lol` source files to .NET IL assemblies using `PersistedAssemblyBuilder`.
 
 ## Architecture
-Roslyn-inspired pipeline: Lexer → Parser → Binder → Emitter → DLL
+Roslyn-inspired pipeline: Lexer → Parser → Binder → Lowerer → CodeGenerator → DLL
 
 ## Project Structure
 ```
-src/Lolcode.CodeAnalysis/     # Core compiler library (lexer, parser, binder, emitter)
-src/Lolcode.Runtime/       # Runtime helper library (referenced by compiled programs)
-src/Lolcode.Cli/           # CLI tool (lolcode compile/run)
+src/Lolcode.CodeAnalysis/     # Core compiler library
+├── Binding/                   # Binder, BoundScope
+├── BoundTree/                 # Bound node types, BoundKind, operator enums
+├── CodeGen/                   # CodeGenerator (IL emission)
+├── Lowering/                  # Lowerer (tree rewriting)
+├── Symbols/                   # Symbol, TypeSymbol, VariableSymbol, FunctionSymbol
+├── Syntax/                    # SyntaxTree, SyntaxFacts, Lexer, Parser, syntax nodes
+└── Text/                      # SourceText, TextSpan, TextLocation
+src/Lolcode.Runtime/           # Runtime helper library (referenced by compiled programs)
+src/Lolcode.Cli/               # CLI tool (lolcode compile/run)
 tests/Lolcode.CodeAnalysis.Tests/  # xUnit tests for compiler
-tests/                     # .lol/.txt conformance test pairs (18 categories, 116 pairs)
-samples/                   # 15 example programs
-docs/                      # Design docs, language spec, roadmap
+tests/                         # .lol/.txt conformance test pairs (18 categories, 116 pairs)
+samples/                       # 15 example programs
+docs/                          # Design docs, language spec, roadmap
 ```
 
 ## Coding Conventions
@@ -26,6 +33,15 @@ docs/                      # Design docs, language spec, roadmap
 - Use `DiagnosticBag` for error collection across all phases
 - Diagnostic IDs follow pattern `LOLxxxx` (e.g., LOL0001)
 - Lexer diagnostics: LOL0xxx, Parser: LOL1xxx, Binder: LOL2xxx, Internal: LOL9xxx
+
+## Roslyn-Aligned API
+The compiler API mirrors Roslyn's structure:
+- `SyntaxTree.ParseText(source)` — parse source into an immutable syntax tree
+- `LolcodeCompilation.Create(tree)` — create a compilation from syntax trees
+- `compilation.GetDiagnostics()` — get all syntax + semantic diagnostics
+- `compilation.Emit(outputPath, runtimePath)` — emit to DLL, returns `EmitResult`
+- `SyntaxFacts` — centralized keyword/token utilities
+- `Symbol` hierarchy — `VariableSymbol`, `FunctionSymbol`, `ParameterSymbol`, `TypeSymbol`
 
 ## Key Technical Decisions
 - All LOLCODE variables are emitted as `System.Object` locals (dynamic typing via boxing)

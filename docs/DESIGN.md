@@ -5,13 +5,14 @@ This document describes the internal architecture of the LOLCODE .NET compiler, 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Roslyn Alignment](#roslyn-alignment)
 - [Compiler Pipeline](#compiler-pipeline)
 - [Component Details](#component-details)
   - [Lexer](#1-lexer-tokenizer)
   - [Parser](#2-parser-ast-construction)
   - [Binder](#3-binder-semantic-analysis)
   - [Lowering](#4-lowering)
-  - [Emitter](#5-emitter-il-code-generation)
+  - [Code Generator](#5-code-generator-il-emission)
   - [Driver](#6-driver-cli)
   - [Diagnostics](#7-diagnostics)
 - [`IT` Variable Semantics](#it-variable-semantics)
@@ -39,45 +40,73 @@ The LOLCODE compiler is a **multi-phase, ahead-of-time (AOT) compiler** that tra
 - Rich error reporting with source locations
 - No external parser generators — everything is hand-rolled for maximum control
 
+## Roslyn Alignment
+
+The compiler follows a **Roslyn-inspired architecture**, mirroring key types and patterns from `Microsoft.CodeAnalysis`:
+
+- **Namespace:** `Lolcode.CodeAnalysis` (mirrors `Microsoft.CodeAnalysis`)
+- **Key types:** `SyntaxTree`, `LolcodeCompilation`, `EmitResult`, `SyntaxFacts`
+- **Symbol model:** `Symbol` (abstract base), `VariableSymbol`, `FunctionSymbol`, `ParameterSymbol`, `TypeSymbol`
+- **Bound tree:** Separate `BoundTree/` folder with `BoundKind` enum and bound node types
+- **Pipeline:** Lexer → Parser → Binder → Lowerer → CodeGenerator
+
+**Project structure (`src/Lolcode.CodeAnalysis/`):**
+```
+├── Binding/        → Binder, BoundScope
+├── BoundTree/      → BoundNode types, BoundKind, operator enums
+├── CodeGen/        → CodeGenerator
+├── Lowering/       → Lowerer
+├── Symbols/        → Symbol, TypeSymbol, VariableSymbol, FunctionSymbol
+├── Syntax/         → SyntaxTree, SyntaxFacts, Lexer, Parser, syntax nodes
+├── Text/           → SourceText, TextSpan, TextLocation
+└── LolcodeCompilation.cs, EmitResult, Diagnostic, DiagnosticBag
+```
+
 ## Compiler Pipeline
 
 ```
 Source Text (.lol)
        │
        ▼
-┌──────────────┐
-│    Lexer     │  Scans characters → SyntaxToken stream
-│              │  Handles: keywords, identifiers, literals, whitespace, comments
-└──────┬───────┘
-       │  ImmutableArray<SyntaxToken>
-       ▼
-┌──────────────┐
-│   Parser     │  Consumes tokens → Syntax Tree (AST)
-│              │  Recursive descent with error recovery
-└──────┬───────┘
-       │  CompilationUnitSyntax (root node)
-       ▼
-┌──────────────┐
-│   Binder     │  Walks AST → Bound Tree
-│              │  Resolves: variables, functions, types
-│              │  Reports: semantic errors, type mismatches
-└──────┬───────┘
-       │  BoundCompilationUnit (root bound node)
-       ▼
-┌──────────────┐
-│  Lowering    │  (Optional) Simplifies bound tree
-│              │  Transforms complex constructs into primitives
-└──────┬───────┘
-       │  Simplified BoundTree
-       ▼
-┌──────────────┐
-│   Emitter    │  Walks bound tree → CIL opcodes
-│              │  Uses PersistedAssemblyBuilder
-│              │  Outputs: .dll + .runtimeconfig.json
-└──────┬───────┘
-       │
-       ▼
-  Output.dll (runnable with `dotnet Output.dll`)
+┌─────────────────────────────┐
+│  SyntaxTree.ParseText()     │  Entry point
+│  ┌────────────────────────┐ │
+│  │  Lexer                 │ │  Scans characters → SyntaxToken stream
+│  │                        │ │  Keyword lookup via SyntaxFacts.GetKeywordKind()
+│  └──────────┬─────────────┘ │
+│             │                │
+│  ┌──────────▼─────────────┐ │
+│  │  Parser                │ │  Consumes tokens → CompilationUnitSyntax
+│  │                        │ │  Recursive descent with error recovery
+│  └────────────────────────┘ │
+│  Returns: SyntaxTree        │  (Root, Diagnostics, FilePath)
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│  LolcodeCompilation.Create()│  Orchestrator
+└──────────────┬──────────────┘
+               │
+┌──────────────▼──────────────┐
+│   Binder                    │  Walks AST → Bound Tree
+│                             │  Resolves: variables, functions, types
+│                             │  Uses: BoundScope (parent chain), Symbol hierarchy
+└──────────────┬──────────────┘
+               │  BoundBlockStatement (root bound node)
+               ▼
+┌─────────────────────────────┐
+│   Lowerer                   │  Rewrites bound tree (currently identity pass)
+└──────────────┬──────────────┘
+               │  Simplified BoundTree
+               ▼
+┌─────────────────────────────┐
+│   CodeGenerator             │  Walks bound tree → CIL opcodes
+│                             │  Uses PersistedAssemblyBuilder
+│                             │  Outputs: .dll + .runtimeconfig.json
+└──────────────┬──────────────┘
+               │
+               ▼
+  EmitResult (Success, Diagnostics)
 ```
 
 ## Component Details
@@ -91,6 +120,7 @@ Source Text (.lol)
 - Tracks position (line, column, absolute offset) for diagnostics
 - Produces `SyntaxToken` records: `(SyntaxKind Kind, string Text, object? Value, TextSpan Span)`
 - Multi-word keywords (e.g., `I HAS A`, `IM IN YR`) are recognized as single tokens via lookahead
+- Keyword lookup is delegated to `SyntaxFacts.GetKeywordKind()`, which maps keyword text to `SyntaxKind` values
 - Handles LOLCODE-specific escapes in strings (`:)` = newline, `:>` = tab, `::` = colon, `:"` = quote)
 - Handles string interpolation `:{var}` within YARN literals
 - `AN` keyword is optional between operands per spec
@@ -110,37 +140,44 @@ Source Text (.lol)
 - Recursive descent parser (like Roslyn's)
 - Each grammar rule maps to a parsing method (e.g., `ParseIfStatement()`, `ParseExpression()`)
 - Error recovery: on unexpected tokens, skip to next newline (statement boundary sync)
-- Produces immutable AST nodes (C# records)
+- Produces immutable AST nodes (C# sealed classes)
 - Handles LOLCODE's prefix notation for operators (`SUM OF x AN y` instead of `x + y`)
+- `SyntaxTree` wraps the parse result: `SyntaxTree.ParseText(source)` returns a `SyntaxTree` with `Root` (`CompilationUnitSyntax`), `Diagnostics` (`ImmutableArray<Diagnostic>`), and `FilePath` (`string?`)
 
 **AST Node Hierarchy:**
 ```
 SyntaxNode (abstract)
 ├── CompilationUnitSyntax          # Root: HAI ... KTHXBYE
+├── ProgramStatementSyntax         # Program body (statements between HAI/KTHXBYE)
+├── MebbeClauseSyntax              # MEBBE condition block
+├── OmgClauseSyntax                # OMG case label
 ├── StatementSyntax (abstract)
 │   ├── VariableDeclarationSyntax  # I HAS A x ITZ 42
-│   ├── AssignmentSyntax           # x R 100
-│   ├── PrintSyntax                # VISIBLE expr
-│   ├── InputSyntax                # GIMMEH var
-│   ├── IfSyntax                   # O RLY? / YA RLY / NO WAI / OIC
-│   ├── SwitchSyntax               # WTF? / OMG / OMGWTF / OIC
-│   ├── LoopSyntax                 # IM IN YR ... IM OUTTA YR
+│   ├── AssignmentStatementSyntax  # x R 100
+│   ├── VisibleStatementSyntax     # VISIBLE expr
+│   ├── GimmehStatementSyntax      # GIMMEH var
+│   ├── IfStatementSyntax          # O RLY? / YA RLY / NO WAI / OIC
+│   ├── SwitchStatementSyntax      # WTF? / OMG / OMGWTF / OIC
+│   ├── LoopStatementSyntax        # IM IN YR ... IM OUTTA YR
 │   ├── FunctionDeclarationSyntax  # HOW IZ I ... IF U SAY SO
-│   ├── ReturnSyntax               # FOUND YR expr
-│   ├── BreakSyntax                # GTFO
-│   ├── CastSyntax                 # var IS NOW A TYPE
+│   ├── ReturnStatementSyntax      # FOUND YR expr
+│   ├── GtfoStatementSyntax        # GTFO
+│   ├── CastStatementSyntax        # var IS NOW A TYPE
+│   ├── BlockStatementSyntax       # Grouped statements
 │   └── ExpressionStatementSyntax  # bare expression (result → IT)
 └── ExpressionSyntax (abstract)
     ├── LiteralExpressionSyntax    # 42, 3.14, "yarn", WIN, FAIL
-    ├── VariableExpressionSyntax   # x, IT
-    ├── BinaryExpressionSyntax     # SUM OF x AN y
+    ├── VariableExpressionSyntax   # x
+    ├── ItExpressionSyntax         # IT (implicit variable)
+    ├── BinaryExpressionSyntax     # SUM OF x AN y, BOTH OF, EITHER OF, WON OF
     ├── UnaryExpressionSyntax      # NOT x
     ├── ComparisonExpressionSyntax # BOTH SAEM x AN y
+    ├── DiffrintExpressionSyntax   # DIFFRINT x AN y
+    ├── AllOfExpressionSyntax      # ALL OF x AN y AN z MKAY
+    ├── AnyOfExpressionSyntax      # ANY OF x AN y AN z MKAY
     ├── CastExpressionSyntax       # MAEK x A NUMBR
     ├── SmooshExpressionSyntax     # SMOOSH x AN y MKAY
-    ├── InterpolatedStringExpressionSyntax # "hai :{var}!"
-    ├── FunctionCallExpressionSyntax # I IZ func YR arg MKAY
-    └── NaryExpressionSyntax       # ALL OF x AN y AN z MKAY
+    └── FunctionCallExpressionSyntax # I IZ func YR arg MKAY
 ```
 
 ### 3. Binder (Semantic Analysis)
@@ -148,11 +185,22 @@ SyntaxNode (abstract)
 **Purpose:** Walk the AST, resolve symbols, check types, and produce a semantically validated bound tree.
 
 **Responsibilities:**
-- Variable declaration and scope tracking
+- Variable declaration and scope tracking via `BoundScope` (parent chain for nested scopes)
 - Function declaration and parameter validation
 - Type inference and coercion (LOLCODE is loosely typed)
 - Implicit `IT` variable management
 - Error reporting for: undeclared variables, type mismatches, invalid operations, etc.
+
+**Symbol hierarchy (`Lolcode.CodeAnalysis.Symbols`):**
+- `Symbol` — abstract base
+- `VariableSymbol` — declared variables and the implicit `IT`
+- `FunctionSymbol` — function declarations (`HOW IZ I`)
+- `ParameterSymbol` — function parameters (`YR`)
+- `TypeSymbol` — built-in types (`NUMBR`, `NUMBAR`, `YARN`, `TROOF`, `NOOB`)
+
+**Operator enums (`Lolcode.CodeAnalysis.BoundTree`):**
+- `BoundBinaryOperatorKind` — Addition, Subtraction, Multiplication, Division, Modulo, LogicalAnd, LogicalOr, LogicalXor, Equal, NotEqual, etc.
+- `BoundUnaryOperatorKind` — LogicalNot
 
 **Type coercion rules (LOLCODE-specific):**
 - `NOOB` → `TROOF` = `FAIL` (this is the **only** implicit NOOB cast)
@@ -163,13 +211,15 @@ SyntaxNode (abstract)
 - **Equality comparisons have NO automatic casting**: `BOTH SAEM "3" AN 3` is `FAIL`
 - Functions with no explicit `FOUND YR` return the value of `IT` at the end of the code block
 
-**Output:** `BoundTree` with `BoundNode` hierarchy (mirrors AST but with resolved type information)
+**Output:** Bound tree with `BoundNode` hierarchy (mirrors AST but with resolved type information), rooted at `BoundBlockStatement`
 
 ### 4. Lowering
 
-**Purpose:** Transform complex bound nodes into simpler primitives for easier IL emission. This phase keeps the emitter simple by reducing the number of bound node types it must handle.
+**Purpose:** Transform complex bound nodes into simpler primitives for easier IL emission. Implemented as a separate `Lowering/Lowerer.cs` class with tree rewriting infrastructure.
 
-**Transforms:**
+**Current state:** The `Lowerer` is an identity pass — it traverses the bound tree and returns it unchanged. The rewriting infrastructure is in place for future desugaring transforms.
+
+**Planned transforms:**
 - `IM IN YR` loop with `UPPIN`/`NERFIN` → while-loop with explicit increment/decrement
 - `SMOOSH` with multiple arguments → chain of `String.Concat` calls
 - `ALL OF` / `ANY OF` → short-circuit chain of `BOTH OF` / `EITHER OF` operations
@@ -177,11 +227,11 @@ SyntaxNode (abstract)
 - `VISIBLE` with multiple arguments → concatenation of YARN-cast values + print
 - Interpolated strings → `SMOOSH`-equivalent concatenation of segments
 
-> **Note:** Although listed separately, lowering is integrated into the end of Phase 3 (Binder) rather than being a standalone phase. The binder produces a bound tree, then the lowerer simplifies it before handing off to the emitter.
-
-### 5. Emitter (IL Code Generation)
+### 5. Code Generator (IL Emission)
 
 **Purpose:** Walk the bound tree and emit CIL opcodes that implement the program's semantics.
+
+**Class:** `CodeGenerator` in namespace `Lolcode.CodeAnalysis.CodeGen`
 
 **Technology:** `System.Reflection.Emit.PersistedAssemblyBuilder` (.NET 9+)
 
@@ -211,6 +261,14 @@ SyntaxNode (abstract)
 - `lolcode compile <file.lol> [-o output.dll]` — Compile to DLL
 - `lolcode run <file.lol>` — Compile and execute
 - `lolcode repl` — Interactive LOLCODE session (stretch goal)
+
+**API flow:**
+```csharp
+var tree = SyntaxTree.ParseText(source, filePath);
+var compilation = LolcodeCompilation.Create(tree);
+var result = compilation.Emit(outputPath, runtimePath);
+// result is EmitResult with Success (bool) and Diagnostics
+```
 
 **Features:**
 - Colored diagnostic output with source context
@@ -339,7 +397,7 @@ stloc result      // store result
 
 ### Optimization: Static Type Specialization
 
-When the binder can **prove** the types at compile time (e.g., `I HAS A x ITZ 42` is always `NUMBR`), the emitter can use native IL opcodes directly:
+When the binder can **prove** the types at compile time (e.g., `I HAS A x ITZ 42` is always `NUMBR`), the code generator can use native IL opcodes directly:
 ```
 ldloc.0           // load int32
 ldloc.1           // load int32
@@ -466,7 +524,7 @@ String interpolation (`:{var}`) spans multiple compiler phases:
 2. **Parser:** Consumes the interpolated string tokens and builds an `InterpolatedStringExpressionSyntax` node containing `LiteralExpressionSyntax` segments and `VariableExpressionSyntax` references.
 3. **Binder:** Resolves variable references within the interpolated string. Reports errors for undeclared variables.
 4. **Lowering:** Transforms `InterpolatedStringExpression` into the equivalent of `SMOOSH segment1 AN segment2 ... MKAY` (a chain of YARN casts and concatenation).
-5. **Emitter:** Emits the lowered concatenation as `LolRuntime.Concat` or `String.Concat` calls.
+5. **Code Generator:** Emits the lowered concatenation as `LolRuntime.Concat` or `String.Concat` calls.
 
 > **Note:** `OMG` case labels in `WTF?` blocks must be literals. Interpolated strings containing `:{var}` are **not** literals and must be rejected by the binder.
 
@@ -508,7 +566,7 @@ This section records intentional implementation decisions where the LOLCODE 1.2 
 |------|--------|-----------|
 | LOLCODE grammar ambiguities | Parser complexity | Reference existing implementations, document deviations from spec |
 | `PersistedAssemblyBuilder` limitations | Can't emit certain constructs | Fall back to `System.Reflection.Metadata` for edge cases; prototype IL emission early (Phase 0) |
-| IL bugs are hard to debug | Time spent debugging emitter | Use `ildasm` / ILSpy to inspect output, compare with C# compiler output; add `--emit-il` flag in Phase 4 |
+| IL bugs are hard to debug | Time spent debugging code generator | Use `ildasm` / ILSpy to inspect output, compare with C# compiler output; add `--emit-il` flag in Phase 4 |
 | Multi-word keyword parsing | Lexer complexity | Careful lookahead design, extensive keyword tests, state machine for multi-word tokens |
 | Loose typing / coercion edge cases | Runtime errors | Document all coercion rules, comprehensive type tests, conformance test matrix |
 | Scope creep | Project never finishes | Strict phase gates — Phase 5 (working compiler) is MVP; Phases 6–9 are post-MVP enhancements |
