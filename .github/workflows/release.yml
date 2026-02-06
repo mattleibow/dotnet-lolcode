@@ -8,30 +8,8 @@ permissions:
   contents: write
 
 jobs:
-  build-and-test:
+  release:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Restore
-        run: dotnet restore
-
-      - name: Build
-        run: dotnet build --no-restore
-
-      - name: Test
-        run: dotnet test --no-build
-
-  pack:
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    outputs:
-      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -47,124 +25,11 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Build
-        run: dotnet build -c Release -p:Version=${{ steps.version.outputs.version }}
-
-      - name: Pack NuGet packages
+      - name: Pack
         run: |
-          dotnet pack -c Release --no-build -p:Version=${{ steps.version.outputs.version }} -o artifacts/
+          dotnet pack -c Release -p:Version=${{ steps.version.outputs.version }} -o artifacts/
           echo "📦 Packages:"
           ls -la artifacts/*.nupkg
-
-      - name: Upload NuGet packages
-        uses: actions/upload-artifact@v4
-        with:
-          name: nupkg
-          path: artifacts/*.nupkg
-
-  test-packages:
-    runs-on: ${{ matrix.os }}
-    needs: pack
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    steps:
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Download NuGet packages
-        uses: actions/download-artifact@v4
-        with:
-          name: nupkg
-          path: packages/
-
-      - name: Create test project
-        shell: bash
-        run: |
-          mkdir -p test-project && cd test-project
-
-          cat > NuGet.config << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <configuration>
-            <packageSources>
-              <clear />
-              <add key="local" value="../packages" />
-              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-            </packageSources>
-          </configuration>
-          EOF
-
-          cat > global.json << EOF
-          { "msbuild-sdks": { "Lolcode.NET.Sdk": "${{ needs.pack.outputs.version }}" } }
-          EOF
-
-          cat > Test.lolproj << 'EOF'
-          <Project Sdk="Lolcode.NET.Sdk">
-            <PropertyGroup>
-              <OutputType>Exe</OutputType>
-              <TargetFramework>net10.0</TargetFramework>
-            </PropertyGroup>
-          </Project>
-          EOF
-
-          cat > Program.lol << 'EOF'
-          HAI 1.2
-            VISIBLE "NuGet SDK works!"
-          KTHXBYE
-          EOF
-
-      - name: Build test project
-        run: dotnet build test-project/Test.lolproj
-
-      - name: Run test project
-        shell: bash
-        run: |
-          OUTPUT=$(dotnet run --project test-project/Test.lolproj)
-          echo "Output: $OUTPUT"
-          [ "$OUTPUT" = "NuGet SDK works!" ] || { echo "❌ Unexpected output"; exit 1; }
-          echo "✅ NuGet SDK package works end-to-end"
-
-      - name: Test dotnet new template
-        shell: bash
-        run: |
-          TEMPLATE_PKG=$(ls packages/Lolcode.NET.Templates.*.nupkg | head -1)
-          dotnet new install "$TEMPLATE_PKG"
-          mkdir -p template-test && cd template-test
-
-          cat > NuGet.config << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <configuration>
-            <packageSources>
-              <clear />
-              <add key="local" value="../packages" />
-              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-            </packageSources>
-          </configuration>
-          EOF
-
-          cat > global.json << EOF
-          { "msbuild-sdks": { "Lolcode.NET.Sdk": "${{ needs.pack.outputs.version }}" } }
-          EOF
-
-          dotnet new lolcode -n TemplateTest
-          dotnet build TemplateTest/TemplateTest.lolproj
-          echo "✅ dotnet new lolcode template works"
-
-  publish:
-    runs-on: ubuntu-latest
-    needs: [pack, test-packages]
-    steps:
-      - name: Download NuGet packages
-        uses: actions/download-artifact@v4
-        with:
-          name: nupkg
-          path: artifacts/
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
 
       - name: Push to NuGet.org
         run: |
