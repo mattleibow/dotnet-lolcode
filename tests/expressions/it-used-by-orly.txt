@@ -1,2 +1,0 @@
-5 is truthy
-0 is falsy

@@ -1,4 +1,0 @@
-First: 100
-Second: 200
-Third: 250
-Fourth: 500

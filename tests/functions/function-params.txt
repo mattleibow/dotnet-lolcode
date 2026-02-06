@@ -1,3 +1,0 @@
-One: A
-Two: B and C
-Three: D, E, F

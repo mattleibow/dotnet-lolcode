@@ -1,8 +1,0 @@
-Initial IT: 100
-IT in YA RLY: 200
-IT after O RLY?: 200
-IT in loop: 1000
-IT in loop: 1001
-IT after loop: 1001
-IT in OMG: 777
-Final IT: 777

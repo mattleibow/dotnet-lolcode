@@ -1,3 +1,0 @@
-Before call: 20
-Function IT: 100
-After call: 100

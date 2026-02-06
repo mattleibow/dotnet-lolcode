@@ -1,5 +1,0 @@
-7
-A+B=7
-PI=3.14
-42
-BOOL FAIL / WIN

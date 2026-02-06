@@ -19,7 +19,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-          dotnet-quality: 'preview'
 
       - name: Restore
         run: dotnet restore
@@ -50,3 +49,127 @@ jobs:
               exit 1
             fi
           done
+
+  pack:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build
+        run: dotnet build -c Release
+
+      - name: Pack NuGet packages
+        run: |
+          dotnet pack src/Lolcode.NET.Sdk/Lolcode.NET.Sdk.csproj -c Release --no-build -o artifacts/
+          dotnet pack src/Lolcode.Runtime/Lolcode.Runtime.csproj -c Release --no-build -o artifacts/
+          dotnet pack src/Lolcode.NET.Templates/Lolcode.NET.Templates.csproj -c Release --no-build -o artifacts/
+
+      - name: Upload NuGet packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: artifacts/*.nupkg
+
+  test-packages:
+    runs-on: ${{ matrix.os }}
+    needs: pack
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Download NuGet packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nupkg
+          path: packages/
+
+      - name: Get package version
+        id: version
+        shell: bash
+        run: |
+          SDK_PKG=$(ls packages/Lolcode.NET.Sdk.*.nupkg | head -1)
+          VERSION=$(basename "$SDK_PKG" | sed 's/Lolcode.NET.Sdk.\(.*\).nupkg/\1/')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "SDK version: $VERSION"
+
+      - name: Create test project
+        shell: bash
+        run: |
+          mkdir -p test-project && cd test-project
+
+          cat > NuGet.config << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="local" value="../packages" />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+            </packageSources>
+          </configuration>
+          EOF
+
+          cat > global.json << EOF
+          { "msbuild-sdks": { "Lolcode.NET.Sdk": "${{ steps.version.outputs.version }}" } }
+          EOF
+
+          cat > Test.lolproj << 'EOF'
+          <Project Sdk="Lolcode.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net10.0</TargetFramework>
+            </PropertyGroup>
+          </Project>
+          EOF
+
+          cat > Program.lol << 'EOF'
+          HAI 1.2
+            VISIBLE "NuGet SDK works!"
+          KTHXBYE
+          EOF
+
+      - name: Build test project
+        run: dotnet build test-project/Test.lolproj
+
+      - name: Run test project
+        shell: bash
+        run: |
+          OUTPUT=$(dotnet run --project test-project/Test.lolproj)
+          echo "Output: $OUTPUT"
+          [ "$OUTPUT" = "NuGet SDK works!" ] || { echo "❌ Unexpected output"; exit 1; }
+          echo "✅ NuGet SDK package works end-to-end"
+
+      - name: Test dotnet new template
+        shell: bash
+        run: |
+          TEMPLATE_PKG=$(ls packages/Lolcode.NET.Templates.*.nupkg | head -1)
+          dotnet new install "$TEMPLATE_PKG"
+          mkdir -p template-test && cd template-test
+
+          cat > NuGet.config << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="local" value="../packages" />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+            </packageSources>
+          </configuration>
+          EOF
+
+          cat > global.json << EOF
+          { "msbuild-sdks": { "Lolcode.NET.Sdk": "${{ steps.version.outputs.version }}" } }
+          EOF
+
+          dotnet new lolcode -n TemplateTest
+          dotnet build TemplateTest/TemplateTest.lolproj
+          echo "✅ dotnet new lolcode template works"

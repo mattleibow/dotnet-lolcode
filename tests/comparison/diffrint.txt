@@ -1,4 +1,0 @@
-WIN
-FAIL
-FAIL
-WIN

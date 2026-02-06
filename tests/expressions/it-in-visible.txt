@@ -1,2 +1,0 @@
-IT is: 42
-IT is now: 30

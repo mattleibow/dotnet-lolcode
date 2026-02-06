@@ -1,4 +1,0 @@
-HEX 41: A
-MIXED: ABC
-SMILE: ☺
-GRIN: 😀
