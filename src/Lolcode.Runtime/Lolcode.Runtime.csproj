@@ -2,6 +2,11 @@
 
   <PropertyGroup>
     <RootNamespace>Lolcode.Runtime</RootNamespace>
+    <IsPackable>true</IsPackable>
+    <PackageId>Lolcode.Runtime</PackageId>
+    <PackageDescription>Runtime support library for compiled LOLCODE programs. Provides type coercion, arithmetic, boolean operations, I/O, and string operations.</PackageDescription>
+    <PackageTags>lolcode;runtime</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
 </Project>

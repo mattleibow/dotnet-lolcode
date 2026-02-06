@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "dotnet-languages",
+  "classifications": ["Console", "LOLCODE"],
+  "identity": "Lolcode.NET.Templates.Console",
+  "name": "LOLCODE Console App",
+  "shortName": "lolcode",
+  "tags": {
+    "language": "LOLCODE",
+    "type": "project"
+  },
+  "sourceName": "LolcodeApp",
+  "preferNameDirectory": true,
+  "primaryOutputs": [
+    { "path": "LolcodeApp.lolproj" }
+  ]
+}

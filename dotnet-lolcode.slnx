@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Lolcode.Build/Lolcode.Build.csproj" />
     <Project Path="src/Lolcode.Cli/Lolcode.Cli.csproj" />
     <Project Path="src/Lolcode.CodeAnalysis/Lolcode.CodeAnalysis.csproj" />
     <Project Path="src/Lolcode.Runtime/Lolcode.Runtime.csproj" />

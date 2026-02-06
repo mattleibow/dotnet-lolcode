@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Lolcode.Build</RootNamespace>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <GenerateDependencyFile>true</GenerateDependencyFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.13.9" ExcludeAssets="Runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lolcode.CodeAnalysis\Lolcode.CodeAnalysis.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Lolcode.Runtime\Lolcode.Runtime.csproj" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

@@ -1,34 +1,41 @@
+<!--
+  Lolcode.NET.Sdk - Sdk.props
+
+  Imported at the TOP of every .lolproj file.
+  Sets language defaults and imports the base .NET SDK.
+-->
 <Project>
-  <!-- Sdk.props - Imported first, sets up defaults -->
-  
+
+  <!-- Import .NET SDK props first — gives us TFM, OutputType, reference resolution, etc. -->
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
   <PropertyGroup>
-    <!-- Default to executable output -->
-    <OutputType Condition="'$(OutputType)' == ''">Exe</OutputType>
-    
-    <!-- Default target framework if not specified -->
-    <TargetFramework Condition="'$(TargetFramework)' == '' and '$(TargetFrameworks)' == ''">net10.0</TargetFramework>
-    
-    <!-- Enable nullable by default -->
-    <Nullable Condition="'$(Nullable)' == ''">enable</Nullable>
-    
-    <!-- Use latest C# language version -->
-    <LangVersion Condition="'$(LangVersion)' == ''">latest</LangVersion>
-    
-    <!-- Default source file extension -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);**/*.lol</DefaultItemExcludes>
+    <!-- Identify this as a LOLCODE project -->
+    <Language>LOLCODE</Language>
+    <DefaultLanguageSourceExtension>.lol</DefaultLanguageSourceExtension>
+
+    <!-- Disable C# specific features that don't apply -->
+    <DisableRoslynAnalyzers>true</DisableRoslynAnalyzers>
+
+    <!-- Disable reference assembly generation (not needed for LOLCODE) -->
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+
+    <!-- Disable source generators and analyzers -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
-  <!-- Include LOLCODE source files -->
+  <!-- Disable default C# compile globbing, then add LOLCODE glob -->
+  <PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
   <ItemGroup>
-    <LolcodeCompile Include="**/*.lol" Exclude="$(DefaultItemExcludes)" />
+    <Compile Include="**/*.lol" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
   </ItemGroup>
 
-  <!-- Reference the runtime library -->
+  <!-- Make .lol files visible in Solution Explorer with correct build action -->
   <ItemGroup>
-    <Reference Include="Lolcode.Runtime">
-      <HintPath>$(MSBuildThisFileDirectory)../lib/$(TargetFramework)/Lolcode.Runtime.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
+    <AvailableItemName Include="LolcodeCompile" />
   </ItemGroup>
 
 </Project>

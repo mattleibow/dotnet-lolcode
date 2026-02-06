@@ -1,50 +1,40 @@
-<!-- Lolcode.NET.Sdk.csproj -->
+<!-- Lolcode.NET.Sdk.csproj — Produces the MSBuild SDK NuGet package -->
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeContentInPack>true</IncludeContentInPack>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <PackageType>MSBuildSdk</PackageType>
     <PackageId>Lolcode.NET.Sdk</PackageId>
-    <PackageDescription>MSBuild SDK for compiling LOLCODE 1.2 programs to .NET assemblies</PackageDescription>
-    <PackageTags>lolcode;compiler;msbuild;sdk</PackageTags>
+    <PackageDescription>MSBuild SDK for compiling LOLCODE 1.2 programs to .NET assemblies. Use with Project Sdk="Lolcode.NET.Sdk" in .lolproj files.</PackageDescription>
+    <PackageTags>lolcode;compiler;msbuild;sdk;dotnet</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/yourusername/dotnet-languages</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <NoWarn>$(NoWarn);NU5100;NU5128</NoWarn>
   </PropertyGroup>
 
-  <!-- SDK entry points -->
+  <!-- SDK entry points (Sdk/Sdk.props + Sdk/Sdk.targets) -->
   <ItemGroup>
     <Content Include="Sdk\**" PackagePath="Sdk\" />
   </ItemGroup>
 
-  <!-- MSBuild task and compiler (build-time dependencies) -->
+  <!-- MSBuild task and compiler (build-time tool dependencies) -->
   <ItemGroup>
-    <Content Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Build.dll" PackagePath="tools\net10.0\" />
-    <Content Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Build.deps.json" PackagePath="tools\net10.0\" />
-    <Content Include="..\Lolcode.CodeAnalysis\bin\$(Configuration)\net10.0\Lolcode.CodeAnalysis.dll" PackagePath="tools\net10.0\" />
-    <Content Include="..\Lolcode.Runtime\bin\$(Configuration)\net10.0\Lolcode.Runtime.dll" PackagePath="tools\net10.0\" />
-  </ItemGroup>
-
-  <!-- Runtime library (runtime dependency) -->
-  <ItemGroup>
-    <Content Include="..\Lolcode.Runtime\bin\$(Configuration)\net10.0\Lolcode.Runtime.dll" PackagePath="lib\net10.0\" />
-    <Content Include="..\Lolcode.Runtime\bin\$(Configuration)\net48\Lolcode.Runtime.dll" PackagePath="lib\net48\" />
-  </ItemGroup>
-
-  <!-- Reference assemblies -->
-  <ItemGroup>
-    <Content Include="..\Lolcode.Runtime\bin\$(Configuration)\net10.0\Lolcode.Runtime.dll" PackagePath="ref\net10.0\" />
-    <Content Include="..\Lolcode.Runtime\bin\$(Configuration)\net48\Lolcode.Runtime.dll" PackagePath="ref\net48\" />
+    <Content Include="src\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Build.dll" PackagePath="tools\net10.0\" />
+    <Content Include="src\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Build.deps.json" PackagePath="tools\net10.0\" />
+    <Content Include="src\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.CodeAnalysis.dll" PackagePath="tools\net10.0\" />
+    <Content Include="src\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Runtime.dll" PackagePath="tools\net10.0\" />
   </ItemGroup>
 
   <!-- Ensure dependencies are built first -->
   <ItemGroup>
-    <ProjectReference Include="..\Lolcode.Build\Lolcode.Build.csproj" PrivateAssets="all" />
-    <ProjectReference Include="..\Lolcode.CodeAnalysis\Lolcode.CodeAnalysis.csproj" PrivateAssets="all" />
-    <ProjectReference Include="..\Lolcode.Runtime\Lolcode.Runtime.csproj" PrivateAssets="all" />
+    <ProjectReference Include="src\Lolcode.Build\Lolcode.Build.csproj" PrivateAssets="all" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>
