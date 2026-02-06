@@ -128,7 +128,7 @@ dotnet-lolcode/
 │   └── Lolcode.Cli/              # CLI tool (compile/run commands)
 ├── tests/
 │   ├── Lolcode.CodeAnalysis.Tests/ # Unit + end-to-end + conformance tests
-│   └── ...                       # 18 test categories, 116 test pairs
+│   └── ...                       # 18 test categories, 117 test pairs
 ├── samples/                      # 15 example programs
 └── docs/                         # Design documents and language spec
 ```

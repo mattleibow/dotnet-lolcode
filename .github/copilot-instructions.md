@@ -12,6 +12,7 @@ src/Lolcode.CodeAnalysis/     # Core compiler library
 ├── Binding/                   # Binder, BoundScope
 ├── BoundTree/                 # Bound node types, BoundKind, operator enums
 ├── CodeGen/                   # CodeGenerator (IL emission)
+├── Errors/                    # ErrorCode, DiagnosticDescriptors
 ├── Lowering/                  # Lowerer (tree rewriting)
 ├── Symbols/                   # Symbol, TypeSymbol, VariableSymbol, FunctionSymbol
 ├── Syntax/                    # SyntaxTree, SyntaxFacts, Lexer, Parser, syntax nodes
@@ -19,7 +20,7 @@ src/Lolcode.CodeAnalysis/     # Core compiler library
 src/Lolcode.Runtime/           # Runtime helper library (referenced by compiled programs)
 src/Lolcode.Cli/               # CLI tool (lolcode compile/run)
 tests/Lolcode.CodeAnalysis.Tests/  # xUnit tests for compiler
-tests/                         # .lol/.txt conformance test pairs (18 categories, 116 pairs)
+tests/                         # .lol/.txt conformance test pairs (18 categories, 117 pairs)
 samples/                       # 15 example programs
 docs/                          # Design docs, language spec, roadmap
 ```
@@ -42,6 +43,10 @@ The compiler API mirrors Roslyn's structure:
 - `compilation.Emit(outputPath, runtimePath)` — emit to DLL, returns `EmitResult`
 - `SyntaxFacts` — centralized keyword/token utilities
 - `Symbol` hierarchy — `VariableSymbol`, `FunctionSymbol`, `ParameterSymbol`, `TypeSymbol`
+- `DiagnosticDescriptor` + `DiagnosticDescriptors` catalog — Roslyn-style diagnostic definitions
+- `ErrorCode` enum — all LOLxxxx diagnostic codes
+- Implementation types (Lexer, Parser, Binder, CodeGenerator, Lowerer, bound tree) are `internal`
+- Tests access internals via `[InternalsVisibleTo("Lolcode.CodeAnalysis.Tests")]`
 
 ## Key Technical Decisions
 - All LOLCODE variables are emitted as `System.Object` locals (dynamic typing via boxing)

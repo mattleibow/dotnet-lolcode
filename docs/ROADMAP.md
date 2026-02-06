@@ -202,7 +202,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 
 ---
 
-> **Roslyn Alignment (Post-MVP):** After MVP completion, the codebase was restructured to align with Roslyn's architecture. Key changes: namespace rename (`Lolcode.Compiler` → `Lolcode.CodeAnalysis`), `Symbol` hierarchy, `SyntaxTree`/`LolcodeCompilation`/`EmitResult` types, `BoundScope`, `BoundBinaryOperatorKind`/`BoundUnaryOperatorKind` operator enums, `SyntaxFacts`, `Lowerer` pass (in `Lowering/Lowerer.cs`), and `Emitter` → `CodeGenerator` rename (in `Lolcode.CodeAnalysis.CodeGen`).
+> **Roslyn Alignment (Post-MVP):** After MVP completion, the codebase was restructured to align with Roslyn's architecture. Key changes: namespace rename (`Lolcode.Compiler` → `Lolcode.CodeAnalysis`), `Symbol` hierarchy, `SyntaxTree`/`LolcodeCompilation`/`EmitResult` types, `BoundScope`, `BoundBinaryOperatorKind`/`BoundUnaryOperatorKind` operator enums, `SyntaxFacts`, `Lowerer` pass (in `Lowering/Lowerer.cs`), `Emitter` → `CodeGenerator` rename (in `Lolcode.CodeAnalysis.CodeGen`), `DiagnosticDescriptor` pattern with `ErrorCode` enum and `DiagnosticDescriptors` catalog (in `Errors/`), and public API surface review (implementation types made `internal`, `InternalsVisibleTo` for tests).
 
 ---
 

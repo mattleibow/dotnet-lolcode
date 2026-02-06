@@ -63,7 +63,7 @@ dotnet run --project src/Lolcode.Cli -- run samples/01-hello-world/hello.lol
 - **Lexer tests**: Verify tokenization of individual constructs
 - **Parser tests**: Verify AST structure for each language feature
 - **Binder tests**: Verify type resolution and semantic error detection
-- **Emitter tests**: Verify generated IL produces correct runtime behavior
+- **Code generator tests**: Verify generated IL produces correct runtime behavior
 - **End-to-end tests**: Compile a `.lol` file → run the DLL → assert stdout
 
 ### Adding Sample Programs

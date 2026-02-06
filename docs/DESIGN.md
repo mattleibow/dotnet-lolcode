@@ -55,11 +55,12 @@ The compiler follows a **Roslyn-inspired architecture**, mirroring key types and
 ├── Binding/        → Binder, BoundScope
 ├── BoundTree/      → BoundNode types, BoundKind, operator enums
 ├── CodeGen/        → CodeGenerator
+├── Errors/         → ErrorCode, DiagnosticDescriptors
 ├── Lowering/       → Lowerer
 ├── Symbols/        → Symbol, TypeSymbol, VariableSymbol, FunctionSymbol
 ├── Syntax/         → SyntaxTree, SyntaxFacts, Lexer, Parser, syntax nodes
 ├── Text/           → SourceText, TextSpan, TextLocation
-└── LolcodeCompilation.cs, EmitResult, Diagnostic, DiagnosticBag
+└── LolcodeCompilation.cs, EmitResult, Diagnostic, DiagnosticDescriptor, DiagnosticBag
 ```
 
 ## Compiler Pipeline
@@ -276,11 +277,22 @@ var result = compilation.Emit(outputPath, runtimePath);
 
 ### 7. Diagnostics
 
-**Design:** Roslyn-style diagnostic system.
+**Design:** Roslyn-style diagnostic system with descriptors.
 
-- Each diagnostic has: ID (e.g., `LOL0001`), severity (Error/Warning/Info), message, source span
-- `DiagnosticBag` collects diagnostics from all phases
+- Each diagnostic category is defined by a `DiagnosticDescriptor` (ID, title, message format, category, severity)
+- All descriptors are cataloged in `Errors/DiagnosticDescriptors.cs` with an `ErrorCode` enum
+- `DiagnosticBag` (internal) collects diagnostics; consumers receive `ImmutableArray<Diagnostic>`
+- `Diagnostic.Create(descriptor, location, args...)` stamps out instances from descriptors
 - Pretty-printed with source line context and squiggly underlines
+
+**Diagnostic ID ranges:**
+
+| Range | Category | Example |
+|-------|----------|---------|
+| LOL0xxx | Lexer | LOL0001 Unexpected character |
+| LOL1xxx | Parser | LOL1001 Unexpected token |
+| LOL2xxx | Binder | LOL2001 Undeclared variable |
+| LOL9xxx | Internal | LOL9001 Internal compiler error |
 
 **Example output:**
 ```
@@ -290,6 +302,15 @@ error LOL0001: Undeclared variable 'x'
  5 |   VISIBLE x
    |           ^
 ```
+
+**Public API surface:**
+- `Diagnostic` — record with Id, Location, Message, Severity, Descriptor
+- `DiagnosticDescriptor` — defines a category of diagnostic
+- `DiagnosticDescriptors` — static catalog of all compiler diagnostics
+- `DiagnosticSeverity` — Error, Warning, Info
+- `ErrorCode` — enum of all LOLxxxx codes
+
+Implementation details (`Binder`, `BoundScope`, `CodeGenerator`, `Lowerer`, `Lexer`, `Parser`, `DiagnosticBag`, all bound tree types) are `internal`. Tests access them via `[InternalsVisibleTo]`.
 
 ---
 
