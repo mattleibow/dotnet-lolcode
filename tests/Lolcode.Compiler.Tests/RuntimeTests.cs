@@ -279,4 +279,124 @@ public class RuntimeTests
     [Fact]
     public void ExplicitCast_ToYARN_ReturnsString() =>
         LolRuntime.ExplicitCast(42, "YARN").Should().Be("42");
+
+    // ==================== NOOB Arithmetic Errors ====================
+
+    [Fact]
+    public void Add_NoobThrows() =>
+        FluentActions.Invoking(() => LolRuntime.Add(null, 1))
+            .Should().Throw<LolRuntimeException>()
+            .WithMessage("*NOOB*");
+
+    [Fact]
+    public void Subtract_NoobThrows() =>
+        FluentActions.Invoking(() => LolRuntime.Subtract(1, null))
+            .Should().Throw<LolRuntimeException>()
+            .WithMessage("*NOOB*");
+
+    [Fact]
+    public void Multiply_NoobThrows() =>
+        FluentActions.Invoking(() => LolRuntime.Multiply(null, null))
+            .Should().Throw<LolRuntimeException>()
+            .WithMessage("*NOOB*");
+
+    [Fact]
+    public void Divide_NoobThrows() =>
+        FluentActions.Invoking(() => LolRuntime.Divide(null, 1))
+            .Should().Throw<LolRuntimeException>()
+            .WithMessage("*NOOB*");
+
+    [Fact]
+    public void Add_NonNumericYarnThrows() =>
+        FluentActions.Invoking(() => LolRuntime.Add("hello", 1))
+            .Should().Throw<LolRuntimeException>()
+            .WithMessage("*Cannot cast YARN*");
+
+    [Fact]
+    public void Modulo_NonNumericYarnThrows() =>
+        FluentActions.Invoking(() => LolRuntime.Modulo("abc", 2))
+            .Should().Throw<LolRuntimeException>()
+            .WithMessage("*Cannot cast YARN*");
+
+    // ==================== Numeric YARN Coercion ====================
+
+    [Fact]
+    public void Add_NumericYarn_ParsesCorrectly() =>
+        LolRuntime.Add("3", 2).Should().Be(5);
+
+    [Fact]
+    public void Add_FloatYarn_ParsesCorrectly() =>
+        LolRuntime.Add("3.5", 2).Should().Be(5.5);
+
+    // ==================== Division Edge Cases ====================
+
+    [Fact]
+    public void Divide_IntByZero_ReturnsZero() =>
+        LolRuntime.Divide(10, 0).Should().Be(0);
+
+    [Fact]
+    public void Divide_FloatByZero_ReturnsInfinity() =>
+        LolRuntime.Divide(10.0, 0.0).Should().Be(double.PositiveInfinity);
+
+    [Fact]
+    public void Modulo_IntByZero_ReturnsZero() =>
+        LolRuntime.Modulo(10, 0).Should().Be(0);
+
+    // ==================== SMOOSH Additional ====================
+
+    [Fact]
+    public void Smoosh_EmptyArgs_ReturnsEmpty() =>
+        LolRuntime.Smoosh().Should().Be("");
+
+    [Fact]
+    public void Smoosh_WithNull_CastsToEmpty() =>
+        LolRuntime.Smoosh("a", null, "b").Should().Be("ab");
+
+    // ==================== BothSaem Edge Cases ====================
+
+    [Fact]
+    public void BothSaem_BothNull_ReturnsTrue() =>
+        LolRuntime.BothSaem(null, null).Should().BeTrue();
+
+    [Fact]
+    public void BothSaem_IntDouble_Promotion() =>
+        LolRuntime.BothSaem(3, 3.0).Should().BeTrue();
+
+    [Fact]
+    public void BothSaem_IntDouble_NotEqual() =>
+        LolRuntime.BothSaem(3, 3.1).Should().BeFalse();
+
+    [Fact]
+    public void BothSaem_StringInt_NoAutocast() =>
+        LolRuntime.BothSaem("42", 42).Should().BeFalse();
+
+    [Fact]
+    public void BothSaem_BoolInt_NoAutocast() =>
+        LolRuntime.BothSaem(true, 1).Should().BeFalse();
+
+    // ==================== CastToYarn Formatting ====================
+
+    [Fact]
+    public void CastToYarn_Numbar_TwoDecimals() =>
+        LolRuntime.CastToYarn(7.0).Should().Be("7.00");
+
+    [Fact]
+    public void CastToYarn_NumbarPi_TwoDecimals() =>
+        LolRuntime.CastToYarn(3.14159).Should().Be("3.14");
+
+    [Fact]
+    public void CastToYarn_Null_EmptyString() =>
+        LolRuntime.CastToYarn(null).Should().Be("");
+
+    [Fact]
+    public void CastToYarn_Bool_WinFail() =>
+        LolRuntime.CastToYarn(true).Should().Be("WIN");
+
+    [Fact]
+    public void Greater_Equal_ReturnsFirst() =>
+        LolRuntime.Greater(5, 5).Should().Be(5);
+
+    [Fact]
+    public void Greater_FloatPromotion() =>
+        LolRuntime.Greater(3, 3.5).Should().Be(3.5);
 }
