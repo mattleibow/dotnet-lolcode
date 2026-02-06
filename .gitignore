@@ -1,0 +1,60 @@
+# .NET
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.user
+*.suo
+*.vs/
+*.idea/
+*.DotSettings.user
+publish/
+out/
+
+# NuGet
+*.nupkg
+**/packages/
+project.lock.json
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+bld/
+[Bb]uild/
+artifacts/
+
+# IDE
+.vs/
+.vscode/.history
+*.swp
+*~
+.idea/
+*.sln.docstates
+
+# Node (VS Code extension)
+node_modules/
+editor/vscode-lolcode/out/
+*.vsix
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Test results
+TestResults/
+coverage/
+*.trx
+
+# Compiled LOLCODE output (samples)
+samples/**/*.dll
+samples/**/*.runtimeconfig.json
