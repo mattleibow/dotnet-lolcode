@@ -126,12 +126,8 @@ jobs:
           </configuration>
           EOF
 
-          cat > global.json << EOF
-          { "msbuild-sdks": { "Lolcode.NET.Sdk": "${{ steps.version.outputs.version }}" } }
-          EOF
-
-          cat > Test.lolproj << 'EOF'
-          <Project Sdk="Lolcode.NET.Sdk">
+          cat > Test.lolproj << EOF
+          <Project Sdk="Lolcode.NET.Sdk/${{ steps.version.outputs.version }}">
             <PropertyGroup>
               <OutputType>Exe</OutputType>
               <TargetFramework>net10.0</TargetFramework>
@@ -168,10 +164,8 @@ jobs:
           </configuration>
           EOF
 
-          cat > global.json << EOF
-          { "msbuild-sdks": { "Lolcode.NET.Sdk": "${{ steps.version.outputs.version }}" } }
-          EOF
-
           dotnet new lolcode -n TemplateTest
+          echo "Generated .lolproj:"
+          cat TemplateTest/TemplateTest.lolproj
           dotnet build TemplateTest/TemplateTest.lolproj
           echo "✅ dotnet new lolcode template works"

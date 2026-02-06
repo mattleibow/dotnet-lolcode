@@ -23,4 +23,26 @@
     <Content Include="templates\**\*" Exclude="templates\**\bin\**;templates\**\obj\**" />
   </ItemGroup>
 
+  <!-- Stamp the SDK version into the template .lolproj before packing -->
+  <Target Name="StampSdkVersion" BeforeTargets="GenerateNuspec">
+    <PropertyGroup>
+      <_TemplateLolproj>$(MSBuildProjectDirectory)\templates\lolcode-console\LolcodeApp.lolproj</_TemplateLolproj>
+    </PropertyGroup>
+    <WriteLinesToFile
+      File="$(_TemplateLolproj)"
+      Lines="$([System.IO.File]::ReadAllText('$(_TemplateLolproj)').Replace('LolcodeSdkVersion','$(Version)'))"
+      Overwrite="true" />
+  </Target>
+
+  <!-- Restore the placeholder after packing so source stays clean -->
+  <Target Name="RestoreSdkVersionPlaceholder" AfterTargets="Pack">
+    <PropertyGroup>
+      <_TemplateLolproj>$(MSBuildProjectDirectory)\templates\lolcode-console\LolcodeApp.lolproj</_TemplateLolproj>
+    </PropertyGroup>
+    <WriteLinesToFile
+      File="$(_TemplateLolproj)"
+      Lines="$([System.IO.File]::ReadAllText('$(_TemplateLolproj)').Replace('$(Version)','LolcodeSdkVersion'))"
+      Overwrite="true" />
+  </Target>
+
 </Project>

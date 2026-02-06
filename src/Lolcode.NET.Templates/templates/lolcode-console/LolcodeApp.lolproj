@@ -1,4 +1,4 @@
-<Project Sdk="Lolcode.NET.Sdk">
+<Project Sdk="Lolcode.NET.Sdk/LolcodeSdkVersion">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
