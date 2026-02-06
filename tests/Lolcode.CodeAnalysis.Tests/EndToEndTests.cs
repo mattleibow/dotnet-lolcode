@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Lolcode.CodeAnalysis;
+using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.CodeAnalysis.Text;
 
 namespace Lolcode.CodeAnalysis.Tests;
@@ -32,9 +33,10 @@ public class EndToEndTests : IDisposable
 
     private string CompileAndRun(string source, string? stdin = null)
     {
-        var sourceText = SourceText.From(source, "test.lol");
+        var tree = SyntaxTree.ParseText(source, "test.lol");
         string outputPath = Path.Combine(_tempDir, $"test_{Guid.NewGuid():N}.dll");
-        var result = Compilation.Compile(sourceText, outputPath, _runtimeDll);
+        var compilation = LolcodeCompilation.Create(tree);
+        var result = compilation.Emit(outputPath, _runtimeDll);
 
         if (!result.Success)
         {
@@ -528,9 +530,10 @@ public class EndToEndTests : IDisposable
 
     private void AssertRuntimeError(string source, string expectedErrorSubstring)
     {
-        var sourceText = SourceText.From(source, "test.lol");
+        var tree = SyntaxTree.ParseText(source, "test.lol");
         string outputPath = Path.Combine(_tempDir, $"test_{Guid.NewGuid():N}.dll");
-        var result = Compilation.Compile(sourceText, outputPath, _runtimeDll);
+        var compilation = LolcodeCompilation.Create(tree);
+        var result = compilation.Emit(outputPath, _runtimeDll);
 
         if (!result.Success)
         {
@@ -562,12 +565,12 @@ public class EndToEndTests : IDisposable
 
     private void AssertCompileError(string source, string expectedDiagnosticId)
     {
-        var sourceText = SourceText.From(source, "test.lol");
-        string outputPath = Path.Combine(_tempDir, $"test_{Guid.NewGuid():N}.dll");
-        var result = Compilation.Compile(sourceText, outputPath, _runtimeDll);
+        var tree = SyntaxTree.ParseText(source, "test.lol");
+        var compilation = LolcodeCompilation.Create(tree);
+        var diagnostics = compilation.GetDiagnostics();
 
-        result.Success.Should().BeFalse("Expected compilation to fail");
-        result.Diagnostics.Should().Contain(d => d.Id.Contains(expectedDiagnosticId));
+        diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error).Should().BeTrue("Expected compilation to fail");
+        diagnostics.Should().Contain(d => d.Id.Contains(expectedDiagnosticId));
     }
 
     [Fact]

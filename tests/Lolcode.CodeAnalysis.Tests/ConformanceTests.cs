@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Lolcode.CodeAnalysis;
+using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.CodeAnalysis.Text;
 
 namespace Lolcode.CodeAnalysis.Tests;
@@ -76,9 +77,10 @@ public class ConformanceTests : IDisposable
             .Replace("\r\n", "\n")
             .TrimEnd('\n');
 
-        var sourceText = SourceText.From(source, lolFile);
+        var tree = SyntaxTree.ParseText(source, lolFile);
         string outputPath = Path.Combine(_tempDir, $"test_{Guid.NewGuid():N}.dll");
-        var result = Compilation.Compile(sourceText, outputPath, _runtimeDll);
+        var compilation = LolcodeCompilation.Create(tree);
+        var result = compilation.Emit(outputPath, _runtimeDll);
 
         if (!result.Success)
         {

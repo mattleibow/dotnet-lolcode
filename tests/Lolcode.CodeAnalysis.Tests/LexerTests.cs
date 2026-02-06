@@ -12,16 +12,17 @@ public class LexerTests
     private static IReadOnlyList<SyntaxToken> Lex(string input)
     {
         var source = SourceText.From(input);
-        var (tokens, _) = Compilation.Lex(source);
-        return tokens;
+        var lexer = new Lexer(source);
+        return lexer.Tokenize();
     }
 
     private static IReadOnlyList<SyntaxToken> LexWithDiagnostics(string input, out IReadOnlyList<Diagnostic> diagnostics)
     {
         var source = SourceText.From(input);
-        var result = Compilation.Lex(source);
-        diagnostics = result.Diagnostics.ToList();
-        return result.Tokens;
+        var lexer = new Lexer(source);
+        var tokens = lexer.Tokenize();
+        diagnostics = lexer.Diagnostics.ToList();
+        return tokens;
     }
 
     [Fact]

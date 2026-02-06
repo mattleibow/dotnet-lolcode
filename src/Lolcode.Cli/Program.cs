@@ -1,4 +1,5 @@
 using Lolcode.CodeAnalysis;
+using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.CodeAnalysis.Text;
 
 namespace Lolcode.Cli;
@@ -60,7 +61,9 @@ public static class Program
         try
         {
             string outputPath = Path.Combine(tempDir, Path.GetFileNameWithoutExtension(filePath) + ".dll");
-            var result = Compilation.Compile(sourceText, outputPath, runtimePath);
+            var tree = SyntaxTree.ParseText(sourceText, filePath);
+            var compilation = LolcodeCompilation.Create(tree);
+            var result = compilation.Emit(outputPath, runtimePath);
 
             if (!result.Success)
             {
@@ -138,7 +141,9 @@ public static class Program
         var sourceText = SourceText.From(source, filePath);
         string runtimePath = FindRuntimeAssembly();
 
-        var result = Compilation.Compile(sourceText, outputPath, runtimePath);
+        var tree = SyntaxTree.ParseText(sourceText, filePath);
+        var compilation = LolcodeCompilation.Create(tree);
+        var result = compilation.Emit(outputPath, runtimePath);
 
         if (!result.Success)
         {

@@ -1,4 +1,3 @@
-using Lolcode.CodeAnalysis;
 using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.CodeAnalysis.Text;
 
@@ -11,17 +10,15 @@ public class ParserTests
 {
     private static CompilationUnitSyntax Parse(string input)
     {
-        var source = SourceText.From(input);
-        var (tree, _) = Compilation.Parse(source);
-        return tree;
+        var tree = SyntaxTree.ParseText(input);
+        return tree.Root;
     }
 
     private static CompilationUnitSyntax ParseWithDiagnostics(string input, out IReadOnlyList<Diagnostic> diagnostics)
     {
-        var source = SourceText.From(input);
-        var result = Compilation.Parse(source);
-        diagnostics = result.Diagnostics.ToList();
-        return result.Tree;
+        var tree = SyntaxTree.ParseText(input);
+        diagnostics = tree.Diagnostics.ToList();
+        return tree.Root;
     }
 
     [Fact]
