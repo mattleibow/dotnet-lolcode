@@ -2,6 +2,8 @@
 
 This document defines the LOLCODE 1.2 language as implemented by the dotnet-lolcode compiler. It is based on the [official LOLCODE 1.2 spec](https://github.com/justinmeza/lolcode-spec/blob/master/v1.2/lolcode-spec-v1.2.md) (Final Draft — 12 July 2007).
 
+> *The goal of the original specification is to act as a baseline for all following LOLCODE specifications. As such, some traditionally expected language features may appear "incomplete." This is most likely deliberate, as it will be easier to add to the language than to change and introduce further incompatibilities.*
+
 ## Table of Contents
 
 - [Formatting](#formatting)
@@ -17,6 +19,7 @@ This document defines the LOLCODE 1.2 language as implemented by the dotnet-lolc
   - [Booleans (TROOF)](#booleans-troof)
   - [Numerical Types (NUMBR, NUMBAR)](#numerical-types-numbr-numbar)
   - [Strings (YARN)](#strings-yarn)
+  - [Arrays](#arrays)
   - [Types (TYPE)](#types-type)
 - [Operators](#operators)
   - [Calling Syntax and Precedence](#calling-syntax-and-precedence)
@@ -112,6 +115,8 @@ KTHXBYE
 
 ### Scope
 
+*([to be revisited and refined](docs/archive/lolcode-spec-v1.2.md) — see also [1.3 Changes](LANGUAGE_SPEC_1.3_CHANGES.md))*
+
 All variable scope, as of this version, is local to the enclosing function or to the main program block. Variables are only accessible after declaration, and there is no global scope.
 
 ### Naming
@@ -134,9 +139,9 @@ VAR R 3                BTW VAR is now a NUMBR and equals 3
 
 ## Types
 
-The variable types that LOLCODE currently recognizes are: strings (`YARN`), integers (`NUMBR`), floats (`NUMBAR`), and booleans (`TROOF`). Typing is handled dynamically. Until a variable is given an initial value, it is untyped (`NOOB`). Casting operations operate on `TYPE` types, as well.
+The variable types that LOLCODE currently recognizes are: strings (`YARN`), integers (`NUMBR`), floats (`NUMBAR`), and booleans (`TROOF`). Arrays (`BUKKIT`) are reserved for future expansion. Typing is handled dynamically. Until a variable is given an initial value, it is untyped (`NOOB`). ~~Casting operations operate on TYPE types, as well.~~
 
-> **Note:** `BUKKIT` (arrays/dictionaries) is mentioned in the 1.2 spec as "reserved for future expansion" with no defined syntax. This compiler treats `BUKKIT` as an unrecognized keyword and will produce an error if used.
+> **Compiler note:** `BUKKIT` has no defined syntax in the 1.2 spec. This compiler treats `BUKKIT` as an unrecognized keyword and will produce an error if used. *See [1.3 Changes](LANGUAGE_SPEC_1.3_CHANGES.md) for BUKKIT's full specification.*
 
 | Type | Description | .NET Equivalent |
 |------|------------|----------------|
@@ -162,7 +167,7 @@ Explicit casts of a `NOOB` (untyped, uninitialized) variable are to empty/zero v
 
 ### Booleans (TROOF)
 
-The two boolean (`TROOF`) values are `WIN` (true) and `FAIL` (false). The empty string (`""`), and numerical zero are all cast to `FAIL`. All other values evaluate to `WIN`.
+The two boolean (`TROOF`) values are `WIN` (true) and `FAIL` (false). The empty string (`""`), an empty array, and numerical zero are all cast to `FAIL`. All other values evaluate to `WIN`.
 
 ### Numerical Types (NUMBR, NUMBAR)
 
@@ -182,7 +187,7 @@ Within a string, all characters represent their literal value except the colon (
 |--------|-----------|
 | `:)` | Newline (`\n`) |
 | `:>` | Tab (`\t`) |
-| `:o` | Bell/beep (`\a`) |
+| `:o` | Bell/beep (the official spec says `\g`; standard ASCII bell is `\a`) |
 | `:"` | Literal double quote (`"`) |
 | `::` | Literal colon (`:`) |
 
@@ -200,13 +205,21 @@ I HAS A name ITZ "CEILING CAT"
 VISIBLE "OH HAI :{name}!"         BTW prints: OH HAI CEILING CAT!
 ```
 
+### Arrays
+
+*Array and dictionary types are currently under-specified. There is general will to unify them, but indexing and definition is still under discussion.*
+
+> *See [1.3 Changes](LANGUAGE_SPEC_1.3_CHANGES.md) for the full BUKKIT/Arrays specification.*
+
 ### Types (TYPE)
 
 The `TYPE` type only has the values of `TROOF`, `NOOB`, `NUMBR`, `NUMBAR`, `YARN`, and `TYPE`, as bare words. They may be legally cast to `TROOF` (all true except for `NOOB`) or `YARN`.
 
+*TYPEs are under current review. Current sentiment is to delay defining them until user-defined types are relevant, but that would mean that type comparisons are left unresolved in the meantime.*
+
 ```lolcode
 I HAS A mytype ITZ NUMBR          BTW mytype is a TYPE with value NUMBR
-BOTH SAEM mytype AN NUMBR         BTW WIN — type comparison
+BOTH SAEM mytype AN NUMBR         BTW type comparison (behavior unresolved per spec)
 MAEK mytype A YARN                BTW "NUMBR"
 MAEK NOOB A TROOF                 BTW FAIL — NOOB is falsy as TYPE
 ```
@@ -275,7 +288,7 @@ For `ALL OF` and `ANY OF`, `MKAY` terminates the argument list but may be omitte
 
 ### Comparison
 
-Comparison is done with two binary equality operators:
+Comparison is (currently) done with two binary equality operators:
 
 ```lolcode
 BOTH SAEM <x> [AN] <y>    BTW WIN iff x == y
@@ -284,7 +297,7 @@ DIFFRINT <x> [AN] <y>     BTW WIN iff x != y
 
 Comparisons are performed as integer math in the presence of two `NUMBR`s, but if either of the expressions are `NUMBAR`s, then floating point math takes over. Otherwise, **there is no automatic casting in the equality**, so `BOTH SAEM "3" AN 3` is `FAIL`.
 
-There are no special numerical comparison operators. Greater-than and similar comparisons are done idiomatically using the minimum and maximum operators:
+There are (currently) no special numerical comparison operators. Greater-than and similar comparisons are done idiomatically using the minimum and maximum operators:
 
 ```lolcode
 BOTH SAEM <x> AN BIGGR OF <x> AN <y>    BTW x >= y
@@ -297,6 +310,8 @@ If `<x>` in the above formulations is too verbose or difficult to compute, the a
 ```lolcode
 <expression>, DIFFRINT IT AN SMALLR OF IT AN <y>
 ```
+
+*Suggestions are being accepted for coherently and convincingly english-like prefix operator names for greater-than and similar operators.*
 
 ### Concatenation
 
@@ -349,6 +364,8 @@ To explicitly re-cast a variable, you may create a normal assignment statement w
 
 ## Input/Output
 
+### Terminal-Based
+
 The print (to STDOUT or the terminal) operator is `VISIBLE`. It has infinite arity and implicitly concatenates all of its arguments after casting them to `YARN`s. It is terminated by the statement delimiter (line end or comma). The output is automatically terminated with a carriage return (`:)`), unless the final token is terminated with an exclamation point (`!`), in which case the carriage return is suppressed.
 
 ```lolcode
@@ -362,6 +379,8 @@ VISIBLE x                        BTW prints variable value
 VISIBLE "x is " x " and y is " y  BTW concatenates and prints
 ```
 
+There is currently no defined standard for printing to a file.
+
 To accept input from the user, the keyword is `GIMMEH`:
 
 ```lolcode
@@ -374,6 +393,8 @@ Which takes `YARN` for input and stores the value in the given variable. Cast af
 GIMMEH x
 x IS NOW A NUMBR                BTW cast to integer
 ```
+
+*`GIMMEH` is defined minimally here as a holdover from 1.0 and because there has not been any detailed discussion of this feature. We count on the liberal casting capabilities of the language and programmer inventiveness to handle input restriction. `GIMMEH` may change in a future version.*
 
 ---
 
@@ -401,6 +422,10 @@ Assignment statements have no side effects with `IT`. They are generally of the 
 
 The variable being assigned may be used in the expression.
 
+### Flow Control Statements
+
+Flow control statements cover multiple lines and are described in the following section.
+
 ---
 
 ## Flow Control
@@ -409,7 +434,7 @@ The variable being assigned may be used in the expression.
 
 The traditional if/then construct operates on the implicit `IT` variable. In the base form, there are four keywords: `O RLY?`, `YA RLY`, `NO WAI`, and `OIC`.
 
-`O RLY?` branches to the block begun with `YA RLY` if `IT` can be cast to `WIN`, and branches to the `NO WAI` block if `IT` is `FAIL`. The `NO WAI` block is closed with `OIC`. The general form is:
+`O RLY?` branches to the block begun with `YA RLY` if `IT` can be cast to `WIN`, and branches to the `NO WAI` block if `IT` is `FAIL`. The code block introduced with `YA RLY` is implicitly closed when `NO WAI` is reached. The `NO WAI` block is closed with `OIC`. The general form is:
 
 ```lolcode
 <expression>
@@ -444,6 +469,17 @@ O RLY?
   ...]]
   [NO WAI
     <code block>]
+OIC
+```
+
+An example of this conditional:
+
+```lolcode
+BOTH SAEM ANIMAL AN "CAT"
+O RLY?
+  YA RLY, VISIBLE "J00 HAV A CAT"
+  MEBBE BOTH SAEM ANIMAL AN "MAUS"
+    VISIBLE "NOM NOM NOM. I EATED IT."
 OIC
 ```
 
@@ -483,9 +519,21 @@ OIC
 
 Without `GTFO`, execution **falls through** to the next case.
 
+In the above example, the output results of evaluating `COLOR` would be:
+
+- `"R"`: `RED FISH`
+- `"Y"`: `YELLOW FISH` then `FISH HAS A FLAVOR` (falls through to G/B block)
+- `"G"`: `FISH HAS A FLAVOR`
+- `"B"`: `FISH HAS A FLAVOR`
+- none of the above: `FISH IS TRANSPARENT`
+
 ### Loops
 
-Simple loops are demarcated with `IM IN YR <label>` and `IM OUTTA YR <label>`. Loops defined this way are infinite loops that must be explicitly exited with a `GTFO` break. The `<label>` is required but is currently unused except for marking the start and end of the loop.
+*Loops are currently defined more or less as they were in the original examples. Further looping constructs will be added to the language soon.*
+
+Simple loops are demarcated with `IM IN YR <label>` and `IM OUTTA YR <label>`. Loops defined this way are infinite loops that must be explicitly exited with a `GTFO` break. Currently, the `<label>` is required, but is unused, except for marking the start and end of the loop.
+
+*Immature spec — **subject to change**:*
 
 Iteration loops have the form:
 
@@ -531,7 +579,7 @@ IF U SAY SO
 
 Currently, the number of arguments in a function can only be defined as a fixed number. The `<argument>`s are single-word identifiers that act as variables within the scope of the function's code. The calling parameters' values are then the initial values for the variables within the function's code block when the function is called.
 
-**Functions do not have access to the outer/calling code block's variables.**
+*Currently, functions do not have access to the outer/calling code block's variables.*
 
 ### Returning
 
