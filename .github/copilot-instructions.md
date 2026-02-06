@@ -18,10 +18,13 @@ src/Lolcode.CodeAnalysis/     # Core compiler library
 ├── Syntax/                    # SyntaxTree, SyntaxFacts, Lexer, Parser, syntax nodes
 └── Text/                      # SourceText, TextSpan, TextLocation
 src/Lolcode.Runtime/           # Runtime helper library (referenced by compiled programs)
+src/Lolcode.Build/             # MSBuild task (Lolc) for SDK integration
 src/Lolcode.Cli/               # CLI tool (lolcode compile/run)
+src/Lolcode.NET.Sdk/           # MSBuild SDK package (Sdk.props, Sdk.targets)
+src/Lolcode.NET.Templates/    # dotnet new template pack (lolcode-console)
 tests/Lolcode.CodeAnalysis.Tests/  # xUnit tests for compiler
 tests/                         # .lol/.txt conformance test pairs (18 categories, 117 pairs)
-samples/                       # 15 example programs
+samples/                       # 15 example programs + SDK samples
 docs/                          # Design docs, language spec, roadmap
 ```
 
@@ -99,6 +102,15 @@ lolcode compile <file.lol> --emit-csharp  # Show decompiled C#
 - String interpolation: `:{varname}` embeds variable value in string
 - `AN` keyword is optional between binary operator arguments
 - `MKAY` is optional at end of line for variadic operators
+
+## MSBuild SDK Integration
+- `Lolcode.NET.Sdk` — MSBuild SDK package for `.lolproj` projects
+- `Lolcode.Build.Lolc` — MSBuild task that invokes `LolcodeCompilation` in-process
+- `Sdk.props` imports `Microsoft.NET.Sdk`, sets `Language=LOLCODE`, globs `**/*.lol`
+- `Sdk.targets` overrides `CoreCompile` with `Lolc` task, auto-references `Lolcode.Runtime.dll`
+- `SkipCompilerExecution` property supports VS/VS Code design-time builds
+- `pack-local.sh` builds a local `.nupkg` for testing SDK changes
+- `local-dev-workflow.md` documents the full local SDK dev loop
 
 ## Known Limitations
 - TYPE type (bare word type values) is deferred — spec says "under current review"

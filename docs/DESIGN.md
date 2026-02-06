@@ -50,17 +50,23 @@ The compiler follows a **Roslyn-inspired architecture**, mirroring key types and
 - **Bound tree:** Separate `BoundTree/` folder with `BoundKind` enum and bound node types
 - **Pipeline:** Lexer → Parser → Binder → Lowerer → CodeGenerator
 
-**Project structure (`src/Lolcode.CodeAnalysis/`):**
+**Project structure (`src/`):**
 ```
-├── Binding/        → Binder, BoundScope
-├── BoundTree/      → BoundNode types, BoundKind, operator enums
-├── CodeGen/        → CodeGenerator
-├── Errors/         → ErrorCode, DiagnosticDescriptors
-├── Lowering/       → Lowerer
-├── Symbols/        → Symbol, TypeSymbol, VariableSymbol, FunctionSymbol
-├── Syntax/         → SyntaxTree, SyntaxFacts, Lexer, Parser, syntax nodes
-├── Text/           → SourceText, TextSpan, TextLocation
-└── LolcodeCompilation.cs, EmitResult, Diagnostic, DiagnosticDescriptor, DiagnosticBag
+├── Lolcode.CodeAnalysis/    → Core compiler library
+│   ├── Binding/             → Binder, BoundScope
+│   ├── BoundTree/           → BoundNode types, BoundKind, operator enums
+│   ├── CodeGen/             → CodeGenerator
+│   ├── Errors/              → ErrorCode, DiagnosticDescriptors
+│   ├── Lowering/            → Lowerer
+│   ├── Symbols/             → Symbol, TypeSymbol, VariableSymbol, FunctionSymbol
+│   ├── Syntax/              → SyntaxTree, SyntaxFacts, Lexer, Parser, syntax nodes
+│   ├── Text/                → SourceText, TextSpan, TextLocation
+│   └── LolcodeCompilation.cs, EmitResult, Diagnostic, DiagnosticDescriptor, DiagnosticBag
+├── Lolcode.Runtime/         → Runtime helper library (referenced by compiled programs)
+├── Lolcode.Build/           → MSBuild task (Lolc) for SDK integration
+├── Lolcode.Cli/             → CLI tool (lolcode compile/run)
+├── Lolcode.NET.Sdk/         → MSBuild SDK package (Sdk.props, Sdk.targets)
+└── Lolcode.NET.Templates/   → dotnet new template pack
 ```
 
 ## Compiler Pipeline
@@ -467,39 +473,52 @@ ab.Save("MyProgram.dll");
 
 ## MSBuild SDK Integration
 
-The `Lolcode.Sdk` package enables:
+The `Lolcode.NET.Sdk` package enables building LOLCODE projects with standard .NET tooling:
 
 ```xml
-<Project Sdk="Lolcode.Sdk/1.0.0">
+<Project Sdk="Lolcode.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
 </Project>
 ```
 
-**Implementation:**
-- `Sdk.props` — Sets default properties, defines `*.lol` item group, imports framework references
-- `Sdk.targets` — Defines `CompileLolcode` target that runs before `Build`, with proper `Inputs`/`Outputs` for incremental build support
-- `LolcodeCompileTask` — Custom MSBuild task invoking the compiler library directly (in-process) or via CLI tool
+Save as `MyApp.lolproj`, then `dotnet build` and `dotnet run` work natively.
+
+**Architecture:**
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `Sdk.props` | `src/Lolcode.NET.Sdk/Sdk/` | Imports Microsoft.NET.Sdk, sets `Language=LOLCODE`, globs `**/*.lol`, disables C# analyzers |
+| `Sdk.targets` | `src/Lolcode.NET.Sdk/Sdk/` | Overrides `CoreCompile` target with `Lolc` task, auto-references `Lolcode.Runtime.dll`, supports `dotnet watch` |
+| `Lolc` task | `src/Lolcode.Build/Lolc.cs` | MSBuild task (`Lolcode.Build.Lolc`) — invokes `LolcodeCompilation` in-process, maps diagnostics to MSBuild errors/warnings |
+
+**Key design decisions:**
+- **Layered SDK:** Extends `Microsoft.NET.Sdk` (imported in both props and targets) to inherit TFM resolution, NuGet restore, publish, clean, and run support
+- **`CoreCompile` override:** Replaces the default C# `Csc` task with `Lolc`, using `Inputs`/`Outputs` for incremental builds
+- **Design-time builds:** `SkipCompilerExecution` property allows VS/VS Code to gather metadata without compiling
+- **Runtime reference:** `Lolcode.Runtime.dll` is automatically added as a `<Reference>` so it appears in `deps.json` and gets copied to output
+- **`CreateManifestResourceNames`:** No-op target (LOLCODE has no embedded resources)
 
 **NuGet SDK Package Layout:**
 ```
-Lolcode.Sdk.nupkg/
+Lolcode.NET.Sdk.nupkg/
 ├── Sdk/
-│   ├── Sdk.props          # Auto-imported before project file
-│   └── Sdk.targets        # Auto-imported after project file
+│   ├── Sdk.props          # Auto-imported before .lolproj
+│   └── Sdk.targets        # Auto-imported after .lolproj
 ├── tools/
-│   └── LolcodeCompileTask.dll  # The MSBuild task assembly
-└── Lolcode.Sdk.nuspec
+│   └── net10.0/
+│       ├── Lolcode.Build.dll           # MSBuild Lolc task
+│       ├── Lolcode.Build.deps.json     # Task dependencies
+│       ├── Lolcode.CodeAnalysis.dll    # Compiler library
+│       └── Lolcode.Runtime.dll         # Runtime helpers
+└── Lolcode.NET.Sdk.nuspec
 ```
 
-**Key considerations:**
-- Incremental builds: `Inputs` are `*.lol` files, `Outputs` are the compiled DLL — MSBuild skips compilation if inputs haven't changed
-- Design-time builds: The SDK must handle VS/VS Code design-time builds gracefully (no compilation, just provide item metadata)
-- Dependency acquisition: `Lolcode.Runtime.dll` (the runtime helper library) must be included as a reference automatically
-- The `Sdk.targets` generates the `.runtimeconfig.json` alongside the output DLL
+**`dotnet new` Template:** The `Lolcode.NET.Templates` package provides a `dotnet new lolcode` template that scaffolds a minimal `.lolproj` + `Program.lol`.
 
-This means `dotnet build` and `dotnet run` work natively with `.lol` projects.
+This means `dotnet build`, `dotnet run`, `dotnet publish`, `dotnet clean`, and `dotnet watch` all work natively with `.lol` projects.
 
 ---
 

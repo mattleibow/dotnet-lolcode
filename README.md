@@ -47,6 +47,7 @@ if (!result.Success)
 - 🐱 **Full LOLCODE 1.2** — variables, types, math, booleans, conditionals, loops, functions, casting, string ops
 - 🎯 **Compiles to .NET IL** — produces real .NET assemblies (not interpreted)
 - 🔧 **CLI tool** — `lolcode compile`, `lolcode run`, `--emit-il`, `--emit-csharp`
+- 📦 **MSBuild SDK** — `dotnet build` and `dotnet run` for `.lolproj` projects
 - 📊 **Pretty diagnostics** — error messages with source context and line/column info
 - 🧪 **343 tests** — unit tests + conformance test suite (116 `.lol`/`.txt` test pairs)
 - 🔍 **IL inspection** — `--emit-il` and `--emit-csharp` flags for debugging via `ilspycmd`
@@ -72,6 +73,36 @@ dotnet run --project src/Lolcode.Cli -- compile hello.lol --emit-il
 # View decompiled C#
 dotnet run --project src/Lolcode.Cli -- compile hello.lol --emit-csharp
 ```
+
+## MSBuild SDK (.lolproj)
+
+Build LOLCODE projects with standard .NET tooling — no CLI required:
+
+```xml
+<!-- MyApp.lolproj -->
+<Project Sdk="Lolcode.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+</Project>
+```
+
+```bash
+dotnet build    # Compiles .lol files → .dll
+dotnet run      # Compile and execute
+dotnet publish  # Publish for deployment
+dotnet watch    # Recompile on .lol file changes
+```
+
+Create a new project from template:
+```bash
+dotnet new install Lolcode.NET.Templates
+dotnet new lolcode -n MyApp
+cd MyApp && dotnet run
+```
+
+See [samples/sdk-hello-world](samples/sdk-hello-world/) for a complete example.
 
 ## Example: Hello World
 
@@ -125,11 +156,14 @@ dotnet-lolcode/
 ├── src/
 │   ├── Lolcode.CodeAnalysis/     # Core compiler (lexer, parser, binder, lowerer, code generator)
 │   ├── Lolcode.Runtime/          # Runtime helper library
-│   └── Lolcode.Cli/              # CLI tool (compile/run commands)
+│   ├── Lolcode.Build/            # MSBuild task (Lolc) for SDK integration
+│   ├── Lolcode.Cli/              # CLI tool (compile/run commands)
+│   ├── Lolcode.NET.Sdk/          # MSBuild SDK package (Sdk.props, Sdk.targets)
+│   └── Lolcode.NET.Templates/    # dotnet new template pack
 ├── tests/
 │   ├── Lolcode.CodeAnalysis.Tests/ # Unit + end-to-end + conformance tests
 │   └── ...                       # 18 test categories, 117 test pairs
-├── samples/                      # 15 example programs
+├── samples/                      # 15 example programs + SDK samples
 └── docs/                         # Design documents and language spec
 ```
 

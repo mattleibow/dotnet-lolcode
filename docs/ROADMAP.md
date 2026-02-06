@@ -234,21 +234,23 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [ ] Test highlighting on all sample programs
 - [ ] Package as `.vsix`
 
-## Phase 7: MSBuild SDK Integration
+## Phase 7: MSBuild SDK Integration ✅
 > Enable `dotnet build` and `dotnet run` for `.lol` projects.
 >
 > **Depends on:** Phase 5 (compiler CLI must work)
 
-- [ ] Create `Lolcode.Sdk` NuGet package
-- [ ] Implement `Sdk.props` (default properties, item groups, framework refs)
-- [ ] Implement `Sdk.targets` (CompileLolcode target with Inputs/Outputs for incremental builds)
-- [ ] Implement `LolcodeCompileTask` (custom MSBuild task)
-- [ ] Auto-reference `Lolcode.Runtime.dll` in output
-- [ ] Generate `.runtimeconfig.json` in build targets
-- [ ] Handle design-time builds gracefully (VS/VS Code)
-- [ ] Support `<Project Sdk="Lolcode.Sdk">` in project files
-- [ ] Test: `dotnet build` compiles `.lol` → `.dll`
-- [ ] Test: `dotnet run` executes the program
+- [x] Create `Lolcode.NET.Sdk` NuGet package (`src/Lolcode.NET.Sdk/`)
+- [x] Implement `Sdk.props` (language defaults, `**/*.lol` glob, disable C# analyzers)
+- [x] Implement `Sdk.targets` (CoreCompile override with Lolc task, incremental builds, `dotnet watch`)
+- [x] Implement `Lolc` MSBuild task (`src/Lolcode.Build/Lolc.cs`) — in-process compilation
+- [x] Auto-reference `Lolcode.Runtime.dll` in output
+- [x] Handle design-time builds (`SkipCompilerExecution` property)
+- [x] Support `<Project Sdk="Lolcode.NET.Sdk">` in `.lolproj` files
+- [x] Create `dotnet new lolcode` template (`src/Lolcode.NET.Templates/`)
+- [x] Create SDK sample project (`samples/sdk-hello-world/`)
+- [x] Create `pack-local.sh` for local SDK development
+- [x] Test: `dotnet build` compiles `.lol` → `.dll`
+- [x] Test: `dotnet run` executes the program
 
 ## Phase 8: Debugging Support (Bonus)
 > Enable VS Code debugging for LOLCODE programs.

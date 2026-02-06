@@ -75,16 +75,26 @@ Sample programs live in `samples/` and are numbered by complexity. If you add a 
 3. Add a corresponding expected output file if applicable
 4. Update the sample table in `README.md`
 
+### Working on the MSBuild SDK
+
+The MSBuild SDK (`Lolcode.NET.Sdk`) lets users build `.lolproj` projects with `dotnet build`. To test SDK changes locally:
+
+1. Run `./pack-local.sh` to build a local `.nupkg` into `local-feed/`
+2. Test with `cd samples/sdk-hello-world && dotnet run`
+3. See `local-dev-workflow.md` for the full development loop
+
 ## Project Layout
 
 | Directory | Purpose |
 |-----------|---------|
 | `src/Lolcode.CodeAnalysis/` | Core compiler library |
+| `src/Lolcode.Runtime/` | Runtime helper library |
+| `src/Lolcode.Build/` | MSBuild task (`Lolc`) for SDK integration |
 | `src/Lolcode.Cli/` | CLI tool |
-| `src/Lolcode.Sdk/` | MSBuild SDK integration |
+| `src/Lolcode.NET.Sdk/` | MSBuild SDK package (Sdk.props, Sdk.targets) |
+| `src/Lolcode.NET.Templates/` | `dotnet new` template pack |
 | `tests/` | All test projects |
-| `samples/` | Example LOLCODE programs |
-| `editor/vscode-lolcode/` | VS Code extension |
+| `samples/` | Example LOLCODE programs (CLI + SDK) |
 | `docs/` | Design and specification documents |
 
 ## License
