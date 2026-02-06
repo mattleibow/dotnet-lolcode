@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Lolcode.CodeAnalysis.Tests;
+namespace Lolcode.EndToEnd.Tests;
 
 /// <summary>
 /// Integration tests that build sample projects using the LOLCODE SDK.

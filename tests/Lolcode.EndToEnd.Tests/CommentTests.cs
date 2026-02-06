@@ -1,4 +1,4 @@
-namespace Lolcode.CodeAnalysis.Tests.EndToEnd;
+namespace Lolcode.EndToEnd.Tests;
 
 public class CommentTests : EndToEndTestBase
 {

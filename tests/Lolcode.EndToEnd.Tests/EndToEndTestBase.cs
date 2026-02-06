@@ -3,7 +3,7 @@ using Lolcode.CodeAnalysis;
 using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.CodeAnalysis.Text;
 
-namespace Lolcode.CodeAnalysis.Tests.EndToEnd;
+namespace Lolcode.EndToEnd.Tests;
 
 /// <summary>
 /// Base class for end-to-end LOLCODE tests. Provides helpers to compile source,
