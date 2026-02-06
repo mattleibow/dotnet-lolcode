@@ -407,10 +407,39 @@ public sealed class Lexer
         while (_position < _text.Length && (char.IsLetterOrDigit(Current) || Current == '_'))
             _position++;
 
+        string text = _text.ToString(start, _position - start);
+
+        // Handle BTW single-line comment
+        if (text == "BTW")
+        {
+            while (_position < _text.Length && Current != '\n' && Current != '\r')
+                _position++;
+            string commentText = _text.ToString(start, _position - start);
+            return new SyntaxToken(SyntaxKind.SingleLineCommentToken, start, commentText);
+        }
+
+        // Handle OBTW multi-line comment
+        if (text == "OBTW")
+        {
+            // Read until TLDR
+            while (_position < _text.Length)
+            {
+                if (_position + 3 < _text.Length &&
+                    _text[_position] == 'T' && _text[_position + 1] == 'L' &&
+                    _text[_position + 2] == 'D' && _text[_position + 3] == 'R')
+                {
+                    _position += 4;
+                    break;
+                }
+                _position++;
+            }
+            string commentText = _text.ToString(start, _position - start);
+            return new SyntaxToken(SyntaxKind.MultiLineCommentToken, start, commentText);
+        }
+
         // Check for question mark suffix (RLY?, WTF?)
         bool hasQuestion = _position < _text.Length && Current == '?';
 
-        string text = _text.ToString(start, _position - start);
         string textWithQuestion = hasQuestion ? text + "?" : text;
 
         // Try to match with question mark first

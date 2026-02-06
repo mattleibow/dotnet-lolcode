@@ -57,6 +57,18 @@ public sealed class Parser
 
     private bool Check(SyntaxKind kind) => Current.Kind == kind;
 
+    private bool CheckText(int offset, string text) => Peek(offset).Text == text;
+
+    private SyntaxToken MatchIdentifier(string expectedText)
+    {
+        if (Current.Kind == SyntaxKind.IdentifierToken && Current.Text == expectedText)
+            return Advance();
+
+        var location = GetCurrentLocation();
+        _diagnostics.ReportUnexpectedToken(location, Current.Text, expectedText);
+        return new SyntaxToken(SyntaxKind.IdentifierToken, Current.Position, "", null);
+    }
+
     private bool CheckSequence(params SyntaxKind[] kinds)
     {
         for (int i = 0; i < kinds.Length; i++)
@@ -338,9 +350,9 @@ public sealed class Parser
         ExpectEndOfLine();
         SkipNewlines();
 
-        // YA RLY
+        // YA RLY (note: RLY here has no ?, so it's an identifier)
         Match(SyntaxKind.YaKeyword);
-        Match(SyntaxKind.RlyKeyword);
+        MatchIdentifier("RLY"); // RLY without ?
         ExpectEndOfLine();
 
         var yaRlyStatements = ParseStatements(inYaRly: true);
