@@ -28,7 +28,7 @@ This project is a from-scratch compiler for the [LOLCODE](http://www.lolcode.org
 
 ## Features
 
-- 🐱 **LOLCODE 1.2** — variables, types, math, conditionals, loops, functions, casting, string ops, TYPE, BUKKIT
+- 🐱 **LOLCODE 1.2** — variables, types, math, conditionals, loops, functions, casting, string ops, TYPE
 - 🎯 **Compiles to .NET IL** — produces real .NET assemblies (not interpreted)
 - 🔧 **CLI tool** — `lolcode compile`, `lolcode run`
 - 🎨 **VS Code extension** — syntax highlighting, snippets, build tasks

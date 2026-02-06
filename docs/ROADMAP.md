@@ -82,7 +82,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 >
 > **Depends on:** Phase 2
 
-- [ ] Define type symbols (`TypeSymbol` for NUMBR, NUMBAR, YARN, TROOF, NOOB, TYPE, BUKKIT)
+- [ ] Define type symbols (`TypeSymbol` for NUMBR, NUMBAR, YARN, TROOF, NOOB, TYPE)
 - [ ] Define `VariableSymbol` and `FunctionSymbol`
 - [ ] Implement `BoundScope` (nested scopes for variables/functions)
 - [ ] Define bound node hierarchy (mirrors syntax nodes with type info)
@@ -133,7 +133,6 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
   - [ ] Type casting → conversion opcodes / runtime helpers
   - [ ] `BIGGR OF` / `SMALLR OF` → Math.Max / Math.Min
   - [ ] TYPE values → string representations
-  - [ ] BUKKIT → Dictionary<string, object> operations
 - [ ] Generate `.runtimeconfig.json` alongside DLL
 - [ ] Reference `Lolcode.Runtime.dll` in output
 - [ ] Write emitter tests (compile → run → assert stdout)
@@ -166,7 +165,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [ ] Scaffold VS Code extension (`yo code`)
 - [ ] Create TextMate grammar (`lolcode.tmLanguage.json`)
   - [ ] Keywords (HAI, KTHXBYE, VISIBLE, etc.)
-  - [ ] Type names (NUMBR, NUMBAR, YARN, TROOF, NOOB, TYPE, BUKKIT)
+  - [ ] Type names (NUMBR, NUMBAR, YARN, TROOF, NOOB, TYPE)
   - [ ] Comments (BTW, OBTW...TLDR)
   - [ ] Strings with escape sequences
   - [ ] Number literals

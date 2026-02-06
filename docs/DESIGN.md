@@ -235,7 +235,8 @@ error LOL0001: Undeclared variable 'x'
 | `TROOF` | `System.Boolean` | `bool` | `FAIL` (false) |
 | `NOOB` | `System.Object` (null) | `object` | `null` |
 | `TYPE` | `System.String` (bare word) | `string` | N/A |
-| `BUKKIT` | `Dictionary<string, object>` | `object` | empty dictionary |
+
+> **Note:** `BUKKIT` is reserved in the 1.2 spec with no defined syntax. This compiler does not implement it and produces an error if used.
 
 ---
 

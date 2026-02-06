@@ -17,7 +17,6 @@ This document defines the LOLCODE 1.2 language as implemented by the dotnet-lolc
   - [Booleans (TROOF)](#booleans-troof)
   - [Numerical Types (NUMBR, NUMBAR)](#numerical-types-numbr-numbar)
   - [Strings (YARN)](#strings-yarn)
-  - [Arrays (BUKKIT)](#arrays-bukkit)
   - [Types (TYPE)](#types-type)
 - [Operators](#operators)
   - [Calling Syntax and Precedence](#calling-syntax-and-precedence)
@@ -135,7 +134,9 @@ VAR R 3                BTW VAR is now a NUMBR and equals 3
 
 ## Types
 
-The variable types that LOLCODE currently recognizes are: strings (`YARN`), integers (`NUMBR`), floats (`NUMBAR`), and booleans (`TROOF`). Arrays (`BUKKIT`) are reserved for future expansion. Typing is handled dynamically. Until a variable is given an initial value, it is untyped (`NOOB`). Casting operations operate on `TYPE` types, as well.
+The variable types that LOLCODE currently recognizes are: strings (`YARN`), integers (`NUMBR`), floats (`NUMBAR`), and booleans (`TROOF`). Typing is handled dynamically. Until a variable is given an initial value, it is untyped (`NOOB`). Casting operations operate on `TYPE` types, as well.
+
+> **Note:** `BUKKIT` (arrays/dictionaries) is mentioned in the 1.2 spec as "reserved for future expansion" with no defined syntax. This compiler treats `BUKKIT` as an unrecognized keyword and will produce an error if used.
 
 | Type | Description | .NET Equivalent |
 |------|------------|----------------|
@@ -145,7 +146,6 @@ The variable types that LOLCODE currently recognizes are: strings (`YARN`), inte
 | `TROOF` | Boolean | `System.Boolean` |
 | `NOOB` | Untyped/null | `System.Object` (null) |
 | `TYPE` | Type identifier | `System.String` (as bare word) |
-| `BUKKIT` | Array/dictionary (reserved) | `Dictionary<string, object>` |
 
 ### Untyped (NOOB)
 
@@ -162,7 +162,7 @@ Explicit casts of a `NOOB` (untyped, uninitialized) variable are to empty/zero v
 
 ### Booleans (TROOF)
 
-The two boolean (`TROOF`) values are `WIN` (true) and `FAIL` (false). The empty string (`""`), an empty array, and numerical zero are all cast to `FAIL`. All other values evaluate to `WIN`.
+The two boolean (`TROOF`) values are `WIN` (true) and `FAIL` (false). The empty string (`""`), and numerical zero are all cast to `FAIL`. All other values evaluate to `WIN`.
 
 ### Numerical Types (NUMBR, NUMBAR)
 
@@ -199,10 +199,6 @@ The colon may also introduce more verbose escapes enclosed within some form of b
 I HAS A name ITZ "CEILING CAT"
 VISIBLE "OH HAI :{name}!"         BTW prints: OH HAI CEILING CAT!
 ```
-
-### Arrays (BUKKIT)
-
-Array and dictionary types are currently under-specified in the official LOLCODE 1.2 spec. There is general will to unify them, but indexing and definition is still under discussion. The compiler will implement `BUKKIT` as a dictionary-style container (`Dictionary<string, object>`).
 
 ### Types (TYPE)
 
@@ -662,7 +658,7 @@ VISIBLE IT                         BTW prints 8
 | `TROOF` | Boolean type |
 | `NOOB` | Untyped/null type |
 | `TYPE` | Type type |
-| `BUKKIT` | Array/dictionary type (reserved) |
+| `BUKKIT` | Reserved — not implemented (produces error) |
 | `MAEK` | Expression cast |
 | `A` | Optional keyword in cast (`MAEK x A YARN`) |
 | `IS NOW A` | In-place cast |
