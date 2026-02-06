@@ -1,0 +1,9 @@
+<!--
+  Local development: overrides the compiler tools path so Sdk.targets
+  finds the source-built Lolcode.Build binaries instead of NuGet package layout.
+-->
+<Project>
+  <PropertyGroup>
+    <_LolcodeBuildTasksDir>$(MSBuildThisFileDirectory)..\src\Lolcode.Build\bin\$([MSBuild]::ValueOrDefault('$(Configuration)','Debug'))\net10.0\</_LolcodeBuildTasksDir>
+  </PropertyGroup>
+</Project>

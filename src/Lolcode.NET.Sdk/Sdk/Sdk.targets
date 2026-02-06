@@ -12,7 +12,7 @@
 
   <!-- Resolve the compiler task assembly location -->
   <PropertyGroup>
-    <_LolcodeBuildTasksDir>$(MSBuildThisFileDirectory)..\tools\net10.0\</_LolcodeBuildTasksDir>
+    <_LolcodeBuildTasksDir Condition=" '$(_LolcodeBuildTasksDir)' == '' ">$(MSBuildThisFileDirectory)..\tools\net10.0\</_LolcodeBuildTasksDir>
     <LolcodeRuntimeAssemblyPath Condition=" '$(LolcodeRuntimeAssemblyPath)' == '' ">$(_LolcodeBuildTasksDir)Lolcode.Runtime.dll</LolcodeRuntimeAssemblyPath>
   </PropertyGroup>
 

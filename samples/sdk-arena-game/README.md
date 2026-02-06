@@ -6,11 +6,11 @@ A text-based RPG arena game written entirely in LOLCODE, built with the `Lolcode
 
 ```bash
 # From the repository root:
-./pack-local.sh
+dotnet build dotnet-lolcode.slnx
 
 # Then run the game:
 cd samples/sdk-arena-game
-dotnet run --project ArenaGame.lolproj
+dotnet run
 ```
 
 ## Gameplay

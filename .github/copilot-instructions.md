@@ -112,8 +112,8 @@ dotnet run                      # Compile and execute
 - `Sdk.props` imports `Microsoft.NET.Sdk`, sets `Language=LOLCODE`, globs `**/*.lol`
 - `Sdk.targets` overrides `CoreCompile` with `Lolc` task, auto-references `Lolcode.Runtime.dll`
 - `SkipCompilerExecution` property supports VS/VS Code design-time builds
-- `pack-local.sh` builds a local `.nupkg` for testing SDK changes
-- `local-dev-workflow.md` documents the full local SDK dev loop
+- Sample projects import `Sdk.props`/`Sdk.targets` directly from source tree (no NuGet packaging needed for development)
+- `samples/Directory.Build.props` overrides `_LolcodeBuildTasksDir` to point at source-built binaries
 
 ## File-Based Apps
 - `dotnet run --file hello.lol` works with `#:sdk Lolcode.NET.Sdk` at top of file

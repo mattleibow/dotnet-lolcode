@@ -246,7 +246,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [x] Support `<Project Sdk="Lolcode.NET.Sdk">` in `.lolproj` files
 - [x] Create `dotnet new lolcode` template (`src/Lolcode.NET.Templates/`)
 - [x] Create SDK sample project (`samples/sdk-hello-world/`)
-- [x] Create `pack-local.sh` for local SDK development
+- [x] Create `pack-local.sh` for local SDK development (replaced by source-tree imports)
 - [x] Test: `dotnet build` compiles `.lol` → `.dll`
 - [x] Test: `dotnet run` executes the program
 - [x] Enable file-based app support (`dotnet run --file hello.lol` with `#:sdk` directive)

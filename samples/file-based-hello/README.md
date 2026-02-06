@@ -12,12 +12,14 @@ dotnet hello.lol
 
 ## How It Works
 
-The `#:sdk Lolcode.NET.Sdk` directive at the top tells the .NET SDK to use the LOLCODE compiler. No project file, no `global.json`, no `NuGet.config` needed (when the SDK is installed from NuGet).
+The `#:sdk Lolcode.NET.Sdk` directive at the top tells the .NET SDK to use the LOLCODE compiler. No project file needed (when the SDK is installed from NuGet).
 
-For local development, you need a `NuGet.config` pointing to the local feed:
+For local development, build the compiler first:
 ```bash
 cd /path/to/dotnet-lolcode
-./pack-local.sh
-cd samples/file-based-hello
-dotnet run --file hello.lol
+dotnet build dotnet-lolcode.slnx
 ```
+
+> **Note:** File-based apps use NuGet to resolve the `#:sdk` directive, so local testing
+> requires the SDK to be published as a NuGet package. For development, use the project-based
+> samples (`samples/sdk-hello-world/`) which work directly from the source tree.

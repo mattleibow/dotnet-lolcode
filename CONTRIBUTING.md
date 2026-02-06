@@ -80,11 +80,12 @@ Sample programs live in `samples/` and are numbered by complexity. If you add a 
 
 ### Working on the MSBuild SDK
 
-The MSBuild SDK (`Lolcode.NET.Sdk`) lets users build `.lolproj` projects with `dotnet build`. To test SDK changes locally:
+The MSBuild SDK (`Lolcode.NET.Sdk`) lets users build `.lolproj` projects with `dotnet build`. Sample projects in `samples/` import the SDK directly from the source tree — no NuGet packaging needed:
 
-1. Run `./pack-local.sh` to build a local `.nupkg` into `local-feed/`
-2. Test with `cd samples/sdk-hello-world && dotnet run`
-3. See `local-dev-workflow.md` for the full development loop
+1. Build the solution: `dotnet build dotnet-lolcode.slnx`
+2. Test a sample: `cd samples/sdk-hello-world && dotnet build && dotnet run`
+
+The `samples/Directory.Build.props` overrides the compiler tools path to point at the source-built `Lolcode.Build` output. Changes to the compiler or SDK are picked up immediately after rebuilding the solution.
 
 ## Project Layout
 
