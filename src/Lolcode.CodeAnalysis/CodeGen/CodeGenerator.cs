@@ -1,11 +1,15 @@
 using System.Collections.Immutable;
+using System.Diagnostics.SymbolStore;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
+using System.Security.Cryptography;
 using Lolcode.CodeAnalysis.Binding;
 using Lolcode.CodeAnalysis.BoundTree;
+using Lolcode.CodeAnalysis.Syntax;
+using Lolcode.CodeAnalysis.Text;
 
 namespace Lolcode.CodeAnalysis.CodeGen;
 
@@ -19,6 +23,9 @@ internal sealed class CodeGenerator
     private readonly BoundBlockStatement _boundTree;
     private readonly string _assemblyName;
     private readonly string _runtimeAssemblyPath;
+    private readonly Text.SourceText? _sourceText;
+    private readonly string? _sourceFilePath;
+    private ISymbolDocumentWriter? _document;
 
     private TypeBuilder _typeBuilder = null!;
     private ILGenerator _il = null!;
@@ -59,11 +66,14 @@ internal sealed class CodeGenerator
     /// <summary>
     /// Creates a new emitter.
     /// </summary>
-    public CodeGenerator(BoundBlockStatement boundTree, string assemblyName, string runtimeAssemblyPath)
+    public CodeGenerator(BoundBlockStatement boundTree, string assemblyName, string runtimeAssemblyPath,
+        Text.SourceText? sourceText = null, string? sourceFilePath = null)
     {
         _boundTree = boundTree;
         _assemblyName = assemblyName;
         _runtimeAssemblyPath = runtimeAssemblyPath;
+        _sourceText = sourceText;
+        _sourceFilePath = sourceFilePath;
     }
 
     /// <summary>
@@ -83,6 +93,16 @@ internal sealed class CodeGenerator
             typeof(object).Assembly);
 
         var moduleBuilder = assemblyBuilder.DefineDynamicModule(_assemblyName);
+
+        // PDB: define document for source file
+        if (_sourceText != null && !string.IsNullOrEmpty(_sourceFilePath))
+        {
+            var lolcodeLanguageGuid = new Guid("4C4F4C43-4F44-4500-0000-000000000001");
+            _document = moduleBuilder.DefineDocument(
+                Path.GetFullPath(_sourceFilePath), lolcodeLanguageGuid,
+                SymLanguageVendor.Microsoft, SymDocumentType.Text);
+        }
+
         _typeBuilder = moduleBuilder.DefineType(
             "Program",
             TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Abstract | TypeAttributes.Sealed);
@@ -126,9 +146,12 @@ internal sealed class CodeGenerator
         _il = mainMethod.GetILGenerator();
         _locals.Clear();
 
+        _il.BeginScope();
+
         // Declare IT
         var itLocal = _il.DeclareLocal(typeof(object));
         _locals["IT"] = itLocal;
+        SetLocalSymInfo(itLocal, "IT");
         _il.Emit(OpCodes.Ldnull);
         _il.Emit(OpCodes.Stloc, itLocal);
 
@@ -138,34 +161,102 @@ internal sealed class CodeGenerator
                 EmitStatement(statement);
         }
 
+        _il.EndScope();
         _il.Emit(OpCodes.Ret);
 
         _typeBuilder.CreateType();
 
-        // Save assembly
-        var metadataBuilder = assemblyBuilder.GenerateMetadata(out var ilStream, out _);
-        var entryPointHandle = MetadataTokens.MethodDefinitionHandle(mainMethod.MetadataToken);
-
-        var peBuilder = new ManagedPEBuilder(
-            header: new PEHeaderBuilder(
-                imageCharacteristics: Characteristics.ExecutableImage,
-                subsystem: Subsystem.WindowsCui),
-            metadataRootBuilder: new MetadataRootBuilder(metadataBuilder),
-            ilStream: ilStream,
-            entryPoint: entryPointHandle);
-
-        var peBlob = new BlobBuilder();
-        peBuilder.Serialize(peBlob);
-
+        // Save assembly with PDB
         var dllPath = outputPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
             ? outputPath
             : Path.ChangeExtension(outputPath, ".dll");
-
         Directory.CreateDirectory(Path.GetDirectoryName(dllPath) ?? ".");
 
-        using (var fs = new FileStream(dllPath, FileMode.Create, FileAccess.Write))
+        var metadataBuilder = assemblyBuilder.GenerateMetadata(out var ilStream, out var mappedFieldData, out MetadataBuilder pdbBuilder);
+        var entryPointHandle = MetadataTokens.MethodDefinitionHandle(mainMethod.MetadataToken);
+
+        string? pdbPath = null;
+
+        if (_document != null)
         {
-            peBlob.WriteContentTo(fs);
+            try
+            {
+                pdbPath = Path.ChangeExtension(dllPath, ".pdb");
+
+                // Serialize PDB first (need BlobContentId for PE debug directory)
+                var portablePdbBlob = new BlobBuilder();
+                var portablePdbBuilder = new PortablePdbBuilder(
+                    pdbBuilder, metadataBuilder.GetRowCounts(), entryPointHandle,
+                    idProvider: content =>
+                    {
+                        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                        foreach (var blob in content)
+                            hasher.AppendData(blob.GetBytes().Array!, blob.GetBytes().Offset, blob.GetBytes().Count);
+                        return BlobContentId.FromHash(hasher.GetHashAndReset());
+                    });
+                BlobContentId pdbContentId = portablePdbBuilder.Serialize(portablePdbBlob);
+
+                using (var pdbStream = File.Create(pdbPath))
+                    portablePdbBlob.WriteContentTo(pdbStream);
+
+                // Build PE with debug info
+                var debugDirectoryBuilder = new DebugDirectoryBuilder();
+                debugDirectoryBuilder.AddCodeViewEntry(
+                    Path.GetFileName(pdbPath), pdbContentId, portablePdbBuilder.FormatVersion);
+
+                var peBuilder = new ManagedPEBuilder(
+                    header: new PEHeaderBuilder(
+                        imageCharacteristics: Characteristics.ExecutableImage,
+                        subsystem: Subsystem.WindowsCui),
+                    metadataRootBuilder: new MetadataRootBuilder(metadataBuilder),
+                    ilStream: ilStream,
+                    mappedFieldData: mappedFieldData,
+                    debugDirectoryBuilder: debugDirectoryBuilder,
+                    entryPoint: entryPointHandle);
+
+                var peBlob = new BlobBuilder();
+                peBuilder.Serialize(peBlob);
+
+                using (var fs = new FileStream(dllPath, FileMode.Create, FileAccess.Write))
+                    peBlob.WriteContentTo(fs);
+            }
+            catch
+            {
+                // PDB failed — fall back to DLL without debug info
+                pdbPath = null;
+                var peBuilder = new ManagedPEBuilder(
+                    header: new PEHeaderBuilder(
+                        imageCharacteristics: Characteristics.ExecutableImage,
+                        subsystem: Subsystem.WindowsCui),
+                    metadataRootBuilder: new MetadataRootBuilder(metadataBuilder),
+                    ilStream: ilStream,
+                    mappedFieldData: mappedFieldData,
+                    entryPoint: entryPointHandle);
+
+                var peBlob = new BlobBuilder();
+                peBuilder.Serialize(peBlob);
+
+                using (var fs = new FileStream(dllPath, FileMode.Create, FileAccess.Write))
+                    peBlob.WriteContentTo(fs);
+            }
+        }
+        else
+        {
+            // No PDB requested — emit without debug info
+            var peBuilder = new ManagedPEBuilder(
+                header: new PEHeaderBuilder(
+                    imageCharacteristics: Characteristics.ExecutableImage,
+                    subsystem: Subsystem.WindowsCui),
+                metadataRootBuilder: new MetadataRootBuilder(metadataBuilder),
+                ilStream: ilStream,
+                mappedFieldData: mappedFieldData,
+                entryPoint: entryPointHandle);
+
+            var peBlob = new BlobBuilder();
+            peBuilder.Serialize(peBlob);
+
+            using (var fs = new FileStream(dllPath, FileMode.Create, FileAccess.Write))
+                peBlob.WriteContentTo(fs);
         }
 
         // Also write runtime config
@@ -206,9 +297,13 @@ internal sealed class CodeGenerator
         _il = method.GetILGenerator();
         _locals.Clear();
 
+        _il.BeginScope();
+        EmitSequencePoint(decl);
+
         // IT variable for this function
         var itLocal = _il.DeclareLocal(typeof(object));
         _locals["IT"] = itLocal;
+        SetLocalSymInfo(itLocal, "IT");
         _il.Emit(OpCodes.Ldnull);
         _il.Emit(OpCodes.Stloc, itLocal);
 
@@ -217,6 +312,7 @@ internal sealed class CodeGenerator
         {
             var local = _il.DeclareLocal(typeof(object));
             _locals[decl.Function.Parameters[i].Name] = local;
+            SetLocalSymInfo(local, decl.Function.Parameters[i].Name);
             _il.Emit(OpCodes.Ldarg, i);
             _il.Emit(OpCodes.Stloc, local);
         }
@@ -231,6 +327,7 @@ internal sealed class CodeGenerator
             EmitStatement(statement);
 
         // If no FOUND YR was executed, return IT by default
+        _il.EndScope();
         EmitLoadLocal("IT");
         _il.Emit(OpCodes.Stloc, _functionReturnValue);
 
@@ -244,36 +341,50 @@ internal sealed class CodeGenerator
         switch (statement)
         {
             case BoundVariableDeclaration s:
+                EmitSequencePoint(s);
                 EmitVariableDeclaration(s);
                 break;
             case BoundAssignment s:
+                EmitSequencePoint(s);
                 EmitAssignment(s);
                 break;
             case BoundVisibleStatement s:
+                EmitSequencePoint(s);
                 EmitVisible(s);
                 break;
             case BoundGimmehStatement s:
+                EmitSequencePoint(s);
                 EmitGimmeh(s);
                 break;
             case BoundExpressionStatement s:
+                EmitSequencePoint(s);
                 EmitExpressionStatement(s);
                 break;
             case BoundIfStatement s:
+                if (s.Syntax is IfStatementSyntax ifSyntax)
+                    EmitSequencePointForToken(ifSyntax.ORlyKeyword);
                 EmitIf(s);
                 break;
             case BoundSwitchStatement s:
+                if (s.Syntax is SwitchStatementSyntax switchSyntax)
+                    EmitSequencePointForToken(switchSyntax.WtfKeyword);
                 EmitSwitch(s);
                 break;
             case BoundLoopStatement s:
+                if (s.Syntax is LoopStatementSyntax loopSyntax)
+                    EmitSequencePointForToken(loopSyntax.ImInKeyword);
                 EmitLoop(s);
                 break;
             case BoundGtfoStatement s:
+                EmitSequencePoint(s);
                 EmitGtfo(s);
                 break;
             case BoundReturnStatement s:
+                EmitSequencePoint(s);
                 EmitReturn(s);
                 break;
             case BoundCastStatement s:
+                EmitSequencePoint(s);
                 EmitCastStatement(s);
                 break;
             case BoundFunctionDeclaration:
@@ -286,6 +397,7 @@ internal sealed class CodeGenerator
     {
         var local = _il.DeclareLocal(typeof(object));
         _locals[decl.Variable.Name] = local;
+        SetLocalSymInfo(local, decl.Variable.Name);
 
         if (decl.Initializer != null)
         {
@@ -757,6 +869,36 @@ internal sealed class CodeGenerator
         {
             _il.Emit(OpCodes.Pop);
         }
+    }
+
+    private void EmitSequencePoint(BoundNode node)
+    {
+        if (_document == null || _sourceText == null) return;
+        if (node.Syntax is null || node.Syntax.Span.Length == 0) return;
+        EmitSequencePointForSpan(node.Syntax.Span);
+    }
+
+    private void EmitSequencePointForToken(SyntaxToken token)
+    {
+        if (_document == null || _sourceText == null) return;
+        if (token.Span.Length == 0) return;
+        EmitSequencePointForSpan(token.Span);
+    }
+
+    private void EmitSequencePointForSpan(TextSpan span)
+    {
+        var loc = TextLocation.FromSpan(_sourceText!, span);
+        _il.MarkSequencePoint(_document!,
+            loc.StartLine + 1,       // 0-based → 1-based
+            loc.StartCharacter + 1,  // 0-based → 1-based
+            loc.EndLine + 1,         // 0-based → 1-based
+            loc.EndCharacter + 1);   // 0-based → 1-based
+    }
+
+    private void SetLocalSymInfo(LocalBuilder local, string name)
+    {
+        if (_document != null)
+            local.SetLocalSymInfo(name);
     }
 
     private static void WriteRuntimeConfig(string dllPath)

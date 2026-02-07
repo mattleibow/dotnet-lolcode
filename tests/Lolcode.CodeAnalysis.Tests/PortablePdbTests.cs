@@ -52,7 +52,6 @@ KTHXBYE
         try { Directory.Delete(_tempDir, recursive: true); } catch { /* best effort */ }
     }
 
-    private const string PdbNotImplementedSkipReason = "Portable PDB generation not implemented yet";
 
     // (1) Helper that compiles to temp dir and returns (dllPath, pdbPath)
     private (string DllPath, string PdbPath, string SourcePath) CompileToTempDir(string source, string lolFileName)
@@ -203,7 +202,7 @@ KTHXBYE
     }
 
     // (2) A test that reads the PDB and verifies document presence
-    [Fact(Skip = PdbNotImplementedSkipReason)]
+    [Fact]
     public void Pdb_ContainsDocument_ForLolSourceFile()
     {
         var (dllPath, pdbPath, sourcePath) = CompileToTempDir(PdbSampleSource, "pdb_sample.lol");
@@ -219,7 +218,7 @@ KTHXBYE
     }
 
     // (3) A test that verifies sequence points exist and have correct 1-based line numbers
-    [Fact(Skip = PdbNotImplementedSkipReason)]
+    [Fact]
     public void Pdb_ContainsExpectedSequencePointLines_ForMainAndAdd()
     {
         var (dllPath, pdbPath, sourcePath) = CompileToTempDir(PdbSampleSource, "pdb_seqpoints.lol");
@@ -253,7 +252,7 @@ KTHXBYE
     }
 
     // (4) A test that verifies local variable names per method
-    [Fact(Skip = PdbNotImplementedSkipReason)]
+    [Fact]
     public void Pdb_ContainsExpectedLocals_ForMainAndAdd()
     {
         var (dllPath, pdbPath, _) = CompileToTempDir(PdbSampleSource, "pdb_locals.lol");
@@ -274,7 +273,7 @@ KTHXBYE
     }
 
     // (5) A test that verifies compiler temps are absent
-    [Fact(Skip = PdbNotImplementedSkipReason)]
+    [Fact]
     public void Pdb_DoesNotExposeCompilerTemps_AsNamedLocals()
     {
         var (dllPath, pdbPath, _) = CompileToTempDir(PdbSampleSource, "pdb_no_temps.lol");
@@ -297,7 +296,7 @@ KTHXBYE
     }
 
     // (6) A test that verifies a runtime exception stack trace includes file:line info
-    [Fact(Skip = PdbNotImplementedSkipReason)]
+    [Fact]
     public void RuntimeException_StackTrace_IncludesLolFileAndLine()
     {
         var (dllPath, pdbPath, sourcePath) = CompileToTempDir(StackTraceSource, "pdb_stacktrace.lol");

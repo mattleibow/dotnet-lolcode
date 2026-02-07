@@ -23,11 +23,15 @@ public sealed class EmitResult
     /// <summary>The path to the emitted DLL, if emission succeeded.</summary>
     public string? OutputPath { get; }
 
-    internal EmitResult(bool success, ImmutableArray<Diagnostic> diagnostics, string? outputPath)
+    /// <summary>The path to the emitted PDB, if debug symbols were generated.</summary>
+    public string? PdbPath { get; }
+
+    internal EmitResult(bool success, ImmutableArray<Diagnostic> diagnostics, string? outputPath, string? pdbPath = null)
     {
         Success = success;
         Diagnostics = diagnostics;
         OutputPath = outputPath;
+        PdbPath = pdbPath;
     }
 }
 
@@ -74,7 +78,9 @@ public sealed class LolcodeCompilation
         try
         {
             var assemblyName = Path.GetFileNameWithoutExtension(outputPath);
-            var generator = new CodeGenerator(_boundTree!, assemblyName, runtimeAssemblyPath);
+            var tree = SyntaxTrees[0];
+            var generator = new CodeGenerator(_boundTree!, assemblyName, runtimeAssemblyPath,
+                sourceText: tree.Text, sourceFilePath: tree.FilePath);
             var dllPath = generator.Emit(outputPath);
             return new EmitResult(true, diagnostics, dllPath);
         }

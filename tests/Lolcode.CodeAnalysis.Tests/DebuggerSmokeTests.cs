@@ -8,7 +8,7 @@ namespace Lolcode.CodeAnalysis.Tests;
 
 public class DebuggerSmokeTests
 {
-    [Fact(Skip = "PDB generation not implemented yet")]
+    [Fact]
     public void Verify_Pdb_Generation_And_Content()
     {
         // 1. Arrange: Simple LOLCODE program with variables and multiple lines
@@ -18,10 +18,14 @@ HAI 1.2
   VISIBLE var
 KTHXBYE
 ";
-        var syntaxTree = SyntaxTree.ParseText(source);
-        var compilation = LolcodeCompilation.Create(syntaxTree);
         var outputDir = Path.Combine(Path.GetTempPath(), "LolcodeDebuggerTest_" + Guid.NewGuid());
         Directory.CreateDirectory(outputDir);
+
+        var sourcePath = Path.Combine(outputDir, "TestProgram.lol");
+        File.WriteAllText(sourcePath, source);
+
+        var syntaxTree = SyntaxTree.ParseText(source, sourcePath);
+        var compilation = LolcodeCompilation.Create(syntaxTree);
         var dllPath = Path.Combine(outputDir, "TestProgram.dll");
         var pdbPath = Path.ChangeExtension(dllPath, ".pdb");
         
