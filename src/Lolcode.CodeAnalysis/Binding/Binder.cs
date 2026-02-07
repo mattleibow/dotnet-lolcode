@@ -113,7 +113,7 @@ internal sealed class Binder
         if (syntax.Initializer != null)
             initializer = BindExpression(syntax.Initializer);
 
-        return new BoundVariableDeclaration(variable, initializer);
+        return new BoundVariableDeclaration(variable, initializer, syntax: syntax);
     }
 
     private BoundAssignment BindAssignment(AssignmentStatementSyntax syntax)
@@ -128,13 +128,13 @@ internal sealed class Binder
         }
 
         var expression = BindExpression(syntax.Expression);
-        return new BoundAssignment(variable, expression);
+        return new BoundAssignment(variable, expression, syntax: syntax);
     }
 
     private BoundVisibleStatement BindVisible(VisibleStatementSyntax syntax)
     {
         var args = syntax.Arguments.Select(BindExpression).ToImmutableArray();
-        return new BoundVisibleStatement(args, syntax.SuppressNewline);
+        return new BoundVisibleStatement(args, syntax.SuppressNewline, syntax: syntax);
     }
 
     private BoundGimmehStatement BindGimmeh(GimmehStatementSyntax syntax)
@@ -146,13 +146,13 @@ internal sealed class Binder
             _diagnostics.ReportUndeclaredVariable(location, name);
             variable = new VariableSymbol(name);
         }
-        return new BoundGimmehStatement(variable);
+        return new BoundGimmehStatement(variable, syntax: syntax);
     }
 
     private BoundExpressionStatement BindExpressionStatement(ExpressionStatementSyntax syntax)
     {
         var expression = BindExpression(syntax.Expression);
-        return new BoundExpressionStatement(expression);
+        return new BoundExpressionStatement(expression, syntax: syntax);
     }
 
     private BoundIfStatement BindIf(IfStatementSyntax syntax)
@@ -163,14 +163,14 @@ internal sealed class Binder
         {
             var condition = BindExpression(m.Condition);
             var body = BindBlock(m.Body.Statements);
-            return new BoundMebbeClause(condition, body);
+            return new BoundMebbeClause(condition, body, syntax: m);
         }).ToImmutableArray();
 
         BoundBlockStatement? elseBlock = null;
         if (syntax.NoWaiBody != null)
             elseBlock = BindBlock(syntax.NoWaiBody.Statements);
 
-        return new BoundIfStatement(thenBlock, mebbeClauses, elseBlock);
+        return new BoundIfStatement(thenBlock, mebbeClauses, elseBlock, syntax: syntax);
     }
 
     private BoundSwitchStatement BindSwitch(SwitchStatementSyntax syntax)
@@ -202,7 +202,7 @@ internal sealed class Binder
 
             var body = BindBlock(clause.Body.Statements);
             object? literalValue = value is BoundLiteralExpression l ? l.Value : null;
-            omgClauses.Add(new BoundOmgClause(literalValue, body));
+            omgClauses.Add(new BoundOmgClause(literalValue, body, syntax: clause));
         }
 
         BoundBlockStatement? defaultBlock = null;
@@ -211,7 +211,7 @@ internal sealed class Binder
 
         _contextStack.Pop();
 
-        return new BoundSwitchStatement(omgClauses.ToImmutable(), defaultBlock);
+        return new BoundSwitchStatement(omgClauses.ToImmutable(), defaultBlock, syntax: syntax);
     }
 
     private BoundLoopStatement BindLoop(LoopStatementSyntax syntax)
@@ -240,7 +240,7 @@ internal sealed class Binder
         var body = BindBlock(syntax.Body.Statements);
         _contextStack.Pop();
 
-        return new BoundLoopStatement(label, operation, loopVariable, isTil, condition, body);
+        return new BoundLoopStatement(label, operation, loopVariable, isTil, condition, body, syntax: syntax);
     }
 
     private BoundGtfoStatement BindGtfo(GtfoStatementSyntax syntax)
@@ -257,7 +257,7 @@ internal sealed class Binder
             context = _contextStack.Peek();
         }
 
-        return new BoundGtfoStatement(context);
+        return new BoundGtfoStatement(context, syntax: syntax);
     }
 
     private BoundFunctionDeclaration BindFunctionDeclaration(FunctionDeclarationSyntax syntax)
@@ -286,7 +286,7 @@ internal sealed class Binder
         // Restore outer scope
         _scope = outerScope;
 
-        return new BoundFunctionDeclaration(function, body);
+        return new BoundFunctionDeclaration(function, body, syntax: syntax);
     }
 
     private BoundReturnStatement BindReturn(ReturnStatementSyntax syntax)
@@ -298,7 +298,7 @@ internal sealed class Binder
         }
 
         var expression = BindExpression(syntax.Expression);
-        return new BoundReturnStatement(expression);
+        return new BoundReturnStatement(expression, syntax: syntax);
     }
 
     private BoundCastStatement BindCastStatement(CastStatementSyntax syntax)
@@ -312,7 +312,7 @@ internal sealed class Binder
         }
 
         string targetType = syntax.TypeToken.Text;
-        return new BoundCastStatement(variable, targetType);
+        return new BoundCastStatement(variable, targetType, syntax: syntax);
     }
 
     private BoundExpression BindExpression(ExpressionSyntax syntax)
@@ -326,11 +326,11 @@ internal sealed class Binder
             SmooshExpressionSyntax s => BindSmoosh(s),
             AllOfExpressionSyntax s => BindAllOf(s),
             AnyOfExpressionSyntax s => BindAnyOf(s),
-            ComparisonExpressionSyntax s => new BoundComparisonExpression(true, BindExpression(s.Left), BindExpression(s.Right)),
-            DiffrintExpressionSyntax s => new BoundComparisonExpression(false, BindExpression(s.Left), BindExpression(s.Right)),
-            CastExpressionSyntax s => new BoundCastExpression(BindExpression(s.Operand), s.TypeToken.Text),
+            ComparisonExpressionSyntax s => new BoundComparisonExpression(true, BindExpression(s.Left), BindExpression(s.Right), syntax: s),
+            DiffrintExpressionSyntax s => new BoundComparisonExpression(false, BindExpression(s.Left), BindExpression(s.Right), syntax: s),
+            CastExpressionSyntax s => new BoundCastExpression(BindExpression(s.Operand), s.TypeToken.Text, syntax: s),
             FunctionCallExpressionSyntax s => BindFunctionCall(s),
-            ItExpressionSyntax => new BoundItExpression(),
+            ItExpressionSyntax s => new BoundItExpression(syntax: s),
             _ => new BoundLiteralExpression(null),
         };
     }
@@ -342,7 +342,7 @@ internal sealed class Binder
         {
             return BindInterpolatedString(strValue);
         }
-        return new BoundLiteralExpression(syntax.Value);
+        return new BoundLiteralExpression(syntax.Value, syntax: syntax);
     }
 
     private BoundExpression BindInterpolatedString(string template)
@@ -400,13 +400,13 @@ internal sealed class Binder
             _diagnostics.ReportUndeclaredVariable(location, name);
             variable = new VariableSymbol(name);
         }
-        return new BoundVariableExpression(variable);
+        return new BoundVariableExpression(variable, syntax: syntax);
     }
 
     private BoundUnaryExpression BindUnary(UnaryExpressionSyntax syntax)
     {
         var operand = BindExpression(syntax.Operand);
-        return new BoundUnaryExpression(BoundUnaryOperatorKind.LogicalNot, operand);
+        return new BoundUnaryExpression(BoundUnaryOperatorKind.LogicalNot, operand, syntax: syntax);
     }
 
     private BoundBinaryExpression BindBinary(BinaryExpressionSyntax syntax)
@@ -430,25 +430,25 @@ internal sealed class Binder
             _ => throw new InvalidOperationException($"Unknown operator: {op}")
         };
 
-        return new BoundBinaryExpression(kind, left, right);
+        return new BoundBinaryExpression(kind, left, right, syntax: syntax);
     }
 
     private BoundSmooshExpression BindSmoosh(SmooshExpressionSyntax syntax)
     {
         var operands = syntax.Operands.Select(BindExpression).ToImmutableArray();
-        return new BoundSmooshExpression(operands);
+        return new BoundSmooshExpression(operands, syntax: syntax);
     }
 
     private BoundAllOfExpression BindAllOf(AllOfExpressionSyntax syntax)
     {
         var operands = syntax.Operands.Select(BindExpression).ToImmutableArray();
-        return new BoundAllOfExpression(operands);
+        return new BoundAllOfExpression(operands, syntax: syntax);
     }
 
     private BoundAnyOfExpression BindAnyOf(AnyOfExpressionSyntax syntax)
     {
         var operands = syntax.Operands.Select(BindExpression).ToImmutableArray();
-        return new BoundAnyOfExpression(operands);
+        return new BoundAnyOfExpression(operands, syntax: syntax);
     }
 
     private BoundFunctionCallExpression BindFunctionCall(FunctionCallExpressionSyntax syntax)
@@ -471,6 +471,6 @@ internal sealed class Binder
         }
 
         var args = syntax.Arguments.Select(BindExpression).ToImmutableArray();
-        return new BoundFunctionCallExpression(function, args);
+        return new BoundFunctionCallExpression(function, args, syntax: syntax);
     }
 }

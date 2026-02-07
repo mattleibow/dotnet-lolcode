@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Lolcode.CodeAnalysis.Symbols;
+using Lolcode.CodeAnalysis.Syntax;
 
 namespace Lolcode.CodeAnalysis.BoundTree;
 
@@ -19,6 +20,11 @@ internal enum ControlFlowContext
 /// </summary>
 internal abstract class BoundNode
 {
+    /// <summary>The syntax node that produced this bound node, if any. Used for PDB sequence points.</summary>
+    public SyntaxNode? Syntax { get; }
+
+    protected BoundNode(SyntaxNode? syntax = null) => Syntax = syntax;
+
     /// <summary>The kind of bound node.</summary>
     public abstract BoundKind Kind { get; }
 }
@@ -58,13 +64,17 @@ internal enum BoundKind
 // ============ Bound Statements ============
 
 /// <summary>Base for bound statements.</summary>
-internal abstract class BoundStatement : BoundNode { }
+internal abstract class BoundStatement : BoundNode
+{
+    protected BoundStatement(SyntaxNode? syntax = null) : base(syntax) { }
+}
 
 /// <summary>A block of bound statements.</summary>
 internal sealed class BoundBlockStatement : BoundStatement
 {
     public ImmutableArray<BoundStatement> Statements { get; }
-    public BoundBlockStatement(ImmutableArray<BoundStatement> statements) => Statements = statements;
+    public BoundBlockStatement(ImmutableArray<BoundStatement> statements, SyntaxNode? syntax = null)
+        : base(syntax) => Statements = statements;
     public override BoundKind Kind => BoundKind.BlockStatement;
 }
 
@@ -73,7 +83,8 @@ internal sealed class BoundVariableDeclaration : BoundStatement
 {
     public VariableSymbol Variable { get; }
     public BoundExpression? Initializer { get; }
-    public BoundVariableDeclaration(VariableSymbol variable, BoundExpression? initializer)
+    public BoundVariableDeclaration(VariableSymbol variable, BoundExpression? initializer, SyntaxNode? syntax = null)
+        : base(syntax)
     {
         Variable = variable;
         Initializer = initializer;
@@ -86,7 +97,8 @@ internal sealed class BoundAssignment : BoundStatement
 {
     public VariableSymbol Variable { get; }
     public BoundExpression Expression { get; }
-    public BoundAssignment(VariableSymbol variable, BoundExpression expression)
+    public BoundAssignment(VariableSymbol variable, BoundExpression expression, SyntaxNode? syntax = null)
+        : base(syntax)
     {
         Variable = variable;
         Expression = expression;
@@ -99,7 +111,8 @@ internal sealed class BoundVisibleStatement : BoundStatement
 {
     public ImmutableArray<BoundExpression> Arguments { get; }
     public bool SuppressNewline { get; }
-    public BoundVisibleStatement(ImmutableArray<BoundExpression> arguments, bool suppressNewline)
+    public BoundVisibleStatement(ImmutableArray<BoundExpression> arguments, bool suppressNewline, SyntaxNode? syntax = null)
+        : base(syntax)
     {
         Arguments = arguments;
         SuppressNewline = suppressNewline;
@@ -111,7 +124,8 @@ internal sealed class BoundVisibleStatement : BoundStatement
 internal sealed class BoundGimmehStatement : BoundStatement
 {
     public VariableSymbol Variable { get; }
-    public BoundGimmehStatement(VariableSymbol variable) => Variable = variable;
+    public BoundGimmehStatement(VariableSymbol variable, SyntaxNode? syntax = null)
+        : base(syntax) => Variable = variable;
     public override BoundKind Kind => BoundKind.GimmehStatement;
 }
 
@@ -119,7 +133,8 @@ internal sealed class BoundGimmehStatement : BoundStatement
 internal sealed class BoundExpressionStatement : BoundStatement
 {
     public BoundExpression Expression { get; }
-    public BoundExpressionStatement(BoundExpression expression) => Expression = expression;
+    public BoundExpressionStatement(BoundExpression expression, SyntaxNode? syntax = null)
+        : base(syntax) => Expression = expression;
     public override BoundKind Kind => BoundKind.ExpressionStatement;
 }
 
@@ -129,7 +144,8 @@ internal sealed class BoundIfStatement : BoundStatement
     public BoundBlockStatement ThenBlock { get; }
     public ImmutableArray<BoundMebbeClause> MebbeClauses { get; }
     public BoundBlockStatement? ElseBlock { get; }
-    public BoundIfStatement(BoundBlockStatement thenBlock, ImmutableArray<BoundMebbeClause> mebbeClauses, BoundBlockStatement? elseBlock)
+    public BoundIfStatement(BoundBlockStatement thenBlock, ImmutableArray<BoundMebbeClause> mebbeClauses, BoundBlockStatement? elseBlock, SyntaxNode? syntax = null)
+        : base(syntax)
     {
         ThenBlock = thenBlock;
         MebbeClauses = mebbeClauses;
@@ -143,10 +159,12 @@ internal sealed class BoundMebbeClause
 {
     public BoundExpression Condition { get; }
     public BoundBlockStatement Body { get; }
-    public BoundMebbeClause(BoundExpression condition, BoundBlockStatement body)
+    public SyntaxNode? Syntax { get; }
+    public BoundMebbeClause(BoundExpression condition, BoundBlockStatement body, SyntaxNode? syntax = null)
     {
         Condition = condition;
         Body = body;
+        Syntax = syntax;
     }
 }
 
@@ -155,7 +173,8 @@ internal sealed class BoundSwitchStatement : BoundStatement
 {
     public ImmutableArray<BoundOmgClause> OmgClauses { get; }
     public BoundBlockStatement? DefaultBlock { get; }
-    public BoundSwitchStatement(ImmutableArray<BoundOmgClause> omgClauses, BoundBlockStatement? defaultBlock)
+    public BoundSwitchStatement(ImmutableArray<BoundOmgClause> omgClauses, BoundBlockStatement? defaultBlock, SyntaxNode? syntax = null)
+        : base(syntax)
     {
         OmgClauses = omgClauses;
         DefaultBlock = defaultBlock;
@@ -168,10 +187,12 @@ internal sealed class BoundOmgClause
 {
     public object? LiteralValue { get; }
     public BoundBlockStatement Body { get; }
-    public BoundOmgClause(object? literalValue, BoundBlockStatement body)
+    public SyntaxNode? Syntax { get; }
+    public BoundOmgClause(object? literalValue, BoundBlockStatement body, SyntaxNode? syntax = null)
     {
         LiteralValue = literalValue;
         Body = body;
+        Syntax = syntax;
     }
 }
 
@@ -196,7 +217,8 @@ internal sealed class BoundLoopStatement : BoundStatement
 
     public BoundLoopStatement(
         string label, string? operation, VariableSymbol? variable,
-        bool? isTil, BoundExpression? condition, BoundBlockStatement body)
+        bool? isTil, BoundExpression? condition, BoundBlockStatement body,
+        SyntaxNode? syntax = null) : base(syntax)
     {
         Label = label;
         Operation = operation;
@@ -213,7 +235,8 @@ internal sealed class BoundGtfoStatement : BoundStatement
 {
     /// <summary>The resolved control flow context.</summary>
     public ControlFlowContext Context { get; }
-    public BoundGtfoStatement(ControlFlowContext context) => Context = context;
+    public BoundGtfoStatement(ControlFlowContext context, SyntaxNode? syntax = null)
+        : base(syntax) => Context = context;
     public override BoundKind Kind => BoundKind.GtfoStatement;
 }
 
@@ -222,7 +245,8 @@ internal sealed class BoundFunctionDeclaration : BoundStatement
 {
     public FunctionSymbol Function { get; }
     public BoundBlockStatement Body { get; }
-    public BoundFunctionDeclaration(FunctionSymbol function, BoundBlockStatement body)
+    public BoundFunctionDeclaration(FunctionSymbol function, BoundBlockStatement body, SyntaxNode? syntax = null)
+        : base(syntax)
     {
         Function = function;
         Body = body;
@@ -234,7 +258,8 @@ internal sealed class BoundFunctionDeclaration : BoundStatement
 internal sealed class BoundReturnStatement : BoundStatement
 {
     public BoundExpression Expression { get; }
-    public BoundReturnStatement(BoundExpression expression) => Expression = expression;
+    public BoundReturnStatement(BoundExpression expression, SyntaxNode? syntax = null)
+        : base(syntax) => Expression = expression;
     public override BoundKind Kind => BoundKind.ReturnStatement;
 }
 
@@ -243,7 +268,8 @@ internal sealed class BoundCastStatement : BoundStatement
 {
     public VariableSymbol Variable { get; }
     public string TargetType { get; }
-    public BoundCastStatement(VariableSymbol variable, string targetType)
+    public BoundCastStatement(VariableSymbol variable, string targetType, SyntaxNode? syntax = null)
+        : base(syntax)
     {
         Variable = variable;
         TargetType = targetType;
@@ -254,13 +280,17 @@ internal sealed class BoundCastStatement : BoundStatement
 // ============ Bound Expressions ============
 
 /// <summary>Base for bound expressions.</summary>
-internal abstract class BoundExpression : BoundNode { }
+internal abstract class BoundExpression : BoundNode
+{
+    protected BoundExpression(SyntaxNode? syntax = null) : base(syntax) { }
+}
 
 /// <summary>Literal value (int, double, string, bool, null).</summary>
 internal sealed class BoundLiteralExpression : BoundExpression
 {
     public object? Value { get; }
-    public BoundLiteralExpression(object? value) => Value = value;
+    public BoundLiteralExpression(object? value, SyntaxNode? syntax = null)
+        : base(syntax) => Value = value;
     public override BoundKind Kind => BoundKind.LiteralExpression;
 }
 
@@ -268,7 +298,8 @@ internal sealed class BoundLiteralExpression : BoundExpression
 internal sealed class BoundVariableExpression : BoundExpression
 {
     public VariableSymbol Variable { get; }
-    public BoundVariableExpression(VariableSymbol variable) => Variable = variable;
+    public BoundVariableExpression(VariableSymbol variable, SyntaxNode? syntax = null)
+        : base(syntax) => Variable = variable;
     public override BoundKind Kind => BoundKind.VariableExpression;
 }
 
@@ -277,7 +308,8 @@ internal sealed class BoundUnaryExpression : BoundExpression
 {
     public BoundUnaryOperatorKind OperatorKind { get; }
     public BoundExpression Operand { get; }
-    public BoundUnaryExpression(BoundUnaryOperatorKind operatorKind, BoundExpression operand)
+    public BoundUnaryExpression(BoundUnaryOperatorKind operatorKind, BoundExpression operand, SyntaxNode? syntax = null)
+        : base(syntax)
     {
         OperatorKind = operatorKind;
         Operand = operand;
@@ -291,7 +323,8 @@ internal sealed class BoundBinaryExpression : BoundExpression
     public BoundBinaryOperatorKind OperatorKind { get; }
     public BoundExpression Left { get; }
     public BoundExpression Right { get; }
-    public BoundBinaryExpression(BoundBinaryOperatorKind operatorKind, BoundExpression left, BoundExpression right)
+    public BoundBinaryExpression(BoundBinaryOperatorKind operatorKind, BoundExpression left, BoundExpression right, SyntaxNode? syntax = null)
+        : base(syntax)
     {
         OperatorKind = operatorKind;
         Left = left;
@@ -304,7 +337,8 @@ internal sealed class BoundBinaryExpression : BoundExpression
 internal sealed class BoundSmooshExpression : BoundExpression
 {
     public ImmutableArray<BoundExpression> Operands { get; }
-    public BoundSmooshExpression(ImmutableArray<BoundExpression> operands) => Operands = operands;
+    public BoundSmooshExpression(ImmutableArray<BoundExpression> operands, SyntaxNode? syntax = null)
+        : base(syntax) => Operands = operands;
     public override BoundKind Kind => BoundKind.SmooshExpression;
 }
 
@@ -312,7 +346,8 @@ internal sealed class BoundSmooshExpression : BoundExpression
 internal sealed class BoundAllOfExpression : BoundExpression
 {
     public ImmutableArray<BoundExpression> Operands { get; }
-    public BoundAllOfExpression(ImmutableArray<BoundExpression> operands) => Operands = operands;
+    public BoundAllOfExpression(ImmutableArray<BoundExpression> operands, SyntaxNode? syntax = null)
+        : base(syntax) => Operands = operands;
     public override BoundKind Kind => BoundKind.AllOfExpression;
 }
 
@@ -320,7 +355,8 @@ internal sealed class BoundAllOfExpression : BoundExpression
 internal sealed class BoundAnyOfExpression : BoundExpression
 {
     public ImmutableArray<BoundExpression> Operands { get; }
-    public BoundAnyOfExpression(ImmutableArray<BoundExpression> operands) => Operands = operands;
+    public BoundAnyOfExpression(ImmutableArray<BoundExpression> operands, SyntaxNode? syntax = null)
+        : base(syntax) => Operands = operands;
     public override BoundKind Kind => BoundKind.AnyOfExpression;
 }
 
@@ -331,7 +367,8 @@ internal sealed class BoundComparisonExpression : BoundExpression
     public bool IsEquality { get; }
     public BoundExpression Left { get; }
     public BoundExpression Right { get; }
-    public BoundComparisonExpression(bool isEquality, BoundExpression left, BoundExpression right)
+    public BoundComparisonExpression(bool isEquality, BoundExpression left, BoundExpression right, SyntaxNode? syntax = null)
+        : base(syntax)
     {
         IsEquality = isEquality;
         Left = left;
@@ -345,7 +382,8 @@ internal sealed class BoundCastExpression : BoundExpression
 {
     public BoundExpression Operand { get; }
     public string TargetType { get; }
-    public BoundCastExpression(BoundExpression operand, string targetType)
+    public BoundCastExpression(BoundExpression operand, string targetType, SyntaxNode? syntax = null)
+        : base(syntax)
     {
         Operand = operand;
         TargetType = targetType;
@@ -358,7 +396,8 @@ internal sealed class BoundFunctionCallExpression : BoundExpression
 {
     public FunctionSymbol Function { get; }
     public ImmutableArray<BoundExpression> Arguments { get; }
-    public BoundFunctionCallExpression(FunctionSymbol function, ImmutableArray<BoundExpression> arguments)
+    public BoundFunctionCallExpression(FunctionSymbol function, ImmutableArray<BoundExpression> arguments, SyntaxNode? syntax = null)
+        : base(syntax)
     {
         Function = function;
         Arguments = arguments;
@@ -369,5 +408,6 @@ internal sealed class BoundFunctionCallExpression : BoundExpression
 /// <summary>IT implicit variable reference.</summary>
 internal sealed class BoundItExpression : BoundExpression
 {
+    public BoundItExpression(SyntaxNode? syntax = null) : base(syntax) { }
     public override BoundKind Kind => BoundKind.ItExpression;
 }

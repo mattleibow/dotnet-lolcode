@@ -1,0 +1,157 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║         PORTABLE PDB IMPLEMENTATION - CRITICAL FIXES SUMMARY                   ║
+║                    For LOLCODE Compiler                                        ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+6 CRITICAL ISSUES IDENTIFIED AND FIXED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. BLOCK SYNTAX NULLABILITY
+   ├─ Risk:      NullReferenceException when emitting sequence point for BoundBlockStatement
+   ├─ Cause:     Blocks are synthetic, created in RewriteBlock() with no direct syntax
+   ├─ Fix:       Add SyntaxNode? Syntax { get; } to BoundNode base class
+   │            + Add nullable Syntax property to BoundBlockStatement
+   │            + Guard EmitBlock() to NEVER emit sequence point for block itself
+   └─ Files:     BoundNodes.cs, CodeGenerator.cs, Binder.cs
+
+2. CONTROL FLOW GRANULARITY
+   ├─ Risk:      Debugger highlights entire IF/LOOP/SWITCH block as "current line"
+   ├─ Cause:     Sequence point spans from keyword to closing token (hundreds of lines)
+   ├─ Fix:       Emit sequence point for HEADER TOKEN ONLY:
+   │            + O RLY? → use ORlyKeyword.Span
+   │            + IM IN YR → use LoopHeaderSpan
+   │            + WTF? → use WtfKeyword.Span
+   │            + OMG "x" → use OmgKeyword.Span
+   └─ Files:     CodeGenerator.cs (EmitIfStatement, EmitLoopStatement, EmitSwitchStatement)
+
+3. SWITCH CASES (OMG CLAUSES) NOT DEBUGGABLE
+   ├─ Risk:      Can't step into specific OMG "value" cases
+   ├─ Cause:     BoundOmgClause and BoundMebbeClause have no Syntax property
+   ├─ Fix:       Add OmgClauseSyntax? Syntax { get; } to BoundOmgClause
+   │            + Add MebbeClauseSyntax? Syntax { get; } to BoundMebbeClause
+   │            + Update Binder to capture clause syntax
+   │            + Emit sequence point for each clause in EmitSwitchStatement
+   └─ Files:     BoundNodes.cs, Binder.cs, CodeGenerator.cs
+
+4. FUNCTION BOUNDARIES MISSING SEQUENCE POINTS
+   ├─ Risk:      Stepping into function lands nowhere; stepping out has no location
+   ├─ Cause:     No sequence point at HOW IZ I (entry) or IF U SAY SO (implicit return)
+   ├─ Fix:       Emit two sequence points in EmitFunction:
+   │            + At entry: functionDecl.Syntax?.HowIzIKeyword.Span
+   │            + At exit: functionDecl.Syntax?.IfUSaySoKeyword.Span (before return)
+   └─ Files:     CodeGenerator.cs (EmitFunction)
+
+5. IMPLICIT NODES WITH NULL SYNTAX
+   ├─ Risk:      EmitExpression crashes if it tries to emit sequence point for null Syntax
+   ├─ Cause:     Implicit casts, string concatenations created during lowering
+   ├─ Fix:       Guard EmitExpression to skip sequence points for null Syntax
+   │            + Only top-level expression statements emit sequence points
+   │            + Sub-expressions never emit sequence points
+   └─ Files:     CodeGenerator.cs (EmitExpression)
+
+6. TEST CLEANUP LEAVES PDB FILES
+   ├─ Risk:      .pdb files lock assemblies, clutter temp directory
+   ├─ Cause:     EndToEndTestBase.Dispose() doesn't explicitly delete .pdb files
+   ├─ Fix:       Enhanced Dispose():
+   │            + Delete .pdb, .dll, .runtimeconfig.json before directory delete
+   │            + Enhanced CompileAndRun() to cleanup after each test
+   └─ Files:     EndToEndTestBase.cs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPLEMENTATION PHASES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PHASE 1: STRUCTURAL CHANGES (5-6 hours)
+├─ Add Syntax property to BoundNode base class
+├─ Add Syntax to BoundIfStatement, BoundSwitchStatement, BoundLoopStatement
+├─ Add Syntax to BoundFunctionDeclaration, BoundExpressionStatement
+├─ Add Syntax to BoundOmgClause, BoundMebbeClause
+└─ Update all Binder methods to capture and pass syntax during construction
+
+PHASE 2: CODEGEN LOGIC (4-5 hours)
+├─ Create EmitSequencePoint(TextSpan, ILGenerator) helper method
+├─ Guard EmitBlock() to never emit sequence point
+├─ Update EmitIfStatement to emit for header only
+├─ Update EmitLoopStatement to emit for header only
+├─ Update EmitSwitchStatement to emit for header and each clause
+├─ Update EmitFunction to emit at entry and exit
+└─ Guard EmitExpression to skip null Syntax
+
+PHASE 3: VALIDATION (2-3 hours)
+├─ Verify all SyntaxNode properties exist (HowIzIKeyword, IfUSaySoKeyword, etc.)
+├─ Research ILGenerator.MarkSequencePoint integration with PersistedAssemblyBuilder
+├─ Test PDB generation in simple cases
+└─ Create unit tests for sequence point metadata
+
+PHASE 4: TEST CLEANUP (1 hour)
+├─ Update EndToEndTestBase.Dispose() for explicit file cleanup
+└─ Update CompileAndRun() to cleanup PDB after test
+
+TOTAL ESTIMATED TIME: 12-15 hours
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GENERATED DOCUMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Three detailed guides have been created:
+
+1. PDB_IMPLEMENTATION_FIXES.md
+   └─ Complete architectural fixes with code snippets for all 6 issues
+      ├─ Detailed pseudocode for each fix
+      ├─ Updated method signatures
+      ├─ Binding layer updates
+      ├─ CodeGenerator updates
+      └─ Test cleanup procedures
+
+2. PDB_FIXES_CHECKLIST.md
+   └─ Step-by-step checklist for implementation
+      ├─ Phase 1: Structural changes (6 sections)
+      ├─ Phase 2: Clause syntax references (2 sections)
+      ├─ Phase 3: CodeGenerator logic (7 sections)
+      ├─ Phase 4: Syntax verification (5 sections)
+      ├─ Phase 5: Test cleanup (2 sections)
+      └─ Validation and testing procedures
+
+3. SEQUENCE_POINT_ARCHITECTURE.md
+   └─ In-depth architectural guide
+      ├─ Sequence point concepts and design principles
+      ├─ Control flow architecture
+      ├─ Statement-by-statement sequence point mapping
+      ├─ Implementation pseudocode
+      ├─ Integration with PersistedAssemblyBuilder
+      ├─ Testing strategies (metadata, debugger, synthetic nodes)
+      ├─ Debugging PDB generation
+      └─ Common pitfalls and troubleshooting
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+KEY ARCHITECTURAL PRINCIPLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Statement-Level, Not Expression-Level
+  └─ Only statements get sequence points, not sub-expressions
+
+✓ Control Flow Header, Not Body
+  └─ IF/LOOP/SWITCH emit for header token, not entire block
+
+✓ Function Boundaries Are Explicit
+  └─ HOW IZ I (entry) and IF U SAY SO (exit) both get sequence points
+
+✓ Synthetic Nodes Have No Sequence Points
+  └─ Nodes created during lowering must have nullable Syntax
+
+✓ Granularity Matters
+  └─ Too coarse: Entire block highlighted; Too fine: Too many stop points
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NEXT STEPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Review the three generated documents
+2. Clarify how PersistedAssemblyBuilder integrates with ILGenerator.MarkSequencePoint
+3. Verify that all required SyntaxNode properties exist (or add them)
+4. Implement Phase 1 changes (BoundNode modifications)
+5. Implement Phase 2 changes (CodeGenerator updates)
+6. Test with debugger (Visual Studio, VS Code, or WinDbg)
+7. Implement Phase 3 & 4 validation and cleanup
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

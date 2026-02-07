@@ -36,7 +36,7 @@ internal sealed class Lowerer
         if (!changed)
             return node;
 
-        return new BoundBlockStatement(builder.MoveToImmutable());
+        return new BoundBlockStatement(builder.MoveToImmutable(), syntax: node.Syntax);
     }
 
     private BoundStatement RewriteStatement(BoundStatement node)
@@ -88,7 +88,7 @@ internal sealed class Lowerer
         if (initializer == node.Initializer)
             return node;
 
-        return new BoundVariableDeclaration(node.Variable, initializer);
+        return new BoundVariableDeclaration(node.Variable, initializer, syntax: node.Syntax);
     }
 
     private BoundAssignment RewriteAssignment(BoundAssignment node)
@@ -97,7 +97,7 @@ internal sealed class Lowerer
         if (expression == node.Expression)
             return node;
 
-        return new BoundAssignment(node.Variable, expression);
+        return new BoundAssignment(node.Variable, expression, syntax: node.Syntax);
     }
 
     private BoundVisibleStatement RewriteVisibleStatement(BoundVisibleStatement node)
@@ -116,7 +116,7 @@ internal sealed class Lowerer
         if (!changed)
             return node;
 
-        return new BoundVisibleStatement(builder.MoveToImmutable(), node.SuppressNewline);
+        return new BoundVisibleStatement(builder.MoveToImmutable(), node.SuppressNewline, syntax: node.Syntax);
     }
 
     private BoundExpressionStatement RewriteExpressionStatement(BoundExpressionStatement node)
@@ -125,7 +125,7 @@ internal sealed class Lowerer
         if (expression == node.Expression)
             return node;
 
-        return new BoundExpressionStatement(expression);
+        return new BoundExpressionStatement(expression, syntax: node.Syntax);
     }
 
     private BoundIfStatement RewriteIfStatement(BoundIfStatement node)
@@ -140,7 +140,7 @@ internal sealed class Lowerer
             var body = RewriteBlockStatement(clause.Body);
             if (cond != clause.Condition || body != clause.Body)
             {
-                mebbeBuilder.Add(new BoundMebbeClause(cond, body));
+                mebbeBuilder.Add(new BoundMebbeClause(cond, body, syntax: clause.Syntax));
                 mebbeChanged = true;
             }
             else
@@ -154,7 +154,7 @@ internal sealed class Lowerer
         if (thenBlock == node.ThenBlock && !mebbeChanged && elseBlock == node.ElseBlock)
             return node;
 
-        return new BoundIfStatement(thenBlock, mebbeBuilder.MoveToImmutable(), elseBlock);
+        return new BoundIfStatement(thenBlock, mebbeBuilder.MoveToImmutable(), elseBlock, syntax: node.Syntax);
     }
 
     private BoundSwitchStatement RewriteSwitchStatement(BoundSwitchStatement node)
@@ -166,7 +166,7 @@ internal sealed class Lowerer
             var body = RewriteBlockStatement(clause.Body);
             if (body != clause.Body)
             {
-                omgBuilder.Add(new BoundOmgClause(clause.LiteralValue, body));
+                omgBuilder.Add(new BoundOmgClause(clause.LiteralValue, body, syntax: clause.Syntax));
                 changed = true;
             }
             else
@@ -180,7 +180,7 @@ internal sealed class Lowerer
         if (!changed && defaultBlock == node.DefaultBlock)
             return node;
 
-        return new BoundSwitchStatement(omgBuilder.MoveToImmutable(), defaultBlock);
+        return new BoundSwitchStatement(omgBuilder.MoveToImmutable(), defaultBlock, syntax: node.Syntax);
     }
 
     private BoundLoopStatement RewriteLoopStatement(BoundLoopStatement node)
@@ -193,7 +193,7 @@ internal sealed class Lowerer
 
         return new BoundLoopStatement(
             node.Label, node.Operation, node.Variable,
-            node.IsTil, condition, body);
+            node.IsTil, condition, body, syntax: node.Syntax);
     }
 
     private BoundFunctionDeclaration RewriteFunctionDeclaration(BoundFunctionDeclaration node)
@@ -202,7 +202,7 @@ internal sealed class Lowerer
         if (body == node.Body)
             return node;
 
-        return new BoundFunctionDeclaration(node.Function, body);
+        return new BoundFunctionDeclaration(node.Function, body, syntax: node.Syntax);
     }
 
     private BoundReturnStatement RewriteReturnStatement(BoundReturnStatement node)
@@ -211,7 +211,7 @@ internal sealed class Lowerer
         if (expression == node.Expression)
             return node;
 
-        return new BoundReturnStatement(expression);
+        return new BoundReturnStatement(expression, syntax: node.Syntax);
     }
 
     private BoundCastStatement RewriteCastStatement(BoundCastStatement node)
@@ -226,7 +226,7 @@ internal sealed class Lowerer
         if (operand == node.Operand)
             return node;
 
-        return new BoundUnaryExpression(node.OperatorKind, operand);
+        return new BoundUnaryExpression(node.OperatorKind, operand, syntax: node.Syntax);
     }
 
     private BoundBinaryExpression RewriteBinaryExpression(BoundBinaryExpression node)
@@ -236,7 +236,7 @@ internal sealed class Lowerer
         if (left == node.Left && right == node.Right)
             return node;
 
-        return new BoundBinaryExpression(node.OperatorKind, left, right);
+        return new BoundBinaryExpression(node.OperatorKind, left, right, syntax: node.Syntax);
     }
 
     private BoundSmooshExpression RewriteSmooshExpression(BoundSmooshExpression node)
@@ -254,7 +254,7 @@ internal sealed class Lowerer
         if (!changed)
             return node;
 
-        return new BoundSmooshExpression(builder.MoveToImmutable());
+        return new BoundSmooshExpression(builder.MoveToImmutable(), syntax: node.Syntax);
     }
 
     private BoundAllOfExpression RewriteAllOfExpression(BoundAllOfExpression node)
@@ -272,7 +272,7 @@ internal sealed class Lowerer
         if (!changed)
             return node;
 
-        return new BoundAllOfExpression(builder.MoveToImmutable());
+        return new BoundAllOfExpression(builder.MoveToImmutable(), syntax: node.Syntax);
     }
 
     private BoundAnyOfExpression RewriteAnyOfExpression(BoundAnyOfExpression node)
@@ -290,7 +290,7 @@ internal sealed class Lowerer
         if (!changed)
             return node;
 
-        return new BoundAnyOfExpression(builder.MoveToImmutable());
+        return new BoundAnyOfExpression(builder.MoveToImmutable(), syntax: node.Syntax);
     }
 
     private BoundComparisonExpression RewriteComparisonExpression(BoundComparisonExpression node)
@@ -300,7 +300,7 @@ internal sealed class Lowerer
         if (left == node.Left && right == node.Right)
             return node;
 
-        return new BoundComparisonExpression(node.IsEquality, left, right);
+        return new BoundComparisonExpression(node.IsEquality, left, right, syntax: node.Syntax);
     }
 
     private BoundExpression RewriteCastExpression(BoundCastExpression node)
@@ -309,7 +309,7 @@ internal sealed class Lowerer
         if (operand == node.Operand)
             return node;
 
-        return new BoundCastExpression(operand, node.TargetType);
+        return new BoundCastExpression(operand, node.TargetType, syntax: node.Syntax);
     }
 
     private BoundExpression RewriteFunctionCallExpression(BoundFunctionCallExpression node)
@@ -327,6 +327,6 @@ internal sealed class Lowerer
         if (!changed)
             return node;
 
-        return new BoundFunctionCallExpression(node.Function, builder.MoveToImmutable());
+        return new BoundFunctionCallExpression(node.Function, builder.MoveToImmutable(), syntax: node.Syntax);
     }
 }

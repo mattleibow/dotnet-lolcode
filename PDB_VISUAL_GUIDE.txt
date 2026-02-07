@@ -1,0 +1,394 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║              PORTABLE PDB IMPLEMENTATION - VISUAL GUIDE                        ║
+║                   Flowcharts, Diagrams & Architecture Maps                    ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+SECTION 1: BOUND NODE HIERARCHY WITH SYNTAX CAPTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BEFORE (Current):
+    BoundNode (abstract)
+    ├── BoundBlockStatement
+    │   └── [NO Syntax property]
+    ├── BoundIfStatement
+    │   └── [NO Syntax property]
+    ├── BoundLoopStatement
+    │   └── [NO Syntax property]
+    ├── BoundSwitchStatement
+    │   └── [NO Syntax property]
+    └── BoundFunctionDeclaration
+        └── [NO Syntax property]
+
+AFTER (Fixed):
+    BoundNode (abstract)
+    ├── Syntax: SyntaxNode? { get; virtual }  ✨ NEW
+    │
+    ├── BoundBlockStatement
+    │   └── Syntax: null (synthetic)
+    ├── BoundIfStatement
+    │   └── Syntax: IfStatementSyntax?  ✨ NEW
+    ├── BoundLoopStatement
+    │   └── Syntax: LoopStatementSyntax?  ✨ NEW
+    ├── BoundSwitchStatement
+    │   └── Syntax: SwitchStatementSyntax?  ✨ NEW
+    └── BoundFunctionDeclaration
+        └── Syntax: FunctionDeclarationSyntax?  ✨ NEW
+
+    BoundOmgClause (not a BoundNode)
+    └── Syntax: OmgClauseSyntax?  ✨ NEW
+
+    BoundMebbeClause (not a BoundNode)
+    └── Syntax: MebbeClauseSyntax?  ✨ NEW
+
+
+SECTION 2: SEQUENCE POINT EMISSION FLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FOR IF STATEMENT:
+    ┌─────────────────────┐
+    │ Parse: O RLY?       │ (IfStatementSyntax created)
+    │   condition         │
+    │   YATOTLD           │
+    │     statements      │
+    │   OIC               │
+    └──────────┬──────────┘
+               │
+               ▼
+    ┌─────────────────────┐
+    │ Bind: BindIfStatement│ (Pass IfStatementSyntax to constructor)
+    │ → BoundIfStatement  │
+    │   with Syntax       │
+    └──────────┬──────────┘
+               │
+               ▼
+    ┌─────────────────────┐
+    │ Generate: EmitIf    │
+    └──────────┬──────────┘
+               │
+       ┌───────┴───────┐
+       │               │
+       ▼               ▼
+    EMIT SEQUENCE   EMIT IL
+    POINT FOR:      FOR:
+    - ORlyKeyword   - Condition
+    (header only)   - Branch labels
+                    - Block statements
+                    - Jump targets
+
+RESULT:
+    Line 3: O RLY?           ← Debugger marks this line
+    Line 4:   VISIBLE "yes"  ← Debugger marks this line separately
+    Line 5: OIC              ← NOT marked (part of header)
+
+FOR SWITCH STATEMENT:
+    ┌──────────────────────┐
+    │ Parse: WTF?          │ (SwitchStatementSyntax created)
+    │   OMG "val1"         │ (OmgClauseSyntax created)
+    │     statements       │
+    │   OMG "val2"         │ (OmgClauseSyntax created)
+    │     statements       │
+    │   OMGWTF             │
+    │     statements       │
+    │ OIC                  │
+    └──────────┬───────────┘
+               │
+               ▼
+    ┌──────────────────────┐
+    │ Bind: BindSwitch     │ (Pass syntax to all constructors)
+    │ → BoundSwitchStatement
+    │   ├─ BoundOmgClause[0] w/ Syntax
+    │   ├─ BoundOmgClause[1] w/ Syntax
+    │   └─ DefaultBlock
+    └──────────┬───────────┘
+               │
+               ▼
+    ┌──────────────────────┐
+    │ Generate: EmitSwitch │
+    └──────────┬───────────┘
+               │
+       ┌───────┴────────────────┐
+       │                        │
+       ▼                        ▼
+    EMIT SEQUENCE POINT    EMIT IL FOR
+    FOR:                   EACH CLAUSE:
+    1. WtfKeyword (header) - Load switch value
+    2. OmgKeyword[0]       - Compare & jump
+    3. OmgKeyword[1]       - Execute body
+    4. OmgKeyword[2]       - Continue
+    5. OmgwtfKeyword       - (if it has span)
+
+RESULT:
+    Line 10: WTF?          ← Debugger marks header
+    Line 11:   OMG "val1"  ← Debugger marks clause
+    Line 12:     statement ← Debugger marks body
+    Line 13:   OMG "val2"  ← Debugger marks clause
+    Line 14:     statement ← Debugger marks body
+
+
+SECTION 3: SYNTAX SPAN SIZES (THE PROBLEM)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WRONG (Current behavior if emitting for entire span):
+    IfStatementSyntax.Span = "O RLY?" to "OIC"
+    
+    Line 5:  O RLY?                          ← Entire block
+    Line 6:    VISIBLE "1"                      highlighted
+    Line 7:    VISIBLE "2"                      as "current
+    Line 8:    VISIBLE "3"                      line"
+    Line 9:    VISIBLE "4"              💥 WRONG!
+    Line 10:   VISIBLE "5"
+    ... (50 more lines)
+    Line 60:   VISIBLE "55"
+    Line 61: OIC
+    
+    "Why is the debugger here? The code looks like one huge block!"
+
+CORRECT (Fixed behavior):
+    ORlyKeyword.Span = just "O RLY?" on line 5
+    
+    Line 5:  O RLY?           ← Only this line is marked ✓
+    Line 6:    VISIBLE "1"    ← This line marked separately ✓
+    Line 7:    VISIBLE "2"    ← This line marked separately ✓
+    Line 8:    VISIBLE "3"    ← This line marked separately ✓
+    ... (more statements, each marked)
+    Line 61: OIC              ← NOT marked (footer)
+    
+    "The debugger is showing exactly where I am!"
+
+
+SECTION 4: FUNCTION BOUNDARIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WITHOUT Sequence Points (Current):
+    HOW IZ I add
+        A R B PLUS 1              ← Step in lands here (wrong!)
+        GTFO WITH A
+    IF U SAY SO
+    
+    Debugger Experience:
+    ✗ Step in to "add" function → Lands on "A R B PLUS 1" (no entry point)
+    ✗ Step out → Doesn't know where the function returns to
+    ✗ Step over "return" → Lands nowhere (no exit point)
+
+WITH Sequence Points (Fixed):
+    HOW IZ I add                  ← EmitSequencePoint here
+        A R B PLUS 1              ← Step in lands here (correct!)
+        GTFO WITH A
+    IF U SAY SO                   ← EmitSequencePoint here
+    
+    Debugger Experience:
+    ✓ Step in to "add" function → Lands on "HOW IZ I add" (correct entry)
+    ✓ Step to next statement → Lands on "A R B PLUS 1"
+    ✓ Step out → Returns to caller with "IF U SAY SO" marked
+    ✓ Call stack shows "add" function boundaries
+
+
+SECTION 5: BINDING PHASE - SYNTAX CAPTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BindIfStatement Method Flow:
+
+    INPUT: IfStatementSyntax syntax
+           (contains ORlyKeyword, Condition, ThenBlock, MebbeClauses, ElseBlock)
+           
+    ▼
+    
+    Bind condition
+    Bind then block statements
+    Bind mebbe clauses
+    Bind else block (if present)
+    
+    ▼
+    
+    CREATE: BoundIfStatement(
+        thenBlock,
+        mebbeClauses,
+        elseBlock,
+        syntax              ← ✨ NEW: Pass syntax here
+    )
+    
+    ▼
+    
+    OUTPUT: BoundIfStatement
+            with Syntax property set to original IfStatementSyntax
+
+
+SECTION 6: CODEGEN PHASE - SEQUENCE POINT EMISSION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+EmitIfStatement Method Flow:
+
+    INPUT: BoundIfStatement ifStatement
+           (now has .Syntax property)
+    
+    ▼
+    
+    if (ifStatement.Syntax != null)
+    {
+        EmitSequencePoint(
+            ifStatement.Syntax.ORlyKeyword.Span
+        )                           ← ✨ NEW: Just the keyword!
+    }
+    
+    ▼
+    
+    EmitExpression(condition)      ← Evaluate condition
+    
+    ▼
+    
+    if (result is truthy)
+        goto thenLabel
+    else
+        goto firstMebbeLabel
+    
+    ▼
+    
+    thenLabel:
+    EmitBlock(thenBlock)            ← Block emits its statements
+    
+    ▼
+    
+    foreach (mebbe in mebbeClauses)
+    {
+        if (mebbe.Syntax != null)
+        {
+            EmitSequencePoint(
+                mebbe.Syntax.MebbeKeyword.Span  ← ✨ NEW
+            )
+        }
+        
+        EmitExpression(mebbe.Condition)
+        if (result) goto mebbeBody
+        else goto nextMebbeLabel
+        
+        mebbeBody:
+        EmitBlock(mebbe.Body)
+    }
+    
+    ▼
+    
+    elseLabel:
+    if (ifStatement.ElseBlock != null)
+        EmitBlock(ifStatement.ElseBlock)
+    
+    ▼
+    
+    OUTPUT: IL instructions with sequence point metadata
+
+
+SECTION 7: COMPARISON TABLE - WHAT CHANGED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌──────────────────┬─────────────────────┬──────────────────────────┐
+│ Statement        │ Before              │ After                    │
+├──────────────────┼─────────────────────┼──────────────────────────┤
+│ BoundBlockStatement
+│                  │ .Syntax: ∅          │ .Syntax: null (synthetic)│
+│                  │ Emit SP: ✗          │ Emit SP: ✗ (guarded)    │
+├──────────────────┼─────────────────────┼──────────────────────────┤
+│ BoundIfStatement │ .Syntax: ∅          │ .Syntax: IfStatementSyntax
+│                  │ Emit SP: ✗          │ Emit SP: ✓ (header only)│
+├──────────────────┼─────────────────────┼──────────────────────────┤
+│ BoundLoopStatement
+│                  │ .Syntax: ∅          │ .Syntax: LoopStatementSyntax
+│                  │ Emit SP: ✗          │ Emit SP: ✓ (header only)│
+├──────────────────┼─────────────────────┼──────────────────────────┤
+│ BoundSwitchStatement
+│                  │ .Syntax: ∅          │ .Syntax: SwitchStatementSyntax
+│                  │ Emit SP: ✗          │ Emit SP: ✓ (header+cases)
+├──────────────────┼─────────────────────┼──────────────────────────┤
+│ BoundOmgClause   │ .Syntax: ∅          │ .Syntax: OmgClauseSyntax
+│                  │ Emit SP: ✗          │ Emit SP: ✓               │
+├──────────────────┼─────────────────────┼──────────────────────────┤
+│ BoundMebbeClause │ .Syntax: ∅          │ .Syntax: MebbeClauseSyntax
+│                  │ Emit SP: ✗          │ Emit SP: ✓               │
+├──────────────────┼─────────────────────┼──────────────────────────┤
+│ BoundFunctionDeclaration
+│                  │ .Syntax: ∅          │ .Syntax: FunctionDeclSyntax
+│                  │ Emit SP: ✗          │ Emit SP: ✓ (entry+exit) │
+└──────────────────┴─────────────────────┴──────────────────────────┘
+
+Legend: ∅ = missing   ✗ = no/wrong   ✓ = yes/correct   SP = Sequence Point
+
+
+SECTION 8: IMPLEMENTATION DEPENDENCY GRAPH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+                           ┌─────────────────────┐
+                           │ Phase 1: BoundNodes │
+                           │   Add Syntax props  │
+                           └──────────┬──────────┘
+                                      │
+                   ┌──────────────────┼──────────────────┐
+                   │                  │                  │
+                   ▼                  ▼                  ▼
+            ┌──────────────┐   ┌───────────────┐   ┌──────────────┐
+            │ IF Statement │   │ Loop Statement│   │Switch/Clauses│
+            │ (.Syntax)    │   │ (.Syntax)     │   │ (.Syntax)    │
+            └──────────────┘   └───────────────┘   └──────────────┘
+                   │                  │                  │
+                   └──────────────────┼──────────────────┘
+                                      │
+                           ┌──────────▼──────────┐
+                           │ Phase 2: Binder     │
+                           │  Pass Syntax in     │
+                           │  constructors       │
+                           └──────────┬──────────┘
+                                      │
+                   ┌──────────────────┼──────────────────┐
+                   │                  │                  │
+                   ▼                  ▼                  ▼
+            ┌──────────────┐   ┌───────────────┐   ┌──────────────┐
+            │ Emit IF      │   │ Emit Loop     │   │ Emit Switch  │
+            │ (header SP)  │   │ (header SP)   │   │ (all SPs)    │
+            └──────────────┘   └───────────────┘   └──────────────┘
+                   │                  │                  │
+                   └──────────────────┼──────────────────┘
+                                      │
+                           ┌──────────▼──────────┐
+                           │ Phase 3: CodeGen    │
+                           │  Emit Sequence Pts  │
+                           └──────────┬──────────┘
+                                      │
+                   ┌──────────────────┼──────────────────┐
+                   │                  │                  │
+                   ▼                  ▼                  ▼
+            ┌──────────────┐   ┌───────────────┐   ┌──────────────┐
+            │ Function     │   │ Test Cleanup  │   │ Debugging &  │
+            │ Entry/Exit   │   │ PDB deletion  │   │ Validation   │
+            └──────────────┘   └───────────────┘   └──────────────┘
+
+
+SECTION 9: SEQUENCE POINT COVERAGE MATRIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Statement Type          │ Top-Level │ Sub-expr │ Entry │ Exit │ Note
+────────────────────────┼───────────┼──────────┼───────┼──────┼─────────
+Variable Declaration    │     ✓     │    —     │  —    │  —   │ Full span
+Assignment              │     ✓     │    —     │  —    │  —   │ Full span
+VISIBLE (Print)         │     ✓     │    —     │  —    │  —   │ Full span
+GIMMEH (Input)          │     ✓     │    —     │  —    │  —   │ Full span
+Expression (bare)       │     ✓     │    —     │  —    │  —   │ Full span
+─────────────────────────────────────────────────────────────────────────
+Block Statement         │     ✗     │    —     │  —    │  —   │ Never (synthetic)
+─────────────────────────────────────────────────────────────────────────
+IF Statement            │     ✓     │    —     │  —    │  —   │ Header only
+  ├─ Header (O RLY?)    │     ✓     │    —     │  —    │  —   │ Keyword span
+  └─ MEBBE clauses      │     ✓     │    —     │  —    │  —   │ Keyword span each
+─────────────────────────────────────────────────────────────────────────
+LOOP Statement          │     ✓     │    —     │  —    │  —   │ Header only
+  └─ Header             │     ✓     │    —     │  —    │  —   │ Keyword span
+─────────────────────────────────────────────────────────────────────────
+SWITCH Statement        │     ✓     │    —     │  —    │  —   │ Header + cases
+  ├─ Header (WTF?)      │     ✓     │    —     │  —    │  —   │ Keyword span
+  ├─ OMG clauses        │     ✓     │    —     │  —    │  —   │ Keyword span each
+  └─ Default (OMGWTF)   │     ✓     │    —     │  —    │  —   │ Keyword span
+─────────────────────────────────────────────────────────────────────────
+FUNCTION Declaration    │     ✓     │    —     │  ✓   │  ✓   │ Header + exit
+  ├─ Entry (HOW IZ I)   │     ✓     │    —     │  ✓   │  —   │ Keyword span
+  └─ Exit (IF U SAY SO) │     ✓     │    —     │  —    │  ✓   │ Keyword span
+─────────────────────────────────────────────────────────────────────────
+GTFO (Break)            │     ✓     │    —     │  —    │  —   │ Full span
+GTFO WITH (Return)      │     ✓     │    —     │  —    │  —   │ Full span
+
+═══════════════════════════════════════════════════════════════════════════════
