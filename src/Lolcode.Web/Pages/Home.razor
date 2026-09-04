@@ -19,11 +19,11 @@
 
     <section class="hero">
         <div>
-            <p class="eyebrow">NO SERVER. JUST .NET IN YOUR BROWSER.</p>
-            <h1>Write it. Run it. See what happens.</h1>
+            <p class="eyebrow">NO SERVER. JUST LOLCODE IN YOUR BROWSER.</p>
+            <h1>HAI, browser. I CAN HAZ code?</h1>
             <p class="hero-copy">
-                A preview of the LOLCODE fiddle experience, currently powered by
-                a temporary <strong>@CodeRunner.LanguageName</strong> runner.
+                Write <strong>@CodeRunner.LanguageName</strong>, compile it to
+                .NET IL, and run it without leaving this page.
             </p>
         </div>
         <div class="runtime-badge">
@@ -43,7 +43,7 @@
             <div class="panel-header">
                 <div>
                     <span class="panel-kicker">SOURCE</span>
-                    <h2>Program.cs</h2>
+                    <h2>Program.lol</h2>
                 </div>
                 <div class="toolbar">
                     <label class="sample-picker">
@@ -71,7 +71,7 @@
             <div class="editor-status">
                 <span>@LineCount lines</span>
                 <span>@_source.Length.ToString("N0") / 100,000 characters</span>
-                <span>C# 14</span>
+                <span>LOLCODE 1.2</span>
             </div>
         </div>
 
@@ -79,8 +79,8 @@
             <div class="panel input-panel">
                 <div class="panel-header compact">
                     <div>
-                        <span class="panel-kicker">PROGRAM INPUT</span>
-                        <h2>FiddleInput.ReadLine()</h2>
+                        <span class="panel-kicker">STANDARD INPUT</span>
+                        <h2>GIMMEH</h2>
                     </div>
                     <span class="optional-label">optional</span>
                 </div>
@@ -101,10 +101,6 @@
                     {
                         <span class="terminal-meta">
                             @_result.Duration.TotalMilliseconds.ToString("N0") ms
-                            @if (_result.ExitCode is not null)
-                            {
-                                <text> · exit @_result.ExitCode</text>
-                            }
                         </span>
                     }
                 </div>
@@ -161,11 +157,11 @@
 
     <footer>
         <p>
-            This terminal presents program output only. Browser input is exposed
-            through <code>FiddleInput.ReadLine()</code>; this is not an OS shell
-            and cannot run <code>dotnet</code> commands.
+            This terminal presents <code>VISIBLE</code> output. The input panel
+            feeds <code>GIMMEH</code>; this is not an OS shell and cannot run
+            <code>dotnet</code> commands.
         </p>
-        <p>Built with Blazor WebAssembly, .NET 10, and Roslyn.</p>
+        <p>Built with Blazor WebAssembly, .NET 10, and dotnet-lolcode.</p>
     </footer>
 </main>
 
@@ -174,42 +170,79 @@
     [
         new(
             "hello",
-            "Hello browser",
+            "Hello + input",
             """
-            Console.WriteLine("OH HAI from .NET in WebAssembly!");
-
-            var name = FiddleInput.ReadLine();
-            Console.WriteLine($"Nice to meet you, {name ?? "mysterious human"}.");
+            HAI 1.2
+              VISIBLE "OH HAI! WUT IZ UR NAME?"
+              I HAS A name
+              GIMMEH name
+              VISIBLE "NICE 2 MEET U, " name "!"
+            KTHXBYE
             """,
             "LOLCAT\n"),
         new(
             "fizzbuzz",
             "FizzBuzz",
             """
-            for (var number = 1; number <= 30; number++)
-            {
-                var text = number % 15 == 0 ? "FizzBuzz"
-                    : number % 3 == 0 ? "Fizz"
-                    : number % 5 == 0 ? "Buzz"
-                    : number.ToString();
-
-                Console.WriteLine(text);
-            }
+            HAI 1.2
+              I HAS A i ITZ 1
+              IM IN YR fizzbuzz UPPIN YR i TIL BOTH SAEM i AN 101
+                I HAS A out ITZ ""
+                BOTH SAEM MOD OF i AN 3 AN 0
+                O RLY?
+                  YA RLY, out R "Fizz"
+                OIC
+                BOTH SAEM MOD OF i AN 5 AN 0
+                O RLY?
+                  YA RLY, out R SMOOSH out AN "Buzz" MKAY
+                OIC
+                BOTH SAEM out AN ""
+                O RLY?
+                  YA RLY, VISIBLE i
+                  NO WAI, VISIBLE out
+                OIC
+              IM OUTTA YR fizzbuzz
+            KTHXBYE
+            """,
+            string.Empty),
+        new(
+            "fibonacci",
+            "Fibonacci",
+            """
+            HAI 1.2
+              HOW IZ I fib YR n
+                BOTH SAEM n AN 0
+                O RLY?
+                  YA RLY, FOUND YR 0
+                OIC
+                BOTH SAEM n AN 1
+                O RLY?
+                  YA RLY, FOUND YR 1
+                OIC
+                FOUND YR SUM OF I IZ fib YR DIFF OF n AN 1 MKAY AN I IZ fib YR DIFF OF n AN 2 MKAY
+              IF U SAY SO
+              VISIBLE "FIB(10) = " I IZ fib YR 10 MKAY
+            KTHXBYE
             """,
             string.Empty),
         new(
             "diagnostics",
             "Compile error",
             """
-            Console.WriteLine("This sample shows a compiler diagnostic")
+            HAI 1.2
+              VISIBLE missing
+            KTHXBYE
             """,
             string.Empty),
         new(
             "runtime",
             "Runtime error",
             """
-            Console.WriteLine("The program starts...");
-            throw new InvalidOperationException("Something went sideways.");
+            HAI 1.2
+              VISIBLE "ABOUT 2 DO BAD MATH..."
+              I HAS A value
+              VISIBLE SUM OF value AN 1
+            KTHXBYE
             """,
             string.Empty),
     ];

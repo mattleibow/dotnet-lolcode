@@ -3,9 +3,9 @@
 `src/Lolcode.Web` is a standalone .NET 10 Blazor WebAssembly application. It
 publishes as static files and requires no application server.
 
-The playground currently uses C# so the UI and GitHub Pages deployment can be
-exercised before the browser-compatible LOLCODE execution API is available.
-The temporary runner is intentionally isolated from the rest of the UI.
+The playground compiles LOLCODE to .NET IL and executes it entirely inside the
+browser. Source, deterministic `GIMMEH` input, `VISIBLE` output, compiler
+diagnostics, and runtime failures never leave the page.
 
 ## Run locally
 
@@ -39,37 +39,17 @@ The deployable site is in `artifacts/lolcode-web/wwwroot`.
   playground page.
 - `Execution/ICodeRunner.cs` is the boundary between the UI and a language
   implementation.
-- `Execution/CSharpCodeRunner.cs` uses the official Roslyn
-  `Microsoft.CodeAnalysis.CSharp` package. It loads a curated set of .NET 10
-  reference assemblies, emits a uniquely named assembly and portable PDB to
-  memory, loads the PE with plain non-collectible `Assembly.Load(byte[], byte[])`,
-  invokes its entry point, and captures `Console` output. Browser stack frames
-  don't consistently expose source lines for dynamically loaded assemblies, so
-  runtime diagnostics fall back to the emitted portable PDB using the failing
-  method's metadata token and IL offset. Because browser WebAssembly doesn't
-  support `Console.SetIn`,
-  the runner supplies input through a generated `FiddleInput.ReadLine()` helper
-  instead of pretending `Console.ReadLine()` is available.
-- The terminal panel presents only program standard output and standard error.
-  The adjacent input panel feeds `FiddleInput.ReadLine()`. A static browser
-  application cannot provide an OS shell or run the `dotnet` CLI.
-
-Trimming is disabled for this project because Roslyn and dynamically loaded
-user assemblies depend on APIs that static analysis cannot discover.
-
-## Replace the temporary runner with LOLCODE
-
-Once the browser execution API is available:
-
-1. Add a project reference from `Lolcode.Web` to the browser-compatible
-   compiler/runtime projects.
-2. Implement `ICodeRunner` with `LolcodeScript` or `LolcodeCompilation`,
-   mapping its diagnostics into `CodeDiagnostic`.
-3. Register the new implementation in `Program.cs`.
-4. Change the samples and language label on `Pages/Home.razor`.
-
-No editor, input, terminal, diagnostics, or page-layout redesign is required.
-The web project deliberately does not depend on unmerged compiler changes.
+- `Execution/LolcodeCodeRunner.cs` creates a `LolcodeCompilation` and calls
+  `LolcodeScript.Run`. The scripting API emits a uniquely named PE and portable
+  PDB in memory, loads the assembly, scopes `GIMMEH`/`VISIBLE` I/O, invokes the
+  entry point, and returns structured compiler and runtime state.
+- Compiler diagnostics map directly from `LolcodeScriptResult`. Browser stack
+  frames don't consistently expose source lines for dynamically loaded
+  assemblies, so runtime diagnostics fall back to the compilation's portable
+  PDB using the failing method's metadata token and IL offset.
+- The terminal panel presents `VISIBLE` output and the adjacent input panel
+  feeds `GIMMEH`. A static browser application cannot provide an OS shell or
+  run the `dotnet` CLI.
 
 ## Browser execution limitations
 
@@ -83,14 +63,11 @@ isolation:
   Assemblies can't be unloaded individually in this hosting model. Refresh the
   page after many runs to reclaim memory. Collectible `AssemblyLoadContext`
   isn't supported in browser WebAssembly and isn't used by this runner.
-- The runner is not a process, container, or security boundary. User code can
-  access APIs available to the WebAssembly runtime and can interfere with
-  process-wide state such as `Console`.
+- The runner is not a process, container, or security boundary. It executes in
+  the same WebAssembly runtime as the playground.
 - Source is capped at 100,000 characters, stdin at 32,000 characters, and
-  captured output at 128,000 characters. These limits reduce accidental memory
-  growth but don't make execution safe.
-- The curated reference set supports common console, collection, LINQ, text,
-  regex, and JSON programs. It isn't the full .NET reference pack.
+  displayed output is truncated after 128,000 characters. The compiler and
+  executing program can still allocate additional memory.
 - Browser platform restrictions still apply. There is no native process,
   arbitrary filesystem, or general outbound socket access.
 
