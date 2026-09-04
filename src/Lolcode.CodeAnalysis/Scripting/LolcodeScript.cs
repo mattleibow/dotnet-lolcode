@@ -9,119 +9,109 @@ using Lolcode.Runtime;
 namespace Lolcode.CodeAnalysis.Scripting;
 
 /// <summary>
-/// Provides a scripting-style facade for compiling and running LOLCODE in memory.
+/// Represents a reusable LOLCODE script that can be compiled, inspected, and run entirely in memory.
 /// </summary>
 /// <remarks>
-/// Compilation and emission remain available separately through
-/// <see cref="LolcodeCompilation"/>. This facade is the execution host, analogous
-/// to the role of Roslyn's language scripting APIs rather than <c>Compilation</c>.
-/// Browser WebAssembly execution uses non-collectible assembly loading, so generated
-/// assemblies remain loaded until the application is reloaded.
+/// Compilation and emission remain separate through <see cref="LolcodeCompilation"/>. Browser WebAssembly execution uses non-collectible
+/// assembly loading, so generated assemblies remain loaded until the application is reloaded.
 /// </remarks>
-public static class LolcodeScript
+public sealed class LolcodeScript
 {
+    private readonly LolcodeCompilation _compilation;
+
+    private LolcodeScript(LolcodeCompilation compilation, LolcodeScriptOptions options)
+    {
+        _compilation = compilation;
+        Options = options;
+    }
+
     /// <summary>
-    /// Parses, compiles, and runs LOLCODE entirely in memory.
+    /// Gets the options used to create this script.
     /// </summary>
-    /// <param name="code">The LOLCODE source to run.</param>
-    /// <param name="standardInput">
-    /// Text supplied to <c>GIMMEH</c>. A <see langword="null"/> value supplies end-of-input.
-    /// </param>
-    /// <param name="filePath">
-    /// An optional source path used only for diagnostics and portable PDB sequence points.
-    /// </param>
-    /// <returns>Structured diagnostics, output, return value, and runtime failure state.</returns>
-    public static LolcodeScriptResult Run(
-        string code,
-        string? standardInput = null,
-        string? filePath = null)
+    public LolcodeScriptOptions Options { get; }
+
+    /// <summary>
+    /// Creates a reusable LOLCODE script.
+    /// </summary>
+    /// <param name="code">The LOLCODE source text.</param>
+    /// <param name="options">Script creation options, or <see langword="null"/> to use <see cref="LolcodeScriptOptions.Default"/>.</param>
+    /// <returns>A script that can be compiled, inspected, and run.</returns>
+    public static LolcodeScript Create(string code, LolcodeScriptOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(code);
+        options ??= LolcodeScriptOptions.Default;
+        ArgumentNullException.ThrowIfNull(options.FilePath);
 
-        var syntaxTree = SyntaxTree.ParseText(code, filePath ?? "submission.lol");
-        return Run(LolcodeCompilation.Create(syntaxTree), standardInput);
+        var syntaxTree = SyntaxTree.ParseText(code, options.FilePath);
+        return new LolcodeScript(LolcodeCompilation.Create(syntaxTree), options);
     }
 
     /// <summary>
-    /// Emits and runs an existing compilation entirely in memory.
+    /// Creates and runs a LOLCODE script entirely in memory.
     /// </summary>
-    /// <param name="compilation">The compilation to run.</param>
-    /// <param name="standardInput">
-    /// Text supplied to <c>GIMMEH</c>. A <see langword="null"/> value supplies end-of-input.
+    /// <param name="code">The LOLCODE source text.</param>
+    /// <param name="options">Script creation options, or <see langword="null"/> to use <see cref="LolcodeScriptOptions.Default"/>.</param>
+    /// <param name="executionOptions">
+    /// Input and output capture options, or <see langword="null"/> to use <see cref="LolcodeScriptExecutionOptions.Default"/>.
     /// </param>
-    /// <returns>Structured diagnostics, output, return value, and runtime failure state.</returns>
+    /// <returns>The final script state, including diagnostics, captured output, return value, and runtime failure state.</returns>
+    public static LolcodeScriptState Run(
+        string code,
+        LolcodeScriptOptions? options = null,
+        LolcodeScriptExecutionOptions? executionOptions = null)
+        => Create(code, options).Run(executionOptions);
+
+    /// <summary>
+    /// Gets the compilation that represents the syntax and semantics of this script.
+    /// </summary>
+    /// <returns>The reusable LOLCODE compilation.</returns>
+    public LolcodeCompilation GetCompilation() => _compilation;
+
+    /// <summary>
+    /// Compiles the script and returns all syntax and semantic diagnostics without executing it.
+    /// </summary>
+    /// <returns>All diagnostics produced by the compilation.</returns>
+    public ImmutableArray<Diagnostic> Compile() => _compilation.GetDiagnostics();
+
+    /// <summary>
+    /// Emits and runs the script entirely in memory.
+    /// </summary>
+    /// <param name="options">
+    /// Input and output capture options, or <see langword="null"/> to use <see cref="LolcodeScriptExecutionOptions.Default"/>.
+    /// </param>
+    /// <returns>The final script state, including diagnostics, captured output, return value, and runtime failure state.</returns>
     /// <remarks>
-    /// Each call emits a unique assembly identity. CoreCLR loads it into a collectible
-    /// <see cref="AssemblyLoadContext"/> and requests unloading before this method returns.
-    /// Browser WebAssembly loads it with <see cref="Assembly.Load(byte[], byte[])"/> because
-    /// Mono WebAssembly does not expose generated types as collectible; browser-loaded
-    /// assemblies therefore remain for the lifetime of the application.
+    /// Each call emits a unique assembly identity. CoreCLR loads it into a collectible <see cref="AssemblyLoadContext"/> and requests unloading
+    /// before this method returns. Browser WebAssembly uses <see cref="Assembly.Load(byte[], byte[])"/> because generated Mono types are not
+    /// collectible; browser-loaded assemblies therefore remain for the lifetime of the application.
     /// </remarks>
-    public static LolcodeScriptResult Run(
-        LolcodeCompilation compilation,
-        string? standardInput = null)
-        => Run(compilation, standardInput, maximumOutputLength: null);
+    public LolcodeScriptState Run(LolcodeScriptExecutionOptions? options = null)
+        => RunCore(options, useNonCollectibleAssemblyLoad: OperatingSystem.IsBrowser());
 
-    /// <summary>
-    /// Emits and runs an existing compilation entirely in memory with bounded captured output.
-    /// </summary>
-    /// <param name="compilation">The compilation to run.</param>
-    /// <param name="standardInput">
-    /// Text supplied to <c>GIMMEH</c>. A <see langword="null"/> value supplies end-of-input.
-    /// </param>
-    /// <param name="maximumOutputLength">
-    /// The maximum number of output characters to retain, or <see langword="null"/> for no limit.
-    /// </param>
-    /// <returns>Structured diagnostics, output, return value, and runtime failure state.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="maximumOutputLength"/> is negative.
-    /// </exception>
-    public static LolcodeScriptResult Run(
-        LolcodeCompilation compilation,
-        string? standardInput,
-        int? maximumOutputLength)
+    internal LolcodeScriptState RunCore(LolcodeScriptExecutionOptions? options, bool useNonCollectibleAssemblyLoad)
     {
-        if (maximumOutputLength is < 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(maximumOutputLength),
-                maximumOutputLength,
-                "The maximum output length cannot be negative.");
-        }
-
-        return RunCore(
-            compilation,
-            standardInput,
-            useNonCollectibleAssemblyLoad: OperatingSystem.IsBrowser(),
-            maximumOutputLength);
-    }
-
-    internal static LolcodeScriptResult RunCore(
-        LolcodeCompilation compilation,
-        string? standardInput,
-        bool useNonCollectibleAssemblyLoad,
-        int? maximumOutputLength = null)
-    {
-        ArgumentNullException.ThrowIfNull(compilation);
+        options ??= LolcodeScriptExecutionOptions.Default;
 
         using var peStream = new MemoryStream();
         using var pdbStream = new MemoryStream();
-        var emitResult = compilation.Emit(peStream, pdbStream);
+        var emitResult = _compilation.Emit(peStream, pdbStream);
         if (!emitResult.Success)
         {
-            return new LolcodeScriptResult(
+            return new LolcodeScriptState(
+                this,
                 executed: false,
                 emitResult.Diagnostics,
                 output: string.Empty,
                 returnValue: null,
-                exception: null);
+                exception: null,
+                outputTruncated: false);
         }
 
         peStream.Position = 0;
         pdbStream.Position = 0;
 
-        using var input = new StringReader(standardInput ?? string.Empty);
-        using TextWriter output = maximumOutputLength is { } limit
+        using var input = new StringReader(options.StandardInput ?? string.Empty);
+        using TextWriter output = options.MaximumOutputLength is { } limit
             ? new BoundedStringWriter(limit)
             : new StringWriter(CultureInfo.InvariantCulture);
         ScriptAssemblyLoadContext? loadContext = null;
@@ -142,8 +132,7 @@ public static class LolcodeScript
                 assembly = loadContext.LoadFromStream(peStream, pdbStream);
             }
 
-            var entryPoint = assembly.EntryPoint
-                ?? throw new InvalidOperationException("Emitted LOLCODE assembly has no entry point.");
+            var entryPoint = assembly.EntryPoint ?? throw new InvalidOperationException("Emitted LOLCODE assembly has no entry point.");
 
             using var ioScope = LolRuntime.PushIo(input, output);
             executed = true;
@@ -162,7 +151,8 @@ public static class LolcodeScript
             loadContext?.Unload();
         }
 
-        return new LolcodeScriptResult(
+        return new LolcodeScriptState(
+            this,
             executed,
             emitResult.Diagnostics,
             output.ToString() ?? string.Empty,
@@ -231,10 +221,70 @@ public static class LolcodeScript
 }
 
 /// <summary>
-/// Describes the result of an in-memory LOLCODE execution.
+/// Configures the source represented by a <see cref="LolcodeScript"/>.
 /// </summary>
-public sealed class LolcodeScriptResult
+public sealed record LolcodeScriptOptions
 {
+    /// <summary>
+    /// Gets the default script options.
+    /// </summary>
+    public static LolcodeScriptOptions Default { get; } = new();
+
+    /// <summary>
+    /// Gets the source path used for diagnostics and portable PDB sequence points.
+    /// </summary>
+    public string FilePath { get; init; } = "submission.lol";
+}
+
+/// <summary>
+/// Configures a single execution of a <see cref="LolcodeScript"/>.
+/// </summary>
+public sealed record LolcodeScriptExecutionOptions
+{
+    private int? _maximumOutputLength;
+
+    /// <summary>
+    /// Gets the default execution options.
+    /// </summary>
+    public static LolcodeScriptExecutionOptions Default { get; } = new();
+
+    /// <summary>
+    /// Gets text supplied to <c>GIMMEH</c>. A <see langword="null"/> value supplies end-of-input.
+    /// </summary>
+    public string? StandardInput { get; init; }
+
+    /// <summary>
+    /// Gets the maximum number of output characters to retain, or <see langword="null"/> for no limit.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The assigned value is negative.</exception>
+    public int? MaximumOutputLength
+    {
+        get => _maximumOutputLength;
+        init
+        {
+            if (value is < 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(MaximumOutputLength),
+                    value,
+                    "The maximum output length cannot be negative.");
+            }
+
+            _maximumOutputLength = value;
+        }
+    }
+}
+
+/// <summary>
+/// Describes the final state of an in-memory LOLCODE execution.
+/// </summary>
+public sealed class LolcodeScriptState
+{
+    /// <summary>
+    /// Gets the script that produced this state.
+    /// </summary>
+    public LolcodeScript Script { get; }
+
     /// <summary>
     /// Gets whether compilation and execution completed without errors.
     /// </summary>
@@ -256,19 +306,16 @@ public sealed class LolcodeScriptResult
     public string Output { get; }
 
     /// <summary>
-    /// Gets the entry point return value. Current LOLCODE programs have a <see langword="void"/>
-    /// entry point, so this is normally <see langword="null"/>.
+    /// Gets the entry point return value. Current LOLCODE programs have a <see langword="void"/> entry point, so this is normally
+    /// <see langword="null"/>.
     /// </summary>
     public object? ReturnValue { get; }
 
     /// <summary>
-    /// Gets the exception thrown by the LOLCODE program, or <see langword="null"/> when execution
-    /// completed normally or was prevented by compilation errors.
+    /// Gets the exception thrown by the LOLCODE program, or <see langword="null"/> when execution completed normally or was prevented by
+    /// compilation errors.
     /// </summary>
-    /// <remarks>
-    /// Exceptions thrown by generated code are unwrapped from
-    /// <see cref="TargetInvocationException"/>.
-    /// </remarks>
+    /// <remarks>Exceptions thrown by generated code are unwrapped from <see cref="TargetInvocationException"/>.</remarks>
     public Exception? Exception { get; }
 
     /// <summary>
@@ -276,14 +323,16 @@ public sealed class LolcodeScriptResult
     /// </summary>
     public bool OutputTruncated { get; }
 
-    internal LolcodeScriptResult(
+    internal LolcodeScriptState(
+        LolcodeScript script,
         bool executed,
         ImmutableArray<Diagnostic> diagnostics,
         string output,
         object? returnValue,
         Exception? exception,
-        bool outputTruncated = false)
+        bool outputTruncated)
     {
+        Script = script;
         Executed = executed;
         Diagnostics = diagnostics;
         Output = output;

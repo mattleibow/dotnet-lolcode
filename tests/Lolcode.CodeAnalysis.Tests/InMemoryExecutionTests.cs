@@ -63,11 +63,15 @@ public sealed class InMemoryExecutionTests
 
         try
         {
-            var result = LolcodeScript.Run(
-                HelloProgram,
-                filePath: Path.Combine(tempDirectory, "submission.lol"));
+            var script = LolcodeScript.Create(HelloProgram, new LolcodeScriptOptions
+            {
+                FilePath = Path.Combine(tempDirectory, "submission.lol"),
+            });
 
-            result.Success.Should().BeTrue();
+            var state = script.Run();
+
+            state.Success.Should().BeTrue();
+            state.Script.Should().BeSameAs(script);
             Directory.EnumerateFileSystemEntries(tempDirectory).Should().BeEmpty();
         }
         finally
@@ -79,15 +83,30 @@ public sealed class InMemoryExecutionTests
     [Fact]
     public void Run_CapturesVisibleOutput()
     {
-        var result = LolcodeScript.Run(HelloProgram);
+        var script = LolcodeScript.Create(HelloProgram);
 
-        result.Success.Should().BeTrue();
-        result.Executed.Should().BeTrue();
-        result.Diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
-        result.Output.Should().Be($"HAI FROM MEMORY{Environment.NewLine}");
-        result.OutputTruncated.Should().BeFalse();
-        result.ReturnValue.Should().BeNull();
-        result.Exception.Should().BeNull();
+        var state = script.Run();
+
+        state.Script.Should().BeSameAs(script);
+        state.Success.Should().BeTrue();
+        state.Executed.Should().BeTrue();
+        state.Diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
+        state.Output.Should().Be($"HAI FROM MEMORY{Environment.NewLine}");
+        state.OutputTruncated.Should().BeFalse();
+        state.ReturnValue.Should().BeNull();
+        state.Exception.Should().BeNull();
+    }
+
+    [Fact]
+    public void Create_ExposesReusableCompilation()
+    {
+        var script = LolcodeScript.Create(HelloProgram);
+
+        var compilation = script.GetCompilation();
+
+        script.GetCompilation().Should().BeSameAs(compilation);
+        script.Compile().Should().BeEquivalentTo(compilation.GetDiagnostics());
+        script.Options.Should().BeSameAs(LolcodeScriptOptions.Default);
     }
 
     [Theory]
@@ -99,41 +118,39 @@ public sealed class InMemoryExecutionTests
         string expectedOutput,
         bool expectedTruncated)
     {
-        var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(
+        var script = LolcodeScript.Create(
             """
             HAI 1.2
               VISIBLE "ABCDE"!
             KTHXBYE
-            """));
+            """);
 
-        var result = LolcodeScript.Run(
-            compilation,
-            standardInput: null,
-            maximumOutputLength: maximumOutputLength);
+        var state = script.Run(new LolcodeScriptExecutionOptions
+        {
+            MaximumOutputLength = maximumOutputLength,
+        });
 
-        result.Success.Should().BeTrue();
-        result.Output.Should().Be(expectedOutput);
-        result.OutputTruncated.Should().Be(expectedTruncated);
+        state.Success.Should().BeTrue();
+        state.Output.Should().Be(expectedOutput);
+        state.OutputTruncated.Should().Be(expectedTruncated);
     }
 
     [Fact]
     public void Run_RejectsNegativeMaximumOutputLength()
     {
-        var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(HelloProgram));
+        var createOptions = () => new LolcodeScriptExecutionOptions
+        {
+            MaximumOutputLength = -1,
+        };
 
-        var run = () => LolcodeScript.Run(
-            compilation,
-            standardInput: null,
-            maximumOutputLength: -1);
-
-        run.Should().Throw<ArgumentOutOfRangeException>()
-            .Which.ParamName.Should().Be("maximumOutputLength");
+        createOptions.Should().Throw<ArgumentOutOfRangeException>()
+            .Which.ParamName.Should().Be("MaximumOutputLength");
     }
 
     [Fact]
     public void Run_SuppliesInputToGimmeh()
     {
-        var result = LolcodeScript.Run(
+        var state = LolcodeScript.Run(
             """
             HAI 1.2
               I HAS A name
@@ -141,33 +158,41 @@ public sealed class InMemoryExecutionTests
               VISIBLE "HAI, " name "!"
             KTHXBYE
             """,
-            standardInput: $"LOLCAT{Environment.NewLine}");
+            executionOptions: new LolcodeScriptExecutionOptions
+            {
+                StandardInput = $"LOLCAT{Environment.NewLine}",
+            });
 
-        result.Success.Should().BeTrue();
-        result.Output.Should().Be($"HAI, LOLCAT!{Environment.NewLine}");
+        state.Success.Should().BeTrue();
+        state.Output.Should().Be($"HAI, LOLCAT!{Environment.NewLine}");
     }
 
     [Fact]
     public void Run_CompilationDiagnosticsPreventExecution()
     {
-        var result = LolcodeScript.Run(
+        var script = LolcodeScript.Create(
             """
             HAI 1.2
               VISIBLE missing
             KTHXBYE
             """);
 
-        result.Success.Should().BeFalse();
-        result.Executed.Should().BeFalse();
-        result.Diagnostics.Should().Contain(d => d.Severity == DiagnosticSeverity.Error);
-        result.Output.Should().BeEmpty();
-        result.Exception.Should().BeNull();
+        var diagnostics = script.Compile();
+        var state = script.Run();
+
+        diagnostics.Should().Contain(d => d.Severity == DiagnosticSeverity.Error);
+        state.Script.Should().BeSameAs(script);
+        state.Success.Should().BeFalse();
+        state.Executed.Should().BeFalse();
+        state.Diagnostics.Should().BeEquivalentTo(diagnostics);
+        state.Output.Should().BeEmpty();
+        state.Exception.Should().BeNull();
     }
 
     [Fact]
     public void Run_UnwrapsRuntimeExceptions()
     {
-        var result = LolcodeScript.Run(
+        var state = LolcodeScript.Run(
             """
             HAI 1.2
               I HAS A value
@@ -175,17 +200,17 @@ public sealed class InMemoryExecutionTests
             KTHXBYE
             """);
 
-        result.Success.Should().BeFalse();
-        result.Executed.Should().BeTrue();
-        result.Exception.Should().BeOfType<LolRuntimeException>()
+        state.Success.Should().BeFalse();
+        state.Executed.Should().BeTrue();
+        state.Exception.Should().BeOfType<LolRuntimeException>()
             .Which.Message.Should().Contain("NOOB");
-        result.Exception.Should().NotBeOfType<System.Reflection.TargetInvocationException>();
+        state.Exception.Should().NotBeOfType<System.Reflection.TargetInvocationException>();
     }
 
     [Fact]
     public void Run_ExecutesFunctionsAndControlFlow()
     {
-        var result = LolcodeScript.Run(
+        var state = LolcodeScript.Run(
             """
             HAI 1.2
               HOW IZ I factorial YR n
@@ -201,36 +226,37 @@ public sealed class InMemoryExecutionTests
             KTHXBYE
             """);
 
-        result.Success.Should().BeTrue();
-        result.Output.Should().Be($"120{Environment.NewLine}");
+        state.Success.Should().BeTrue();
+        state.Output.Should().Be($"120{Environment.NewLine}");
     }
 
     [Fact]
     public void Run_RepeatedExecutionsSucceed()
     {
-        var results = Enumerable.Range(0, 20)
-            .Select(_ => LolcodeScript.Run(HelloProgram))
+        var script = LolcodeScript.Create(HelloProgram);
+
+        var states = Enumerable.Range(0, 20)
+            .Select(_ => script.Run())
             .ToArray();
 
-        results.Should().OnlyContain(result => result.Success);
-        results.Select(result => result.Output)
+        states.Should().OnlyContain(state => state.Success && ReferenceEquals(state.Script, script));
+        states.Select(state => state.Output)
             .Should().OnlyContain(output => output == $"HAI FROM MEMORY{Environment.NewLine}");
     }
 
     [Fact]
     public void Run_NonCollectibleLoaderSupportsRepeatedExecution()
     {
-        var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(HelloProgram));
+        var script = LolcodeScript.Create(HelloProgram);
 
-        var results = Enumerable.Range(0, 3)
-            .Select(_ => LolcodeScript.RunCore(
-                compilation,
-                standardInput: null,
+        var states = Enumerable.Range(0, 3)
+            .Select(_ => script.RunCore(
+                options: null,
                 useNonCollectibleAssemblyLoad: true))
             .ToArray();
 
-        results.Should().OnlyContain(result => result.Success);
-        results.Select(result => result.Output)
+        states.Should().OnlyContain(state => state.Success);
+        states.Select(state => state.Output)
             .Should().OnlyContain(output => output == $"HAI FROM MEMORY{Environment.NewLine}");
     }
 
@@ -245,16 +271,18 @@ public sealed class InMemoryExecutionTests
             KTHXBYE
             """;
 
+        var script = LolcodeScript.Create(program);
         var executions = Enumerable.Range(0, 12)
-            .Select(index => Task.Run(() => LolcodeScript.Run(
-                program,
-                standardInput: $"LOLCAT {index}{Environment.NewLine}")))
+            .Select(index => Task.Run(() => script.Run(new LolcodeScriptExecutionOptions
+            {
+                StandardInput = $"LOLCAT {index}{Environment.NewLine}",
+            })))
             .ToArray();
 
-        var results = await Task.WhenAll(executions);
+        var states = await Task.WhenAll(executions);
 
-        results.Should().OnlyContain(result => result.Success);
-        results.Select(result => result.Output)
+        states.Should().OnlyContain(state => state.Success);
+        states.Select(state => state.Output)
             .Should().BeEquivalentTo(
                 Enumerable.Range(0, 12).Select(index => $"LOLCAT {index}{Environment.NewLine}"));
     }
