@@ -65,4 +65,6 @@ public enum ErrorCode
 
     /// <summary>Internal compiler error.</summary>
     LOL9001,
+    /// <summary>An obsolete temporary output artifact could not be removed.</summary>
+    LOL9002,
 }
