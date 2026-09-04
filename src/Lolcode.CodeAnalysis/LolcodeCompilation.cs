@@ -138,6 +138,19 @@ public sealed class LolcodeCompilation
                 fileSystem.CreateDirectory(outputDirectory);
 
             var stagedPaths = new List<string>();
+            var stagingExceptions = new List<ArtifactStagingException>();
+
+            void TrackStagingArtifacts(Exception exception)
+            {
+                foreach (var stagingException in GetArtifactStagingExceptions(exception))
+                {
+                    if (!stagingExceptions.Contains(stagingException))
+                        stagingExceptions.Add(stagingException);
+                    if (!stagedPaths.Contains(stagingException.ArtifactPath, StringComparer.Ordinal))
+                        stagedPaths.Add(stagingException.ArtifactPath);
+                }
+            }
+
             try
             {
                 string? stagedPdbPath = null;
@@ -150,6 +163,7 @@ public sealed class LolcodeCompilation
                     }
                     catch (Exception ex) when (IsPathEmissionFailure(ex))
                     {
+                        TrackStagingArtifacts(ex);
                         result = EmitPeWithoutSymbols(
                             peStream,
                             runtimeType,
@@ -191,8 +205,13 @@ public sealed class LolcodeCompilation
                     stagedRuntimeConfigPath,
                     StagePeWithoutSymbols);
 
+                var cleanupFailures = commitResult.CleanupFailures.AddRange(
+                    CleanupStagedArtifacts(
+                        fileSystem,
+                        stagedPaths,
+                        stagingExceptions));
                 var emitDiagnostics = diagnostics;
-                foreach (var cleanupFailure in commitResult.CleanupFailures)
+                foreach (var cleanupFailure in cleanupFailures)
                 {
                     emitDiagnostics = emitDiagnostics.Add(Diagnostic.Create(
                         DiagnosticDescriptors.ArtifactCleanupFailed,
@@ -207,10 +226,21 @@ public sealed class LolcodeCompilation
                     dllPath,
                     commitResult.PdbCommitted ? pdbPath : null);
             }
-            finally
+            catch (Exception operationException) when (IsPathEmissionFailure(operationException))
             {
-                foreach (var stagedPath in stagedPaths)
-                    DeleteIfExists(fileSystem, stagedPath);
+                TrackStagingArtifacts(operationException);
+                var cleanupFailures = CleanupStagedArtifacts(
+                    fileSystem,
+                    stagedPaths,
+                    stagingExceptions);
+                if (!cleanupFailures.IsEmpty)
+                {
+                    throw new AggregateException(
+                        new[] { operationException }
+                            .Concat(cleanupFailures.Select(failure => failure.Exception)));
+                }
+
+                throw;
             }
         }
         catch (Exception ex) when (IsPathEmissionFailure(ex))
@@ -362,7 +392,18 @@ public sealed class LolcodeCompilation
         }
         catch (Exception ex) when (IsPathEmissionFailure(ex))
         {
-            DeleteIfExists(fileSystem, temporaryPath);
+            try
+            {
+                DeleteIfExists(fileSystem, temporaryPath);
+            }
+            catch (Exception cleanupException) when (IsPathEmissionFailure(cleanupException))
+            {
+                throw new ArtifactStagingException(
+                    temporaryPath,
+                    ex,
+                    cleanupException);
+            }
+
             throw;
         }
     }
@@ -386,7 +427,18 @@ public sealed class LolcodeCompilation
         }
         catch (Exception ex) when (IsPathEmissionFailure(ex))
         {
-            DeleteIfExists(fileSystem, temporaryPath);
+            try
+            {
+                DeleteIfExists(fileSystem, temporaryPath);
+            }
+            catch (Exception cleanupException) when (IsPathEmissionFailure(cleanupException))
+            {
+                throw new ArtifactStagingException(
+                    temporaryPath,
+                    ex,
+                    cleanupException);
+            }
+
             throw;
         }
     }
@@ -541,6 +593,60 @@ public sealed class LolcodeCompilation
         };
     }
 
+    private static ImmutableArray<PathCleanupFailure> CleanupStagedArtifacts(
+        IPathEmitFileSystem fileSystem,
+        IEnumerable<string> stagedPaths,
+        IReadOnlyCollection<ArtifactStagingException> stagingExceptions)
+    {
+        var failures = ImmutableArray.CreateBuilder<PathCleanupFailure>();
+
+        foreach (var stagedPath in stagedPaths.Distinct(StringComparer.Ordinal))
+        {
+            try
+            {
+                DeleteIfExists(fileSystem, stagedPath);
+            }
+            catch (Exception ex) when (IsPathEmissionFailure(ex))
+            {
+                var earlierFailures = stagingExceptions
+                    .Where(stagingException =>
+                        stagingException.ArtifactPath == stagedPath)
+                    .Cast<Exception>()
+                    .ToArray();
+                var cleanupException = earlierFailures.Length == 0
+                    ? ex
+                    : new AggregateException(earlierFailures.Append(ex));
+                failures.Add(new PathCleanupFailure(stagedPath, cleanupException));
+            }
+        }
+
+        return failures.ToImmutable();
+    }
+
+    private static IEnumerable<ArtifactStagingException> GetArtifactStagingExceptions(
+        Exception exception)
+    {
+        if (exception is ArtifactStagingException stagingException)
+        {
+            yield return stagingException;
+            yield break;
+        }
+
+        if (exception is AggregateException aggregateException)
+        {
+            foreach (var innerException in aggregateException.InnerExceptions)
+            {
+                foreach (var nestedException in GetArtifactStagingExceptions(innerException))
+                    yield return nestedException;
+            }
+        }
+        else if (exception.InnerException != null)
+        {
+            foreach (var nestedException in GetArtifactStagingExceptions(exception.InnerException))
+                yield return nestedException;
+        }
+    }
+
     private static string CreateArtifactPath(string targetPath, string suffix)
         => $"{targetPath}.{Guid.NewGuid():N}.{suffix}";
 
@@ -555,6 +661,23 @@ public sealed class LolcodeCompilation
         ImmutableArray<PathCleanupFailure> CleanupFailures);
 
     private sealed record PathCleanupFailure(string Path, Exception Exception);
+
+    private sealed class ArtifactStagingException : IOException
+    {
+        public string ArtifactPath { get; }
+
+        public ArtifactStagingException(
+            string artifactPath,
+            Exception stagingException,
+            Exception cleanupException)
+            : base(
+                $"Staging '{artifactPath}' failed: {stagingException.Message} "
+                + $"The partial artifact could not be removed: {cleanupException.Message}",
+                new AggregateException(stagingException, cleanupException))
+        {
+            ArtifactPath = artifactPath;
+        }
+    }
 
     private void EnsureBound()
     {

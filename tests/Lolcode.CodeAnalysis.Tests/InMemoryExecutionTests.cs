@@ -410,6 +410,67 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
+    public void Emit_ToPath_ReportsPdbStagingArtifactWhenInitialAndFinalCleanupFail()
+    {
+        var tempDirectory = CreateTempDirectory();
+
+        try
+        {
+            var outputPath = Path.Combine(tempDirectory, "program.dll");
+            var pdbPath = Path.ChangeExtension(outputPath, ".pdb");
+            bool IsPdbTemporaryPath(string path) =>
+                path.StartsWith($"{pdbPath}.", StringComparison.Ordinal)
+                && IsStagedPath(path);
+            var cleanupAttempts = 0;
+            var fileSystem = new FaultingPathEmitFileSystem
+            {
+                CreateFileOverride = path => IsPdbTemporaryPath(path)
+                    ? new PartialWriteFailureStream(path)
+                    : null,
+                DeleteFailure = path =>
+                {
+                    if (!IsPdbTemporaryPath(path))
+                        return false;
+
+                    cleanupAttempts++;
+                    return true;
+                }
+            };
+            var compilation = CreatePathCompilation(tempDirectory);
+
+            var result = compilation.Emit(
+                outputPath,
+                typeof(LolRuntime).Assembly.Location,
+                fileSystem);
+
+            result.Success.Should().BeTrue();
+            result.PdbPath.Should().BeNull();
+            AssertPathAssemblyHasNoPdbReference(outputPath);
+            AssertPathAssemblyRuns(outputPath);
+
+            var warning = result.Diagnostics.Should().ContainSingle(diagnostic =>
+                diagnostic.Id == "LOL9002").Which;
+            warning.Message.Should().Contain("obsolete output artifact");
+            warning.Message.Should().Contain("Injected partial PDB staging failure.");
+            warning.Message.Should().Contain("Injected delete failure");
+            var transactionFiles = Directory.EnumerateFiles(tempDirectory)
+                .Where(path =>
+                    path.EndsWith(".tmp", StringComparison.Ordinal)
+                    || path.EndsWith(".bak", StringComparison.Ordinal))
+                .ToArray();
+            var leakedTemporaryPath = transactionFiles.Should().ContainSingle().Which;
+            leakedTemporaryPath.Should().EndWith(".tmp");
+            new FileInfo(leakedTemporaryPath).Length.Should().BeGreaterThan(0);
+            warning.Message.Should().Contain(leakedTemporaryPath);
+            cleanupAttempts.Should().Be(2);
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Emit_ToPath_OmitsPdbWhenPdbSerializationFails()
     {
         var tempDirectory = CreateTempDirectory();
@@ -553,6 +614,8 @@ public sealed class InMemoryExecutionTests
     {
         public Predicate<string>? CreateFailure { get; init; }
 
+        public Func<string, Stream?>? CreateFileOverride { get; init; }
+
         public Func<string, string, bool>? MoveFailure { get; init; }
 
         public Predicate<string>? DeleteFailure { get; init; }
@@ -565,6 +628,10 @@ public sealed class InMemoryExecutionTests
         {
             if (CreateFailure?.Invoke(path) == true)
                 throw new IOException($"Injected create failure for '{path}'.");
+
+            var overrideStream = CreateFileOverride?.Invoke(path);
+            if (overrideStream != null)
+                return overrideStream;
 
             return new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
         }
@@ -593,5 +660,23 @@ public sealed class InMemoryExecutionTests
 
         public override void Write(ReadOnlySpan<byte> buffer)
             => throw new IOException("Injected PDB serialization failure.");
+    }
+
+    private sealed class PartialWriteFailureStream(string path)
+        : FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None)
+    {
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            if (count > 0)
+                base.Write(buffer, offset, Math.Max(1, count / 2));
+            throw new IOException("Injected partial PDB staging failure.");
+        }
+
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            if (!buffer.IsEmpty)
+                base.Write(buffer[..Math.Max(1, buffer.Length / 2)]);
+            throw new IOException("Injected partial PDB staging failure.");
+        }
     }
 }
