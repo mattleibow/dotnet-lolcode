@@ -23,7 +23,7 @@ src/Lolcode.NET.Sdk/           # MSBuild SDK package (Sdk.props, Sdk.targets)
 src/Lolcode.NET.Templates/    # dotnet new template pack (lolcode-console)
 tests/Lolcode.CodeAnalysis.Tests/  # Unit tests (lexer, parser, runtime)
 tests/Lolcode.EndToEnd.Tests/      # E2E tests (19 category classes + SDK sample tests)
-samples/                       # 16 example programs (basics, programs, games, file-based)
+samples/                       # 16 file-based programs plus one .lolproj example
 docs/                          # Design docs, language spec, roadmap
 ```
 
@@ -68,15 +68,14 @@ The compiler API mirrors Roslyn's structure:
 ## Testing
 - Unit tests: xUnit + FluentAssertions in `tests/Lolcode.CodeAnalysis.Tests/` (lexer, parser, runtime)
 - End-to-end tests: 19 category classes in `tests/Lolcode.EndToEnd.Tests/` (compile → run → assert stdout)
-- SDK sample tests: parameterized build tests for all 16 `.lolproj` samples
+- SDK sample tests: parameterized run tests for every file-based sample plus one `.lolproj` sample
 - Build command: `dotnet build`
 - Test command: `dotnet test`
 
 ## Usage
 ```
 # File-based (no project needed)
-dotnet run --file hello.lol     # Requires #:sdk Lolcode.NET.Sdk at top
-dotnet hello.lol                # Shorthand
+dotnet run --file hello.lol     # Requires #:sdk Lolcode.NET.Sdk@0.2.0 at top
 
 # Project-based
 dotnet new lolcode -n MyApp     # Create .lolproj project
@@ -111,11 +110,11 @@ dotnet run                      # Compile and execute
 - `Sdk.targets` overrides `CoreCompile` with `Lolc` task, auto-references `Lolcode.Runtime.dll`
 - `SkipCompilerExecution` property supports VS/VS Code design-time builds
 - Sample projects import `Sdk.props`/`Sdk.targets` directly from source tree (no NuGet packaging needed for development)
-- `samples/Directory.Build.props` overrides `_LolcodeBuildTasksDir` to point at source-built binaries
+- `samples/Directory.Build.props` always uses source-built compiler binaries for `.lolproj` samples and file-based apps
 
 ## File-Based Apps
-- `dotnet run --file hello.lol` works with `#:sdk Lolcode.NET.Sdk` at top of file
-- `dotnet hello.lol` shorthand also works
+- `dotnet build hello.lol` works when the file starts with a `#!` shebang
+- `dotnet run --file hello.lol` works with `#:sdk Lolcode.NET.Sdk@0.2.0` at the top of the file
 - Lexer skips `#:` directives and `#!` shebang lines (treated as trivia)
 - `Sdk.targets` filters `@(Compile)` to `.lol` files only (prevents auto-generated .cs contamination)
 - `Sdk.props` sets `ImplicitUsings=disable` to suppress GlobalUsings.g.cs

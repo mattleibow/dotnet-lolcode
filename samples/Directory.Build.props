@@ -1,9 +1,16 @@
 <!--
-  Local development: overrides the compiler tools path so Sdk.targets
-  finds the source-built Lolcode.Build binaries instead of NuGet package layout.
+  Local development: all .lolproj samples and file-based LOLCODE apps use the
+  source-built compiler.
 -->
 <Project>
   <PropertyGroup>
-    <_LolcodeBuildTasksDir>$(MSBuildThisFileDirectory)..\src\Lolcode.Build\bin\$([MSBuild]::ValueOrDefault('$(Configuration)','Debug'))\net10.0\</_LolcodeBuildTasksDir>
+    <_LolcodeLocalConfiguration>$([MSBuild]::ValueOrDefault('$(Configuration)','Debug'))</_LolcodeLocalConfiguration>
+    <_LolcodeLocalBuildTasksDir>$(MSBuildThisFileDirectory)..\src\Lolcode.Build\bin\$(_LolcodeLocalConfiguration)\net10.0\</_LolcodeLocalBuildTasksDir>
+    <_LolcodeFileBasedSourceExtension>$([System.IO.Path]::GetExtension('$(MSBuildProjectName)'))</_LolcodeFileBasedSourceExtension>
+    <_LolcodeUseLocalBuildTasks Condition="'$(MSBuildProjectExtension)' == '.lolproj' Or '$(_LolcodeFileBasedSourceExtension)' == '.lol'">true</_LolcodeUseLocalBuildTasks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(_LolcodeUseLocalBuildTasks)' == 'true'">
+    <_LolcodeBuildTasksDir>$(_LolcodeLocalBuildTasksDir)</_LolcodeBuildTasksDir>
   </PropertyGroup>
 </Project>
