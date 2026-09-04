@@ -532,8 +532,10 @@ artifacts, backs up existing outputs, and replaces the PE last as the commit
 marker; a required replacement failure restores the prior artifact set. Portable
 symbols remain optional for this compatibility overload: a PDB serialization or
 persistence failure emits a PE without a debug-directory reference, removes any
-stale PDB, and reports `PdbPath` as `null`. Caller-provided stream emission remains
-strict and propagates PDB stream failures.
+stale PDB when possible, and reports `PdbPath` as `null`. If an existing PDB is
+locked, it is preserved through the required-output transaction and left
+unreferenced by the new PE; failed post-commit cleanup produces warning `LOL9002`.
+Caller-provided stream emission remains strict and propagates PDB stream failures.
 
 `LolcodeScript.Run` parses source (or accepts an existing compilation), emits PE
 and PDB bytes into memory, loads them, and invokes the generated entry point. It
