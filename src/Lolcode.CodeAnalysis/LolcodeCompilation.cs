@@ -52,8 +52,8 @@ public sealed class LolcodeCompilation
     /// <summary>The syntax trees in this compilation.</summary>
     public ImmutableArray<SyntaxTree> SyntaxTrees { get; }
 
-    private BoundBlockStatement? _boundTree;
-    private ImmutableArray<Diagnostic>? _bindDiagnostics;
+    private readonly object _bindingLock = new();
+    private BindingResult? _bindingResult;
 
     private LolcodeCompilation(ImmutableArray<SyntaxTree> syntaxTrees)
         => SyntaxTrees = syntaxTrees;
@@ -65,11 +65,11 @@ public sealed class LolcodeCompilation
     /// <summary>Get all diagnostics (syntax + semantic).</summary>
     public ImmutableArray<Diagnostic> GetDiagnostics()
     {
-        EnsureBound();
+        var bindingResult = EnsureBound();
         var builder = ImmutableArray.CreateBuilder<Diagnostic>();
         foreach (var tree in SyntaxTrees)
             builder.AddRange(tree.Diagnostics);
-        builder.AddRange(_bindDiagnostics!.Value);
+        builder.AddRange(bindingResult.Diagnostics);
         return builder.ToImmutable();
     }
 
@@ -336,9 +336,10 @@ public sealed class LolcodeCompilation
         string? pdbFileName,
         bool toleratePdbFailure = false)
     {
+        var bindingResult = EnsureBound();
         var tree = SyntaxTrees[0];
         var generator = new CodeGenerator(
-            _boundTree!,
+            bindingResult.BoundTree,
             assemblyName,
             runtimeType,
             sourceText: tree.Text,
@@ -679,19 +680,26 @@ public sealed class LolcodeCompilation
         }
     }
 
-    private void EnsureBound()
+    private BindingResult EnsureBound()
     {
-        if (_bindDiagnostics is not null) return;
+        lock (_bindingLock)
+        {
+            if (_bindingResult is not null)
+                return _bindingResult;
 
-        // LOLCODE is single-file, so use first tree
-        var tree = SyntaxTrees[0];
-        var binder = new Binder(tree.Text);
-        _boundTree = binder.BindCompilationUnit(tree.Root);
-        _bindDiagnostics = binder.Diagnostics.ToImmutableArray();
+            // LOLCODE is single-file, so use first tree
+            var tree = SyntaxTrees[0];
+            var binder = new Binder(tree.Text);
+            var boundTree = binder.BindCompilationUnit(tree.Root);
+            var diagnostics = binder.Diagnostics.ToImmutableArray();
 
-        // Lower the bound tree (simplify for code generation)
-        _boundTree = Lowerer.Lower(_boundTree);
+            // Lower the bound tree (simplify for code generation)
+            _bindingResult = new BindingResult(Lowerer.Lower(boundTree), diagnostics);
+            return _bindingResult;
+        }
     }
+
+    private sealed record BindingResult(BoundBlockStatement BoundTree, ImmutableArray<Diagnostic> Diagnostics);
 }
 
 internal interface IPathEmitFileSystem
