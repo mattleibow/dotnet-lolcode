@@ -161,8 +161,9 @@ internal sealed class LolcodeCodeRunner : ICodeRunner
             return output;
         }
 
+        var retainedLength = Math.Min(output.Length, CodeRunnerLimits.MaxOutputLength);
         return string.Concat(
-            output.AsSpan(0, CodeRunnerLimits.MaxOutputLength),
+            output.AsSpan(0, retainedLength),
             Environment.NewLine,
             "[output truncated]");
     }

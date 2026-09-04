@@ -52,6 +52,8 @@ public sealed class LolcodeCodeRunnerTests
         LolcodeCodeRunner.TruncateOutput(boundary).Should().Be(boundary);
         LolcodeCodeRunner.TruncateOutput(overflow).Should().Be(
             string.Concat(boundary, Environment.NewLine, "[output truncated]"));
+        LolcodeCodeRunner.TruncateOutput("short", isTruncated: true).Should().Be(
+            string.Concat("short", Environment.NewLine, "[output truncated]"));
     }
 
     [Fact]
