@@ -6,8 +6,8 @@ internal sealed record CodeRunRequest(string Source, string StandardInput);
 
 internal sealed record CodeRunResult(
     bool Success,
+    bool Executed,
     string Output,
-    int? ExitCode,
     TimeSpan Duration,
     ImmutableArray<CodeDiagnostic> Diagnostics);
 
