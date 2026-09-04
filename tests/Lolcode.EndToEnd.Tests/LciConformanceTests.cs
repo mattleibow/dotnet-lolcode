@@ -3,7 +3,6 @@ using System.Runtime.Loader;
 using System.Text;
 using Lolcode.CodeAnalysis;
 using Lolcode.CodeAnalysis.Syntax;
-using Xunit.Sdk;
 
 namespace Lolcode.EndToEnd.Tests;
 
@@ -21,29 +20,27 @@ public class LciConformanceTests : IDisposable
         _runtimeAssemblyPath = Path.Combine(AppContext.BaseDirectory, "Lolcode.Runtime.dll");
     }
 
-    public static IEnumerable<object[]> PassingCases =>
-        LciConformanceCorpus.Cases.Select(
+    public static IEnumerable<object[]> RegisteredCases =>
+        LciConformanceCorpus.Registrations.Select(
             (test, index) => new { Test = test, Index = index })
-        .Where(item => item.Test.Classification.Status == "pass")
         .Select(item => new object[] { item.Index, item.Test.Id });
 
     [Theory]
-    [MemberData(nameof(PassingCases))]
+    [MemberData(nameof(RegisteredCases))]
     public async Task Matches_upstream_lci_result(int index, string id)
     {
-        LciConformanceCase test = LciConformanceCorpus.Cases[index];
+        LciTestRegistration test = LciConformanceCorpus.Registrations[index];
         test.Id.Should().Be(id);
 
-        LciTestRegistration registration = test.Registration;
-        string source = ReadUtf8PreservingBom(registration.SourcePath);
-        var syntaxTree = SyntaxTree.ParseText(source, registration.SourcePath);
+        string source = ReadUtf8PreservingBom(test.SourcePath);
+        var syntaxTree = SyntaxTree.ParseText(source, test.SourcePath);
         var compilation = LolcodeCompilation.Create(syntaxTree);
         string assemblyPath = Path.Combine(_tempDirectory, "test.dll");
         EmitResult emitResult = compilation.Emit(assemblyPath, _runtimeAssemblyPath);
 
         if (!emitResult.Success)
         {
-            if (registration.ExpectError)
+            if (test.ExpectError)
                 return;
 
             Assert.Fail(
@@ -52,33 +49,24 @@ public class LciConformanceTests : IDisposable
 
         ProcessResult processResult = await RunAsync(
             emitResult.OutputPath!,
-            registration.InputPath is null
+            test.InputPath is null
                 ? null
-                : ReadUtf8PreservingBom(registration.InputPath),
-            registration.WorkingDirectoryPath ?? _tempDirectory);
+                : ReadUtf8PreservingBom(test.InputPath),
+            test.WorkingDirectoryPath ?? _tempDirectory);
 
-        if (registration.ExpectError)
+        if (test.ExpectError)
         {
             processResult.ExitCode.Should().NotBe(
                 0,
-                $"upstream marks {registration.Id} with ADD_LOL_TEST(... ERROR)");
+                $"upstream marks {test.Id} with ADD_LOL_TEST(... ERROR)");
             return;
         }
 
         processResult.ExitCode.Should().Be(
             0,
             $"stderr was:{Environment.NewLine}{processResult.StandardError}");
-        string expectedOutput = ReadUtf8PreservingBom(registration.ExpectedOutputPath!);
+        string expectedOutput = ReadUtf8PreservingBom(test.ExpectedOutputPath!);
         processResult.StandardOutput.Should().Be(expectedOutput);
-    }
-
-    [Theory]
-    [LciSkippedCases]
-    public void Unsupported_lci_case(int index, string id, string feature)
-    {
-        _ = index;
-        _ = id;
-        _ = feature;
     }
 
     public void Dispose()
@@ -166,24 +154,4 @@ public class LciConformanceTests : IDisposable
 [CollectionDefinition(nameof(LciConformanceCollection), DisableParallelization = true)]
 public sealed class LciConformanceCollection
 {
-}
-
-[AttributeUsage(AttributeTargets.Method)]
-public sealed class LciSkippedCasesAttribute : DataAttribute
-{
-    public LciSkippedCasesAttribute()
-    {
-        Skip = "Unsupported feature; see Conformance/lci/status.json for the category and reason.";
-    }
-
-    public override IEnumerable<object[]> GetData(MethodInfo testMethod)
-        => LciConformanceCorpus.Cases.Select(
-                (test, index) => new { Test = test, Index = index })
-            .Where(item => item.Test.Classification.Status == "skip")
-            .Select(item => new object[]
-            {
-                item.Index,
-                item.Test.Id,
-                item.Test.Classification.Feature!,
-            });
 }

@@ -1,0 +1,91 @@
+name: Update lci conformance baseline
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Update lci future
+        id: update
+        shell: bash
+        run: |
+          branch=automation/update-lci-future
+          git fetch origin main
+          git switch --force-create "$branch" origin/main
+          git submodule update --init externals/lci
+
+          before=$(git -C externals/lci rev-parse HEAD)
+          git -C externals/lci fetch origin future
+          after=$(git -C externals/lci rev-parse origin/future)
+
+          echo "before=$before" >> "$GITHUB_OUTPUT"
+          echo "after=$after" >> "$GITHUB_OUTPUT"
+          if [[ "$before" == "$after" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git -C externals/lci checkout --detach "$after"
+          git add externals/lci
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push update
+        if: steps.update.outputs.changed == 'true'
+        shell: bash
+        run: |
+          branch=automation/update-lci-future
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m "chore: update lci future baseline"
+          git push --force-with-lease origin "$branch"
+
+      - name: Open or refresh pull request
+        if: steps.update.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          branch=automation/update-lci-future
+          body=$(cat <<EOF
+Updates the pinned \`externals/lci\` submodule from
+\`${{ steps.update.outputs.before }}\` to
+\`${{ steps.update.outputs.after }}\`.
+
+All registered upstream conformance tests are discovered automatically.
+The pull request CI result shows whether the new interpreter behavior
+is already supported.
+EOF
+)
+
+          number=$(gh pr list \
+            --head "$branch" \
+            --base main \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')
+
+          if [[ -n "$number" ]]; then
+            gh pr edit "$number" \
+              --title "chore: update lci future baseline" \
+              --body "$body"
+          else
+            gh pr create \
+              --head "$branch" \
+              --base main \
+              --title "chore: update lci future baseline" \
+              --body "$body"
+          fi

@@ -1,26 +1,13 @@
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Lolcode.EndToEnd.Tests;
 
 internal static partial class LciConformanceCorpus
 {
-    internal const int ExpectedCount = 325;
-
     private static readonly Lazy<IReadOnlyList<LciTestRegistration>> RegistrationsValue =
         new(LoadRegistrations);
 
-    private static readonly Lazy<IReadOnlyList<LciTestStatus>> StatusesValue =
-        new(LoadStatuses);
-
-    private static readonly Lazy<IReadOnlyList<LciConformanceCase>> CasesValue =
-        new(BuildCases);
-
     internal static IReadOnlyList<LciTestRegistration> Registrations => RegistrationsValue.Value;
-
-    internal static IReadOnlyList<LciTestStatus> Statuses => StatusesValue.Value;
-
-    internal static IReadOnlyList<LciConformanceCase> Cases => CasesValue.Value;
 
     private static string CorpusRoot =>
         Path.Combine(AppContext.BaseDirectory, "Conformance", "lci");
@@ -104,45 +91,6 @@ internal static partial class LciConformanceCorpus
         return Path.Combine(directory, arguments[index]);
     }
 
-    private static IReadOnlyList<LciTestStatus> LoadStatuses()
-    {
-        string statusPath = Path.Combine(CorpusRoot, "status.json");
-        using JsonDocument document = JsonDocument.Parse(File.ReadAllBytes(statusPath));
-        var statuses = new List<LciTestStatus>();
-
-        foreach (JsonElement element in document.RootElement.EnumerateArray())
-        {
-            statuses.Add(new LciTestStatus(
-                element.GetProperty("id").GetString()!,
-                element.GetProperty("status").GetString()!,
-                element.TryGetProperty("feature", out JsonElement feature)
-                    ? feature.GetString()
-                    : null,
-                element.TryGetProperty("reason", out JsonElement reason)
-                    ? reason.GetString()
-                    : null));
-        }
-
-        return statuses;
-    }
-
-    private static IReadOnlyList<LciConformanceCase> BuildCases()
-    {
-        var statuses = Statuses.ToDictionary(status => status.Id, StringComparer.Ordinal);
-        return Registrations
-            .Select(registration =>
-            {
-                if (!statuses.TryGetValue(registration.Id, out LciTestStatus? status))
-                {
-                    throw new InvalidDataException(
-                        $"Registered lci test '{registration.Id}' is not classified.");
-                }
-
-                return new LciConformanceCase(registration, status);
-            })
-            .ToArray();
-    }
-
     [GeneratedRegex(@"ADD_LOL_TEST\s*\((?<arguments>[^)]*)\)")]
     private static partial Regex RegistrationRegex();
 
@@ -159,16 +107,3 @@ internal sealed record LciTestRegistration(
     string? ExpectedErrorPath,
     bool ExpectError,
     string? WorkingDirectoryPath);
-
-internal sealed record LciTestStatus(
-    string Id,
-    string Status,
-    string? Feature,
-    string? Reason);
-
-internal sealed record LciConformanceCase(
-    LciTestRegistration Registration,
-    LciTestStatus Classification)
-{
-    internal string Id => Registration.Id;
-}
