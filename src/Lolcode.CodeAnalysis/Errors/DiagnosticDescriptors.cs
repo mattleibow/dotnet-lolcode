@@ -128,4 +128,11 @@ public static class DiagnosticDescriptors
         "LOL9001", "Internal compiler error",
         "Internal compiler error: {0}",
         "Internal");
+
+    /// <summary>An obsolete temporary output artifact could not be removed.</summary>
+    public static readonly DiagnosticDescriptor ArtifactCleanupFailed = new(
+        "LOL9002", "Artifact cleanup failed",
+        "Could not remove temporary output artifact '{0}': {1}",
+        "Internal",
+        DiagnosticSeverity.Warning);
 }

@@ -527,7 +527,13 @@ Roslyn's stream-first emission convention. It emits references to the
 `Lolcode.Runtime` assembly already loaded with the compiler, so in-memory callers
 do not need a runtime DLL path. The existing path overload remains available to
 the MSBuild and command-line hosts and delegates to the same stream serializer
-before writing the DLL, PDB, and runtime configuration.
+before writing the DLL, PDB, and runtime configuration. Path emission stages all
+artifacts, backs up existing outputs, and replaces the PE last as the commit
+marker; a required replacement failure restores the prior artifact set. Portable
+symbols remain optional for this compatibility overload: a PDB serialization or
+persistence failure emits a PE without a debug-directory reference, removes any
+stale PDB, and reports `PdbPath` as `null`. Caller-provided stream emission remains
+strict and propagates PDB stream failures.
 
 `LolcodeScript.Run` parses source (or accepts an existing compilation), emits PE
 and PDB bytes into memory, loads them, and invokes the generated entry point. It

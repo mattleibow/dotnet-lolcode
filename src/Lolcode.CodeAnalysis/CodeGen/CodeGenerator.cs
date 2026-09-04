@@ -81,6 +81,21 @@ internal sealed class CodeGenerator
     /// Emits the assembly to caller-provided streams.
     /// </summary>
     public void Emit(Stream peStream, Stream? pdbStream = null, string? pdbFileName = null)
+        => EmitCore(peStream, pdbStream, pdbFileName, toleratePdbFailure: false);
+
+    /// <summary>
+    /// Emits an assembly for the compatibility path API, omitting optional symbols
+    /// when portable PDB serialization fails.
+    /// </summary>
+    /// <returns>Whether portable PDB symbols were emitted.</returns>
+    public bool EmitWithOptionalPdb(Stream peStream, Stream pdbStream, string pdbFileName)
+        => EmitCore(peStream, pdbStream, pdbFileName, toleratePdbFailure: true);
+
+    private bool EmitCore(
+        Stream peStream,
+        Stream? pdbStream,
+        string? pdbFileName,
+        bool toleratePdbFailure)
     {
         ResolveRuntimeMethods(_runtimeType);
 
@@ -165,27 +180,36 @@ internal sealed class CodeGenerator
         var metadataBuilder = assemblyBuilder.GenerateMetadata(out var ilStream, out var mappedFieldData, out MetadataBuilder pdbBuilder);
         var entryPointHandle = MetadataTokens.MethodDefinitionHandle(mainMethod.MetadataToken);
         DebugDirectoryBuilder? debugDirectoryBuilder = null;
+        var pdbEmitted = false;
 
         if (pdbStream != null)
         {
-            var portablePdbBlob = new BlobBuilder();
-            var portablePdbBuilder = new PortablePdbBuilder(
-                pdbBuilder, metadataBuilder.GetRowCounts(), entryPointHandle,
-                idProvider: content =>
-                {
-                    using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                    foreach (var blob in content)
-                        hasher.AppendData(blob.GetBytes().Array!, blob.GetBytes().Offset, blob.GetBytes().Count);
-                    return BlobContentId.FromHash(hasher.GetHashAndReset());
-                });
-            BlobContentId pdbContentId = portablePdbBuilder.Serialize(portablePdbBlob);
-            portablePdbBlob.WriteContentTo(pdbStream);
+            try
+            {
+                var portablePdbBlob = new BlobBuilder();
+                var portablePdbBuilder = new PortablePdbBuilder(
+                    pdbBuilder, metadataBuilder.GetRowCounts(), entryPointHandle,
+                    idProvider: content =>
+                    {
+                        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                        foreach (var blob in content)
+                            hasher.AppendData(blob.GetBytes().Array!, blob.GetBytes().Offset, blob.GetBytes().Count);
+                        return BlobContentId.FromHash(hasher.GetHashAndReset());
+                    });
+                BlobContentId pdbContentId = portablePdbBuilder.Serialize(portablePdbBlob);
+                portablePdbBlob.WriteContentTo(pdbStream);
 
-            debugDirectoryBuilder = new DebugDirectoryBuilder();
-            debugDirectoryBuilder.AddCodeViewEntry(
-                pdbFileName ?? $"{_assemblyName}.pdb",
-                pdbContentId,
-                portablePdbBuilder.FormatVersion);
+                debugDirectoryBuilder = new DebugDirectoryBuilder();
+                debugDirectoryBuilder.AddCodeViewEntry(
+                    pdbFileName ?? $"{_assemblyName}.pdb",
+                    pdbContentId,
+                    portablePdbBuilder.FormatVersion);
+                pdbEmitted = true;
+            }
+            catch (Exception ex) when (toleratePdbFailure && IsOptionalPdbFailure(ex))
+            {
+                debugDirectoryBuilder = null;
+            }
         }
 
         var peBuilder = new ManagedPEBuilder(
@@ -201,6 +225,18 @@ internal sealed class CodeGenerator
         var peBlob = new BlobBuilder();
         peBuilder.Serialize(peBlob);
         peBlob.WriteContentTo(peStream);
+        return pdbEmitted;
+    }
+
+    private static bool IsOptionalPdbFailure(Exception exception)
+    {
+        return exception is
+            IOException or
+            UnauthorizedAccessException or
+            ArgumentException or
+            InvalidOperationException or
+            NotSupportedException or
+            System.Security.Cryptography.CryptographicException;
     }
 
     private void ResolveRuntimeMethods(Type runtimeType)
