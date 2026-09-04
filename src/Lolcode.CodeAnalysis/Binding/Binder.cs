@@ -222,25 +222,51 @@ internal sealed class Binder
         bool? isTil = null;
         BoundExpression? condition = null;
         VariableSymbol? loopVariable = null;
+        FunctionSymbol? operationFunction = null;
+        VariableSymbol? previousVariable = null;
 
-        // Loop variable is local to the loop — declare in scope
         if (variableName != null)
         {
             loopVariable = new VariableSymbol(variableName);
-            _scope.TryDeclareVariable(loopVariable);
+            previousVariable = _scope.ReplaceVariable(loopVariable);
+
+            if (operation is not null and not "UPPIN" and not "NERFIN")
+            {
+                if (!_scope.TryLookupFunction(operation, out operationFunction))
+                {
+                    var location = TextLocation.FromSpan(_text, syntax.OperationToken!.Span);
+                    _diagnostics.ReportUndefinedFunction(location, operation);
+                }
+                else if (operationFunction.Parameters.Length != 1)
+                {
+                    var location = TextLocation.FromSpan(_text, syntax.OperationToken!.Span);
+                    _diagnostics.ReportWrongArgumentCount(
+                        location, operation, operationFunction.Parameters.Length, 1);
+                }
+            }
         }
 
-        if (syntax.ConditionKeyword != null)
+        try
         {
-            isTil = syntax.ConditionKeyword.Kind == SyntaxKind.TilKeyword;
-            condition = BindExpression(syntax.Condition!);
+            if (syntax.ConditionKeyword != null)
+            {
+                isTil = syntax.ConditionKeyword.Kind == SyntaxKind.TilKeyword;
+                condition = BindExpression(syntax.Condition!);
+            }
+
+            _contextStack.Push(ControlFlowContext.Loop);
+            var body = BindBlock(syntax.Body.Statements);
+            _contextStack.Pop();
+
+            return new BoundLoopStatement(
+                label, operation, operationFunction, loopVariable,
+                isTil, condition, body, syntax: syntax);
         }
-
-        _contextStack.Push(ControlFlowContext.Loop);
-        var body = BindBlock(syntax.Body.Statements);
-        _contextStack.Pop();
-
-        return new BoundLoopStatement(label, operation, loopVariable, isTil, condition, body, syntax: syntax);
+        finally
+        {
+            if (loopVariable is not null)
+                _scope.RestoreVariable(loopVariable.Name, previousVariable);
+        }
     }
 
     private BoundGtfoStatement BindGtfo(GtfoStatementSyntax syntax)

@@ -388,9 +388,8 @@ The binder must maintain a **control-flow context stack** to determine the corre
 | `YARN` | `System.String` | `string` | `""` |
 | `TROOF` | `System.Boolean` | `bool` | `FAIL` (false) |
 | `NOOB` | `System.Object` (null) | `object` | `null` |
-| `TYPE` | `System.String` (bare word) | `string` | N/A |
 
-> **Note:** `BUKKIT` is reserved in the 1.2 spec with no defined syntax. This compiler does not implement it and produces an error if used.
+> **Note:** `TYPE` was left under review by the archived 1.2 text and has no runtime representation. `BUKKIT` is reserved in 1.2 with no defined value semantics; neither feature is implemented.
 
 ---
 
@@ -624,10 +623,10 @@ String interpolation (`:{var}`) spans multiple compiler phases:
 
 ## `HAI` Version Handling
 
-The parser validates the `HAI` version number:
+The parser records an optional numeric `HAI` version but does not use it to select semantics:
 - `HAI 1.2` — accepted (target version)
-- `HAI` without a version — accepted with a warning (assumes 1.2)
-- `HAI <other>` — accepted with an informational diagnostic noting the version is not 1.2
+- `HAI` without a version — accepted
+- `HAI <other numeric version>` — accepted without changing the 1.2 compiler behavior
 - Missing `HAI` — error
 - Missing `KTHXBYE` — error
 
@@ -639,15 +638,15 @@ This section records intentional implementation decisions where the LOLCODE 1.2 
 
 | Area | Spec Says | This Compiler Does |
 |------|-----------|-------------------|
-| **`BUKKIT` type** | "Reserved for future expansion" | Produces error `LOL0xxx: BUKKIT is not supported in LOLCODE 1.2` |
-| **`TYPE` equality** | "Under current review" | Compares TYPE values as strings (e.g., `BOTH SAEM mytype AN NUMBR` → string equality) |
+| **`BUKKIT` type** | "Reserved for future expansion" | Has no 1.2 value semantics and is not implemented |
+| **`TYPE` values/equality** | "Under current review" | Deferred; type names are accepted only in syntactic type positions |
 | **Integer overflow** | Not specified | Wraps (standard .NET `int32` overflow behavior, unchecked) |
 | **Float precision** | Not specified | Uses `System.Double` (IEEE 754 double-precision) |
-| **`NUMBAR` → `YARN`** | "Truncates to two decimal places" | Uses `value.ToString("F2")` |
+| **`NUMBAR` → `YARN`** | "Truncates to two decimal places" | Truncates toward zero, then emits exactly two fractional digits |
 | **`:o` escape** | "Bell (beep)" | Maps to `\a` (U+0007, ASCII BEL) |
 | **`:[<name>]`** | "Unicode normative name" | Supported with a curated subset of common Unicode names; unsupported names produce an error |
-| **`HAI` version** | "No current standard behavior" | Accepts any version with informational diagnostic; targets 1.2 semantics |
-| **Unary function in loop** | `<operation>` can be "any unary function" | Supports `UPPIN`, `NERFIN`, and user-defined unary functions by name |
+| **`HAI` version** | "No current standard behavior" | Records any numeric version; always targets 1.2 semantics |
+| **Unary function in loop** | `<operation>` can be "any unary function" | Supports archived bare names and `lci`'s `I IZ ... YR ... MKAY` spelling |
 | **`NOOB` in non-TROOF context** | "Results in an error" | Runtime error via `LolRuntime` helpers (binder warns when statically provable) |
 
 ---

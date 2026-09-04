@@ -429,19 +429,30 @@ internal sealed class Parser
         SyntaxToken? conditionKeyword = null;
         ExpressionSyntax? condition = null;
 
-        // Optional: UPPIN/NERFIN YR <var> [TIL|WILE <expr>]
-        if (Current.Kind == SyntaxKind.UppinKeyword || Current.Kind == SyntaxKind.NerfinKeyword ||
-            Current.Kind == SyntaxKind.IdentifierToken)
+        // Optional: UPPIN/NERFIN YR <var>, a reference-style function call,
+        // or the archived bare function spelling.
+        if (Current.Kind == SyntaxKind.IKeyword && Peek(1).Kind == SyntaxKind.IzKeyword)
+        {
+            Advance(); // I
+            Advance(); // IZ
+            operation = Match(SyntaxKind.IdentifierToken);
+            Match(SyntaxKind.YrKeyword);
+            variable = Match(SyntaxKind.IdentifierToken);
+            Match(SyntaxKind.MkayKeyword);
+        }
+        else if (Current.Kind == SyntaxKind.UppinKeyword || Current.Kind == SyntaxKind.NerfinKeyword ||
+                 Current.Kind == SyntaxKind.IdentifierToken)
         {
             operation = Advance();
             Match(SyntaxKind.YrKeyword); // YR
             variable = Match(SyntaxKind.IdentifierToken);
+        }
 
-            if (Current.Kind == SyntaxKind.TilKeyword || Current.Kind == SyntaxKind.WileKeyword)
-            {
-                conditionKeyword = Advance();
-                condition = ParseExpression();
-            }
+        if (variable != null &&
+            (Current.Kind == SyntaxKind.TilKeyword || Current.Kind == SyntaxKind.WileKeyword))
+        {
+            conditionKeyword = Advance();
+            condition = ParseExpression();
         }
 
         ExpectEndOfLine();

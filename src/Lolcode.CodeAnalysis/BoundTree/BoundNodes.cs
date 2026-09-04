@@ -204,6 +204,9 @@ internal sealed class BoundLoopStatement : BoundStatement
     /// <summary>"UPPIN", "NERFIN", or a custom function name. Null for infinite loops.</summary>
     public string? Operation { get; }
 
+    /// <summary>The custom unary operation, or null for built-in/infinite loops.</summary>
+    public FunctionSymbol? OperationFunction { get; }
+
     /// <summary>The loop variable. Null for infinite loops.</summary>
     public VariableSymbol? Variable { get; }
 
@@ -216,12 +219,13 @@ internal sealed class BoundLoopStatement : BoundStatement
     public BoundBlockStatement Body { get; }
 
     public BoundLoopStatement(
-        string label, string? operation, VariableSymbol? variable,
+        string label, string? operation, FunctionSymbol? operationFunction, VariableSymbol? variable,
         bool? isTil, BoundExpression? condition, BoundBlockStatement body,
         SyntaxNode? syntax = null) : base(syntax)
     {
         Label = label;
         Operation = operation;
+        OperationFunction = operationFunction;
         Variable = variable;
         IsTil = isTil;
         Condition = condition;

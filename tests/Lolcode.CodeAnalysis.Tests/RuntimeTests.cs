@@ -111,6 +111,12 @@ public class RuntimeTests
     public void CastToYarn_Double_ReturnsTwoDecimals() =>
         LolRuntime.CastToYarn(3.14159).Should().Be("3.14");
 
+    [Theory]
+    [InlineData(1.239, "1.23")]
+    [InlineData(-1.239, "-1.23")]
+    public void CastToYarn_Double_TruncatesTowardZero(double value, string expected) =>
+        LolRuntime.CastToYarn(value).Should().Be(expected);
+
     [Fact]
     public void CastToYarn_DoubleWhole_ReturnsTwoDecimals() =>
         LolRuntime.CastToYarn(7.0).Should().Be("7.00");

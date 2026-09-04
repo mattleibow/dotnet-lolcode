@@ -1,6 +1,8 @@
 # LOLCODE 1.2 Language Specification
 
-This document defines the LOLCODE 1.2 language as implemented by the dotnet-lolcode compiler. It is based on the [official LOLCODE 1.2 spec](https://github.com/justinmeza/lolcode-spec/blob/master/v1.2/lolcode-spec-v1.2.md) (Final Draft — 12 July 2007).
+This document defines the normative LOLCODE 1.2 stable profile used by this project. Its primary source is the archived [LOLCODE 1.2 Final Draft](archive/lolcode-spec-v1.2.md) dated 12 July 2007. Where that draft is incomplete, this document either preserves the ambiguity or records behavior verified against Justin Meza's `lci` reference interpreter.
+
+Compiler support, .NET mappings, and implementation-specific limitations are kept in the non-normative [Implementation Profile](LANGUAGE_IMPLEMENTATION.md).
 
 > *The goal of this specification is to act as a baseline for all following LOLCODE specifications. As such, some traditionally expected language features may appear "incomplete." This is most likely deliberate, as it will be easier to add to the language than to change and introduce further incompatibilities.*
 
@@ -20,7 +22,7 @@ This document defines the LOLCODE 1.2 language as implemented by the dotnet-lolc
   - [Numerical Types (NUMBR, NUMBAR)](#numerical-types-numbr-numbar)
   - [Strings (YARN)](#strings-yarn)
   - [Arrays](#arrays)
-  - [Types (TYPE)](#types-type)
+  - [Tentative Types (TYPE)](#tentative-types-type)
 - [Operators](#operators)
   - [Calling Syntax and Precedence](#calling-syntax-and-precedence)
   - [Math](#math)
@@ -40,7 +42,7 @@ This document defines the LOLCODE 1.2 language as implemented by the dotnet-lolc
   - [Definition](#definition)
   - [Returning](#returning)
   - [Calling](#calling)
-- [Keywords Reference](#keywords-reference)
+- [Syntax Reference](#syntax-reference)
 
 ---
 
@@ -50,6 +52,7 @@ This document defines the LOLCODE 1.2 language as implemented by the dotnet-lolc
 
 - Spaces are used to demarcate tokens in the language, although some keyword constructs may include spaces.
 - Multiple spaces and tabs are treated as single spaces and are otherwise irrelevant.
+- Language keywords are uppercase and case-sensitive. Identifier casing is governed separately below.
 - Indentation is irrelevant.
 - A command starts at the beginning of a line and a newline indicates the end of a command, except in special cases.
 - A newline will be Carriage Return (`\r`), a Line Feed (`\n`), or both (`\r\n`) depending on the implementing system. This is only in regards to LOLCODE code itself, and does not indicate how these should be treated in strings or files during execution.
@@ -119,7 +122,7 @@ KTHXBYE
 
 ### Scope
 
-*([to be revisited and refined](archive/lolcode-spec-v1.2.md) — see also [1.3 Changes](LANGUAGE_SPEC_1.3_CHANGES.md))*
+*(The archived source marks this area for later refinement.)*
 
 All variable scope, as of this version, is local to the enclosing function or to the main program block. Variables are only accessible after declaration, and there is no global scope.
 
@@ -149,18 +152,9 @@ VAR R 3                BTW VAR is now a NUMBR and equals 3
 
 *(updated from 1.1)*
 
-The variable types that LOLCODE currently recognizes are: strings (`YARN`), integers (`NUMBR`), floats (`NUMBAR`), and booleans (`TROOF`). Arrays (`BUKKIT`) are reserved for future expansion. Typing is handled dynamically. Until a variable is given an initial value, it is untyped (`NOOB`). ~~Casting operations operate on TYPE types, as well.~~
+The stable value types are strings (`YARN`), integers (`NUMBR`), floating-point numbers (`NUMBAR`), booleans (`TROOF`), and the untyped/null value (`NOOB`). Typing is dynamic. Until a variable is initialized, its value is `NOOB`.
 
-> **Compiler note:** `BUKKIT` has no defined syntax in the 1.2 spec. This compiler treats `BUKKIT` as an unrecognized keyword and will produce an error if used. *See [1.3 Changes](LANGUAGE_SPEC_1.3_CHANGES.md) for BUKKIT's full specification.*
-
-| Type | Description | .NET Equivalent |
-|------|------------|----------------|
-| `NUMBR` | Integer | `System.Int32` |
-| `NUMBAR` | Floating-point | `System.Double` |
-| `YARN` | String | `System.String` |
-| `TROOF` | Boolean | `System.Boolean` |
-| `NOOB` | Untyped/null | `System.Object` (null) |
-| `TYPE` | Type identifier | `System.String` (as bare word) |
+`BUKKIT` is reserved for future expansion and has no executable syntax or value semantics in 1.2. The archived draft also contains a tentative `TYPE` proposal, isolated below because it was explicitly left under review.
 
 ### Untyped (NOOB)
 
@@ -177,7 +171,7 @@ Explicit casts of a `NOOB` (untyped, uninitialized) variable are to empty/zero v
 
 ### Booleans (TROOF)
 
-The two boolean (`TROOF`) values are `WIN` (true) and `FAIL` (false). The empty string (`""`), an empty array, and numerical zero are all cast to `FAIL`. All other values evaluate to `WIN`.
+The two boolean (`TROOF`) values are `WIN` (true) and `FAIL` (false). The empty string (`""`), numerical zero, and `NOOB` cast to `FAIL`. All other stable 1.2 values cast to `WIN`.
 
 ### Numerical Types (NUMBR, NUMBAR)
 
@@ -185,7 +179,9 @@ A `NUMBR` is an integer as specified in the host implementation/architecture. An
 
 A `NUMBAR` is a float as specified in the host implementation/architecture. It is represented as a contiguous string of digits containing exactly one decimal point. Casting a `NUMBAR` to a `NUMBR` truncates the decimal portion of the floating point number. Casting a `NUMBAR` to a `YARN` (by printing it, for example), truncates the output to a default of **two decimal places**. A `NUMBAR` may have a leading hyphen (`-`) to signify a negative number.
 
-Casting of a string to a numerical type parses the string as if it were not in quotes. If there are any non-numerical, non-hyphen, non-period characters, then it results in an error. Casting `WIN` to a numerical type results in `1` or `1.0`; casting `FAIL` results in a numerical zero.
+Casting a string to a numerical type parses the string as if it were not in quotes. For explicit `MAEK`/`IS NOW A` casts, a string that is not a valid number produces the target type's zero value. Numeric operators still fail when an operand cannot be safely interpreted as a number. Casting `WIN` to a numerical type results in `1` or `1.0`; casting `FAIL` results in numerical zero.
+
+> **Source note:** The archived Final Draft says invalid numeric strings produce an error without distinguishing explicit casts from operator coercion. The split above matches `lci` and removes that contradiction from the stable profile.
 
 ### Strings (YARN)
 
@@ -217,22 +213,13 @@ VISIBLE "OH HAI :{name}!"         BTW prints: OH HAI CEILING CAT!
 
 ### Arrays
 
-*Array and dictionary types are currently under-specified. There is general will to unify them, but indexing and definition is still under discussion.*
+The archived Final Draft discusses arrays and dictionaries as under-specified while also reserving `BUKKIT` for future expansion. The stable 1.2 profile therefore defines no array or dictionary value. The unfinished [1.3 draft changes](LANGUAGE_SPEC_1.3_CHANGES.md) record the later BUKKIT proposal.
 
-> *See [1.3 Changes](LANGUAGE_SPEC_1.3_CHANGES.md) for the full BUKKIT/Arrays specification.*
+### Tentative Types (TYPE)
 
-### Types (TYPE)
+The archived Final Draft proposes a `TYPE` metatype: values naming types rather than ordinary program data. Its proposed values are the bare words `TROOF`, `NOOB`, `NUMBR`, `NUMBAR`, `YARN`, and `TYPE`, castable only to `TROOF` or `YARN`.
 
-The `TYPE` type only has the values of `TROOF`, `NOOB`, `NUMBR`, `NUMBAR`, `YARN`, and `TYPE`, as bare words. They may be legally cast to `TROOF` (all true except for `NOOB`) or `YARN`.
-
-*TYPEs are under current review. Current sentiment is to delay defining them until user-defined types are relevant, but that would mean that type comparisons are left unresolved in the meantime.*
-
-```lolcode
-I HAS A mytype ITZ NUMBR          BTW mytype is a TYPE with value NUMBR
-BOTH SAEM mytype AN NUMBR         BTW type comparison (behavior unresolved per spec)
-MAEK mytype A YARN                BTW "NUMBR"
-MAEK NOOB A TROOF                 BTW FAIL — NOOB is falsy as TYPE
-```
+The same source immediately says TYPE values are under review, suggests delaying them until user-defined types exist, and leaves type comparison unresolved. The earlier archived 1.2 witness strikes the feature out, and `lci` does not implement runtime TYPE values. Consequently, **TYPE is not part of the stable 1.2 profile**. Type words in `MAEK` and `IS NOW A` are syntactic cast targets, not values that can be stored in variables.
 
 ---
 
@@ -358,8 +345,9 @@ To explicitly re-cast a variable, you may create a normal assignment statement w
 | `NUMBR` → `YARN` | String representation (`42` → `"42"`) |
 | `NUMBAR` → `YARN` | Truncated to two decimal places (`3.14159` → `"3.14"`) |
 | `TROOF` → `YARN` | `"WIN"` or `"FAIL"` |
-| `YARN` → `NUMBR` | Parse integer; decimal YARN → truncate (non-numeric → error) |
-| `YARN` → `NUMBAR` | Parse float (non-numeric → error) |
+| `NUMBAR` → `NUMBR` | Truncate the fractional portion toward zero |
+| `YARN` → `NUMBR` | Parse integer; decimal YARN → truncate; invalid YARN → `0` |
+| `YARN` → `NUMBAR` | Parse float; invalid YARN → `0.0` |
 | `YARN` → `TROOF` | `""` → `FAIL`, non-empty → `WIN` |
 | `NUMBR` → `TROOF` | `0` → `FAIL`, nonzero → `WIN` |
 | `NUMBAR` → `TROOF` | `0.0` → `FAIL`, nonzero → `WIN` |
@@ -367,8 +355,7 @@ To explicitly re-cast a variable, you may create a normal assignment statement w
 | `TROOF` → `NUMBAR` | `WIN` → `1.0`, `FAIL` → `0.0` |
 | `NOOB` → `TROOF` | `FAIL` (only implicit cast from NOOB) |
 | `NOOB` → other (explicit) | `0`, `0.0`, `""` (default for target type) |
-| `TYPE` → `TROOF` | All `WIN` except `NOOB` → `FAIL` |
-| `TYPE` → `YARN` | Type name as string (e.g., `"NUMBR"`) |
+| any value → `NOOB` (explicit) | `NOOB` |
 
 ---
 
@@ -376,7 +363,7 @@ To explicitly re-cast a variable, you may create a normal assignment statement w
 
 ### Terminal-Based
 
-The print (to STDOUT or the terminal) operator is `VISIBLE`. It has infinite arity and implicitly concatenates all of its arguments after casting them to `YARN`s. It is terminated by the statement delimiter (line end or comma). The output is automatically terminated with a carriage return (`:)`), unless the final token is terminated with an exclamation point (`!`), in which case the carriage return is suppressed.
+The print (to STDOUT or the terminal) operator is `VISIBLE`. It has infinite arity and implicitly concatenates all of its arguments after casting them to `YARN`s. It is terminated by the statement delimiter (line end or comma). The output is automatically terminated with the host platform's newline unless the final token is terminated with an exclamation point (`!`), in which case the newline is suppressed.
 
 ```lolcode
 VISIBLE <expression> [<expression> ...][!]
@@ -416,7 +403,6 @@ A bare expression (e.g. a function call or math operation), without any assignme
 
 ```lolcode
 SUM OF 3 AN 5                   BTW IT is now 8
-VISIBLE IT                       BTW prints 8
 O RLY?                           BTW tests IT (which is 8, truthy)
   YA RLY, VISIBLE "truthy!"
 OIC
@@ -448,7 +434,7 @@ Flow control statements cover multiple lines and are described in the following 
 
 The traditional if/then construct operates on the implicit `IT` variable. In the base form, there are four keywords: `O RLY?`, `YA RLY`, `NO WAI`, and `OIC`.
 
-`O RLY?` branches to the block begun with `YA RLY` if `IT` can be cast to `WIN`, and branches to the `NO WAI` block if `IT` is `FAIL`. The code block introduced with `YA RLY` is implicitly closed when `NO WAI` is reached. The `NO WAI` block is closed with `OIC`. The general form is:
+`O RLY?` branches to the block begun with `YA RLY` if `IT` casts to `WIN`, and otherwise branches to the optional `NO WAI` block. The code block introduced with `YA RLY` is implicitly closed when `NO WAI` is reached. The entire conditional is closed with `OIC`. The general form is:
 
 ```lolcode
 <expression>
@@ -469,7 +455,7 @@ BOTH SAEM ANIMAL AN "CAT", O RLY?
 OIC
 ```
 
-The elseif construction: optional `MEBBE <expression>` blocks may appear between `YA RLY` and `NO WAI`. If the `<expression>` following `MEBBE` is `WIN`, then that block is performed; if not, the block is skipped until the following `MEBBE`, `NO WAI`, or `OIC`.
+The elseif construction: optional `MEBBE <expression>` blocks may appear between `YA RLY` and `NO WAI`. Each expression is cast to `TROOF`; the first one that becomes `WIN` has its block performed. Otherwise that block is skipped until the following `MEBBE`, `NO WAI`, or `OIC`.
 
 ```lolcode
 <expression>
@@ -503,7 +489,7 @@ OIC
 
 The `WTF?` operates on `IT` as being the expression value for comparison. A comparison block is opened by `OMG` and **must be a literal, not an expression**. (A literal, in this case, excludes any `YARN` containing variable interpolation (`:{var}`).) Each literal must be unique.
 
-The `OMG` block can be followed by any number of statements and may be terminated by a `GTFO`, which breaks to the end of the `WTF` statement. If an `OMG` block is not terminated by a `GTFO`, then the next `OMG` block is executed as is the next until a `GTFO` or the end of the `WTF` block is reached. The optional default case is signified by `OMGWTF`.
+The `OMG` block can be followed by any number of statements and may be terminated by a `GTFO`, which breaks to the end of the `WTF` statement. If an `OMG` block is not terminated by a `GTFO`, execution falls through subsequent `OMG` blocks until a `GTFO` or the end of the matching cases. The optional `OMGWTF` default runs only when no literal matches; a matched case does not fall through into it.
 
 ```lolcode
 WTF?
@@ -554,12 +540,22 @@ Simple loops are demarcated with `IM IN YR <label>` and `IM OUTTA YR <label>`. L
 Iteration loops have the form:
 
 ```lolcode
-IM IN YR <label> <operation> YR <variable> [TIL|WILE <expression>]
+IM IN YR <label> <operation> [TIL|WILE <expression>]
   <code block>
 IM OUTTA YR <label>
 ```
 
-Where `<operation>` may be `UPPIN` (increment by one), `NERFIN` (decrement by one), or any unary function. That operation/function is applied to the `<variable>`, which is **temporary, and local to the loop**. The `TIL <expression>` evaluates the expression as a `TROOF`: if it evaluates as `FAIL`, the loop continues once more, if not, then loop execution stops, and continues after the matching `IM OUTTA YR <label>`. The `WILE <expression>` is the converse: if the expression is `WIN`, execution continues, otherwise the loop exits.
+`<operation>` is one of:
+
+```lolcode
+UPPIN YR <variable>
+NERFIN YR <variable>
+I IZ <unary-function> YR <variable> MKAY
+```
+
+The archived Final Draft says the operation may be any unary function but does not define its call spelling. The `I IZ ... MKAY` form above is the spelling used by `lci`.
+
+The loop variable is a fresh loop-local `NUMBR` initialized to `0`; it temporarily shadows any outer variable with the same name. Each iteration evaluates the optional guard before the body. `TIL` exits when its expression casts to `WIN`; `WILE` exits when its expression casts to `FAIL`. After the body, `UPPIN` adds one, `NERFIN` subtracts one, or the unary function's return value replaces the loop variable. A `GTFO` in the body exits immediately without applying the operation.
 
 ```lolcode
 BTW count from 0 to 9
@@ -577,7 +573,7 @@ IM OUTTA YR loop
 ```
 
 Loop control:
-- `GTFO` — break out of the current loop
+- `GTFO` — break out of the innermost enclosing loop
 
 ---
 
@@ -628,7 +624,7 @@ VISIBLE IT                         BTW prints 8
 
 ---
 
-## Keywords Reference
+## Syntax Reference
 
 ### Program Structure
 | Keyword | Purpose |
@@ -692,7 +688,7 @@ VISIBLE IT                         BTW prints 8
 | `WTF?` | Begin switch (tests IT) |
 | `OMG` | Case label (literal only, no `:{var}`) |
 | `OMGWTF` | Default case |
-| `GTFO` | Break |
+| `GTFO` | Break from the innermost switch |
 
 ### Loops
 | Keyword | Purpose |
@@ -701,6 +697,7 @@ VISIBLE IT                         BTW prints 8
 | `IM OUTTA YR` | End loop |
 | `UPPIN` | Increment operation |
 | `NERFIN` | Decrement operation |
+| `I IZ ... YR ... MKAY` | Custom unary loop operation |
 | `YR` | Parameter/variable marker |
 | `TIL` | Until condition |
 | `WILE` | While condition |
@@ -712,6 +709,7 @@ VISIBLE IT                         BTW prints 8
 | `IF U SAY SO` | End function declaration |
 | `I IZ ... MKAY` | Function call |
 | `FOUND YR` | Return value |
+| `GTFO` | Return `NOOB` |
 
 ### Types & Casting
 | Keyword | Purpose |
@@ -721,8 +719,8 @@ VISIBLE IT                         BTW prints 8
 | `YARN` | String type |
 | `TROOF` | Boolean type |
 | `NOOB` | Untyped/null type |
-| `TYPE` | Type type |
-| `BUKKIT` | Reserved — not implemented (produces error) |
+| `TYPE` | Tentative metatype; not part of the stable profile |
+| `BUKKIT` | Reserved; no 1.2 value semantics |
 | `MAEK` | Expression cast |
 | `A` | Optional keyword in cast (`MAEK x A YARN`) |
 | `IS NOW A` | In-place cast |
@@ -749,8 +747,8 @@ VISIBLE IT                         BTW prints 8
 ### Misc
 | Keyword | Purpose |
 |---------|---------|
-| `AN` | Optional operand separator |
-| `MKAY` | Variadic expression terminator (may be omitted at EOL) |
+| `AN` | Optional separator for operator operands; required before subsequent `YR` function arguments |
+| `MKAY` | Variadic-expression terminator (may be omitted at EOL); explicit function-call terminator |
 | `,` | Statement separator (soft-command-break) |
 | `...` / `…` | Line continuation |
 | `!` | Suppress newline (after VISIBLE) |

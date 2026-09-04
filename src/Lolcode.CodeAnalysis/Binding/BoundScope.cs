@@ -30,6 +30,23 @@ internal sealed class BoundScope
     public bool TryDeclareVariable(VariableSymbol variable) =>
         _variables.TryAdd(variable.Name, variable);
 
+    /// <summary>Temporarily replaces a variable and returns the previous binding, if any.</summary>
+    public VariableSymbol? ReplaceVariable(VariableSymbol variable)
+    {
+        _variables.TryGetValue(variable.Name, out var previous);
+        _variables[variable.Name] = variable;
+        return previous;
+    }
+
+    /// <summary>Restores a variable binding after a temporary replacement.</summary>
+    public void RestoreVariable(string name, VariableSymbol? previous)
+    {
+        if (previous is null)
+            _variables.Remove(name);
+        else
+            _variables[name] = previous;
+    }
+
     /// <summary>Declares a function in this scope. Returns false if already declared.</summary>
     public bool TryDeclareFunction(FunctionSymbol function) =>
         _functions.TryAdd(function.Name, function);

@@ -1,36 +1,10 @@
 # LOLCODE 1.3 Changes Specification
 
-This document describes **only the differences** between the [LOLCODE 1.2 spec](archive/lolcode-spec-v1.2.md) (Final Draft) and the [LOLCODE 1.3 spec](archive/lolcode-spec-v1.3.md) (Draft). These changes are **not implemented** in the dotnet-lolcode compiler (which targets 1.2), but are documented here for future reference and to avoid painting ourselves into a corner.
+This document describes **only the differences** between the archived [LOLCODE 1.2 Final Draft](archive/lolcode-spec-v1.2.md) and archived [LOLCODE 1.3 Draft](archive/lolcode-spec-v1.3.md). It preserves contradictions and incomplete proposals rather than silently turning them into settled language rules.
 
 > *The 1.3 spec was never finalized. It is a community draft of proposals. Some sections contain internal inconsistencies or typos, which are noted below.*
 
----
-
-## Status
-
-| Feature | Category | Complexity | This Compiler |
-|---------|----------|-----------|---------------|
-| Version header `HAI 1.3` | Changed | Trivial | ❌ Not implemented |
-| Memory/GC semantics | Clarified | None (.NET GC) | ✅ Automatic |
-| `I HAS A x ITZ A <type>` (typed defaults) | New Feature | Low | ❌ Not implemented |
-| Bare `I HAS A` = `ITZ NOOB` (explicit) | Clarified | None | ✅ Already works |
-| Primitive immutability | Clarified | None (.NET) | ✅ Automatic |
-| `SRS` dynamic identifiers | New Feature | High | ❌ Not implemented |
-| `<var> R NOOB` deallocation | Clarified | None | ✅ Works under 1.2 |
-| Functions as variables (unified namespace) | Changed | Medium | ❌ Not implemented |
-| `HOW DUZ I` alias | New Feature | Low | ❌ Not implemented |
-| Function call `I` vs object namespace | Clarified | Low | ❌ Not implemented |
-| BUKKIT object system | New Feature | Very High | ❌ Not implemented |
-| Slot access `'Z` | New Feature | High | ❌ Not implemented |
-| Object methods (`HOW IZ <obj>`) | New Feature | High | ❌ Not implemented |
-| Object method calls (`<obj> IZ <slot>`) | New Feature | High | ❌ Not implemented |
-| `ME` keyword | New Feature | High | ❌ Not implemented |
-| `O HAI IM` / `KTHX` blocks | New Feature | High | ❌ Not implemented |
-| Special slots (`parent`, `omgwtf`, `izmakin`) | New Feature | High | ❌ Not implemented |
-| Inheritance `ITZ LIEK A` | New Feature | Very High | ❌ Not implemented |
-| Mixin inheritance (extended `SMOOSH`) | New Feature | Very High | ❌ Not implemented |
-| `IT` always from global namespace | Clarified | Low | ⚠️ Design consideration |
-| Variable naming wording change | Changed (likely typo) | Trivial | ❌ No action needed |
+Compiler support and implementation considerations are recorded separately in the non-normative [Implementation Profile](LANGUAGE_IMPLEMENTATION.md).
 
 ---
 
@@ -49,7 +23,7 @@ The 1.3 spec makes several metadata changes:
 
 - **Version header:** Programs use `HAI 1.3` instead of `HAI 1.2`.
 
-**Provenance marker changes throughout:** All `(from 1.1)` and `(modified from 1.1)` markers in 1.2 are updated to `(from 1.2)` or `(updated from 1.2)` in 1.3, reflecting that 1.3 builds on 1.2 as its baseline.
+**Selected provenance marker changes:** Formatting, File Creation, Declaration, Types, Case, Functions, and the new Arrays section use `(from 1.2)` or `(updated from 1.2)`. Comments and Naming retain `(from 1.1)`.
 
 ---
 
@@ -59,15 +33,13 @@ The 1.3 spec makes several metadata changes:
 
 > All variables are merely references to locations in memory. It is assumed that when a variable is no longer referenced, that variable's allocated space will be freed sometime in the future, or on program exit.
 
-**Impact:** None for .NET — the CLR GC handles this automatically.
-
 ---
 
 ## 3. Variable Naming
 
 **Category:** Changed (minor — likely typo)
 
-1.2 says "all uppercase or lowercase letters", 1.3 changes to "all small or lowercase letters". The rest of the naming rules (including examples using `CHEEZBURGER`) remain identical, so this appears to be a drafting error. No behavioral change.
+1.2 says "all uppercase or lowercase letters"; 1.3 changes that phrase to "all small or lowercase letters". The rest of the rule still permits mixtures and still distinguishes `cheezburger`, `CheezBurger`, and `CHEEZBURGER`. The new wording is internally contradictory. It is likely a drafting error, but the archived delta does not establish whether uppercase identifiers were intended to become illegal.
 
 ---
 
@@ -110,8 +82,6 @@ Initializes a variable to the **default value** for the given type:
 
 > All primitive types are considered Immutable. All built in operations return new objects instead of references to old objects. The exceptions to this rule are WIN, FAIL and NOOB. Every TROOF reference is either the WIN or FAIL object. Every NOOB reference is to the NOOB instance.
 
-**Impact:** None for .NET — value types and strings are already immutable. `WIN`/`FAIL`/`NOOB` as singletons aligns with how the compiler should represent these.
-
 ---
 
 ## 6. `SRS` (Serious) — Dynamic Identifier Resolution
@@ -123,7 +93,7 @@ Initializes a variable to the **default value** for the given type:
 SRS <expression>
 ```
 
-Interprets a `YARN` value (or anything castable to `YARN`) as a variable identifier at runtime. Can be used **anywhere** a regular identifier is expected.
+Interprets a `YARN` value (or anything castable to `YARN`) as an identifier at runtime. It can be used **anywhere** a regular identifier is expected, including variable, function, object, and slot positions.
 
 ```
 I HAS A name ITZ "var"
@@ -137,8 +107,6 @@ I HAS SRS name ITZ 0       BTW also valid
 
 **New keyword:** `SRS`
 
-**Impact:** High — requires runtime variable lookup by name (dictionary-based variable storage instead of pure compile-time locals).
-
 ---
 
 ## 7. Variable Deallocation
@@ -150,8 +118,6 @@ I HAS SRS name ITZ 0       BTW also valid
 ```
 
 1.3 adds a dedicated "Deallocation" subsection explicitly describing this as clearing the reference. The reference still exists in scope but points to nothing. The previous value will be garbage collected if no other references exist.
-
-**Impact:** None — this already works under 1.2 semantics (assign NOOB to a variable).
 
 ---
 
@@ -172,19 +138,13 @@ var R 0               BTW Legal: function is replaced with NUMBR 0
 
 > **1.3 spec note:** The example uses `HOW DUZ I` (see §9), but the Functions section still defines `HOW IZ I` as the primary syntax. This appears to be a draft inconsistency.
 
-**Impact:** Medium — functions must be stored in the same symbol table as variables; reassignment must be supported.
-
 ---
 
-## 9. `HOW DUZ I` — Function Definition Alias
+## 9. `HOW DUZ I` — Unresolved Draft Inconsistency
 
-**Category:** New Feature
+**Category:** Draft inconsistency
 
-1.3 introduces `HOW DUZ I` as an alternative spelling for `HOW IZ I` in function definitions. It appears in the Variables/Declaration section examples but is not formally defined in the Functions section (which still uses `HOW IZ I`).
-
-**New keyword:** `HOW DUZ I`
-
-**Impact:** Low — lexer/parser addition.
+The functions-as-variables example uses `HOW DUZ I`, but the normative Functions section continues to define only `HOW IZ I`. The earlier archived 1.2 wiki witness used `HOW DUZ I`, while the later 1.2 revision deliberately changed it to `HOW IZ I`. The isolated 1.3 occurrence therefore does **not** establish an alias; it is preserved as unresolved stale wording.
 
 ---
 
@@ -200,11 +160,11 @@ This establishes that `I IZ <func>` calls from the current/local namespace, whil
 
 ---
 
-## 11. Arrays Placeholder Removed from Types
+## 11. Arrays Placeholder Removed; Reservation Retained
 
-**Category:** Removed / Replaced
+**Category:** Removed + contradictory addition
 
-The 1.2 `### Arrays` subsection under Types (which said "Array and dictionary types are currently under-specified…") is **removed entirely** in 1.3. It is replaced by the new top-level `## Arrays` section defining the full BUKKIT system (see §12).
+The 1.2 `### Arrays` subsection under Types (which said arrays and dictionaries were under-specified) is removed. A new top-level `## Arrays` section proposes the BUKKIT system (see §12). However, the inherited Types overview still says BUKKIT is "reserved for future expansion." The draft never reconciles those statements.
 
 ---
 
@@ -212,7 +172,7 @@ The 1.2 `### Arrays` subsection under Types (which said "Array and dictionary ty
 
 **Category:** New Feature (massive)
 
-This is the single largest addition in 1.3. BUKKITs replace the "reserved for future expansion" placeholder with a complete prototype-based object system, defined in a new top-level `## Arrays` section (marked `*(updated from 1.2)*`).
+This is the single largest addition in 1.3: a proposed prototype-based object system in a new top-level `## Arrays` section (marked `*(updated from 1.2)*`). It is not complete or internally consistent: BUKKIT remains reserved in the Types overview, and the TYPE/default/cast tables are not extended for BUKKIT or functions.
 
 ### 12.1 BUKKIT as Container Type
 
@@ -232,7 +192,7 @@ Creates an empty object with default BUKKIT behavior.
 <object> HAS A <slotname> ITZ <expression>
 ```
 
-Places a value into a named slot. A slot may be declared/initialized more than once (just changes the value). The slot name can be any identifier or a `SRS` expression. A function can be assigned into a slot:
+Places a value into a named slot. A slot may be declared/initialized more than once (just changes the value). The slot name can be any identifier or the source's undefined "SRS BIZNUS cast." This appears to mean an `SRS` expression, but the draft does not say so explicitly. A function can be assigned into a slot:
 
 ```
 HOW IZ I blogin YR stuff
@@ -251,7 +211,7 @@ IF U SAY SO
 <object>'Z SRS <expression>     BTW indirect access via SRS
 ```
 
-> **1.3 spec inconsistency:** The prose says "slots are accessed using the slot operator `-`" but all examples use `'Z`. We follow the examples and treat `'Z` as the correct operator.
+> **1.3 spec inconsistencies:** The prose names `-`, while every example uses `'Z`. Examples also vary between `<object> 'Z <slot>` and `<object>'Z <slot>`, even though whitespace normally separates tokens. `'Z` is strongly evidenced as the intended operator, but spacing is not settled by the draft.
 
 ### 12.5 Object Method Definition
 
@@ -269,7 +229,7 @@ Note: `HOW IZ <object>` (not `HOW IZ I`) — defines a method on a specific obje
 <object> IZ <slotname> [YR <arg>...] MKAY
 ```
 
-Distinguished from `I IZ <func>` (global function call) by the object reference. Combined with `SRS`, allows dynamic method dispatch:
+Distinguished from `I IZ <func>` (a call in the current namespace) by the object reference. Combined with `SRS`, this allows dynamic method dispatch:
 
 ```
 HOW IZ I getin YR object AN YR varName
@@ -298,9 +258,9 @@ Variable lookup order:
 2. Calling object's namespace (if called from object)
 3. "Global" namespace
 
-`IT` is always looked up from global namespace.
+The BUKKIT section says `IT` is always looked up from the global namespace.
 
-> **1.3 spec note:** This introduces a "global namespace" concept, while the unchanged Scope section still says "there is no global scope." This appears to be a draft contradiction — the 1.3 spec likely intends "the main program block's scope" when it says "global."
+> **1.3 spec contradiction:** The unchanged Scope section says there is no global scope, the Statements section says `IT` remains local, and the Functions section says functions cannot access outer variables. The BUKKIT lookup rules nevertheless introduce a global namespace and globally resolved `IT`. The draft does not define whether "global" means the main program block or a new scope, so neither interpretation is normalized here.
 
 ### 12.9 Alternate Object Definition Syntax
 
@@ -329,12 +289,12 @@ Every BUKKIT has three special slots:
 | Slot | Purpose |
 |------|---------|
 | `parent` | Reference to prototype/parent object |
-| `omgwtf` | Called when slot access fails (default: throw error) |
-| `izmakin` | Constructor — called after prototype copy, before return |
+| `omgwtf` | Called when slot access fails; may return a value that is installed in the missing slot or throw |
+| `izmakin` | Called after an object is fully prototyped and before the prototyping operation returns |
 
-> **Note:** These are special slot *names*, not language keywords. They are reserved names within every BUKKIT's namespace.
+These are special slot names, not language keywords.
 
-> **1.3 spec note:** The description of `omgwtf` references "canhas" ("The default implementation of canhas is to always throw an exception") without defining it elsewhere. This appears to be a remnant of an earlier draft name for the slot-access-failure mechanism.
+> **1.3 spec note:** The description of `omgwtf` says "the default implementation of canhas" throws, but `canhas` is not defined. The intended relationship between that name and `omgwtf` is unresolved.
 
 ### 12.11 Inheritance / Prototyping
 
@@ -388,7 +348,17 @@ O HAI IM <object> IM LIEK <parent> SMOOSH <mixin> [AN <mixin>]*
 KTHX
 ```
 
-Copies all slots from mixins into the new object in **reverse order** of declaration, then sets parent. Mixin inheritance is **static** — later changes to mixin objects don't propagate.
+Copies mixins into the new object in reverse **mixin argument** order, then replaces the parent slot with the declared parent. Mixin inheritance is **static**: later changes to mixin objects do not propagate.
+
+The draft also gives a post-creation workaround. It creates an intermediate object by mixing an existing object into a BUKKIT, rewires that intermediate object's `parent`, and then assigns the intermediate object as the existing child's parent:
+
+```lolcode
+I HAS A slice ITZ A bukkit SMOOSH cheeze
+slice'Z parent R burger'Z parent
+cheezburger2'Z parent R slice
+```
+
+The accompanying comment says this copies `cheeze` and its parent slots, which is broader than the earlier rule that only slots "defined on the mixin" are copied. The draft does not resolve that conflict.
 
 > **Note:** `SMOOSH` is **not** a new keyword — it already exists in 1.2 for string concatenation. In 1.3, it gains a second meaning in the inheritance context.
 
@@ -401,7 +371,7 @@ These changes have no semantic impact but exist as differences between the two s
 | Change | Detail |
 |--------|--------|
 | Section restructuring | "Declaration and Assignment" split into "Declaration" + "Assignment" |
-| Provenance markers | All `(from 1.1)` / `(modified from 1.1)` updated to `(from 1.2)` / `(updated from 1.2)` |
+| Provenance markers | Selected sections move to 1.2 provenance; Comments and Naming retain 1.1 provenance |
 | Functions section | Gains `(updated from 1.2)` provenance marker |
 | Loops paragraph | Backtick formatting removed from metavariable names in iteration loop description |
 | Function definition syntax | Unicode ellipsis `…` normalized to three ASCII periods `...` in argument syntax |
@@ -414,7 +384,6 @@ These changes have no semantic impact but exist as differences between the two s
 | Syntax | Context | Section |
 |--------|---------|---------|
 | `SRS <expression>` | Anywhere an identifier is expected | §6 |
-| `HOW DUZ I` | Function definition (alias for `HOW IZ I`) | §9 |
 | `I HAS A <var> ITZ A <type>` | Typed default initialization | §4.1 |
 | `I HAS A <obj> ITZ A BUKKIT` | BUKKIT object creation | §12.2 |
 | `<obj> HAS A <slot> ITZ <expr>` | Slot creation/assignment | §12.3 |
@@ -433,38 +402,28 @@ These changes have no semantic impact but exist as differences between the two s
 
 The 1.3 spec is an unfinished draft with several issues to be aware of:
 
-1. **`HOW DUZ I` vs `HOW IZ I`:** The functions-as-variables example uses `HOW DUZ I`, but the Functions section still defines only `HOW IZ I`. The alias is implied but not formally specified.
+1. **`HOW DUZ I` vs `HOW IZ I`:** The functions-as-variables example uses `HOW DUZ I`, but the Functions section still defines only `HOW IZ I`. This may be stale text from the earlier 1.2 witness; no alias is established.
 
-2. **Slot access operator:** The prose says `"-"` but all examples use `'Z`. The examples should be followed.
+2. **Slot access operator:** The prose says `-`, all examples use `'Z`, and examples disagree about whitespace before `'Z`.
 
-3. **`canhas` reference:** The special slots section mentions "the default implementation of canhas" without defining `canhas` anywhere. Likely an earlier draft name for the slot-failure mechanism.
+3. **`canhas` reference:** The special slots section mentions "the default implementation of canhas" without defining `canhas` anywhere.
 
-4. **"Global namespace" contradiction:** The Scope section (unchanged from 1.2) says "there is no global scope," but the BUKKIT scope rules reference a "global namespace" and say "IT is always looked up from global namespace."
+4. **Scope and `IT`:** "No global scope," local `IT`, function isolation, and BUKKIT global lookup cannot all hold simultaneously.
 
-5. **Variable naming wording:** "uppercase" changed to "small" — likely a typo since examples still use uppercase.
+5. **BUKKIT status and type integration:** BUKKIT is both reserved and defined. NUMBR/YARN indexing lacks matching grammar; TYPE values, typed defaults, and cast targets omit BUKKIT and the undefined `FUNKSHUN` type.
 
-6. **Typos:** "distingish" (distinguish), "instatiates" (instantiates).
+6. **Special slots:** `omgwtf` materializes returned values into missing slots, but its default behavior is attributed to undefined `canhas`. `izmakin` is defined only for prototyping.
+
+7. **Mixin copying:** The main rule copies slots defined on mixins, while the post-creation example claims parent slots are copied too.
+
+8. **Unresolved source terms and syntax:** "SRS BIZNUS cast" and `FUNKSHUN` are undefined; one function example contains a stray `?`; inheritance examples alternate between `ITZ LIEK A` and `ITZ A`.
+
+9. **Variable naming wording:** "uppercase" changed to "small" even though uppercase examples remain.
+
+10. **Typos:** "distingish" (distinguish), "instatiates" (instantiates).
 
 ---
 
-## Design Considerations for Future 1.3 Support
+## Non-delta Material
 
-If the compiler later targets 1.3, these architectural decisions should be considered now:
-
-1. **Variable storage:** The `SRS` operator requires runtime variable lookup by name. Consider using `Dictionary<string, object>` as the variable store (the runtime library already uses `object` for all values).
-
-2. **Function/variable unification:** Functions should be stored as values in the same symbol table as variables, not in a separate function table. This enables `var R 0` to overwrite a function.
-
-3. **BUKKIT as runtime type:** `Dictionary<string, object>` is a natural fit for BUKKIT slots. The `'Z` operator maps to dictionary indexing.
-
-4. **Prototype chains:** The `parent` slot creates a linked list of objects. Slot lookup walks this chain — similar to JavaScript's prototype chain.
-
-5. **`ME` binding:** When calling `<obj> IZ <slot>`, the runtime must pass `obj` as the `ME` context to the function.
-
-6. **`O HAI IM` blocks:** These are essentially object literal expressions with their own scope — similar to JavaScript's object constructors.
-
-7. **Generalized call expressions:** Design the call AST to support both `I IZ <func>` (no receiver) and `<obj> IZ <slot>` (with receiver) from the start.
-
-8. **`SMOOSH` context sensitivity:** `SMOOSH` has two meanings in 1.3 (string concatenation and mixin inheritance). The parser will need to distinguish these by context.
-
-9. **`IT` scoping:** The 1.3 rule that `IT` is "always looked up from global namespace" may affect how `IT` is stored and resolved. Don't bury `IT` as a simple local variable in the implementation.
+Compiler support, complexity estimates, and possible implementation strategies are intentionally excluded from this delta. See the non-normative [Implementation Profile](LANGUAGE_IMPLEMENTATION.md).

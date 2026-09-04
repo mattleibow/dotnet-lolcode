@@ -219,24 +219,21 @@ public class CastingTests : EndToEndTestBase
             BTW Per spec: NUMBAR prints with two decimal digits when cast to YARN
 
             HAI 1.2
-              I HAS A pi ITZ 3.14159
-              VISIBLE "PI AS YARN:: " MAEK pi A YARN
+              I HAS A positive ITZ 1.239
+              VISIBLE "POSITIVE AS YARN:: " MAEK positive A YARN
 
-              I HAS A half ITZ 0.5
-              VISIBLE "0.5 AS YARN:: " MAEK half A YARN
-
-              I HAS A neg ITZ -1.234
-              VISIBLE "-1.234 AS YARN:: " MAEK neg A YARN
+              I HAS A negative ITZ -1.239
+              VISIBLE "NEGATIVE AS YARN:: " MAEK negative A YARN
             KTHXBYE
-            """, "PI AS YARN: 3.14\n0.5 AS YARN: 0.50\n-1.234 AS YARN: -1.23");
+            """, "POSITIVE AS YARN: 1.23\nNEGATIVE AS YARN: -1.23");
     }
 
     [Fact]
     public void YarnToNumbrParsing()
     {
         AssertOutput("""
-            BTW Test parsing YARN to NUMBR and error on non-numeric
-            BTW Per spec: integer parses directly, decimal truncates, non-numeric causes runtime error
+            BTW Test parsing YARN to NUMBR
+            BTW Reference behavior: decimal truncates and non-numeric becomes zero
 
             HAI 1.2
               BTW integer string
@@ -245,9 +242,9 @@ public class CastingTests : EndToEndTestBase
               BTW decimal string truncates toward zero
               VISIBLE ":"3.14:" AS NUMBR:: " MAEK "3.14" A NUMBR
 
-              BTW non-numeric string should cause runtime error (no further output)
-              MAEK "LOL" A NUMBR
+              BTW non-numeric string becomes zero
+              VISIBLE ":"LOL:" AS NUMBR:: " MAEK "LOL" A NUMBR
             KTHXBYE
-            """, "\"42\" AS NUMBR: 42\n\"3.14\" AS NUMBR: 3");
+            """, "\"42\" AS NUMBR: 42\n\"3.14\" AS NUMBR: 3\n\"LOL\" AS NUMBR: 0");
     }
 }

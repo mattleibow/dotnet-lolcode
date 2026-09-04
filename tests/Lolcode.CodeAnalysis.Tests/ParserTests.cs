@@ -218,6 +218,21 @@ public class ParserTests
     }
 
     [Fact]
+    public void Parse_LoopWithReferenceStyleCustomOperation()
+    {
+        var tree = Parse("""
+            HAI 1.2
+            IM IN YR loop I IZ bump YR i MKAY TIL BOTH SAEM i AN 2
+            IM OUTTA YR loop
+            KTHXBYE
+            """);
+        var loop = tree.Program.Statements.Should().ContainSingle()
+            .Which.Should().BeOfType<LoopStatementSyntax>().Subject;
+        loop.OperationToken!.Text.Should().Be("bump");
+        loop.VariableToken!.Text.Should().Be("i");
+    }
+
+    [Fact]
     public void Parse_FunctionDeclaration()
     {
         var tree = Parse("""

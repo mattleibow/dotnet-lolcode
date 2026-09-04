@@ -47,6 +47,89 @@ public class LoopTests : EndToEndTestBase
     }
 
     [Fact]
+    public void LoopConditionCheckedBeforeBody()
+    {
+        AssertOutput("""
+            HAI 1.2
+              IM IN YR pretest UPPIN YR i TIL WIN
+                VISIBLE "body"
+              IM OUTTA YR pretest
+              VISIBLE "done"
+            KTHXBYE
+            """, "done");
+    }
+
+    [Fact]
+    public void CustomUnaryOperationUsesReturnedValue()
+    {
+        AssertOutput("""
+            HAI 1.2
+              HOW IZ I bump YR n
+                VISIBLE "op" n
+                FOUND YR SUM OF n AN 1
+              IF U SAY SO
+              IM IN YR custom I IZ bump YR i MKAY TIL BOTH SAEM i AN 2
+                VISIBLE "body" i
+              IM OUTTA YR custom
+            KTHXBYE
+            """, "body0\nop0\nbody1\nop1");
+    }
+
+    [Fact]
+    public void GtfoSkipsCustomLoopOperation()
+    {
+        AssertOutput("""
+            HAI 1.2
+              HOW IZ I bump YR n
+                VISIBLE "operation"
+                FOUND YR SUM OF n AN 1
+              IF U SAY SO
+              IM IN YR custom I IZ bump YR i MKAY
+                VISIBLE "body"
+                GTFO
+              IM OUTTA YR custom
+            KTHXBYE
+            """, "body");
+    }
+
+    [Fact]
+    public void LoopVariableIsUndeclaredAfterLoop()
+    {
+        AssertCompileError("""
+            HAI 1.2
+              IM IN YR scoped UPPIN YR i TIL BOTH SAEM i AN 1
+              IM OUTTA YR scoped
+              VISIBLE i
+            KTHXBYE
+            """, "LOL2001");
+    }
+
+    [Fact]
+    public void UndefinedCustomLoopOperationIsAnError()
+    {
+        AssertCompileError("""
+            HAI 1.2
+              IM IN YR custom I IZ missing YR i MKAY TIL BOTH SAEM i AN 1
+              IM OUTTA YR custom
+            KTHXBYE
+            """, "LOL2003");
+    }
+
+    [Fact]
+    public void CustomLoopOperationMustBeUnary()
+    {
+        AssertCompileError("""
+            HAI 1.2
+              HOW IZ I add YR x AN YR y
+                FOUND YR SUM OF x AN y
+              IF U SAY SO
+              IM IN YR custom I IZ add YR i MKAY TIL BOTH SAEM i AN 1
+              IM OUTTA YR custom
+            KTHXBYE
+            """, "LOL2004");
+    }
+
+    [Fact]
     public void LoopGtfoBreak()
     {
         AssertOutput("""

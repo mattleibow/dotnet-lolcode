@@ -228,14 +228,17 @@ dotnet test --filter "StringTests"
 | Comments | `BTW` (line), `OBTW...TLDR` (block) | ✅ |
 | IT variable | Implicit per-scope variable | ✅ |
 | Line continuation | `...` and `…` | ✅ |
-| TYPE type | Bare word type values | 🚧 Deferred |
+| TYPE proposal | Tentative bare-word metatype values | 🚧 Deferred |
 
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
 | [Design Document](docs/DESIGN.md) | Architecture, technical decisions, component details |
-| [Language Specification](docs/LANGUAGE_SPEC.md) | Full LOLCODE 1.2 spec as implemented |
+| [Language Specification](docs/LANGUAGE_SPEC.md) | Normative LOLCODE 1.2 stable profile |
+| [Implementation Profile](docs/LANGUAGE_IMPLEMENTATION.md) | .NET mappings, support status, and reference decisions |
+| [1.3 Draft Changes](docs/LANGUAGE_SPEC_1.3_CHANGES.md) | Archived 1.2-to-1.3 proposal delta |
+| [1.4 Reference Changes](docs/LANGUAGE_SPEC_1.4_CHANGES.md) | Pinned `lci/future` implementation delta |
 | [Roadmap](docs/ROADMAP.md) | Build phases and progress tracking |
 | [Contributing](CONTRIBUTING.md) | How to contribute |
 

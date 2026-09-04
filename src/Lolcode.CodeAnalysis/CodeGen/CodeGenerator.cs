@@ -594,6 +594,13 @@ internal sealed class CodeGenerator
                 _il.Emit(OpCodes.Call, _subtractMethod);
                 EmitStoreLocal(varName);
             }
+            else if (loop.OperationFunction is not null &&
+                     _methods.TryGetValue(loop.OperationFunction.Name, out var method))
+            {
+                EmitLoadLocal(varName);
+                _il.Emit(OpCodes.Call, method);
+                EmitStoreLocal(varName);
+            }
         }
 
         _il.Emit(OpCodes.Br, loopStart);

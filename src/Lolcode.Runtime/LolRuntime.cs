@@ -65,7 +65,7 @@ public static class LolRuntime
 
     /// <summary>
     /// Casts a value to YARN (string).
-    /// NUMBAR uses 2 decimal places (F2 format).
+    /// NUMBAR is truncated to 2 decimal places.
     /// </summary>
     public static string CastToYarn(object? value)
     {
@@ -74,10 +74,21 @@ public static class LolRuntime
             null => "",
             bool b => b ? "WIN" : "FAIL",
             int i => i.ToString(CultureInfo.InvariantCulture),
-            double d => d.ToString("F2", CultureInfo.InvariantCulture),
+            double d => FormatNumbar(d),
             string s => s,
             _ => value.ToString() ?? ""
         };
+    }
+
+    private static string FormatNumbar(double value)
+    {
+        if (double.IsFinite(value) && Math.Abs(value) <= (double)(decimal.MaxValue / 100m))
+        {
+            var truncated = decimal.Truncate((decimal)value * 100m) / 100m;
+            return truncated.ToString("F2", CultureInfo.InvariantCulture);
+        }
+
+        return value.ToString("F2", CultureInfo.InvariantCulture);
     }
 
     /// <summary>

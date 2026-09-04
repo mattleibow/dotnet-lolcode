@@ -192,7 +192,7 @@ internal sealed class Lowerer
             return node;
 
         return new BoundLoopStatement(
-            node.Label, node.Operation, node.Variable,
+            node.Label, node.Operation, node.OperationFunction, node.Variable,
             node.IsTil, condition, body, syntax: node.Syntax);
     }
 
