@@ -55,6 +55,28 @@ public sealed class LolcodeCodeRunnerTests
     }
 
     [Fact]
+    public async Task RunAsync_BoundsCapturedOutputDuringExecution()
+    {
+        var result = await _runner.RunAsync(
+            new CodeRunRequest(
+                """
+                HAI 1.2
+                  IM IN YR loop UPPIN YR i TIL BOTH SAEM i AN 128001
+                    VISIBLE "X"!
+                  IM OUTTA YR loop
+                KTHXBYE
+                """,
+                string.Empty));
+
+        result.Success.Should().BeTrue();
+        result.Output.Should().Be(
+            string.Concat(
+                new string('X', CodeRunnerLimits.MaxOutputLength),
+                Environment.NewLine,
+                "[output truncated]"));
+    }
+
+    [Fact]
     public async Task RunAsync_MapsCompilerDiagnosticLocation()
     {
         var result = await _runner.RunAsync(

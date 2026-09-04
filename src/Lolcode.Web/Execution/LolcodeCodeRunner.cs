@@ -39,7 +39,10 @@ internal sealed class LolcodeCodeRunner : ICodeRunner
         var stopwatch = Stopwatch.StartNew();
         var syntaxTree = SyntaxTree.ParseText(request.Source, SourceFileName);
         var compilation = LolcodeCompilation.Create(syntaxTree);
-        var scriptResult = LolcodeScript.Run(compilation, request.StandardInput);
+        var scriptResult = LolcodeScript.Run(
+            compilation,
+            request.StandardInput,
+            CodeRunnerLimits.MaxOutputLength);
         var diagnostics = scriptResult.Diagnostics
             .Select(ToCodeDiagnostic)
             .ToImmutableArray();
@@ -55,7 +58,7 @@ internal sealed class LolcodeCodeRunner : ICodeRunner
             new CodeRunResult(
                 scriptResult.Success,
                 scriptResult.Executed,
-                TruncateOutput(scriptResult.Output),
+                TruncateOutput(scriptResult.Output, scriptResult.OutputTruncated),
                 stopwatch.Elapsed,
                 diagnostics));
     }
@@ -151,9 +154,9 @@ internal sealed class LolcodeCodeRunner : ICodeRunner
         return (0, 0);
     }
 
-    internal static string TruncateOutput(string output)
+    internal static string TruncateOutput(string output, bool isTruncated = false)
     {
-        if (output.Length <= CodeRunnerLimits.MaxOutputLength)
+        if (!isTruncated && output.Length <= CodeRunnerLimits.MaxOutputLength)
         {
             return output;
         }
