@@ -11,6 +11,7 @@ using Lolcode.CodeAnalysis.BoundTree;
 using Lolcode.CodeAnalysis.Symbols;
 using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.CodeAnalysis.Text;
+using Lolcode.Runtime;
 
 namespace Lolcode.CodeAnalysis.CodeGen;
 
@@ -23,7 +24,7 @@ internal sealed class CodeGenerator
 {
     private readonly BoundBlockStatement _boundTree;
     private readonly string _assemblyName;
-    private readonly string _runtimeAssemblyPath;
+    private readonly Type _runtimeType;
     private readonly Text.SourceText? _sourceText;
     private readonly string? _sourceFilePath;
     private ISymbolDocumentWriter? _document;
@@ -110,36 +111,32 @@ internal sealed class CodeGenerator
     /// <summary>
     /// Creates a new emitter.
     /// </summary>
-    public CodeGenerator(BoundBlockStatement boundTree, string assemblyName, string runtimeAssemblyPath,
+    public CodeGenerator(BoundBlockStatement boundTree, string assemblyName, Type runtimeType,
         Text.SourceText? sourceText = null, string? sourceFilePath = null)
     {
         _boundTree = boundTree;
         _assemblyName = assemblyName;
-        _runtimeAssemblyPath = runtimeAssemblyPath;
+        _runtimeType = runtimeType;
         _sourceText = sourceText;
         _sourceFilePath = sourceFilePath;
     }
 
     /// <summary>
-    /// Emits the assembly to the specified output path.
+    /// Emits the assembly to caller-provided streams.
     /// </summary>
-    /// <returns>The path to the emitted DLL.</returns>
-    public string Emit(string outputPath)
+    public void Emit(Stream peStream, Stream? pdbStream = null, string? pdbFileName = null)
     {
-        var runtimeAssembly = Assembly.LoadFrom(_runtimeAssemblyPath);
-        var runtimeType = runtimeAssembly.GetType("Lolcode.Runtime.LolRuntime")
-            ?? throw new InvalidOperationException("Could not find LolRuntime type");
-        _scopeType = runtimeAssembly.GetType("Lolcode.Runtime.LolScope")!;
-        _objectType = runtimeAssembly.GetType("Lolcode.Runtime.LolObject")!;
-        _functionType = runtimeAssembly.GetType("Lolcode.Runtime.LolFunction")!;
-        _functionBodyType = runtimeAssembly.GetType("Lolcode.Runtime.LolFunctionBody")!;
-        _parameterNameResolverType =
-            runtimeAssembly.GetType("Lolcode.Runtime.LolParameterNameResolver")!;
-        _functionTargetType = runtimeAssembly.GetType("Lolcode.Runtime.LolFunctionTarget")!;
-        _identifierResolverType = runtimeAssembly.GetType("Lolcode.Runtime.LolIdentifierResolver")!;
-        _resolvedSlotType = runtimeAssembly.GetType("Lolcode.Runtime.LolResolvedSlot")!;
+        var runtimeAssembly = _runtimeType.Assembly;
+        _scopeType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolScope));
+        _objectType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolObject));
+        _functionType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolFunction));
+        _functionBodyType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolFunctionBody));
+        _parameterNameResolverType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolParameterNameResolver));
+        _functionTargetType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolFunctionTarget));
+        _identifierResolverType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolIdentifierResolver));
+        _resolvedSlotType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolResolvedSlot));
 
-        ResolveRuntimeMethods(runtimeType);
+        ResolveRuntimeMethods(_runtimeType);
 
         var assemblyBuilder = new PersistedAssemblyBuilder(
             new AssemblyName(_assemblyName),
@@ -243,158 +240,131 @@ internal sealed class CodeGenerator
 
         _typeBuilder.CreateType();
 
-        // Save assembly with PDB
-        var dllPath = outputPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
-            ? outputPath
-            : Path.ChangeExtension(outputPath, ".dll");
-        Directory.CreateDirectory(Path.GetDirectoryName(dllPath) ?? ".");
-
         var metadataBuilder = assemblyBuilder.GenerateMetadata(out var ilStream, out var mappedFieldData, out MetadataBuilder pdbBuilder);
         var entryPointHandle = MetadataTokens.MethodDefinitionHandle(mainMethod.MetadataToken);
+        DebugDirectoryBuilder? debugDirectoryBuilder = null;
 
-        string? pdbPath = null;
-
-        if (_document != null)
+        if (pdbStream != null)
         {
-            try
-            {
-                pdbPath = Path.ChangeExtension(dllPath, ".pdb");
+            var portablePdbBlob = new BlobBuilder();
+            var portablePdbBuilder = new PortablePdbBuilder(
+                pdbBuilder, metadataBuilder.GetRowCounts(), entryPointHandle,
+                idProvider: content =>
+                {
+                    using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                    foreach (var blob in content)
+                        hasher.AppendData(blob.GetBytes().Array!, blob.GetBytes().Offset, blob.GetBytes().Count);
+                    return BlobContentId.FromHash(hasher.GetHashAndReset());
+                });
+            BlobContentId pdbContentId = portablePdbBuilder.Serialize(portablePdbBlob);
+            portablePdbBlob.WriteContentTo(pdbStream);
 
-                // Serialize PDB first (need BlobContentId for PE debug directory)
-                var portablePdbBlob = new BlobBuilder();
-                var portablePdbBuilder = new PortablePdbBuilder(
-                    pdbBuilder, metadataBuilder.GetRowCounts(), entryPointHandle,
-                    idProvider: content =>
-                    {
-                        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                        foreach (var blob in content)
-                            hasher.AppendData(blob.GetBytes().Array!, blob.GetBytes().Offset, blob.GetBytes().Count);
-                        return BlobContentId.FromHash(hasher.GetHashAndReset());
-                    });
-                BlobContentId pdbContentId = portablePdbBuilder.Serialize(portablePdbBlob);
-
-                using (var pdbStream = File.Create(pdbPath))
-                    portablePdbBlob.WriteContentTo(pdbStream);
-
-                // Build PE with debug info
-                var debugDirectoryBuilder = new DebugDirectoryBuilder();
-                debugDirectoryBuilder.AddCodeViewEntry(
-                    Path.GetFileName(pdbPath), pdbContentId, portablePdbBuilder.FormatVersion);
-
-                var peBuilder = new ManagedPEBuilder(
-                    header: new PEHeaderBuilder(
-                        imageCharacteristics: Characteristics.ExecutableImage,
-                        subsystem: Subsystem.WindowsCui),
-                    metadataRootBuilder: new MetadataRootBuilder(metadataBuilder),
-                    ilStream: ilStream,
-                    mappedFieldData: mappedFieldData,
-                    debugDirectoryBuilder: debugDirectoryBuilder,
-                    entryPoint: entryPointHandle);
-
-                var peBlob = new BlobBuilder();
-                peBuilder.Serialize(peBlob);
-
-                using (var fs = new FileStream(dllPath, FileMode.Create, FileAccess.Write))
-                    peBlob.WriteContentTo(fs);
-            }
-            catch
-            {
-                // PDB failed — fall back to DLL without debug info
-                pdbPath = null;
-                var peBuilder = new ManagedPEBuilder(
-                    header: new PEHeaderBuilder(
-                        imageCharacteristics: Characteristics.ExecutableImage,
-                        subsystem: Subsystem.WindowsCui),
-                    metadataRootBuilder: new MetadataRootBuilder(metadataBuilder),
-                    ilStream: ilStream,
-                    mappedFieldData: mappedFieldData,
-                    entryPoint: entryPointHandle);
-
-                var peBlob = new BlobBuilder();
-                peBuilder.Serialize(peBlob);
-
-                using (var fs = new FileStream(dllPath, FileMode.Create, FileAccess.Write))
-                    peBlob.WriteContentTo(fs);
-            }
-        }
-        else
-        {
-            // No PDB requested — emit without debug info
-            var peBuilder = new ManagedPEBuilder(
-                header: new PEHeaderBuilder(
-                    imageCharacteristics: Characteristics.ExecutableImage,
-                    subsystem: Subsystem.WindowsCui),
-                metadataRootBuilder: new MetadataRootBuilder(metadataBuilder),
-                ilStream: ilStream,
-                mappedFieldData: mappedFieldData,
-                entryPoint: entryPointHandle);
-
-            var peBlob = new BlobBuilder();
-            peBuilder.Serialize(peBlob);
-
-            using (var fs = new FileStream(dllPath, FileMode.Create, FileAccess.Write))
-                peBlob.WriteContentTo(fs);
+            debugDirectoryBuilder = new DebugDirectoryBuilder();
+            debugDirectoryBuilder.AddCodeViewEntry(
+                pdbFileName ?? $"{_assemblyName}.pdb",
+                pdbContentId,
+                portablePdbBuilder.FormatVersion);
         }
 
-        // Also write runtime config
-        WriteRuntimeConfig(dllPath);
+        var peBuilder = new ManagedPEBuilder(
+            header: new PEHeaderBuilder(
+                imageCharacteristics: Characteristics.ExecutableImage,
+                subsystem: Subsystem.WindowsCui),
+            metadataRootBuilder: new MetadataRootBuilder(metadataBuilder),
+            ilStream: ilStream,
+            mappedFieldData: mappedFieldData,
+            debugDirectoryBuilder: debugDirectoryBuilder,
+            entryPoint: entryPointHandle);
 
-        return dllPath;
+        var peBlob = new BlobBuilder();
+        peBuilder.Serialize(peBlob);
+        peBlob.WriteContentTo(peStream);
     }
 
     private void ResolveRuntimeMethods(Type runtimeType)
     {
-        _printMethod = runtimeType.GetMethod(
-            "Print",
-            [typeof(object[]), typeof(bool), typeof(bool)])!;
-        _loadLibraryMethod = runtimeType.GetMethod("LoadLibrary")!;
-        _executeSystemCommandMethod = runtimeType.GetMethod("ExecuteSystemCommandValue")!;
-        _disposeScopeMethod = runtimeType.GetMethod("DisposeScope")!;
-        _writeByteOrderMarkMethod = runtimeType.GetMethod("WriteByteOrderMark")!;
-        _createYarnLiteralMethod = runtimeType.GetMethod("CreateYarnLiteral")!;
-        _interpolateYarnMethod = runtimeType.GetMethod("InterpolateYarnValue")!;
-        _readLineMethod = runtimeType.GetMethod("ReadLine")!;
-        _addMethod = runtimeType.GetMethod("Add")!;
-        _subtractMethod = runtimeType.GetMethod("Subtract")!;
-        _multiplyMethod = runtimeType.GetMethod("Multiply")!;
-        _divideMethod = runtimeType.GetMethod("Divide")!;
-        _moduloMethod = runtimeType.GetMethod("Modulo")!;
-        _greaterMethod = runtimeType.GetMethod("Greater")!;
-        _smallerMethod = runtimeType.GetMethod("Smaller")!;
-        _andMethod = runtimeType.GetMethod("And")!;
-        _orMethod = runtimeType.GetMethod("Or")!;
-        _xorMethod = runtimeType.GetMethod("Xor")!;
-        _notMethod = runtimeType.GetMethod("Not")!;
-        _bothSaemMethod = runtimeType.GetMethod("BothSaem")!;
-        _switchCaseMatchesMethod = runtimeType.GetMethod("SwitchCaseMatches")!;
-        _diffrintMethod = runtimeType.GetMethod("Diffrint")!;
-        _smooshMethod = runtimeType.GetMethod("SmooshValue")!;
-        _isTruthyMethod = runtimeType.GetMethod("IsTruthy")!;
-        _castToYarnMethod = runtimeType.GetMethod("CastToYarn")!;
-        _castToNumbrMethod = runtimeType.GetMethod("CastToNumbr")!;
-        _castToNumbarMethod = runtimeType.GetMethod("CastToNumbar")!;
-        _castToTroofMethod = runtimeType.GetMethod("CastToTroof")!;
-        _explicitCastMethod = runtimeType.GetMethod("ExplicitCast")!;
-        _createScopeMethod = runtimeType.GetMethod("CreateScope")!;
-        _createChildScopeMethod = runtimeType.GetMethod("CreateChildScope")!;
-        _createInvocationScopeMethod = runtimeType.GetMethod("CreateInvocationScope")!;
-        _createObjectMethod = runtimeType.GetMethod("CreateObject")!;
-        _invokeResolvedMethod = runtimeType.GetMethod("InvokeResolved")!;
-        _resolveParameterNameMethod = runtimeType.GetMethod("ResolveParameterName")!;
-        _getItMethod = runtimeType.GetMethod("GetIt")!;
-        _setItMethod = runtimeType.GetMethod("SetIt")!;
-        _resolveIdentifierNameMethod = runtimeType.GetMethod("ResolveIdentifierName")!;
-        _beginIdentifierPathMethod = runtimeType.GetMethod("BeginIdentifierPath")!;
-        _prepareIdentifierSegmentMethod = runtimeType.GetMethod("PrepareIdentifierSegment")!;
-        _setIdentifierSegmentMethod = runtimeType.GetMethod("SetIdentifierSegment")!;
-        _resolveIdentifierSlotMethod = runtimeType.GetMethod("ResolveIdentifierSlot")!;
-        _resolveIdentifierNamespaceMethod = runtimeType.GetMethod("ResolveIdentifierNamespace")!;
-        _getResolvedValueMethod = runtimeType.GetMethod("GetResolvedValue")!;
-        _resolveDeclarationSlotMethod = runtimeType.GetMethod("ResolveDeclarationSlot")!;
-        _declareResolvedValueMethod = runtimeType.GetMethod("DeclareResolvedValue")!;
-        _declareParameterMethod = runtimeType.GetMethod("DeclareParameter")!;
-        _assignResolvedValueMethod = runtimeType.GetMethod("AssignResolvedValue")!;
-        _resolveFunctionSlotMethod = runtimeType.GetMethod("ResolveFunctionSlot")!;
+        if (runtimeType != typeof(LolRuntime)
+            && !string.Equals(runtimeType.FullName, typeof(LolRuntime).FullName, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"Runtime type must be {typeof(LolRuntime).FullName}.",
+                nameof(runtimeType));
+        }
+
+        _printMethod = GetRequiredRuntimeMethod(
+            runtimeType,
+            nameof(LolRuntime.Print),
+            [typeof(object[]), typeof(bool), typeof(bool)]);
+        _loadLibraryMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.LoadLibrary));
+        _executeSystemCommandMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ExecuteSystemCommandValue));
+        _disposeScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.DisposeScope));
+        _writeByteOrderMarkMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.WriteByteOrderMark));
+        _createYarnLiteralMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CreateYarnLiteral));
+        _interpolateYarnMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.InterpolateYarnValue));
+        _readLineMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ReadLine));
+        _addMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Add));
+        _subtractMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Subtract));
+        _multiplyMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Multiply));
+        _divideMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Divide));
+        _moduloMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Modulo));
+        _greaterMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Greater));
+        _smallerMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Smaller));
+        _andMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.And));
+        _orMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Or));
+        _xorMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Xor));
+        _notMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Not));
+        _bothSaemMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.BothSaem));
+        _switchCaseMatchesMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.SwitchCaseMatches));
+        _diffrintMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Diffrint));
+        _smooshMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.SmooshValue));
+        _isTruthyMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.IsTruthy));
+        _castToYarnMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CastToYarn));
+        _castToNumbrMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CastToNumbr));
+        _castToNumbarMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CastToNumbar));
+        _castToTroofMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CastToTroof));
+        _explicitCastMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ExplicitCast));
+        _createScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CreateScope));
+        _createChildScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CreateChildScope));
+        _createInvocationScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CreateInvocationScope));
+        _createObjectMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CreateObject));
+        _invokeResolvedMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.InvokeResolved));
+        _resolveParameterNameMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ResolveParameterName));
+        _getItMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.GetIt));
+        _setItMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.SetIt));
+        _resolveIdentifierNameMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ResolveIdentifierName));
+        _beginIdentifierPathMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.BeginIdentifierPath));
+        _prepareIdentifierSegmentMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.PrepareIdentifierSegment));
+        _setIdentifierSegmentMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.SetIdentifierSegment));
+        _resolveIdentifierSlotMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ResolveIdentifierSlot));
+        _resolveIdentifierNamespaceMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ResolveIdentifierNamespace));
+        _getResolvedValueMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.GetResolvedValue));
+        _resolveDeclarationSlotMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ResolveDeclarationSlot));
+        _declareResolvedValueMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.DeclareResolvedValue));
+        _declareParameterMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.DeclareParameter));
+        _assignResolvedValueMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.AssignResolvedValue));
+        _resolveFunctionSlotMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ResolveFunctionSlot));
+    }
+
+    private static Type GetRequiredRuntimeType(Assembly runtimeAssembly, Type expectedType)
+    {
+        return runtimeAssembly.GetType(expectedType.FullName!, throwOnError: true)!;
+    }
+
+    private static MethodInfo GetRequiredRuntimeMethod(
+        Type runtimeType,
+        string methodName,
+        Type[]? parameterTypes = null)
+    {
+        return parameterTypes is null
+            ? runtimeType.GetMethod(methodName, BindingFlags.Public | BindingFlags.Static)
+                ?? throw new MissingMethodException(runtimeType.FullName, methodName)
+            : runtimeType.GetMethod(
+                methodName,
+                BindingFlags.Public | BindingFlags.Static,
+                binder: null,
+                parameterTypes,
+                modifiers: null)
+            ?? throw new MissingMethodException(runtimeType.FullName, methodName);
     }
 
     private static IEnumerable<BoundFunctionDeclaration> EnumerateFunctions(BoundBlockStatement block)
@@ -1467,20 +1437,4 @@ internal sealed class CodeGenerator
             local.SetLocalSymInfo(name);
     }
 
-    private static void WriteRuntimeConfig(string dllPath)
-    {
-        var configPath = Path.ChangeExtension(dllPath, ".runtimeconfig.json");
-        var config = """
-            {
-              "runtimeOptions": {
-                "tfm": "net10.0",
-                "framework": {
-                  "name": "Microsoft.NETCore.App",
-                  "version": "10.0.0"
-                }
-              }
-            }
-            """;
-        File.WriteAllText(configPath, config);
-    }
 }
