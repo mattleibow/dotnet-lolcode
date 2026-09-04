@@ -85,7 +85,8 @@ public sealed class LolcodeCompilation
     /// <remarks>
     /// The DLL, optional PDB, and runtime configuration are replaced as one coordinated
     /// operation. If optional symbols cannot be produced or persisted, emission succeeds
-    /// without a PDB and <see cref="EmitResult.PdbPath"/> is <see langword="null"/>.
+    /// without a PDB and <see cref="EmitResult.PdbPath"/> is <see langword="null"/>. An
+    /// unremovable stale PDB is left unreferenced by the PE and reported as a warning.
     /// </remarks>
     public EmitResult Emit(string outputPath, string runtimeAssemblyPath)
         => Emit(outputPath, runtimeAssemblyPath, PhysicalPathEmitFileSystem.Instance);
@@ -408,6 +409,20 @@ public sealed class LolcodeCompilation
         var backupPaths = new Dictionary<string, string>(StringComparer.Ordinal);
         var pePathToCommit = stagedPePath;
         var pdbCommitted = false;
+        var removeUnbackedPdbAfterCommit = false;
+        var cleanupFailures = ImmutableArray.CreateBuilder<PathCleanupFailure>();
+
+        void OmitSymbols()
+        {
+            if (stagedPdbPath == null)
+                return;
+
+            DeleteIfExists(fileSystem, stagedPdbPath);
+            DeleteIfExists(fileSystem, pePathToCommit);
+            stagedPdbPath = null;
+            pePathToCommit = stagePeWithoutSymbols();
+            pdbCommitted = false;
+        }
 
         try
         {
@@ -417,8 +432,23 @@ public sealed class LolcodeCompilation
                     continue;
 
                 var backupPath = CreateArtifactPath(targetPath, "bak");
-                fileSystem.MoveFile(targetPath, backupPath, overwrite: false);
-                backupPaths.Add(targetPath, backupPath);
+                try
+                {
+                    fileSystem.MoveFile(targetPath, backupPath, overwrite: false);
+                    backupPaths.Add(targetPath, backupPath);
+                }
+                catch (Exception ex) when (
+                    targetPath == pdbPath
+                    && IsPathEmissionFailure(ex))
+                {
+                    // Keep an unmovable old PDB in place until required outputs commit.
+                    // A no-debug PE does not reference it, so failed cleanup is safe.
+                    if (fileSystem.FileExists(backupPath))
+                        backupPaths.Add(targetPath, backupPath);
+                    removeUnbackedPdbAfterCommit = fileSystem.FileExists(pdbPath);
+
+                    OmitSymbols();
+                }
             }
 
             fileSystem.MoveFile(stagedRuntimeConfigPath, runtimeConfigPath, overwrite: false);
@@ -433,13 +463,11 @@ public sealed class LolcodeCompilation
                 catch (Exception ex) when (IsPathEmissionFailure(ex))
                 {
                     DeleteIfExists(fileSystem, pdbPath);
-                    DeleteIfExists(fileSystem, stagedPdbPath);
-                    DeleteIfExists(fileSystem, pePathToCommit);
-                    pePathToCommit = stagePeWithoutSymbols();
+                    OmitSymbols();
                 }
             }
 
-            // The PE is the commit marker: no fallible artifact replacement follows it.
+            // The PE is the commit marker: no required artifact replacement follows it.
             fileSystem.MoveFile(pePathToCommit, dllPath, overwrite: false);
         }
         catch (Exception commitException) when (IsPathEmissionFailure(commitException))
@@ -455,7 +483,18 @@ public sealed class LolcodeCompilation
             throw;
         }
 
-        var cleanupFailures = ImmutableArray.CreateBuilder<PathCleanupFailure>();
+        if (removeUnbackedPdbAfterCommit)
+        {
+            try
+            {
+                DeleteIfExists(fileSystem, pdbPath);
+            }
+            catch (Exception ex) when (IsPathEmissionFailure(ex))
+            {
+                cleanupFailures.Add(new PathCleanupFailure(pdbPath, ex));
+            }
+        }
+
         foreach (var backupPath in backupPaths.Values)
         {
             try

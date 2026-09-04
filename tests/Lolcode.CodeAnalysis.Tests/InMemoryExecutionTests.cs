@@ -329,6 +329,51 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
+    public void Emit_ToPath_OmitsPdbWhenExistingPdbCannotBeBackedUpOrRemoved()
+    {
+        var tempDirectory = CreateTempDirectory();
+
+        try
+        {
+            var outputPath = Path.Combine(tempDirectory, "program.dll");
+            var pdbPath = Path.ChangeExtension(outputPath, ".pdb");
+            var runtimeConfigPath = Path.ChangeExtension(outputPath, ".runtimeconfig.json");
+            const string oldPdb = "locked old pdb";
+            File.WriteAllText(outputPath, "old dll");
+            File.WriteAllText(pdbPath, oldPdb);
+            File.WriteAllText(runtimeConfigPath, "old runtime config");
+
+            var fileSystem = new FaultingPathEmitFileSystem
+            {
+                MoveFailure = (sourcePath, destinationPath) =>
+                    sourcePath == pdbPath
+                    && destinationPath.EndsWith(".bak", StringComparison.Ordinal),
+                DeleteFailure = path => path == pdbPath
+            };
+            var compilation = CreatePathCompilation(tempDirectory);
+
+            var result = compilation.Emit(
+                outputPath,
+                typeof(LolRuntime).Assembly.Location,
+                fileSystem);
+
+            result.Success.Should().BeTrue();
+            result.PdbPath.Should().BeNull();
+            result.Diagnostics.Should().ContainSingle(diagnostic =>
+                diagnostic.Id == "LOL9002"
+                && diagnostic.Message.Contains(pdbPath, StringComparison.Ordinal));
+            File.ReadAllText(pdbPath).Should().Be(oldPdb);
+            AssertPathAssemblyHasNoPdbReference(outputPath);
+            AssertPathAssemblyRuns(outputPath);
+            AssertNoTransactionFiles(tempDirectory);
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Emit_ToPath_OmitsPdbWhenPdbStagingFails()
     {
         var tempDirectory = CreateTempDirectory();
@@ -510,6 +555,8 @@ public sealed class InMemoryExecutionTests
 
         public Func<string, string, bool>? MoveFailure { get; init; }
 
+        public Predicate<string>? DeleteFailure { get; init; }
+
         public bool FileExists(string path) => File.Exists(path);
 
         public void CreateDirectory(string path) => Directory.CreateDirectory(path);
@@ -530,7 +577,13 @@ public sealed class InMemoryExecutionTests
             File.Move(sourcePath, destinationPath, overwrite);
         }
 
-        public void DeleteFile(string path) => File.Delete(path);
+        public void DeleteFile(string path)
+        {
+            if (DeleteFailure?.Invoke(path) == true)
+                throw new IOException($"Injected delete failure for '{path}'.");
+
+            File.Delete(path);
+        }
     }
 
     private sealed class ThrowingWriteStream : MemoryStream
