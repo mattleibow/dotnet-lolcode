@@ -153,7 +153,88 @@ public class ParserTests
     {
         var tree = Parse("HAI 1.2\nI HAS A x\nGIMMEH x\nKTHXBYE");
         tree.Program.Statements[1].Should().BeOfType<GimmehStatementSyntax>()
-            .Which.NameToken.Text.Should().Be("x");
+            .Which.Target.DirectToken!.Text.Should().Be("x");
+    }
+
+    [Theory]
+    [InlineData("GIMMEH SRS targetName", true)]
+    [InlineData("GIMMEH box'Z value", false)]
+    public void Parse_Gimmeh_FullIdentifier(string statement, bool isDynamic)
+    {
+        var tree = ParseWithDiagnostics(
+            $"HAI 1.3\n{statement}\nKTHXBYE",
+            out var diagnostics);
+
+        diagnostics.Should().BeEmpty();
+        var target = tree.Program.Statements.Should().ContainSingle()
+            .Which.Should().BeOfType<GimmehStatementSyntax>().Subject.Target;
+        (target.NameExpression is not null).Should().Be(isDynamic);
+        (target.Slot is not null).Should().Be(!isDynamic);
+    }
+
+    [Theory]
+    [InlineData("SRS targetName IS NOW A NUMBR", true)]
+    [InlineData("box'Z value IS NOW A NUMBR", false)]
+    public void Parse_IsNowA_FullIdentifier(string statement, bool isDynamic)
+    {
+        var tree = ParseWithDiagnostics(
+            $"HAI 1.3\n{statement}\nKTHXBYE",
+            out var diagnostics);
+
+        diagnostics.Should().BeEmpty();
+        var target = tree.Program.Statements.Should().ContainSingle()
+            .Which.Should().BeOfType<CastStatementSyntax>().Subject.Target;
+        (target.NameExpression is not null).Should().Be(isDynamic);
+        (target.Slot is not null).Should().Be(!isDynamic);
+    }
+
+    [Fact]
+    public void Parse_ArticlelessDynamicDeclaration()
+    {
+        var tree = ParseWithDiagnostics(
+            "HAI 1.3\nI HAS SRS name ITZ 0\nKTHXBYE",
+            out var diagnostics);
+
+        diagnostics.Should().BeEmpty();
+        tree.Program.Statements.Should().ContainSingle()
+            .Which.Should().BeOfType<ScopedDeclarationSyntax>()
+            .Which.Name.NameExpression.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Parse_DynamicFunctionCallScope_StopsAtEnclosingIz()
+    {
+        var tree = ParseWithDiagnostics(
+            """
+            HAI 1.3
+            SRS scopeName IZ function MKAY
+            root'Z SRS childName IZ SRS functionName MKAY
+            KTHXBYE
+            """,
+            out var diagnostics);
+
+        diagnostics.Should().BeEmpty();
+        var calls = tree.Program.Statements
+            .Select(statement => statement.Should().BeOfType<ExpressionStatementSyntax>().Subject.Expression)
+            .Select(expression => expression.Should().BeOfType<FunctionCallExpressionSyntax>().Subject)
+            .ToArray();
+
+        calls[0].Scope.NameExpression.Should().BeOfType<IdentifierExpressionSyntax>();
+        calls[0].Scope.Slot.Should().BeNull();
+        calls[0].Identifier.DirectToken!.Text.Should().Be("function");
+        calls[1].Scope.DirectToken!.Text.Should().Be("root");
+        calls[1].Scope.Slot!.NameExpression.Should().BeOfType<IdentifierExpressionSyntax>();
+        calls[1].Identifier.NameExpression.Should().BeOfType<IdentifierExpressionSyntax>();
+    }
+
+    [Fact]
+    public void Parse_ArticlelessDirectDeclaration_ReportsDiagnostic()
+    {
+        ParseWithDiagnostics(
+            "HAI 1.3\nI HAS value ITZ 0\nKTHXBYE",
+            out var diagnostics);
+
+        diagnostics.Should().ContainSingle(diagnostic => diagnostic.Id == "LOL1002");
     }
 
     [Fact]

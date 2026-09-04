@@ -3,6 +3,39 @@ namespace Lolcode.EndToEnd.Tests;
 public class FunctionTests : EndToEndTestBase
 {
     [Fact]
+    public void NestedFunctionIsEmittedAndCallable()
+    {
+        AssertOutput("""
+            HAI 1.3
+              HOW IZ I outer YR value
+                HOW IZ I inner YR suffix
+                  FOUND YR SMOOSH value AN suffix MKAY
+                IF U SAY SO
+                FOUND YR I IZ inner YR "!" MKAY
+              IF U SAY SO
+              VISIBLE I IZ outer YR "nested" MKAY
+            KTHXBYE
+            """, "nested!");
+    }
+
+    [Fact]
+    public void ReplacedFunctionUsesCurrentRuntimeArity()
+    {
+        AssertOutput("""
+            HAI 1.3
+              HOW IZ I original
+                FOUND YR "original"
+              IF U SAY SO
+              HOW IZ I replacement YR value
+                FOUND YR value
+              IF U SAY SO
+              original R replacement
+              VISIBLE I IZ original YR "replacement" MKAY
+            KTHXBYE
+            """, "replacement");
+    }
+
+    [Fact]
     public void BasicFunction()
     {
         AssertOutput("""
@@ -166,6 +199,33 @@ public class FunctionTests : EndToEndTestBase
               I IZ threeParams YR "D" AN YR "E" AN YR "F" MKAY
             KTHXBYE
             """, "One: A\nTwo: B and C\nThree: D, E, F");
+    }
+
+    [Fact]
+    public void DynamicParameterNamesResolveInCallerBeforeEachArgument()
+    {
+        AssertOutput("""
+            HAI 1.3
+              I HAS A first ITZ "second"
+              HOW IZ I firstName
+                VISIBLE "name-first"
+                FOUND YR "first"
+              IF U SAY SO
+              HOW IZ I secondName
+                VISIBLE SMOOSH "name-" AN first MKAY
+                FOUND YR first
+              IF U SAY SO
+              HOW IZ I argument YR value
+                VISIBLE SMOOSH "arg-" AN value MKAY
+                FOUND YR value
+              IF U SAY SO
+              HOW IZ I receive YR SRS I IZ firstName MKAY AN YR SRS I IZ secondName MKAY
+                VISIBLE first
+                VISIBLE second
+              IF U SAY SO
+              I IZ receive YR I IZ argument YR "one" MKAY AN YR I IZ argument YR "two" MKAY MKAY
+            KTHXBYE
+            """, "name-first\narg-one\nname-second\narg-two\none\ntwo");
     }
 
     [Fact]

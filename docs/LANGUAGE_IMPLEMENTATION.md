@@ -25,9 +25,10 @@ stale grammar comments, or README-only claims are language rules.
 
 ## Current Compiler Target
 
-`dotnet-lolcode` targets the 1.2 stable profile. It requires and retains one token
-after `HAI`, matching pinned `lci`, but does not validate that token or select
-semantics from its value.
+`dotnet-lolcode` implements the 1.2 stable profile plus the pinned `lci/future`
+1.3 object and indirect-identifier behavior. It requires and retains one token
+after `HAI`, matching pinned `lci`; `HAI 1.3` enables runtime name resolution
+where static resolution is not possible.
 
 | Area | Support | Notes |
 |---|---:|---|
@@ -36,14 +37,15 @@ semantics from its value.
 | Loops | Yes | Includes reference-style custom unary operations |
 | Typed default initialization | Yes | The 1.3 `ITZ A <type>` form initializes primitive defaults |
 | TYPE runtime values | No | Bare type words remain syntax, not first-class values |
-| BUKKIT | No | Reserved in 1.2; 1.3 object semantics are not implemented |
-| SRS and 1.3 object features | No | The archived 1.3 document is an unfinished draft |
+| BUKKIT | Yes | Runtime namespaces with prototype lookup, methods, `ME`, alternate definitions, and mixin copying |
+| SRS and 1.3 object features | Yes | Runtime-resolved variable, function, object, parameter, and slot identifiers |
 | 1.4 libraries, `INVISIBLE`, `I DUZ`, and `HAS AN` | No | Recorded only in the reference-implementation delta |
 
 ## .NET Value Representation
 
-All LOLCODE variables are emitted as `System.Object` locals. Runtime helpers inspect
-and coerce the boxed value.
+All LOLCODE values are represented as `System.Object`. Bindings live in runtime
+`LolScope` dictionaries so SRS and the unified variable/function namespace can
+select them dynamically.
 
 | LOLCODE value | Runtime representation |
 |---|---|
@@ -52,6 +54,8 @@ and coerce the boxed value.
 | `YARN` | `System.String`; source literals with deferred Unicode escapes use an internal runtime wrapper until string use |
 | `TROOF` | `System.Boolean` |
 | `NOOB` | `null` |
+| `BUKKIT` | `LolObject`, with an ordinal slot dictionary and prototype reference |
+| function | `LolFunction`, containing arity and an emitted .NET delegate |
 
 TYPE has no runtime representation. Type words accepted after `MAEK`, `IS NOW A`,
 or `ITZ A` are parser tokens, not first-class values.
@@ -83,14 +87,14 @@ The compiler and pinned `lci` agree on this order:
 `GTFO` exits before step 4. The loop variable temporarily shadows an outer variable
 and disappears when the loop exits.
 
-The compiler accepts the `lci` custom-operation spelling:
+The compiler accepts the `lci` custom-operation spelling, with full identifiers
+for both the destination scope and function name:
 
 ```lolcode
-IM IN YR loop I IZ bump YR i MKAY TIL BOTH SAEM i AN 10
+IM IN YR loop operations IZ SRS functionName YR i MKAY TIL BOTH SAEM i AN 10
 ```
 
-It also accepts the archived bare spelling (`bump YR i`) for compatibility. The
-function must take exactly one argument; its return value becomes the next loop value.
+The function must take exactly one argument; its return value becomes the next loop value.
 
 ### Other Implementation Choices
 
@@ -109,21 +113,44 @@ function must take exactly one argument; its return value becomes the next loop 
 | Zero divisor | Integer and floating division/modulo raise `LolRuntimeException` |
 | `GTFO` nesting | Applies to the innermost enclosing loop or switch; in a function it returns NOOB |
 
+## Implemented 1.3 Object Choices
+
+- `I HAS A x ITZ A BUKKIT` creates a BUKKIT whose fallback namespace is the
+  creating scope, matching pinned `lci`.
+- Slot lookup follows the BUKKIT prototype chain with reference-identity cycle
+  detection. Assignment updates the scope that owns an inherited slot; it does
+  not materialize a receiver-local shadow.
+- Direct and SRS slot declarations reject an existing slot on the destination
+  BUKKIT, but may override a slot inherited from its prototype.
+- `parent` reads or rewires the prototype. Assigning NOOB terminates that chain.
+- Object calls bind `ME` to the receiver independently from lexical lookup.
+  Bare names in a method search invocation locals and the caller's lexical
+  scopes; receiver slots require `ME`.
+- A BUKKIT created inside a method inherits the active `ME` caller separately
+  from its prototype, including when its default prototype is the creating scope.
+- Functions and variables share runtime bindings. A function value can be stored
+  in a slot and invoked there; ordinary assignment can replace it.
+- SRS explicitly casts its expression to YARN and is evaluated independently at
+  every identifier path segment.
+- Mixin slots are shallow-copied in reverse argument order before the declared
+  parent is installed. The compiler accepts both `ITZ LIEK A parent` and the
+  draft's `ITZ A parent SMOOSH ...` form.
+- A BUKKIT or function cannot be cast to a primitive. BUKKIT equality is object
+  identity.
+- Conditional clauses, switch clauses, and loop bodies execute in fresh child
+  scopes. Their declarations and `IT` do not leak, while assignment can update
+  bindings found in lexical parents.
+
+The draft's `omgwtf`/`izmakin` prose is not exercised or implemented by pinned
+`lci`; its references to undefined `canhas` remain ambiguous rather than being
+given invented behavior.
+
 ## Future-Version Engineering Notes
 
 These constraints are implementation guidance, not additions to the language deltas:
 
-- SRS requires runtime identifier resolution across every identifier position, not
-  merely variable lookup.
-- 1.3 unifies function and variable namespaces and permits a function binding to be
-  overwritten.
-- BUKKIT slots may be indexed by NUMBR or YARN, so a string-only dictionary would
-  not model the draft faithfully.
-- Prototype traversal must detect cycles. Mixin copying and missing-slot
-  materialization must preserve the draft's unresolved edge cases rather than silently
-  choosing JavaScript semantics.
 - 1.3's global/local `IT` statements contradict one another and require a language
-  decision before implementation.
+  decision beyond pinned `lci`'s per-scope `IT`.
 - A future BLOB representation should own native resources safely rather than expose
   raw pointers.
 - `I DUZ`, SOCKS, and STDIO expose process, network, and filesystem capabilities and
@@ -131,7 +158,10 @@ These constraints are implementation guidance, not additions to the language del
 
 ## `lci/future` Validation Notes
 
-The pinned interpreter was built and its full 325-test corpus was executed with a
+The pinned interpreter corpus contains 325 registrations. The compiler passes all
+319 registrations that do not require modules. The six remaining registrations
+are the two 1.3 `CAN HAS` uses and four registered 1.4 library bindings; built-in
+libraries are deliberately deferred. The pinned interpreter was built with a
 Python-3-compatible equivalent of the upstream Python-2-era test driver. Direct probes
 were added for behavior not covered by that corpus, including TYPE rejection, loop
 ordering, custom loop functions, NUMBAR truncation, invalid numeric casts, optional

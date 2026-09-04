@@ -562,10 +562,10 @@ IM OUTTA YR <label>
 ```lolcode
 UPPIN YR <variable>
 NERFIN YR <variable>
-I IZ <unary-function> YR <variable> MKAY
+<scope-identifier> IZ <function-identifier> YR <variable> MKAY
 ```
 
-The archived Final Draft says the operation may be any unary function but does not define its call spelling. The `I IZ ... MKAY` form above is the spelling used by `lci`.
+The archived Final Draft says the operation may be any unary function but does not define its call spelling. The identifier-based `... IZ ... MKAY` form above is the spelling used by `lci`.
 
 The loop variable is a fresh loop-local `NUMBR` initialized to `0`; it temporarily shadows any outer variable with the same name. Each iteration evaluates the optional guard before the body. `TIL` exits when its expression casts to `WIN`; `WILE` exits when its expression casts to `FAIL`. After the body, `UPPIN` adds one, `NERFIN` subtracts one, or the unary function's return value replaces the loop variable. A `GTFO` in the body exits immediately without applying the operation.
 

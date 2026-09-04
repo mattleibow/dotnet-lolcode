@@ -47,7 +47,8 @@ internal sealed class Lowerer
             BoundVariableDeclaration s => RewriteVariableDeclaration(s),
             BoundAssignment s => RewriteAssignment(s),
             BoundVisibleStatement s => RewriteVisibleStatement(s),
-            BoundGimmehStatement s => s,
+            BoundGimmehStatement s => new BoundGimmehStatement(
+                RewriteIdentifier(s.Target), s.Syntax),
             BoundExpressionStatement s => RewriteExpressionStatement(s),
             BoundIfStatement s => RewriteIfStatement(s),
             BoundSwitchStatement s => RewriteSwitchStatement(s),
@@ -56,6 +57,17 @@ internal sealed class Lowerer
             BoundFunctionDeclaration s => RewriteFunctionDeclaration(s),
             BoundReturnStatement s => RewriteReturnStatement(s),
             BoundCastStatement s => RewriteCastStatement(s),
+            BoundScopedDeclaration s => new BoundScopedDeclaration(
+                RewriteIdentifier(s.Scope), RewriteIdentifier(s.Name),
+                s.Initializer is null ? null : RewriteExpression(s.Initializer),
+                s.Syntax),
+            BoundIdentifierAssignment s => new BoundIdentifierAssignment(
+                RewriteIdentifier(s.Target), RewriteExpression(s.Expression), s.Syntax),
+            BoundObjectDefinition s => new BoundObjectDefinition(
+                RewriteIdentifier(s.Name),
+                s.Parent is null ? null : RewriteIdentifier(s.Parent),
+                s.Mixins.Select(RewriteIdentifier).ToImmutableArray(),
+                RewriteBlockStatement(s.Body), s.Syntax),
             _ => node,
         };
     }
@@ -65,6 +77,7 @@ internal sealed class Lowerer
         return node switch
         {
             BoundLiteralExpression => node,
+            BoundInterpolatedStringExpression => node,
             BoundVariableExpression => node,
             BoundItExpression => node,
             BoundUnaryExpression e => RewriteUnaryExpression(e),
@@ -75,6 +88,8 @@ internal sealed class Lowerer
             BoundComparisonExpression e => RewriteComparisonExpression(e),
             BoundCastExpression e => RewriteCastExpression(e),
             BoundFunctionCallExpression e => RewriteFunctionCallExpression(e),
+            BoundIdentifierExpression => node,
+            BoundObjectCreationExpression => node,
             _ => node,
         };
     }
@@ -187,12 +202,15 @@ internal sealed class Lowerer
     {
         var body = RewriteBlockStatement(node.Body);
         var condition = node.Condition is not null ? RewriteExpression(node.Condition) : null;
+        var operationCall = node.OperationCall is not null
+            ? (BoundFunctionCallExpression)RewriteExpression(node.OperationCall)
+            : null;
 
-        if (body == node.Body && condition == node.Condition)
+        if (body == node.Body && condition == node.Condition && operationCall == node.OperationCall)
             return node;
 
         return new BoundLoopStatement(
-            node.Label, node.Operation, node.OperationFunction, node.Variable,
+            node.Label, node.Operation, operationCall, node.Variable,
             node.IsTil, condition, body, syntax: node.Syntax);
     }
 
@@ -202,7 +220,10 @@ internal sealed class Lowerer
         if (body == node.Body)
             return node;
 
-        return new BoundFunctionDeclaration(node.Function, body, syntax: node.Syntax);
+        return new BoundFunctionDeclaration(
+            node.Function, body, syntax: node.Syntax,
+            scope: node.Scope, identifier: node.Identifier,
+            parameterIdentifiers: node.ParameterIdentifiers);
     }
 
     private BoundReturnStatement RewriteReturnStatement(BoundReturnStatement node)
@@ -216,9 +237,15 @@ internal sealed class Lowerer
 
     private BoundCastStatement RewriteCastStatement(BoundCastStatement node)
     {
-        // CastStatement is in-place cast — no sub-expression to rewrite
-        return node;
+        return new BoundCastStatement(
+            RewriteIdentifier(node.Target), node.TargetType, syntax: node.Syntax);
     }
+
+    private BoundIdentifier RewriteIdentifier(BoundIdentifier identifier) =>
+        new(
+            identifier.DirectName,
+            identifier.DynamicName is null ? null : RewriteExpression(identifier.DynamicName),
+            identifier.Slot is null ? null : RewriteIdentifier(identifier.Slot));
 
     private BoundUnaryExpression RewriteUnaryExpression(BoundUnaryExpression node)
     {
@@ -327,6 +354,9 @@ internal sealed class Lowerer
         if (!changed)
             return node;
 
-        return new BoundFunctionCallExpression(node.Function, builder.MoveToImmutable(), syntax: node.Syntax);
+        return new BoundFunctionCallExpression(
+            node.Function, builder.MoveToImmutable(), syntax: node.Syntax,
+            scope: node.Scope, identifier: node.Identifier,
+            staticDispatch: node.StaticDispatch);
     }
 }

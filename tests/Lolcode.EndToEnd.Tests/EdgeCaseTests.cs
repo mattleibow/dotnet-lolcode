@@ -167,7 +167,7 @@ public class EdgeCaseTests : EndToEndTestBase
                   VISIBLE "IT in NO WAI:: " IT
               OIC
 
-              VISIBLE "IT after O RLY?:: " IT
+              VISIBLE "IT after O RLY?:: " MAEK IT A NUMBR
 
               BTW IT in loop
               IM IN YR loop UPPIN YR i TIL BOTH SAEM i AN 2
@@ -175,7 +175,7 @@ public class EdgeCaseTests : EndToEndTestBase
                 VISIBLE "IT in loop:: " IT
               IM OUTTA YR loop
 
-              VISIBLE "IT after loop:: " IT
+              VISIBLE "IT after loop:: " MAEK IT A NUMBR
 
               BTW IT in switch
               "apple"
@@ -191,7 +191,7 @@ public class EdgeCaseTests : EndToEndTestBase
 
               VISIBLE "Final IT:: " IT
             KTHXBYE
-            """, "Initial IT: 100\nIT in YA RLY: 200\nIT after O RLY?: 200\nIT in loop: 1000\nIT in loop: 1001\nIT after loop: 1001\nIT in OMG: 777\nFinal IT: 777");
+            """, "Initial IT: 100\nIT in YA RLY: 200\nIT after O RLY?: 1\nIT in loop: 1000\nIT in loop: 1001\nIT after loop: 1\nIT in OMG: 777\nFinal IT: apple");
     }
 
     [Fact]

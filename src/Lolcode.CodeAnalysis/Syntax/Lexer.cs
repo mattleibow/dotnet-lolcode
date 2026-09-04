@@ -134,6 +134,13 @@ internal sealed class Lexer
             return new SyntaxToken(SyntaxKind.ExclamationToken, start, "!");
         }
 
+        if (Current == '\'' && Lookahead == 'Z')
+        {
+            int start = _position;
+            _position += 2;
+            return new SyntaxToken(SyntaxKind.ApostrophezToken, start, "'Z");
+        }
+
         // File-based app directives (#:sdk, #:package, etc.) and shebang (#!)
         // These appear at the top of .lol files for dotnet run --file support.
         // Skip the entire line as trivia.

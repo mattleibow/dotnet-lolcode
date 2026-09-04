@@ -218,6 +218,21 @@ public enum SyntaxKind
     /// <summary>SO — used in "IF U SAY SO".</summary>
     SoKeyword,
 
+    /// <summary>SRS — evaluates an expression as an identifier.</summary>
+    SrsKeyword,
+
+    /// <summary>BUKKIT — object/container type.</summary>
+    BukkitKeyword,
+
+    /// <summary>ME — the object receiving the current method call.</summary>
+    MeKeyword,
+
+    /// <summary>LIEK — introduces a BUKKIT prototype.</summary>
+    LiekKeyword,
+
+    /// <summary>KTHX — ends an alternate BUKKIT definition.</summary>
+    KthxKeyword,
+
     // --- Type keywords ---
 
     /// <summary>NOOB — untyped/null value.</summary>
@@ -250,6 +265,9 @@ public enum SyntaxKind
 
     /// <summary>Question mark — part of RLY?, WTF?.</summary>
     QuestionToken,
+
+    /// <summary>'Z — BUKKIT slot access.</summary>
+    ApostrophezToken,
 
     // --- Syntax node kinds ---
 
@@ -313,6 +331,12 @@ public enum SyntaxKind
     /// <summary>Block of statements.</summary>
     BlockStatement,
 
+    /// <summary>O HAI IM alternate BUKKIT definition.</summary>
+    ObjectDefinitionStatement,
+
+    /// <summary>Declaration in a selected namespace.</summary>
+    ScopedDeclarationStatement,
+
     // --- Expression node kinds ---
 
     /// <summary>Literal expression (NUMBR, NUMBAR, YARN, WIN, FAIL, NOOB).</summary>
@@ -356,4 +380,10 @@ public enum SyntaxKind
 
     /// <summary>Interpolated string expression (YARN with :<var>).</summary>
     InterpolatedStringExpression,
+
+    /// <summary>BUKKIT creation, prototyping, or mixin expression.</summary>
+    ObjectCreationExpression,
+
+    /// <summary>Runtime-resolved identifier or slot access.</summary>
+    IdentifierExpression,
 }

@@ -360,6 +360,11 @@ cheezburger2'Z parent R slice
 
 The accompanying comment says this copies `cheeze` and its parent slots, which is broader than the earlier rule that only slots "defined on the mixin" are copied. The draft does not resolve that conflict.
 
+The pinned `lci/future` parser implements `ITZ LIEK A <parent>` and `IM LIEK
+<parent>` but does not contain a separate parse path for the draft's mixin tail.
+Consequently, reverse argument order and shallow own-slot copying remain sourced
+from the archived draft rather than established by its conformance corpus.
+
 > **Note:** `SMOOSH` is **not** a new keyword — it already exists in 1.2 for string concatenation. In 1.3, it gains a second meaning in the inheritance context.
 
 ---

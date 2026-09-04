@@ -12,6 +12,7 @@ internal sealed class BoundScope
 {
     private readonly Dictionary<string, VariableSymbol> _variables = new(StringComparer.Ordinal);
     private readonly Dictionary<string, FunctionSymbol> _functions = new(StringComparer.Ordinal);
+    private readonly bool _inheritsVariables;
 
     /// <summary>Parent scope, null for global scope.</summary>
     public BoundScope? Parent { get; }
@@ -20,43 +21,34 @@ internal sealed class BoundScope
     public VariableSymbol ItVariable { get; }
 
     /// <summary>Creates a new scope, optionally nested under a parent.</summary>
-    public BoundScope(BoundScope? parent = null)
+    public BoundScope(BoundScope? parent = null, bool inheritsVariables = false)
     {
         Parent = parent;
+        _inheritsVariables = inheritsVariables;
         ItVariable = new VariableSymbol("IT", isImplicit: true);
     }
 
     /// <summary>Declares a variable in this scope. Returns false if already declared.</summary>
     public bool TryDeclareVariable(VariableSymbol variable) =>
+        !_functions.ContainsKey(variable.Name) &&
         _variables.TryAdd(variable.Name, variable);
-
-    /// <summary>Temporarily replaces a variable and returns the previous binding, if any.</summary>
-    public VariableSymbol? ReplaceVariable(VariableSymbol variable)
-    {
-        _variables.TryGetValue(variable.Name, out var previous);
-        _variables[variable.Name] = variable;
-        return previous;
-    }
-
-    /// <summary>Restores a variable binding after a temporary replacement.</summary>
-    public void RestoreVariable(string name, VariableSymbol? previous)
-    {
-        if (previous is null)
-            _variables.Remove(name);
-        else
-            _variables[name] = previous;
-    }
 
     /// <summary>Declares a function in this scope. Returns false if already declared.</summary>
     public bool TryDeclareFunction(FunctionSymbol function) =>
+        !_variables.ContainsKey(function.Name) &&
         _functions.TryAdd(function.Name, function);
+
+    /// <summary>Looks up a function declared directly in this scope.</summary>
+    public bool TryLookupLocalFunction(string name, [NotNullWhen(true)] out FunctionSymbol? function) =>
+        _functions.TryGetValue(name, out function);
 
     /// <summary>Looks up a variable by name, walking the parent chain.</summary>
     public bool TryLookupVariable(string name, [NotNullWhen(true)] out VariableSymbol? variable)
     {
         if (name == "IT") { variable = ItVariable; return true; }
         if (_variables.TryGetValue(name, out variable)) return true;
-        // Don't walk parent chain for variables — LOLCODE functions cannot access outer variables
+        if (_inheritsVariables && Parent is not null)
+            return Parent.TryLookupVariable(name, out variable);
         variable = null;
         return false;
     }

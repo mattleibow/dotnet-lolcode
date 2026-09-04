@@ -340,9 +340,10 @@ Implementation details (`Binder`, `BoundScope`, `CodeGenerator`, `Lowerer`, `Lex
 The implicit `IT` variable is central to LOLCODE's control flow. These rules govern its behavior:
 
 **Scope:**
-- Each scope (main program block, each function body) has its own independent `IT` variable.
+- Each runtime scope has its own independent `IT` variable. This includes the
+  main program, function invocations, conditional clauses, switch clauses, and
+  each execution of a loop body.
 - `IT` is **not** passed into functions and is not accessible from outer scopes.
-- Loop bodies share the same `IT` as their enclosing scope (loops do not create a new `IT`).
 - `IT` starts as `NOOB` at the beginning of each scope.
 
 **Updates:**
@@ -360,7 +361,7 @@ The implicit `IT` variable is central to LOLCODE's control flow. These rules gov
 - If a function reaches `IF U SAY SO` without an explicit `FOUND YR` or `GTFO`, the current value of `IT` in that function's scope is returned.
 
 **IL representation:**
-- `IT` is emitted as a regular `System.Object` local variable in each method/scope.
+- `IT` is stored on `LolScope`; emitted debug locals mirror direct `IT` updates.
 
 ---
 
@@ -388,8 +389,9 @@ The binder must maintain a **control-flow context stack** to determine the corre
 | `YARN` | `System.String` | `string` | `""` |
 | `TROOF` | `System.Boolean` | `bool` | `FAIL` (false) |
 | `NOOB` | `System.Object` (null) | `object` | `null` |
+| `BUKKIT` (1.3) | `LolObject` | `class LolObject` | empty runtime namespace |
 
-> **Note:** `TYPE` was left under review by the archived 1.2 text and has no runtime representation. `BUKKIT` is reserved in 1.2 with no defined value semantics; neither feature is implemented.
+> **Note:** `TYPE` was left under review by the archived 1.2 text and has no runtime representation. `BUKKIT` remains reserved when compiling the 1.2 profile; its pinned `lci/future` behavior is available to 1.3 programs.
 
 ---
 
@@ -399,7 +401,9 @@ LOLCODE is dynamically typed — variables can change type at any time. This pos
 
 ### Strategy: Object-Backed Variables with Runtime Helpers
 
-All LOLCODE variables are emitted as `System.Object` locals in IL. Arithmetic, comparison, and boolean operations use **runtime helper methods** that:
+LOLCODE bindings are stored as `System.Object` values in runtime `LolScope`
+namespaces. Direct bindings also have shadow locals for source-level debugging.
+Arithmetic, comparison, and boolean operations use **runtime helper methods** that:
 1. Inspect the runtime type of operands
 2. Perform implicit coercion per LOLCODE rules
 3. Execute the operation
@@ -611,11 +615,10 @@ chmod +x hello.lol && ./hello.lol
 
 String interpolation (`:{var}`) spans multiple compiler phases:
 
-1. **Lexer:** Scans an interpolated string and emits a sequence of tokens — `InterpolatedStringStart`, `InterpolatedStringText` (literal segments), `InterpolatedStringVariable` (variable references), and `InterpolatedStringEnd`. The lexer does **not** resolve variables.
-2. **Parser:** Consumes the interpolated string tokens and builds an `InterpolatedStringExpressionSyntax` node containing `LiteralExpressionSyntax` segments and `VariableExpressionSyntax` references.
-3. **Binder:** Resolves variable references within the interpolated string. Reports errors for undeclared variables.
-4. **Lowering:** Transforms `InterpolatedStringExpression` into the equivalent of `SMOOSH segment1 AN segment2 ... MKAY` (a chain of YARN casts and concatenation).
-5. **Code Generator:** Emits the lowered concatenation as `LolRuntime.Concat` or `String.Concat` calls.
+1. **Lexer:** Decodes immediate escapes, retains deferred Unicode escape text, and records the offsets of genuine interpolation prefixes. An escaped prefix such as `::{name}` remains literal text.
+2. **Binder:** Splits the YARN into literal segments and direct identifier names, producing a `BoundInterpolatedStringExpression`. It deliberately does not bind those names to static symbols because an earlier `SRS` declaration can create the binding at runtime.
+3. **Code Generator:** Emits the already-parsed text and name arrays together with the active `LolScope`; it does not emit or reparse source syntax at runtime.
+4. **Runtime:** Looks up each name in the active scope when the YARN is evaluated, applies the normal implicit YARN conversion, and resolves deferred Unicode escapes in the literal segments.
 
 > **Note:** `OMG` case labels in `WTF?` blocks must be literals. Interpolated strings containing `:{var}` are **not** literals and must be rejected by the binder.
 
@@ -623,10 +626,12 @@ String interpolation (`:{var}`) spans multiple compiler phases:
 
 ## `HAI` Version Handling
 
-The parser records an optional numeric `HAI` version but does not use it to select semantics:
+The parser records the `HAI` version. The binder enables runtime identifier and
+object resolution for 1.3:
 - `HAI 1.2` — accepted (target version)
-- `HAI` without a version — accepted
-- `HAI <other numeric version>` — accepted without changing the 1.2 compiler behavior
+- `HAI 1.3` — accepted with BUKKIT and SRS behavior
+- `HAI` without a version — diagnosed
+- `HAI <other numeric version>` — accepted with stable-profile behavior
 - Missing `HAI` — error
 - Missing `KTHXBYE` — error
 
@@ -638,15 +643,15 @@ This section records intentional implementation decisions where the LOLCODE 1.2 
 
 | Area | Spec Says | This Compiler Does |
 |------|-----------|-------------------|
-| **`BUKKIT` type** | "Reserved for future expansion" | Has no 1.2 value semantics and is not implemented |
+| **`BUKKIT` type** | Reserved in 1.2; proposed in 1.3 | No 1.2 value semantics; pinned `lci/future` object semantics in 1.3 |
 | **`TYPE` values/equality** | "Under current review" | Deferred; type names are accepted only in syntactic type positions |
 | **Integer overflow** | Not specified | Wraps (standard .NET `int32` overflow behavior, unchecked) |
 | **Float precision** | Not specified | Uses `System.Double` (IEEE 754 double-precision) |
 | **`NUMBAR` → `YARN`** | "Truncates to two decimal places" | Truncates toward zero, then emits exactly two fractional digits |
 | **`:o` escape** | "Bell (beep)" | Maps to `\a` (U+0007, ASCII BEL) |
 | **`:[<name>]`** | "Unicode normative name" | Supported with a curated subset of common Unicode names; unsupported names produce an error |
-| **`HAI` version** | "No current standard behavior" | Records any numeric version; always targets 1.2 semantics |
-| **Unary function in loop** | `<operation>` can be "any unary function" | Supports archived bare names and `lci`'s `I IZ ... YR ... MKAY` spelling |
+| **`HAI` version** | "No current standard behavior" | Selects the pinned 1.3 runtime-name/object profile only for `1.3` |
+| **Unary function in loop** | `<operation>` can be "any unary function" | Supports `lci`'s full-identifier `<scope> IZ <name> YR ... MKAY` spelling |
 | **`NOOB` in non-TROOF context** | "Results in an error" | Runtime error via `LolRuntime` helpers (binder warns when statically provable) |
 
 ---

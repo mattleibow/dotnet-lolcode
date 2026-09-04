@@ -2,6 +2,9 @@ using System.Text.RegularExpressions;
 
 namespace Lolcode.EndToEnd.Tests;
 
+/// <summary>
+/// Verifies that all upstream lci registrations and fixtures are discoverable.
+/// </summary>
 public partial class LciConformanceCorpusTests
 {
     [Fact]

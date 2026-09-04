@@ -6,6 +6,9 @@ using Lolcode.CodeAnalysis.Syntax;
 
 namespace Lolcode.EndToEnd.Tests;
 
+/// <summary>
+/// Runs the registered upstream lci conformance corpus.
+/// </summary>
 [Collection(nameof(LciConformanceCollection))]
 public class LciConformanceTests : IDisposable
 {

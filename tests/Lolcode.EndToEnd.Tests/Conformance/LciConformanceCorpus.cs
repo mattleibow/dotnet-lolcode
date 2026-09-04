@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace Lolcode.EndToEnd.Tests;
 
 /// <summary>
-/// Discovers upstream lci tests from their CMake registration metadata.
+/// Discovers upstream lci tests from their CMake <c>ADD_LOL_TEST</c> metadata.
 /// </summary>
 internal static partial class LciConformanceCorpus
 {

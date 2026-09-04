@@ -60,6 +60,35 @@ public class LoopTests : EndToEndTestBase
     }
 
     [Fact]
+    public void LoopScopeItStartsNoobAndParentItIsRestored()
+    {
+        AssertOutput("""
+            HAI 1.3
+              WIN
+              IM IN YR scoped UPPIN YR i WILE BOTH SAEM IT AN NOOB
+                VISIBLE "loop"
+                GTFO
+              IM OUTTA YR scoped
+              VISIBLE MAEK IT A NUMBR
+            KTHXBYE
+            """, "loop\n1");
+    }
+
+    [Fact]
+    public void LoopVariableShadowsParentForGuardBodyAndUpdate()
+    {
+        AssertOutput("""
+            HAI 1.3
+              I HAS A i ITZ 99
+              IM IN YR scoped UPPIN YR i TIL BOTH SAEM i AN 2
+                VISIBLE i
+              IM OUTTA YR scoped
+              VISIBLE i
+            KTHXBYE
+            """, "0\n1\n99");
+    }
+
+    [Fact]
     public void CustomUnaryOperationUsesReturnedValue()
     {
         AssertOutput("""
@@ -73,6 +102,46 @@ public class LoopTests : EndToEndTestBase
               IM OUTTA YR custom
             KTHXBYE
             """, "body0\nop0\nbody1\nop1");
+    }
+
+    [Fact]
+    public void CustomOperationAcceptsSrsScopeAndName()
+    {
+        AssertOutput("""
+            HAI 1.3
+              I HAS A scopeName ITZ "operations"
+              I HAS A functionName ITZ "bump"
+              O HAI IM operations
+                HOW IZ I bump YR value
+                  FOUND YR SUM OF value AN 1
+                IF U SAY SO
+              KTHX
+              IM IN YR dynamic SRS scopeName IZ SRS functionName YR i MKAY TIL BOTH SAEM i AN 2
+                VISIBLE i
+              IM OUTTA YR dynamic
+            KTHXBYE
+            """, "0\n1");
+    }
+
+    [Fact]
+    public void CustomOperationAcceptsObjectQualifiedScopeAndName()
+    {
+        AssertOutput("""
+            HAI 1.3
+              O HAI IM container
+                O HAI IM operations
+                  O HAI IM functions
+                    HOW IZ I bump YR value
+                      FOUND YR SUM OF value AN 1
+                    IF U SAY SO
+                  KTHX
+                KTHX
+              KTHX
+              IM IN YR qualified container'Z operations IZ functions'Z bump YR i MKAY TIL BOTH SAEM i AN 2
+                VISIBLE i
+              IM OUTTA YR qualified
+            KTHXBYE
+            """, "0\n1");
     }
 
     [Fact]

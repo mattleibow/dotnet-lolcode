@@ -20,6 +20,41 @@ public abstract class SyntaxNode
 /// <summary>Base class for statement syntax nodes.</summary>
 public abstract class StatementSyntax : SyntaxNode { }
 
+/// <summary>An identifier, optionally computed with SRS and followed by a BUKKIT slot.</summary>
+public sealed class IdentifierSyntax : SyntaxNode
+{
+    /// <summary>The direct identifier token, or <see langword="null"/> for SRS.</summary>
+    public SyntaxToken? DirectToken { get; }
+
+    /// <summary>The expression evaluated as the name for SRS identifiers.</summary>
+    public ExpressionSyntax? NameExpression { get; }
+
+    /// <summary>The next slot after <c>'Z</c>, if any.</summary>
+    public IdentifierSyntax? Slot { get; }
+
+    /// <summary>Creates an identifier syntax node.</summary>
+    public IdentifierSyntax(SyntaxToken? directToken, ExpressionSyntax? nameExpression, IdentifierSyntax? slot)
+    {
+        DirectToken = directToken;
+        NameExpression = nameExpression;
+        Slot = slot;
+    }
+
+    /// <inheritdoc/>
+    public override SyntaxKind Kind => SyntaxKind.IdentifierExpression;
+
+    /// <inheritdoc/>
+    public override TextSpan Span
+    {
+        get
+        {
+            int start = DirectToken?.Position ?? NameExpression!.Span.Start;
+            int end = Slot?.Span.End ?? DirectToken?.Span.End ?? NameExpression!.Span.End;
+            return TextSpan.FromBounds(start, end);
+        }
+    }
+}
+
 /// <summary>Root node of the syntax tree.</summary>
 public sealed class CompilationUnitSyntax : SyntaxNode
 {
@@ -86,6 +121,30 @@ public sealed class VariableDeclarationSyntax : StatementSyntax
     }
 }
 
+/// <summary>Declares a binding in the namespace selected by an identifier.</summary>
+public sealed class ScopedDeclarationSyntax : StatementSyntax
+{
+        /// <summary>The destination namespace (<c>I</c>, <c>ME</c>, or a BUKKIT).</summary>
+        public IdentifierSyntax Scope { get; }
+        /// <summary>The identifier being declared.</summary>
+        public IdentifierSyntax Name { get; }
+        /// <summary>The optional initializer.</summary>
+        public ExpressionSyntax? Initializer { get; }
+
+        /// <summary>Creates a scoped declaration.</summary>
+        public ScopedDeclarationSyntax(IdentifierSyntax scope, IdentifierSyntax name, ExpressionSyntax? initializer)
+        {
+            Scope = scope;
+            Name = name;
+            Initializer = initializer;
+        }
+
+        /// <inheritdoc/>
+        public override SyntaxKind Kind => SyntaxKind.ScopedDeclarationStatement;
+        /// <inheritdoc/>
+        public override TextSpan Span => TextSpan.FromBounds(Scope.Span.Start, Initializer?.Span.End ?? Name.Span.End);
+}
+
 /// <summary>&lt;name&gt; R &lt;expr&gt;</summary>
 public sealed class AssignmentStatementSyntax : StatementSyntax
 {
@@ -100,6 +159,27 @@ public sealed class AssignmentStatementSyntax : StatementSyntax
 
     public override SyntaxKind Kind => SyntaxKind.AssignmentStatement;
     public override TextSpan Span => TextSpan.FromBounds(NameToken.Position, Expression.Span.End);
+}
+
+/// <summary>Assigns through a runtime-resolved identifier.</summary>
+public sealed class IdentifierAssignmentSyntax : StatementSyntax
+{
+    /// <summary>The assignment target.</summary>
+    public IdentifierSyntax Target { get; }
+    /// <summary>The assigned expression.</summary>
+    public ExpressionSyntax Expression { get; }
+
+    /// <summary>Creates an identifier assignment.</summary>
+    public IdentifierAssignmentSyntax(IdentifierSyntax target, ExpressionSyntax expression)
+    {
+        Target = target;
+        Expression = expression;
+    }
+
+    /// <inheritdoc/>
+    public override SyntaxKind Kind => SyntaxKind.AssignmentStatement;
+    /// <inheritdoc/>
+    public override TextSpan Span => TextSpan.FromBounds(Target.Span.Start, Expression.Span.End);
 }
 
 /// <summary>VISIBLE &lt;expr&gt;+ [!]</summary>
@@ -133,17 +213,20 @@ public sealed class VisibleStatementSyntax : StatementSyntax
 /// <summary>GIMMEH &lt;name&gt;</summary>
 public sealed class GimmehStatementSyntax : StatementSyntax
 {
+    /// <summary>Gets the GIMMEH keyword.</summary>
     public SyntaxToken Keyword { get; }
-    public SyntaxToken NameToken { get; }
+    /// <summary>Gets the identifier receiving the input.</summary>
+    public IdentifierSyntax Target { get; }
 
-    public GimmehStatementSyntax(SyntaxToken keyword, SyntaxToken nameToken)
+    /// <summary>Creates a GIMMEH statement.</summary>
+    public GimmehStatementSyntax(SyntaxToken keyword, IdentifierSyntax target)
     {
         Keyword = keyword;
-        NameToken = nameToken;
+        Target = target;
     }
 
     public override SyntaxKind Kind => SyntaxKind.GimmehStatement;
-    public override TextSpan Span => TextSpan.FromBounds(Keyword.Position, NameToken.Span.End);
+    public override TextSpan Span => TextSpan.FromBounds(Keyword.Position, Target.Span.End);
 }
 
 /// <summary>A bare expression statement (sets IT).</summary>
@@ -252,7 +335,12 @@ public sealed class LoopStatementSyntax : StatementSyntax
 {
     public SyntaxToken ImInKeyword { get; }
     public SyntaxToken LabelToken { get; }
-    public SyntaxToken? OperationToken { get; }
+    /// <summary>The built-in UPPIN or NERFIN operation, if present.</summary>
+    public SyntaxToken? BuiltInOperationToken { get; }
+    /// <summary>The custom unary function call used as the operation, if present.</summary>
+    public FunctionCallExpressionSyntax? OperationCall { get; }
+    /// <summary>The operation's representative token.</summary>
+    public SyntaxToken? OperationToken => BuiltInOperationToken ?? OperationCall?.NameToken;
     public SyntaxToken? VariableToken { get; }
     public SyntaxToken? ConditionKeyword { get; }
     public ExpressionSyntax? Condition { get; }
@@ -263,7 +351,8 @@ public sealed class LoopStatementSyntax : StatementSyntax
     public LoopStatementSyntax(
         SyntaxToken imInKeyword,
         SyntaxToken labelToken,
-        SyntaxToken? operationToken,
+        SyntaxToken? builtInOperationToken,
+        FunctionCallExpressionSyntax? operationCall,
         SyntaxToken? variableToken,
         SyntaxToken? conditionKeyword,
         ExpressionSyntax? condition,
@@ -273,7 +362,8 @@ public sealed class LoopStatementSyntax : StatementSyntax
     {
         ImInKeyword = imInKeyword;
         LabelToken = labelToken;
-        OperationToken = operationToken;
+        BuiltInOperationToken = builtInOperationToken;
+        OperationCall = operationCall;
         VariableToken = variableToken;
         ConditionKeyword = conditionKeyword;
         Condition = condition;
@@ -300,17 +390,25 @@ public sealed class GtfoStatementSyntax : StatementSyntax
 /// <summary>HOW IZ I &lt;name&gt; [YR &lt;param&gt; [AN YR &lt;param&gt;]*] ... IF U SAY SO</summary>
 public sealed class FunctionDeclarationSyntax : StatementSyntax
 {
+    /// <summary>The namespace in which the function is installed.</summary>
+    public IdentifierSyntax Scope { get; }
+    /// <summary>The runtime-resolved function name.</summary>
+    public IdentifierSyntax Identifier { get; }
     public SyntaxToken NameToken { get; }
-    public ImmutableArray<SyntaxToken> Parameters { get; }
+    public ImmutableArray<IdentifierSyntax> Parameters { get; }
     public BlockStatementSyntax Body { get; }
     public SyntaxToken EndKeyword { get; }
 
     public FunctionDeclarationSyntax(
+        IdentifierSyntax scope,
+        IdentifierSyntax identifier,
         SyntaxToken nameToken,
-        ImmutableArray<SyntaxToken> parameters,
+        ImmutableArray<IdentifierSyntax> parameters,
         BlockStatementSyntax body,
         SyntaxToken endKeyword)
     {
+        Scope = scope;
+        Identifier = identifier;
         NameToken = nameToken;
         Parameters = parameters;
         Body = body;
@@ -319,6 +417,41 @@ public sealed class FunctionDeclarationSyntax : StatementSyntax
 
     public override SyntaxKind Kind => SyntaxKind.FunctionDeclarationStatement;
     public override TextSpan Span => TextSpan.FromBounds(NameToken.Position, EndKeyword.Span.End);
+}
+
+/// <summary>Defines and populates a BUKKIT with <c>O HAI IM ... KTHX</c>.</summary>
+public sealed class ObjectDefinitionSyntax : StatementSyntax
+{
+    /// <summary>The name receiving the new BUKKIT.</summary>
+    public IdentifierSyntax Name { get; }
+    /// <summary>The optional prototype identifier.</summary>
+    public IdentifierSyntax? Parent { get; }
+    /// <summary>Mixin objects copied into the new BUKKIT.</summary>
+    public ImmutableArray<IdentifierSyntax> Mixins { get; }
+    /// <summary>The statements evaluated in the new BUKKIT namespace.</summary>
+    public BlockStatementSyntax Body { get; }
+    /// <summary>The closing KTHX token.</summary>
+    public SyntaxToken EndKeyword { get; }
+
+    /// <summary>Creates an alternate BUKKIT definition.</summary>
+    public ObjectDefinitionSyntax(
+        IdentifierSyntax name,
+        IdentifierSyntax? parent,
+        ImmutableArray<IdentifierSyntax> mixins,
+        BlockStatementSyntax body,
+        SyntaxToken endKeyword)
+    {
+        Name = name;
+        Parent = parent;
+        Mixins = mixins;
+        Body = body;
+        EndKeyword = endKeyword;
+    }
+
+    /// <inheritdoc/>
+    public override SyntaxKind Kind => SyntaxKind.ObjectDefinitionStatement;
+    /// <inheritdoc/>
+    public override TextSpan Span => TextSpan.FromBounds(Name.Span.Start, EndKeyword.Span.End);
 }
 
 /// <summary>FOUND YR &lt;expr&gt;</summary>
@@ -340,17 +473,20 @@ public sealed class ReturnStatementSyntax : StatementSyntax
 /// <summary>&lt;name&gt; IS NOW A &lt;type&gt;</summary>
 public sealed class CastStatementSyntax : StatementSyntax
 {
-    public SyntaxToken NameToken { get; }
+    /// <summary>Gets the identifier whose value is replaced by the cast result.</summary>
+    public IdentifierSyntax Target { get; }
+    /// <summary>Gets the target type token.</summary>
     public SyntaxToken TypeToken { get; }
 
-    public CastStatementSyntax(SyntaxToken nameToken, SyntaxToken typeToken)
+    /// <summary>Creates an in-place cast statement.</summary>
+    public CastStatementSyntax(IdentifierSyntax target, SyntaxToken typeToken)
     {
-        NameToken = nameToken;
+        Target = target;
         TypeToken = typeToken;
     }
 
     public override SyntaxKind Kind => SyntaxKind.CastStatement;
-    public override TextSpan Span => TextSpan.FromBounds(NameToken.Position, TypeToken.Span.End);
+    public override TextSpan Span => TextSpan.FromBounds(Target.Span.Start, TypeToken.Span.End);
 }
 
 /// <summary>A block of statements.</summary>
@@ -586,11 +722,21 @@ public sealed class CastExpressionSyntax : ExpressionSyntax
 /// <summary>I IZ &lt;name&gt; [YR &lt;expr&gt; [AN YR &lt;expr&gt;]*] MKAY</summary>
 public sealed class FunctionCallExpressionSyntax : ExpressionSyntax
 {
+    /// <summary>The namespace from which the callable is selected.</summary>
+    public IdentifierSyntax Scope { get; }
+    /// <summary>The runtime-resolved callable identifier.</summary>
+    public IdentifierSyntax Identifier { get; }
     public SyntaxToken NameToken { get; }
     public ImmutableArray<ExpressionSyntax> Arguments { get; }
 
-    public FunctionCallExpressionSyntax(SyntaxToken nameToken, ImmutableArray<ExpressionSyntax> arguments)
+    public FunctionCallExpressionSyntax(
+        IdentifierSyntax scope,
+        IdentifierSyntax identifier,
+        SyntaxToken nameToken,
+        ImmutableArray<ExpressionSyntax> arguments)
     {
+        Scope = scope;
+        Identifier = identifier;
         NameToken = nameToken;
         Arguments = arguments;
     }
@@ -602,6 +748,55 @@ public sealed class FunctionCallExpressionSyntax : ExpressionSyntax
         {
             int end = Arguments.Length > 0 ? Arguments[^1].Span.End : NameToken.Span.End;
             return TextSpan.FromBounds(NameToken.Position, end);
+        }
+    }
+}
+
+/// <summary>A runtime-resolved variable or BUKKIT slot reference.</summary>
+public sealed class IdentifierExpressionSyntax : ExpressionSyntax
+{
+        /// <summary>The referenced identifier.</summary>
+        public IdentifierSyntax Identifier { get; }
+
+        /// <summary>Creates an identifier expression.</summary>
+        public IdentifierExpressionSyntax(IdentifierSyntax identifier) => Identifier = identifier;
+
+        /// <inheritdoc/>
+        public override SyntaxKind Kind => SyntaxKind.IdentifierExpression;
+        /// <inheritdoc/>
+        public override TextSpan Span => Identifier.Span;
+}
+
+/// <summary>Creates a BUKKIT, optionally with a prototype and copied mixins.</summary>
+public sealed class ObjectCreationExpressionSyntax : ExpressionSyntax
+{
+        /// <summary>The optional prototype.</summary>
+        public IdentifierSyntax? Parent { get; }
+        /// <summary>Mixin objects copied into the new BUKKIT.</summary>
+        public ImmutableArray<IdentifierSyntax> Mixins { get; }
+        /// <summary>The first token in the creation expression.</summary>
+        public SyntaxToken StartToken { get; }
+
+        /// <summary>Creates a BUKKIT creation expression.</summary>
+        public ObjectCreationExpressionSyntax(
+            SyntaxToken startToken,
+            IdentifierSyntax? parent,
+            ImmutableArray<IdentifierSyntax> mixins)
+        {
+            StartToken = startToken;
+            Parent = parent;
+            Mixins = mixins;
+        }
+
+        /// <inheritdoc/>
+        public override SyntaxKind Kind => SyntaxKind.ObjectCreationExpression;
+        /// <inheritdoc/>
+        public override TextSpan Span
+        {
+            get
+            {
+                int end = Mixins.Length > 0 ? Mixins[^1].Span.End : Parent?.Span.End ?? StartToken.Span.End;
+                return TextSpan.FromBounds(StartToken.Position, end);
         }
     }
 }

@@ -86,7 +86,10 @@ public abstract class EndToEndTestBase : IDisposable
     }
 
     /// <summary>Asserts that running the source produces a runtime error containing the substring.</summary>
-    protected void AssertRuntimeError(string source, string expectedErrorSubstring)
+    protected void AssertRuntimeError(
+        string source,
+        string expectedErrorSubstring,
+        string? expectedOutput = null)
     {
         var tree = SyntaxTree.ParseText(source, "test.lol");
         string outputPath = Path.Combine(_tempDir, $"test_{Guid.NewGuid():N}.dll");
@@ -119,6 +122,8 @@ public abstract class EndToEndTestBase : IDisposable
 
         process.ExitCode.Should().NotBe(0, "Expected a runtime error");
         error.Should().Contain(expectedErrorSubstring);
+        if (expectedOutput is not null)
+            output.Replace("\r\n", "\n").TrimEnd('\n').Should().Be(expectedOutput);
     }
 
     /// <summary>Asserts that compiling the source produces a diagnostic with the given ID.</summary>
