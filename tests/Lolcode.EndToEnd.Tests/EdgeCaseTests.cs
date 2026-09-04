@@ -34,7 +34,7 @@ public class EdgeCaseTests : EndToEndTestBase
 
               BTW Boolean logic
               I HAS A logic ITZ BOTH OF WIN AN truth
-              VISIBLE "Both WIN:: " logic
+              VISIBLE "Both WIN:: " MAEK logic A NUMBR
 
               BTW Comparison
               BOTH SAEM result AN 50
@@ -75,7 +75,7 @@ public class EdgeCaseTests : EndToEndTestBase
 
               VISIBLE "ALL DONE!"
             KTHXBYE
-            """, "OH HAI CEILING CAT\nSum: 30\n42 + 8 = 50\nBoth WIN: WIN\nResult is 50!\nColor is red\nLoop: 0\nLoop: 1\nLoop: 2\nDoubled: 246\nIT is: 50\nALL DONE!");
+            """, "OH HAI CEILING CAT\nSum: 30\n42 + 8 = 50\nBoth WIN: 1\nResult is 50!\nColor is red\nLoop: 0\nLoop: 1\nLoop: 2\nDoubled: 246\nIT is: 50\nALL DONE!");
     }
 
     [Fact]
@@ -209,14 +209,14 @@ public class EdgeCaseTests : EndToEndTestBase
 
               VISIBLE SUMMER
               VISIBLE NOTIFY
-              VISIBLE TRUFFLE
+              VISIBLE MAEK TRUFFLE A NUMBR
               VISIBLE WINNER
               VISIBLE YARN_VALUE
 
               I HAS A result ITZ SUM OF SUMMER AN 50
               VISIBLE result
             KTHXBYE
-            """, "100\nmessage\nWIN\nyou\nstring\n150");
+            """, "100\nmessage\n1\nyou\nstring\n150");
     }
 
     [Fact]

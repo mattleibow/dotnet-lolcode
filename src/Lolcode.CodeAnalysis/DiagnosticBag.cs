@@ -63,6 +63,18 @@ internal sealed class DiagnosticBag : IEnumerable<Diagnostic>
     public void ReportInvalidEscapeSequence(TextLocation location, string sequence)
         => Report(DiagnosticDescriptors.InvalidEscapeSequence, location, sequence);
 
+    /// <summary>Reports a line continuation followed by an empty line or end of file.</summary>
+    public void ReportInvalidLineContinuation(TextLocation location)
+        => Report(DiagnosticDescriptors.InvalidLineContinuation, location);
+
+    /// <summary>Reports OBTW following code on the same logical line.</summary>
+    public void ReportMultilineCommentMustStartOnOwnLine(TextLocation location)
+        => Report(DiagnosticDescriptors.MultilineCommentMustStartOnOwnLine, location);
+
+    /// <summary>Reports code following TLDR on the same logical line.</summary>
+    public void ReportMultilineCommentMustEndOnOwnLine(TextLocation location)
+        => Report(DiagnosticDescriptors.MultilineCommentMustEndOnOwnLine, location);
+
     // --- Parser Diagnostics ---
 
     /// <summary>Reports an unexpected token.</summary>
@@ -80,6 +92,14 @@ internal sealed class DiagnosticBag : IEnumerable<Diagnostic>
     /// <summary>Reports a missing KTHXBYE statement.</summary>
     public void ReportMissingKthxbye(TextLocation location)
         => Report(DiagnosticDescriptors.MissingKthxbye, location);
+
+    /// <summary>Reports a HAI header without a language version.</summary>
+    public void ReportMissingVersion(TextLocation location)
+        => Report(DiagnosticDescriptors.MissingVersion, location);
+
+    /// <summary>Reports a VISIBLE statement without arguments.</summary>
+    public void ReportVisibleRequiresArgument(TextLocation location)
+        => Report(DiagnosticDescriptors.VisibleRequiresArgument, location);
 
     // --- Binder Diagnostics ---
 

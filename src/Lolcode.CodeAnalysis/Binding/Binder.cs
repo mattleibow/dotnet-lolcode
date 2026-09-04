@@ -3,6 +3,7 @@ using Lolcode.CodeAnalysis.BoundTree;
 using Lolcode.CodeAnalysis.Symbols;
 using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.CodeAnalysis.Text;
+using Lolcode.Runtime;
 
 namespace Lolcode.CodeAnalysis.Binding;
 
@@ -175,7 +176,7 @@ internal sealed class Binder
 
     private BoundSwitchStatement BindSwitch(SwitchStatementSyntax syntax)
     {
-        var seenValues = new HashSet<string>();
+        var seenValues = new HashSet<(Type? Type, object? Value)>();
         var omgClauses = ImmutableArray.CreateBuilder<BoundOmgClause>();
 
         _contextStack.Push(ControlFlowContext.Switch);
@@ -187,11 +188,26 @@ internal sealed class Binder
             // Validate literal-only and uniqueness
             if (value is BoundLiteralExpression lit)
             {
-                string key = lit.Value?.ToString() ?? "NOOB";
+                object? keyValue = lit.Value;
+                if (keyValue is string yarn)
+                {
+                    try
+                    {
+                        keyValue = LolRuntime.ResolveYarnLiteral(yarn);
+                    }
+                    catch (LolRuntimeException)
+                    {
+                        // Invalid escapes remain runtime errors when the case is evaluated.
+                    }
+                }
+
+                var key = (keyValue?.GetType(), keyValue);
                 if (!seenValues.Add(key))
                 {
                     var location = TextLocation.FromSpan(_text, clause.Value.Span);
-                    _diagnostics.ReportDuplicateOmgLiteral(location, key);
+                    _diagnostics.ReportDuplicateOmgLiteral(
+                        location,
+                        lit.Value?.ToString() ?? "NOOB");
                 }
             }
             else
@@ -346,6 +362,7 @@ internal sealed class Binder
         return syntax switch
         {
             LiteralExpressionSyntax s => BindLiteral(s),
+            TypeDefaultExpressionSyntax s => BindTypeDefault(s),
             VariableExpressionSyntax s => BindVariableExpression(s),
             UnaryExpressionSyntax s => BindUnary(s),
             BinaryExpressionSyntax s => BindBinary(s),
@@ -363,37 +380,45 @@ internal sealed class Binder
 
     private BoundExpression BindLiteral(LiteralExpressionSyntax syntax)
     {
-        // Check for string interpolation :{varname}
-        if (syntax.Value is string strValue && strValue.Contains(":{"))
+        if (syntax.Value is string strValue && syntax.Token.InterpolationStarts.Length > 0)
         {
-            return BindInterpolatedString(strValue);
+            return BindInterpolatedString(strValue, syntax.Token.InterpolationStarts);
         }
         return new BoundLiteralExpression(syntax.Value, syntax: syntax);
     }
 
-    private BoundExpression BindInterpolatedString(string template)
+    private static BoundExpression BindTypeDefault(TypeDefaultExpressionSyntax syntax)
+    {
+        object? value = syntax.TypeToken.Kind switch
+        {
+            SyntaxKind.NoobKeyword => null,
+            SyntaxKind.TroofKeyword => false,
+            SyntaxKind.NumbrKeyword => 0,
+            SyntaxKind.NumbarKeyword => 0.0,
+            SyntaxKind.YarnKeyword => string.Empty,
+            _ => null,
+        };
+
+        return new BoundLiteralExpression(value, syntax: syntax);
+    }
+
+    private BoundExpression BindInterpolatedString(
+        string template,
+        ImmutableArray<int> interpolationStarts)
     {
         var parts = new List<BoundExpression>();
         int pos = 0;
 
-        while (pos < template.Length)
+        foreach (int nextInterp in interpolationStarts)
         {
-            int nextInterp = template.IndexOf(":{", pos, StringComparison.Ordinal);
-            if (nextInterp < 0)
-            {
-                parts.Add(new BoundLiteralExpression(template[pos..]));
-                break;
-            }
-
             if (nextInterp > pos)
-            {
                 parts.Add(new BoundLiteralExpression(template[pos..nextInterp]));
-            }
 
             int closingBrace = template.IndexOf('}', nextInterp + 2);
             if (closingBrace < 0)
             {
                 parts.Add(new BoundLiteralExpression(template[nextInterp..]));
+                pos = template.Length;
                 break;
             }
 
@@ -410,6 +435,9 @@ internal sealed class Binder
 
             pos = closingBrace + 1;
         }
+
+        if (pos < template.Length)
+            parts.Add(new BoundLiteralExpression(template[pos..]));
 
         if (parts.Count == 1)
             return parts[0];

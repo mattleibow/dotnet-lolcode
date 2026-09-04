@@ -119,11 +119,14 @@ internal sealed class Parser
     {
         var hai = Match(SyntaxKind.HaiKeyword);
 
-        // Optional version number
         SyntaxToken? version = null;
-        if (Current.Kind == SyntaxKind.NumbarLiteralToken || Current.Kind == SyntaxKind.NumbrLiteralToken)
+        if (Current.Kind is not (SyntaxKind.EndOfLineToken or SyntaxKind.EndOfFileToken))
         {
             version = Advance();
+        }
+        else
+        {
+            _diagnostics.ReportMissingVersion(GetCurrentLocation());
         }
 
         ExpectEndOfLine();
@@ -258,9 +261,15 @@ internal sealed class Parser
         {
             Advance(); // ITZ
 
-            // ITZ A <type> is a special case for typed initialization
-            // For now, treat as expression
-            initializer = ParseExpression();
+            if (Current.Kind == SyntaxKind.AKeyword && SyntaxFacts.IsTypeKeyword(Peek(1).Kind))
+            {
+                var a = Advance();
+                initializer = new TypeDefaultExpressionSyntax(a, ParseTypeKeyword());
+            }
+            else
+            {
+                initializer = ParseExpression();
+            }
         }
 
         return new VariableDeclarationSyntax(name, initializer);
@@ -332,6 +341,9 @@ internal sealed class Parser
 
             args.Add(ParseExpression());
         }
+
+        if (args.Count == 0)
+            _diagnostics.ReportVisibleRequiresArgument(TextLocation.FromSpan(_text, keyword.Span));
 
         return new VisibleStatementSyntax(keyword, args.ToImmutable(), suppressNewline);
     }
@@ -504,9 +516,9 @@ internal sealed class Parser
         Match(SyntaxKind.IfKeyword);  // IF
         Match(SyntaxKind.UKeyword);   // U
         Match(SyntaxKind.SayKeyword); // SAY
-        Match(SyntaxKind.SoKeyword);  // SO
+        var so = Match(SyntaxKind.SoKeyword);  // SO
 
-        return new FunctionDeclarationSyntax(name, parameters.ToImmutable(), body);
+        return new FunctionDeclarationSyntax(name, parameters.ToImmutable(), body, so);
     }
 
     private ReturnStatementSyntax ParseReturn()

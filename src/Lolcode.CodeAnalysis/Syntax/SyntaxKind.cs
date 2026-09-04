@@ -318,6 +318,9 @@ public enum SyntaxKind
     /// <summary>Literal expression (NUMBR, NUMBAR, YARN, WIN, FAIL, NOOB).</summary>
     LiteralExpression,
 
+    /// <summary>Typed default expression (A NOOB, A TROOF, A NUMBR, A NUMBAR, A YARN).</summary>
+    TypeDefaultExpression,
+
     /// <summary>Variable reference expression.</summary>
     VariableExpression,
 

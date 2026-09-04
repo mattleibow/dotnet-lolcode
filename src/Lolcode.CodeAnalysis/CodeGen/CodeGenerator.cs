@@ -41,6 +41,8 @@ internal sealed class CodeGenerator
 
     // Runtime method references
     private MethodInfo _printMethod = null!;
+    private MethodInfo _writeByteOrderMarkMethod = null!;
+    private MethodInfo _createYarnLiteralMethod = null!;
     private MethodInfo _readLineMethod = null!;
     private MethodInfo _addMethod = null!;
     private MethodInfo _subtractMethod = null!;
@@ -54,6 +56,7 @@ internal sealed class CodeGenerator
     private MethodInfo _xorMethod = null!;
     private MethodInfo _notMethod = null!;
     private MethodInfo _bothSaemMethod = null!;
+    private MethodInfo _switchCaseMatchesMethod = null!;
     private MethodInfo _diffrintMethod = null!;
     private MethodInfo _smooshMethod = null!;
     private MethodInfo _isTruthyMethod = null!;
@@ -147,6 +150,9 @@ internal sealed class CodeGenerator
         _locals.Clear();
 
         _il.BeginScope();
+
+        if (_sourceText is { Length: > 0 } && _sourceText[0] == '\uFEFF')
+            _il.Emit(OpCodes.Call, _writeByteOrderMarkMethod);
 
         // Declare IT
         var itLocal = _il.DeclareLocal(typeof(object));
@@ -268,6 +274,8 @@ internal sealed class CodeGenerator
     private void ResolveRuntimeMethods(Type runtimeType)
     {
         _printMethod = runtimeType.GetMethod("Print")!;
+        _writeByteOrderMarkMethod = runtimeType.GetMethod("WriteByteOrderMark")!;
+        _createYarnLiteralMethod = runtimeType.GetMethod("CreateYarnLiteral")!;
         _readLineMethod = runtimeType.GetMethod("ReadLine")!;
         _addMethod = runtimeType.GetMethod("Add")!;
         _subtractMethod = runtimeType.GetMethod("Subtract")!;
@@ -281,6 +289,7 @@ internal sealed class CodeGenerator
         _xorMethod = runtimeType.GetMethod("Xor")!;
         _notMethod = runtimeType.GetMethod("Not")!;
         _bothSaemMethod = runtimeType.GetMethod("BothSaem")!;
+        _switchCaseMatchesMethod = runtimeType.GetMethod("SwitchCaseMatches")!;
         _diffrintMethod = runtimeType.GetMethod("Diffrint")!;
         _smooshMethod = runtimeType.GetMethod("Smoosh")!;
         _isTruthyMethod = runtimeType.GetMethod("IsTruthy")!;
@@ -516,7 +525,7 @@ internal sealed class CodeGenerator
 
             EmitLoadLocal("IT");
             EmitLiteralValue(clause.LiteralValue);
-            _il.Emit(OpCodes.Call, _bothSaemMethod);
+            _il.Emit(OpCodes.Call, _switchCaseMatchesMethod);
             _il.Emit(OpCodes.Brfalse, skipBody);
 
             _il.MarkLabel(enterBody);
@@ -722,6 +731,11 @@ internal sealed class CodeGenerator
                 break;
             case string s:
                 _il.Emit(OpCodes.Ldstr, s);
+                if (s.Contains(":(", StringComparison.Ordinal) ||
+                    s.Contains(":[", StringComparison.Ordinal))
+                {
+                    _il.Emit(OpCodes.Call, _createYarnLiteralMethod);
+                }
                 break;
             case bool b:
                 _il.Emit(b ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);

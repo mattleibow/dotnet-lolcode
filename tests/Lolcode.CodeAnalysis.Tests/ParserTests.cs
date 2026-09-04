@@ -31,6 +31,14 @@ public class ParserTests
     }
 
     [Fact]
+    public void Parse_HaiWithoutVersion_ReportsDiagnostic()
+    {
+        ParseWithDiagnostics("HAI\nKTHXBYE", out var diagnostics);
+
+        diagnostics.Should().ContainSingle(diagnostic => diagnostic.Id == "LOL1005");
+    }
+
+    [Fact]
     public void Parse_VariableDeclaration_NoInit()
     {
         var tree = Parse("HAI 1.2\nI HAS A x\nKTHXBYE");
@@ -83,6 +91,61 @@ public class ParserTests
         var visible = tree.Program.Statements.Should().ContainSingle()
             .Which.Should().BeOfType<VisibleStatementSyntax>().Subject;
         visible.SuppressNewline.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Parse_VisibleWithoutArguments_ReportsDiagnostic()
+    {
+        ParseWithDiagnostics("HAI 1.3\nVISIBLE\nKTHXBYE", out var diagnostics);
+
+        diagnostics.Should().ContainSingle(diagnostic => diagnostic.Id == "LOL1006");
+    }
+
+    [Theory]
+    [InlineData("NOOB")]
+    [InlineData("TROOF")]
+    [InlineData("NUMBR")]
+    [InlineData("NUMBAR")]
+    [InlineData("YARN")]
+    public void Parse_TypedDefaultInitialization(string type)
+    {
+        var tree = ParseWithDiagnostics(
+            $"HAI 1.3\nI HAS A value ITZ A {type}\nKTHXBYE",
+            out var diagnostics);
+
+        diagnostics.Should().BeEmpty();
+        var declaration = tree.Program.Statements.Should().ContainSingle()
+            .Which.Should().BeOfType<VariableDeclarationSyntax>().Subject;
+        declaration.Initializer.Should().BeOfType<TypeDefaultExpressionSyntax>()
+            .Which.TypeToken.Text.Should().Be(type);
+    }
+
+    [Fact]
+    public void Parse_EmptyFunction_HasValidSourceSpan()
+    {
+        var tree = ParseWithDiagnostics(
+            "HAI 1.3\nHOW IZ I fun\nIF U SAY SO\nKTHXBYE",
+            out var diagnostics);
+
+        diagnostics.Should().BeEmpty();
+        var function = tree.Program.Statements.Should().ContainSingle()
+            .Which.Should().BeOfType<FunctionDeclarationSyntax>().Subject;
+        function.Body.Statements.Should().BeEmpty();
+        function.Span.Length.Should().BePositive();
+    }
+
+    [Fact]
+    public void Parse_EscapedInterpolationPrefix_RemainsLiteral()
+    {
+        var tree = ParseWithDiagnostics(
+            "HAI 1.3\nI HAS A value ITZ \"::{name}\"\nKTHXBYE",
+            out var diagnostics);
+
+        diagnostics.Should().BeEmpty();
+        var declaration = tree.Program.Statements.Should().ContainSingle()
+            .Which.Should().BeOfType<VariableDeclarationSyntax>().Subject;
+        declaration.Initializer.Should().BeOfType<LiteralExpressionSyntax>()
+            .Which.Value.Should().Be(":{name}");
     }
 
     [Fact]

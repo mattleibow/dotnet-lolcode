@@ -25,16 +25,17 @@ stale grammar comments, or README-only claims are language rules.
 
 ## Current Compiler Target
 
-`dotnet-lolcode` targets the 1.2 stable profile. It does not select semantics from
-the numeric value after `HAI`; any numeric version is currently parsed and retained
-as syntax.
+`dotnet-lolcode` targets the 1.2 stable profile. It requires and retains one token
+after `HAI`, matching pinned `lci`, but does not validate that token or select
+semantics from its value.
 
 | Area | Support | Notes |
 |---|---:|---|
 | Stable primitive values and operators | Yes | NUMBR, NUMBAR, YARN, TROOF, and NOOB |
 | Variables, `IT`, flow control, and functions | Yes | Function variables are isolated from outer variables |
 | Loops | Yes | Includes reference-style custom unary operations |
-| TYPE runtime values | No | Deferred by the archived text and absent from `lci` |
+| Typed default initialization | Yes | The 1.3 `ITZ A <type>` form initializes primitive defaults |
+| TYPE runtime values | No | Bare type words remain syntax, not first-class values |
 | BUKKIT | No | Reserved in 1.2; 1.3 object semantics are not implemented |
 | SRS and 1.3 object features | No | The archived 1.3 document is an unfinished draft |
 | 1.4 libraries, `INVISIBLE`, `I DUZ`, and `HAS AN` | No | Recorded only in the reference-implementation delta |
@@ -48,12 +49,12 @@ and coerce the boxed value.
 |---|---|
 | `NUMBR` | `System.Int32` |
 | `NUMBAR` | `System.Double` |
-| `YARN` | `System.String` |
+| `YARN` | `System.String`; source literals with deferred Unicode escapes use an internal runtime wrapper until string use |
 | `TROOF` | `System.Boolean` |
 | `NOOB` | `null` |
 
 TYPE has no runtime representation. Type words accepted after `MAEK`, `IS NOW A`,
-or other type-position syntax are parser tokens, not first-class values.
+or `ITZ A` are parser tokens, not first-class values.
 
 ## Adopted 1.2 Clarifications
 
@@ -63,6 +64,8 @@ The archived 1.2 source says an invalid numeric YARN produces an error, but does
 distinguish explicit casts from operator coercion. The compiler follows `lci`:
 
 - explicit invalid YARN-to-NUMBR and YARN-to-NUMBAR casts produce `0` and `0.0`;
+- explicit numeric casts follow C-style prefix parsing: leading whitespace and
+  trailing nonnumeric text are accepted, while NUMBR also recognizes octal and hex;
 - using a nonnumeric YARN in a numeric operator raises a runtime error;
 - NUMBAR-to-YARN conversion truncates toward zero and emits exactly two fractional
   digits.
@@ -97,8 +100,13 @@ function must take exactly one argument; its return value becomes the next loop 
 | Floating-point storage | IEEE 754 binary64 (`System.Double`) |
 | `:o` | U+0007 BELL |
 | `:[<name>]` | Curated Unicode-name subset; unsupported names are diagnosed |
+| Unicode escape timing | Source YARN escapes resolve when converted/printed; input text is never reinterpreted as source escapes |
+| UTF-8 BOM | Accepted as leading source trivia and reproduced at the start of program output |
 | `VISIBLE` newline | `Console.WriteLine`, using the host platform newline |
 | Equality | Numeric NUMBR/NUMBAR values compare numerically; other primitive types do not auto-cast |
+| `WTF?` equality | Exact runtime type and value; OMG uniqueness uses the same typed identity |
+| YARN conversion | Implicit NOOB and all TROOF conversions fail; explicit NOOB conversion produces `""` |
+| Zero divisor | Integer and floating division/modulo raise `LolRuntimeException` |
 | `GTFO` nesting | Applies to the innermost enclosing loop or switch; in a function it returns NOOB |
 
 ## Future-Version Engineering Notes

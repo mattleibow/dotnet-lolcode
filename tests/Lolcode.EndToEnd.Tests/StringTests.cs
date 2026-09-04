@@ -27,15 +27,15 @@ public class StringTests : EndToEndTestBase
               OIC
 
               BTW casting empty and non-empty YARN to TROOF
-              VISIBLE "MAEK :":" A TROOF:: " MAEK empty A TROOF
-              VISIBLE "MAEK :"LOL:" A TROOF:: " MAEK nonempty A TROOF
+              VISIBLE "MAEK :":" A TROOF:: " MAEK MAEK empty A TROOF A NUMBR
+              VISIBLE "MAEK :"LOL:" A TROOF:: " MAEK MAEK nonempty A TROOF A NUMBR
 
               BTW concatenating with empty string
               I HAS A base ITZ ""
               I HAS A joined ITZ SMOOSH base AN "A" MKAY
               VISIBLE joined
             KTHXBYE
-            """, "EMPTY:[]\nNONEMPTY:[LOL]\nEMPTY IS FAIL\nMAEK \"\" A TROOF: FAIL\nMAEK \"LOL\" A TROOF: WIN\nA");
+            """, "EMPTY:[]\nNONEMPTY:[LOL]\nEMPTY IS FAIL\nMAEK \"\" A TROOF: 0\nMAEK \"LOL\" A TROOF: 1\nA");
     }
 
     [Fact]
@@ -68,28 +68,35 @@ public class StringTests : EndToEndTestBase
     public void Interpolation()
     {
         AssertOutput("""
-            BTW Test string interpolation with :{var} for NUMBR, YARN, and TROOF
+            BTW Test string interpolation with :{var} for NUMBR and YARN
             BTW Per spec: :{var} inserts the current value of the variable cast to YARN
 
             HAI 1.2
               I HAS A count ITZ 42
               I HAS A name ITZ "KITTEH"
-              I HAS A truth ITZ WIN
 
               VISIBLE "COUNT:: :{count}"
               VISIBLE "NAME:: :{name}"
-              VISIBLE "TROOF:: :{truth}"
 
               BTW change variable values and ensure interpolation uses updated values
               count R 7
               name R "CEILING CAT"
-              truth R FAIL
 
               VISIBLE "UPDATED COUNT:: :{count}"
               VISIBLE "UPDATED NAME:: :{name}"
-              VISIBLE "UPDATED TROOF:: :{truth}"
             KTHXBYE
-            """, "COUNT: 42\nNAME: KITTEH\nTROOF: WIN\nUPDATED COUNT: 7\nUPDATED NAME: CEILING CAT\nUPDATED TROOF: FAIL");
+            """, "COUNT: 42\nNAME: KITTEH\nUPDATED COUNT: 7\nUPDATED NAME: CEILING CAT");
+    }
+
+    [Fact]
+    public void InterpolationRejectsTroof()
+    {
+        AssertRuntimeError("""
+            HAI 1.2
+              I HAS A truth ITZ WIN
+              VISIBLE "TROOF:: :{truth}"
+            KTHXBYE
+            """, "TROOF");
     }
 
     [Fact]
@@ -108,17 +115,16 @@ public class StringTests : EndToEndTestBase
               I HAS A result2 ITZ SMOOSH "OMITTED" AN " MKAY"
               VISIBLE result2
 
-              BTW SMOOSH with NUMBR, NUMBAR, and TROOF (implicit YARN casts)
+              BTW SMOOSH with NUMBR and NUMBAR implicit YARN casts
               I HAS A num ITZ 42
               I HAS A pi ITZ 3.14159
-              I HAS A flag ITZ WIN
-              I HAS A result3 ITZ SMOOSH "NUM=" AN num AN ", PI=" AN pi AN ", FLAG=" AN flag MKAY
+              I HAS A result3 ITZ SMOOSH "NUM=" AN num AN ", PI=" AN pi MKAY
               VISIBLE result3
 
               BTW SMOOSH used directly in VISIBLE
               VISIBLE SMOOSH "DIRECT " AN "VISIBLE" MKAY
             KTHXBYE
-            """, "HAI WORLD\nOMITTED MKAY\nNUM=42, PI=3.14, FLAG=WIN\nDIRECT VISIBLE");
+            """, "HAI WORLD\nOMITTED MKAY\nNUM=42, PI=3.14\nDIRECT VISIBLE");
     }
 
     [Fact]

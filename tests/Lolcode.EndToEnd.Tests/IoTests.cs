@@ -36,9 +36,9 @@ public class IoTests : EndToEndTestBase
 
               VISIBLE MAEK "42" A NUMBR
 
-              VISIBLE SMOOSH "BOOL " AN MAEK 0 A TROOF AN " / " AN MAEK 1 A TROOF MKAY
+              VISIBLE SMOOSH "BOOL " AN MAEK MAEK 0 A TROOF A NUMBR AN " / " AN MAEK MAEK 1 A TROOF A NUMBR MKAY
             KTHXBYE
-            """, "7\nA+B=7\nPI=3.14\n42\nBOOL FAIL / WIN");
+            """, "7\nA+B=7\nPI=3.14\n42\nBOOL 0 / 1");
     }
 
     [Fact]

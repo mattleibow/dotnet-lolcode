@@ -60,6 +60,7 @@ Compiler support, .NET mappings, and implementation-specific limitations are kep
 - Multiple lines can be combined into a single command by including three periods (`...`) or the Unicode ellipsis character (`…`) at the end of the line. This causes the contents of the next line to be evaluated as if it were on the same line.
 - Lines with line continuation can be strung together, many in a row, to allow a single command to stretch over more than one or two lines. As long as each line is ended with three periods, the next line is included, until a line without three periods is reached, at which point, the entire command may be processed.
 - A line with line continuation **may not** be followed by an empty line. Three periods may be by themselves on a single line, in which case, the empty line is "included" in the command (doing nothing), and the next line is included as well.
+- A continuation marker must be immediately followed by a physical newline and then a non-empty physical line. A marker at end-of-file is not a continuation.
 - A single-line comment is always terminated by a newline. Line continuation (`...`) and soft-command-breaks (`,`) after the comment (`BTW`) are ignored.
 - Line continuation and soft-command-breaks are ignored inside quoted strings. An unterminated string literal (no closing quote) will cause an error.
 
@@ -84,7 +85,7 @@ I HAS A VAR ITZ 12
 BTW VAR = 12
 ```
 
-Multi-line comments are begun by `OBTW` and ended with `TLDR`, and should be started on their own lines, or following a line of code after a line separator.
+Multi-line comments are begun by `OBTW` and ended with `TLDR`. `OBTW` must start a logical line, either on its own physical line or after a comma separator. `TLDR` must end the logical line, though a comma may follow it to begin another statement.
 
 ```lolcode
 I HAS A VAR ITZ 12
@@ -106,7 +107,9 @@ TLDR, I HAS A FISH ITZ BOB
 
 *(modified from 1.1)*
 
-All LOLCODE programs must be opened with the command `HAI`. `HAI` should then be followed with the current LOLCODE language version number (`1.2`, in this case). There is no current standard behavior for implementations to treat the version number, though.
+All LOLCODE programs must be opened with the command `HAI`. `HAI` must then be followed with a language-version token (`1.2`, for this stable profile). There is no current standard behavior for implementations to interpret the version value.
+
+> **Reference-interpreter note:** The pinned `lci` parser requires one token after `HAI` but does not validate that token as a numeric or supported version. This project retains that executable behavior while still documenting the source-level spelling as a version number.
 
 A LOLCODE file is closed by the keyword `KTHXBYE` which closes the `HAI` code-block.
 
@@ -169,9 +172,13 @@ Explicit casts of a `NOOB` (untyped, uninitialized) variable are to empty/zero v
 | `NOOB` → `NUMBAR` | `0.0` |
 | `NOOB` → `YARN` | `""` |
 
+Implicit conversion of `NOOB` to `YARN`, including through `VISIBLE` or `SMOOSH`, is an error. This distinction follows pinned `lci`.
+
 ### Booleans (TROOF)
 
 The two boolean (`TROOF`) values are `WIN` (true) and `FAIL` (false). The empty string (`""`), numerical zero, and `NOOB` cast to `FAIL`. All other stable 1.2 values cast to `WIN`.
+
+Pinned `lci` rejects both implicit and explicit `TROOF`-to-`YARN` conversion. This replaces the project's earlier assumption that booleans stringify as `"WIN"` and `"FAIL"`; the archived 1.2 text never settled that conversion.
 
 ### Numerical Types (NUMBR, NUMBAR)
 
@@ -179,7 +186,7 @@ A `NUMBR` is an integer as specified in the host implementation/architecture. An
 
 A `NUMBAR` is a float as specified in the host implementation/architecture. It is represented as a contiguous string of digits containing exactly one decimal point. Casting a `NUMBAR` to a `NUMBR` truncates the decimal portion of the floating point number. Casting a `NUMBAR` to a `YARN` (by printing it, for example), truncates the output to a default of **two decimal places**. A `NUMBAR` may have a leading hyphen (`-`) to signify a negative number.
 
-Casting a string to a numerical type parses the string as if it were not in quotes. For explicit `MAEK`/`IS NOW A` casts, a string that is not a valid number produces the target type's zero value. Numeric operators still fail when an operand cannot be safely interpreted as a number. Casting `WIN` to a numerical type results in `1` or `1.0`; casting `FAIL` results in numerical zero.
+Casting a string to a numerical type parses the string as if it were not in quotes. For explicit `MAEK`/`IS NOW A` casts, leading whitespace is ignored and parsing stops at the first invalid character. NUMBR parsing recognizes decimal, a leading-zero octal form, and `0x` hexadecimal; NUMBAR parsing accepts a decimal floating-point prefix. A string with no numeric prefix produces the target type's zero value. Numeric operators still fail when an operand cannot be safely interpreted as a number. Casting `WIN` to a numerical type results in `1` or `1.0`; casting `FAIL` results in numerical zero.
 
 > **Source note:** The archived Final Draft says invalid numeric strings produce an error without distinguishing explicit casts from operator coercion. The split above matches `lci` and removes that contradiction from the stable profile.
 
@@ -204,6 +211,8 @@ The colon may also introduce more verbose escapes enclosed within some form of b
 | `:(<hex>)` | Resolves the hex number into the corresponding Unicode code point |
 | `:{<var>}` | Interpolates the current value of the enclosed variable, cast as a string |
 | `:[<char name>]` | Resolves the `<char name>` in capital letters to the corresponding Unicode [normative name](http://www.unicode.org/Public/4.1.0/ucd/NamesList.txt) |
+
+Code-point and normative-name escapes are resolved when the containing source `YARN` is used as a string. An invalid code point or name therefore produces a runtime error only if that value is consumed; merely storing the literal does not fail. Interpolation syntax inside `:[...]` is not recursively evaluated.
 
 **String interpolation** example:
 ```lolcode
@@ -266,6 +275,8 @@ If one or both arguments are a `YARN`, they get interpreted as `NUMBAR`s if the 
 
 If one or another of the arguments cannot be safely cast to a numerical type, then it fails with an error.
 
+Division or modulo by either integer or floating-point zero fails at runtime.
+
 ### Boolean
 
 Boolean operators working on `TROOF`s are as follows:
@@ -312,7 +323,7 @@ If `<x>` in the above formulations is too verbose or difficult to compute, the a
 
 ### Concatenation
 
-An indefinite number of `YARN`s may be explicitly concatenated with the `SMOOSH...MKAY` operator. Arguments may optionally be separated with `AN`. As `SMOOSH` expects strings as its input arguments, it will implicitly cast all input values of other types to `YARN`s. The line ending may safely implicitly close the `SMOOSH` operator without needing an `MKAY`.
+An indefinite number of `YARN`s may be explicitly concatenated with the `SMOOSH...MKAY` operator. Arguments may optionally be separated with `AN`. As `SMOOSH` expects strings as its input arguments, it implicitly casts numeric input values to `YARN`. Pinned `lci` rejects `NOOB` and `TROOF` operands because those values do not have implicit YARN conversions there. The line ending may safely implicitly close the `SMOOSH` operator without needing an `MKAY`.
 
 ```lolcode
 SMOOSH "HAI " AN var AN "!" MKAY       BTW explicit MKAY
@@ -344,7 +355,7 @@ To explicitly re-cast a variable, you may create a normal assignment statement w
 |-----------|--------|
 | `NUMBR` → `YARN` | String representation (`42` → `"42"`) |
 | `NUMBAR` → `YARN` | Truncated to two decimal places (`3.14159` → `"3.14"`) |
-| `TROOF` → `YARN` | `"WIN"` or `"FAIL"` |
+| `TROOF` → `YARN` | Error, whether implicit or explicit |
 | `NUMBAR` → `NUMBR` | Truncate the fractional portion toward zero |
 | `YARN` → `NUMBR` | Parse integer; decimal YARN → truncate; invalid YARN → `0` |
 | `YARN` → `NUMBAR` | Parse float; invalid YARN → `0.0` |
@@ -355,6 +366,7 @@ To explicitly re-cast a variable, you may create a normal assignment statement w
 | `TROOF` → `NUMBAR` | `WIN` → `1.0`, `FAIL` → `0.0` |
 | `NOOB` → `TROOF` | `FAIL` (only implicit cast from NOOB) |
 | `NOOB` → other (explicit) | `0`, `0.0`, `""` (default for target type) |
+| `NOOB` → `YARN` (implicit) | Error |
 | any value → `NOOB` (explicit) | `NOOB` |
 
 ---
@@ -363,7 +375,7 @@ To explicitly re-cast a variable, you may create a normal assignment statement w
 
 ### Terminal-Based
 
-The print (to STDOUT or the terminal) operator is `VISIBLE`. It has infinite arity and implicitly concatenates all of its arguments after casting them to `YARN`s. It is terminated by the statement delimiter (line end or comma). The output is automatically terminated with the host platform's newline unless the final token is terminated with an exclamation point (`!`), in which case the newline is suppressed.
+The print (to STDOUT or the terminal) operator is `VISIBLE`. It requires at least one argument, has otherwise infinite arity, and concatenates its arguments after implicit `YARN` conversion. Because pinned `lci` rejects implicit `NOOB`-to-`YARN` and all `TROOF`-to-`YARN` conversions, those values cause output to fail. `VISIBLE` is terminated by the statement delimiter (line end or comma). The output is automatically terminated with the host platform's newline unless the final token is terminated with an exclamation point (`!`), in which case the newline is suppressed.
 
 ```lolcode
 VISIBLE <expression> [<expression> ...][!]
@@ -487,7 +499,7 @@ OIC
 
 *(modified from 1.1)*
 
-The `WTF?` operates on `IT` as being the expression value for comparison. A comparison block is opened by `OMG` and **must be a literal, not an expression**. (A literal, in this case, excludes any `YARN` containing variable interpolation (`:{var}`).) Each literal must be unique.
+The `WTF?` operates on `IT` as being the expression value for comparison. A comparison block is opened by `OMG` and **must be a literal, not an expression**. (A literal, in this case, excludes any `YARN` containing variable interpolation (`:{var}`).) Each literal must be unique within its runtime type. Case matching also requires both the runtime type and value to match, so unlike ordinary numeric equality, `OMG 1` and `OMG 1.0` are distinct.
 
 The `OMG` block can be followed by any number of statements and may be terminated by a `GTFO`, which breaks to the end of the `WTF` statement. If an `OMG` block is not terminated by a `GTFO`, execution falls through subsequent `OMG` blocks until a `GTFO` or the end of the matching cases. The optional `OMGWTF` default runs only when no literal matches; a matched case does not fall through into it.
 
@@ -590,6 +602,8 @@ IF U SAY SO
 ```
 
 Currently, the number of arguments in a function can only be defined as a fixed number. The `<argument>`s are single-word identifiers that act as variables within the scope of the function's code. The calling parameters' values are then the initial values for the variables within the function's code block when the function is called.
+
+The code block may be empty. In that case, the function reaches `IF U SAY SO` with its initial `IT` value and returns `NOOB`.
 
 *Currently, functions do not have access to the outer/calling code block's variables.*
 

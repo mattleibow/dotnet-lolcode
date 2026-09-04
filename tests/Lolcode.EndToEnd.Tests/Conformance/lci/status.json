@@ -27,21 +27,15 @@
   },
   {
     "id": "1.3-Tests/1-Structure/14-NoNewlineAfterJoinLF",
-    "status": "skip",
-    "feature": "line-continuation-validation",
-    "reason": "Invalid end-of-file after a continuation marker is not rejected."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/1-Structure/15-NoNewlineAfterJoinCR",
-    "status": "skip",
-    "feature": "line-continuation-validation",
-    "reason": "Invalid end-of-file after a continuation marker is not rejected."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/1-Structure/16-NoNewlineAfterJoinCRLF",
-    "status": "skip",
-    "feature": "line-continuation-validation",
-    "reason": "Invalid end-of-file after a continuation marker is not rejected."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/1-Structure/17-Includes",
@@ -55,9 +49,7 @@
   },
   {
     "id": "1.3-Tests/1-Structure/3-MustIncludeVersion",
-    "status": "skip",
-    "feature": "required-version-validation",
-    "reason": "HAI without a language version is currently accepted."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/1-Structure/4-MustEndWithKTHXBYE",
@@ -141,15 +133,11 @@
   },
   {
     "id": "1.3-Tests/11-Unicode/6-NormativeNameInString",
-    "status": "skip",
-    "feature": "unicode-normative-names",
-    "reason": "Unicode normative-name string escapes are not implemented."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/11-Unicode/7-InvalidCodePointInString",
-    "status": "skip",
-    "feature": "invalid-code-point-diagnostics",
-    "reason": "An out-of-range Unicode code point throws instead of producing a compiler diagnostic."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/11-Unicode/8-InvalidNormativeName",
@@ -157,9 +145,7 @@
   },
   {
     "id": "1.3-Tests/11-Unicode/9-ByteOrderMark",
-    "status": "skip",
-    "feature": "unicode-byte-order-mark",
-    "reason": "A leading UTF-8 byte-order mark is not accepted as source trivia."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/12-Arrays/1-EmptyArray",
@@ -297,15 +283,11 @@
   },
   {
     "id": "1.3-Tests/2-Comments/2-MultipleLine/4-MustStartOnSeparateLine",
-    "status": "skip",
-    "feature": "multiline-comment-validation",
-    "reason": "Invalid OBTW/TLDR line placement is not rejected."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/2-Comments/2-MultipleLine/5-MustEndOnOwnLine",
-    "status": "skip",
-    "feature": "multiline-comment-validation",
-    "reason": "Invalid OBTW/TLDR line placement is not rejected."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/2-Comments/2-MultipleLine/6-BeginAfterLineSeparator",
@@ -337,9 +319,7 @@
   },
   {
     "id": "1.3-Tests/3-Types/1-Nil/4-NilToString",
-    "status": "skip",
-    "feature": "noob-to-yarn-casting",
-    "reason": "Implicit NOOB-to-YARN conversion is accepted where lci requires an error."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/3-Types/2-Boolean/1-BooleanImplicitCasts",
@@ -417,15 +397,11 @@
   },
   {
     "id": "1.3-Tests/4-Output/1-MustHaveAnArg",
-    "status": "skip",
-    "feature": "visible-arity-validation",
-    "reason": "VISIBLE with zero arguments is currently accepted."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/4-Output/2-Booleans",
-    "status": "skip",
-    "feature": "troof-to-yarn-casting",
-    "reason": "TROOF-to-YARN output and explicit/recast conversions are accepted where lci requires an error."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/4-Output/3-Integers",
@@ -519,9 +495,7 @@
   },
   {
     "id": "1.3-Tests/6-Variables/5-UninitializedNil",
-    "status": "skip",
-    "feature": "noob-to-yarn-casting",
-    "reason": "Implicit NOOB-to-YARN conversion is accepted where lci requires an error."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/6-Variables/6-Assignment",
@@ -533,9 +507,7 @@
   },
   {
     "id": "1.3-Tests/6-Variables/8-TypeInitialization",
-    "status": "skip",
-    "feature": "type-values",
-    "reason": "Bare TYPE values used by typed variable initialization are not implemented."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/6-Variables/9-Deallocation",
@@ -687,15 +659,11 @@
   },
   {
     "id": "1.3-Tests/7-Operators/16-Concatenation/1-Nil",
-    "status": "skip",
-    "feature": "noob-to-yarn-casting",
-    "reason": "Implicit NOOB-to-YARN conversion is accepted where lci requires an error."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/7-Operators/16-Concatenation/2-Boolean",
-    "status": "skip",
-    "feature": "troof-to-yarn-casting",
-    "reason": "TROOF-to-YARN output and explicit/recast conversions are accepted where lci requires an error."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/7-Operators/16-Concatenation/3-Integers",
@@ -791,9 +759,7 @@
   },
   {
     "id": "1.3-Tests/7-Operators/17-ExplicitCast/3-ToInteger/5-FromString/4-RelaxedNumbers",
-    "status": "skip",
-    "feature": "relaxed-numeric-parsing",
-    "reason": "Relaxed decimal, hexadecimal, and octal YARN-to-number parsing is not implemented."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/7-Operators/17-ExplicitCast/4-ToFloat/1-FromNil",
@@ -825,9 +791,7 @@
   },
   {
     "id": "1.3-Tests/7-Operators/17-ExplicitCast/4-ToFloat/5-FromString/4-RelaxedNumbers",
-    "status": "skip",
-    "feature": "relaxed-numeric-parsing",
-    "reason": "Relaxed decimal, hexadecimal, and octal YARN-to-number parsing is not implemented."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/7-Operators/17-ExplicitCast/5-ToString/1-FromNil",
@@ -835,15 +799,11 @@
   },
   {
     "id": "1.3-Tests/7-Operators/17-ExplicitCast/5-ToString/2-FromBoolean/1-False",
-    "status": "skip",
-    "feature": "troof-to-yarn-casting",
-    "reason": "TROOF-to-YARN output and explicit/recast conversions are accepted where lci requires an error."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/7-Operators/17-ExplicitCast/5-ToString/2-FromBoolean/2-True",
-    "status": "skip",
-    "feature": "troof-to-yarn-casting",
-    "reason": "TROOF-to-YARN output and explicit/recast conversions are accepted where lci requires an error."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/7-Operators/17-ExplicitCast/5-ToString/3-FromInteger",
@@ -927,9 +887,7 @@
   },
   {
     "id": "1.3-Tests/7-Operators/18-ExplicitRecast/3-ToInteger/5-FromString/4-RelaxedNumbers",
-    "status": "skip",
-    "feature": "relaxed-numeric-parsing",
-    "reason": "Relaxed decimal, hexadecimal, and octal YARN-to-number parsing is not implemented."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/7-Operators/18-ExplicitRecast/4-ToFloat/1-FromNil",
@@ -961,9 +919,7 @@
   },
   {
     "id": "1.3-Tests/7-Operators/18-ExplicitRecast/4-ToFloat/5-FromString/4-RelaxedNumbers",
-    "status": "skip",
-    "feature": "relaxed-numeric-parsing",
-    "reason": "Relaxed decimal, hexadecimal, and octal YARN-to-number parsing is not implemented."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/7-Operators/18-ExplicitRecast/5-ToString/1-FromNil",
@@ -971,15 +927,11 @@
   },
   {
     "id": "1.3-Tests/7-Operators/18-ExplicitRecast/5-ToString/2-FromBoolean/1-False",
-    "status": "skip",
-    "feature": "troof-to-yarn-casting",
-    "reason": "TROOF-to-YARN output and explicit/recast conversions are accepted where lci requires an error."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/7-Operators/18-ExplicitRecast/5-ToString/2-FromBoolean/2-True",
-    "status": "skip",
-    "feature": "troof-to-yarn-casting",
-    "reason": "TROOF-to-YARN output and explicit/recast conversions are accepted where lci requires an error."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/7-Operators/18-ExplicitRecast/5-ToString/3-FromInteger",
@@ -1095,15 +1047,11 @@
   },
   {
     "id": "1.3-Tests/7-Operators/4-Division/12-IntegerDivisionBy0",
-    "status": "skip",
-    "feature": "zero-divisor-errors",
-    "reason": "Division and modulo by zero do not raise the errors required by this lci corpus."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/7-Operators/4-Division/13-FloatDivisionBy0",
-    "status": "skip",
-    "feature": "zero-divisor-errors",
-    "reason": "Division and modulo by zero do not raise the errors required by this lci corpus."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/7-Operators/4-Division/2-FloatInteger",
@@ -1151,15 +1099,11 @@
   },
   {
     "id": "1.3-Tests/7-Operators/5-Modulo/12-IntegerDivisionBy0",
-    "status": "skip",
-    "feature": "zero-divisor-errors",
-    "reason": "Division and modulo by zero do not raise the errors required by this lci corpus."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/7-Operators/5-Modulo/13-FloatDivisionBy0",
-    "status": "skip",
-    "feature": "zero-divisor-errors",
-    "reason": "Division and modulo by zero do not raise the errors required by this lci corpus."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/7-Operators/5-Modulo/2-FloatInteger",
@@ -1331,9 +1275,7 @@
   },
   {
     "id": "1.3-Tests/8-Conditionals/2-Switch/4-MixedTypes",
-    "status": "skip",
-    "feature": "typed-switch-cases",
-    "reason": "OMG duplicate detection does not distinguish literals with different runtime types."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/8-Conditionals/2-Switch/5-LiteralsMustBeUnique",
@@ -1357,9 +1299,7 @@
   },
   {
     "id": "1.3-Tests/9-Functions/11-EmptyBody",
-    "status": "skip",
-    "feature": "empty-function-codegen",
-    "reason": "Emitting a function with an empty body currently produces an internal compiler diagnostic."
+    "status": "pass"
   },
   {
     "id": "1.3-Tests/9-Functions/2-ReturnValue",

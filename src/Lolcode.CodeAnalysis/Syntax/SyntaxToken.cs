@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Lolcode.CodeAnalysis.Text;
 
 namespace Lolcode.CodeAnalysis.Syntax;
@@ -15,6 +16,8 @@ public sealed record SyntaxToken(
     string Text,
     object? Value = null)
 {
+    internal ImmutableArray<int> InterpolationStarts { get; init; } = [];
+
     /// <summary>
     /// The span of this token in the source text.
     /// </summary>

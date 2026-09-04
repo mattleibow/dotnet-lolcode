@@ -303,19 +303,22 @@ public sealed class FunctionDeclarationSyntax : StatementSyntax
     public SyntaxToken NameToken { get; }
     public ImmutableArray<SyntaxToken> Parameters { get; }
     public BlockStatementSyntax Body { get; }
+    public SyntaxToken EndKeyword { get; }
 
     public FunctionDeclarationSyntax(
         SyntaxToken nameToken,
         ImmutableArray<SyntaxToken> parameters,
-        BlockStatementSyntax body)
+        BlockStatementSyntax body,
+        SyntaxToken endKeyword)
     {
         NameToken = nameToken;
         Parameters = parameters;
         Body = body;
+        EndKeyword = endKeyword;
     }
 
     public override SyntaxKind Kind => SyntaxKind.FunctionDeclarationStatement;
-    public override TextSpan Span => TextSpan.FromBounds(NameToken.Position, Body.Span.End);
+    public override TextSpan Span => TextSpan.FromBounds(NameToken.Position, EndKeyword.Span.End);
 }
 
 /// <summary>FOUND YR &lt;expr&gt;</summary>
@@ -391,6 +394,22 @@ public sealed class LiteralExpressionSyntax : ExpressionSyntax
 
     public override SyntaxKind Kind => SyntaxKind.LiteralExpression;
     public override TextSpan Span => Token.Span;
+}
+
+/// <summary>A typed default value introduced by <c>A</c> and a primitive type keyword.</summary>
+public sealed class TypeDefaultExpressionSyntax : ExpressionSyntax
+{
+    public SyntaxToken AKeyword { get; }
+    public SyntaxToken TypeToken { get; }
+
+    public TypeDefaultExpressionSyntax(SyntaxToken aKeyword, SyntaxToken typeToken)
+    {
+        AKeyword = aKeyword;
+        TypeToken = typeToken;
+    }
+
+    public override SyntaxKind Kind => SyntaxKind.TypeDefaultExpression;
+    public override TextSpan Span => TextSpan.FromBounds(AKeyword.Position, TypeToken.Span.End);
 }
 
 /// <summary>A variable reference.</summary>
