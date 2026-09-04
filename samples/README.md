@@ -51,16 +51,6 @@ Interactive programs with user input (`GIMMEH`).
 | [adventure-game](games/adventure-game/) | `dotnet run --file samples/games/adventure-game/adventure.lol` | Room-based text adventure |
 | [arena-game](games/arena-game/) | `dotnet run --file samples/games/arena-game/Game.lol` | Turn-based RPG battle |
 
-## Community
-
-The [community compatibility collection](community/) tracks programs and
-concepts from Wikipedia and Esolang:
-
-| Sample | Run | Demonstrates |
-|--------|-----|-------------|
-| [Truth-Machine](community/esolangs/truth-machine.lol) | `dotnet run --file samples/community/esolangs/truth-machine.lol` | Input, conditionals, infinite loops |
-| [Comments](community/wikipedia/comments.lol) | `dotnet run --file samples/community/wikipedia/comments.lol` | Single-line and multiline comments |
-
 ## Project-Based
 
 The dedicated [project-based hello world](project-based/hello-world/) verifies

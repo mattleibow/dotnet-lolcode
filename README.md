@@ -48,7 +48,6 @@ if (!result.Success)
 - 🎯 **Compiles to .NET IL** — produces real .NET assemblies (not interpreted)
 - 📦 **MSBuild SDK** — `dotnet build` and `dotnet run` for `.lolproj` projects
 - 🚀 **File-based apps** — `dotnet run --file hello.lol` with no project needed
-- 🌐 **Community compatibility** — runnable Wikipedia-inspired and Esolang examples
 - 📊 **Pretty diagnostics** — error messages with source context and line/column info
 - 🧪 **Comprehensive tests** — unit, runtime, end-to-end compiler, and SDK integration coverage
 
@@ -283,9 +282,6 @@ See [samples/](samples/) for the full list. The primary samples are file-based a
 
 The dedicated [project-based sample](samples/project-based/hello-world/) keeps
 the `.lolproj` workflow covered.
-
-The [community collection](samples/community/) adds attributed compatibility
-programs from Esolang and independently written Wikipedia-inspired examples.
 
 ## License
 

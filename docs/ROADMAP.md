@@ -249,7 +249,6 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [x] Lexer skips `#:` directives and `#!` shebang lines
 - [x] Sdk.targets filters `@(Compile)` to `.lol` files only
 - [x] Remove CLI project (replaced by SDK + file-based apps)
-- [x] Add attributed community compatibility samples from Wikipedia and Esolang
 
 ## Phase 8: Debugging Support (Bonus)
 > Enable VS Code debugging for LOLCODE programs.

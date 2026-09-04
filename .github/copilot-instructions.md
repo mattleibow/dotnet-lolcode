@@ -23,7 +23,7 @@ src/Lolcode.NET.Sdk/           # MSBuild SDK package (Sdk.props, Sdk.targets)
 src/Lolcode.NET.Templates/    # dotnet new template pack (lolcode-console)
 tests/Lolcode.CodeAnalysis.Tests/  # Unit tests (lexer, parser, runtime)
 tests/Lolcode.EndToEnd.Tests/      # E2E tests (19 category classes + SDK sample tests)
-samples/                       # File-based catalog, community compatibility corpus, and one .lolproj example
+samples/                       # 16 file-based programs plus one .lolproj example
 docs/                          # Design docs, language spec, roadmap
 ```
 

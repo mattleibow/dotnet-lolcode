@@ -80,7 +80,6 @@ public class SdkSampleTests
             "adventure.lol" => "quit\n",
             "Game.lol" => "TESTER\nflee\n",
             "calculator.lol" => "quit\n",
-            "truth-machine.lol" => "0\n",
             _ => null,
         };
         var (exitCode, stdout, stderr) = RunDotnet(
