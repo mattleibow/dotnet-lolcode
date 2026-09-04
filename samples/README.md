@@ -52,6 +52,7 @@ Interactive programs with user input (`GIMMEH`).
 | [adventure-game](games/adventure-game/) | `dotnet run --file samples/games/adventure-game/adventure.lol` | Room-based text adventure |
 | [arena-game](games/arena-game/) | `dotnet run --file samples/games/arena-game/Game.lol` | Turn-based RPG battle |
 | [chess](games/chess/) | `dotnet run --file samples/games/chess/chess.lol` | Terminal chess against a one-ply material AI |
+| [tic-tac-toe](games/tic-tac-toe/) | `dotnet run --file samples/games/tic-tac-toe/tic-tac-toe.lol` | One or two-player Tic-Tac-Toe with AI |
 
 ## Project-Based
 

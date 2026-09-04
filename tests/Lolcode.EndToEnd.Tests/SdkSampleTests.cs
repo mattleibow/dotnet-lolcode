@@ -79,6 +79,7 @@ public class SdkSampleTests
             "adventure.lol" => "quit\n",
             "Game.lol" => "TESTER\nflee\n",
             "chess.lol" => "quit\n",
+            "tic-tac-toe.lol" => "1\nq\n",
             "calculator.lol" => "quit\n",
             _ => null,
         };
@@ -162,5 +163,47 @@ public class SdkSampleTests
         stdout.Should().Contain("AI MOVE:");
         stdout.Should().Contain("4 | . . . . P . . . | 4");
         stdout.Should().Contain("KTHXBAI! TANKS 4 PLAYIN LOLCHESS!");
+    }
+
+    [Fact]
+    public void TicTacToe_TwoPlayerMode_RunsToPlayerWin()
+    {
+        var sampleDir = Path.Combine(RepoRoot, "samples", "games", "tic-tac-toe");
+        var (exitCode, stdout, stderr) = RunDotnet(
+            "run --file tic-tac-toe.lol",
+            sampleDir,
+            "2\n1\n4\n2\n5\n3\n",
+            timeoutMs: 60_000);
+
+        exitCode.Should().Be(0, $"dotnet run --file failed:\n{stderr}");
+        stdout.Should().Contain("=== LOLCODE TIC-TAC-TOE ===");
+        stdout.Split("=== LOLCODE TIC-TAC-TOE ===", StringSplitOptions.None)
+            .Should().HaveCount(2, "the title should appear exactly once");
+        stdout.IndexOf("HOW MANY PLAYERZ?", StringComparison.Ordinal)
+            .Should().BeLessThan(stdout.IndexOf("PICK A CELL", StringComparison.Ordinal));
+        stdout.IndexOf("HOW MANY PLAYERZ?", StringComparison.Ordinal)
+            .Should().BeLessThan(stdout.IndexOf(" 1 | 2 | 3", StringComparison.Ordinal));
+        stdout.Should().Contain(" 1 | 2 | 3");
+        stdout.Should().Contain("   |   |  ");
+        stdout.Should().Contain(" X | X | X");
+        stdout.Should().Contain("PLAYER X WINZ!");
+    }
+
+    [Fact]
+    public void TicTacToe_OnePlayerMode_RunsAiTurn()
+    {
+        var sampleDir = Path.Combine(RepoRoot, "samples", "games", "tic-tac-toe");
+        var (exitCode, stdout, stderr) = RunDotnet(
+            "run --file tic-tac-toe.lol",
+            sampleDir,
+            "1\n1\n2\n7\n9\n",
+            timeoutMs: 60_000);
+
+        exitCode.Should().Be(0, $"dotnet run --file failed:\n{stderr}");
+        stdout.Should().Contain("U R X. TEH AI IZ O.");
+        stdout.Should().Contain("TEH AI PICKZ CELL 5!");
+        stdout.Should().Contain("TEH AI PICKZ CELL 3!");
+        stdout.Should().Contain(" O | O | O");
+        stdout.Should().Contain("TEH AI WINZ!");
     }
 }

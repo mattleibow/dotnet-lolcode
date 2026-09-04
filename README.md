@@ -182,7 +182,7 @@ dotnet-lolcode/
 ├── tests/
 │   ├── Lolcode.CodeAnalysis.Tests/ # Unit tests (lexer, parser, runtime)
 │   └── Lolcode.EndToEnd.Tests/     # End-to-end compiler tests (19 categories)
-├── samples/                      # 16 file-based examples plus one .lolproj example
+├── samples/                      # 18 file-based examples plus one .lolproj example
 └── docs/                         # Design documents and language spec
 ```
 
@@ -281,6 +281,7 @@ See [samples/](samples/) for the full list. The primary samples are file-based a
 | [Guessing Game](samples/games/guessing-game/) | `dotnet run --file samples/games/guessing-game/guess.lol` | Number guessing |
 | [Adventure Game](samples/games/adventure-game/) | `dotnet run --file samples/games/adventure-game/adventure.lol` | Room-based text adventure |
 | [Arena Game](samples/games/arena-game/) | `dotnet run --file samples/games/arena-game/Game.lol` | Turn-based RPG battle |
+| [Tic-Tac-Toe](samples/games/tic-tac-toe/) | `dotnet run --file samples/games/tic-tac-toe/tic-tac-toe.lol` | One or two-player Tic-Tac-Toe with AI |
 
 The dedicated [project-based sample](samples/project-based/hello-world/) keeps
 the `.lolproj` workflow covered.
