@@ -1,0 +1,1420 @@
+[
+  {
+    "id": "1.3-Tests/0-Benchmarks/1-BFInterpreter",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/1-Structure/1-EmptyMainBlock",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/1-Structure/10-CommasSeparate",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/1-Structure/11-EllipsesJoinLF",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/1-Structure/12-EllipsesJoinCR",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/1-Structure/13-EllipsesJoinCRLF",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/1-Structure/14-NoNewlineAfterJoinLF",
+    "status": "skip",
+    "feature": "line-continuation-validation",
+    "reason": "Invalid end-of-file after a continuation marker is not rejected."
+  },
+  {
+    "id": "1.3-Tests/1-Structure/15-NoNewlineAfterJoinCR",
+    "status": "skip",
+    "feature": "line-continuation-validation",
+    "reason": "Invalid end-of-file after a continuation marker is not rejected."
+  },
+  {
+    "id": "1.3-Tests/1-Structure/16-NoNewlineAfterJoinCRLF",
+    "status": "skip",
+    "feature": "line-continuation-validation",
+    "reason": "Invalid end-of-file after a continuation marker is not rejected."
+  },
+  {
+    "id": "1.3-Tests/1-Structure/17-Includes",
+    "status": "skip",
+    "feature": "module-bindings",
+    "reason": "CAN HAS modules and 1.4 external library bindings are not implemented."
+  },
+  {
+    "id": "1.3-Tests/1-Structure/2-MustBeginWithHAI",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/1-Structure/3-MustIncludeVersion",
+    "status": "skip",
+    "feature": "required-version-validation",
+    "reason": "HAI without a language version is currently accepted."
+  },
+  {
+    "id": "1.3-Tests/1-Structure/4-MustEndWithKTHXBYE",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/1-Structure/5-IndentationIgnored",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/1-Structure/6-WhitespaceBetweenTokens",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/1-Structure/7-NewlineLF",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/1-Structure/8-NewlineCR",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/1-Structure/9-NewlineCRLF",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/10-Loops/1-Breaks",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/10-Loops/2-Increment",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/10-Loops/3-Decrement",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/10-Loops/4-Until",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/10-Loops/5-While",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/10-Loops/6-UnaryFunction",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/10-Loops/7-EmptyBody",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/10-Loops/8-UntilMustIncludeVar",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/10-Loops/9-WhileMustIncludeVar",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/11-Unicode/1-EllipsesJoinLF",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/11-Unicode/2-EllipsesJoinCR",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/11-Unicode/3-EllipsesJoinCRLF",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/11-Unicode/4-Strings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/11-Unicode/5-CodePointInString",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/11-Unicode/6-NormativeNameInString",
+    "status": "skip",
+    "feature": "unicode-normative-names",
+    "reason": "Unicode normative-name string escapes are not implemented."
+  },
+  {
+    "id": "1.3-Tests/11-Unicode/7-InvalidCodePointInString",
+    "status": "skip",
+    "feature": "invalid-code-point-diagnostics",
+    "reason": "An out-of-range Unicode code point throws instead of producing a compiler diagnostic."
+  },
+  {
+    "id": "1.3-Tests/11-Unicode/8-InvalidNormativeName",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/11-Unicode/9-ByteOrderMark",
+    "status": "skip",
+    "feature": "unicode-byte-order-mark",
+    "reason": "A leading UTF-8 byte-order mark is not accepted as source trivia."
+  },
+  {
+    "id": "1.3-Tests/12-Arrays/1-EmptyArray",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/12-Arrays/10-CallingObjectInitialization",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/12-Arrays/11-CallingObjectAlternateSyntax",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/12-Arrays/12-AlternateSyntax",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/12-Arrays/13-Inheritance/1-Declaration",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/12-Arrays/13-Inheritance/2-Assignment",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/12-Arrays/13-Inheritance/3-AlternateSyntax",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/12-Arrays/2-SlotCreation",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/12-Arrays/3-SlotInitialization",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/12-Arrays/4-SlotAssignment",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/12-Arrays/5-FunctionStorage",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/12-Arrays/6-FunctionDeclaration",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/12-Arrays/7-CallingObjectReference",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/12-Arrays/8-CallingObjectAssignment",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/12-Arrays/9-CallingObjectDeclaration",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/2-Comments/1-SingleLine/1-EndOfLine",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/2-Comments/1-SingleLine/2-SeparateLine",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/2-Comments/1-SingleLine/3-AfterCommaSeparator",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/2-Comments/1-SingleLine/4-BeforeHAI",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/2-Comments/1-SingleLine/5-AfterKTHXBYE",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/2-Comments/1-SingleLine/6-IgnoreContinuation",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/2-Comments/1-SingleLine/7-IgnoreJoin",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/2-Comments/2-MultipleLine/1-SeparateStartEndLines",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/2-Comments/2-MultipleLine/10-AfterKTHXBYE",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/2-Comments/2-MultipleLine/2-SeparateStartLineOnly",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/2-Comments/2-MultipleLine/3-SeparateEndLineOnly",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/2-Comments/2-MultipleLine/4-MustStartOnSeparateLine",
+    "status": "skip",
+    "feature": "multiline-comment-validation",
+    "reason": "Invalid OBTW/TLDR line placement is not rejected."
+  },
+  {
+    "id": "1.3-Tests/2-Comments/2-MultipleLine/5-MustEndOnOwnLine",
+    "status": "skip",
+    "feature": "multiline-comment-validation",
+    "reason": "Invalid OBTW/TLDR line placement is not rejected."
+  },
+  {
+    "id": "1.3-Tests/2-Comments/2-MultipleLine/6-BeginAfterLineSeparator",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/2-Comments/2-MultipleLine/7-EndBeforeLineSeparator",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/2-Comments/2-MultipleLine/8-IgnoreEmbeddedBTW",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/2-Comments/2-MultipleLine/9-BeforeHAI",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/1-Nil/1-NilToBoolean",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/1-Nil/2-NilToInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/1-Nil/3-NilToFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/1-Nil/4-NilToString",
+    "status": "skip",
+    "feature": "noob-to-yarn-casting",
+    "reason": "Implicit NOOB-to-YARN conversion is accepted where lci requires an error."
+  },
+  {
+    "id": "1.3-Tests/3-Types/2-Boolean/1-BooleanImplicitCasts",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/3-Integer/1-NegativeValue",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/3-Integer/2-MustHaveAdjacentHyphen",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/3-Integer/3-ImplicitCasts",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/4-Float/1-OnlyOneDecimalPoint",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/4-Float/2-MustHaveAdjacentHyphen",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/4-Float/3-ImplicitCasts",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/4-Float/4-Truncation",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/5-String/1-Escapes/1-Newline",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/5-String/1-Escapes/2-Tab",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/5-String/1-Escapes/3-Bell",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/5-String/1-Escapes/4-DoubleQuote",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/5-String/1-Escapes/5-Colon",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/5-String/2-Syntax/1-IgnoreContinuation",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/5-String/2-Syntax/2-IgnoreJoins",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/5-String/2-Syntax/3-MustHaveClosingQuote",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/5-String/2-Syntax/4-IgnoreComments",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/3-Types/5-String/3-Comparison",
+    "status": "skip",
+    "feature": "module-bindings",
+    "reason": "CAN HAS modules and 1.4 external library bindings are not implemented."
+  },
+  {
+    "id": "1.3-Tests/4-Output/1-MustHaveAnArg",
+    "status": "skip",
+    "feature": "visible-arity-validation",
+    "reason": "VISIBLE with zero arguments is currently accepted."
+  },
+  {
+    "id": "1.3-Tests/4-Output/2-Booleans",
+    "status": "skip",
+    "feature": "troof-to-yarn-casting",
+    "reason": "TROOF-to-YARN output and explicit/recast conversions are accepted where lci requires an error."
+  },
+  {
+    "id": "1.3-Tests/4-Output/3-Integers",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/4-Output/4-Floats",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/4-Output/5-BasicStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/4-Output/6-MixedTypes",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/4-Output/7-NoNewline",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/5-Input/1-ShortString",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/5-Input/2-LongString",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/5-Input/3-EscapeCharacter",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/6-Variables/1-MustDeclare",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/6-Variables/10-Indirect/1-Output",
+    "status": "skip",
+    "feature": "dynamic-identifiers",
+    "reason": "SRS indirect identifiers and dynamic member references are not implemented."
+  },
+  {
+    "id": "1.3-Tests/6-Variables/10-Indirect/2-Initialization",
+    "status": "skip",
+    "feature": "dynamic-identifiers",
+    "reason": "SRS indirect identifiers and dynamic member references are not implemented."
+  },
+  {
+    "id": "1.3-Tests/6-Variables/10-Indirect/3-Assignment",
+    "status": "skip",
+    "feature": "dynamic-identifiers",
+    "reason": "SRS indirect identifiers and dynamic member references are not implemented."
+  },
+  {
+    "id": "1.3-Tests/6-Variables/10-Indirect/4-TypeInitialization",
+    "status": "skip",
+    "feature": "dynamic-identifiers",
+    "reason": "SRS indirect identifiers and dynamic member references are not implemented."
+  },
+  {
+    "id": "1.3-Tests/6-Variables/10-Indirect/5-Deallocation",
+    "status": "skip",
+    "feature": "dynamic-identifiers",
+    "reason": "SRS indirect identifiers and dynamic member references are not implemented."
+  },
+  {
+    "id": "1.3-Tests/6-Variables/10-Indirect/6-Functions",
+    "status": "skip",
+    "feature": "dynamic-identifiers",
+    "reason": "SRS indirect identifiers and dynamic member references are not implemented."
+  },
+  {
+    "id": "1.3-Tests/6-Variables/11-AlternativeArticle",
+    "status": "skip",
+    "feature": "arrays-and-objects",
+    "reason": "BUKKIT objects, slots, inheritance, and object-stored functions are not implemented."
+  },
+  {
+    "id": "1.3-Tests/6-Variables/2-NoRedefinition",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/6-Variables/3-Initialization",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/6-Variables/4-CaseSensitivity",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/6-Variables/5-UninitializedNil",
+    "status": "skip",
+    "feature": "noob-to-yarn-casting",
+    "reason": "Implicit NOOB-to-YARN conversion is accepted where lci requires an error."
+  },
+  {
+    "id": "1.3-Tests/6-Variables/6-Assignment",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/6-Variables/7-AssignmentSameVariable",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/6-Variables/8-TypeInitialization",
+    "status": "skip",
+    "feature": "type-values",
+    "reason": "Bare TYPE values used by typed variable initialization are not implemented."
+  },
+  {
+    "id": "1.3-Tests/6-Variables/9-Deallocation",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/1-Addition/1-Intergers",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/1-Addition/10-ArityCheck",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/1-Addition/11-OptionalAN",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/1-Addition/2-FloatInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/1-Addition/3-IntegerFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/1-Addition/4-Floats",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/1-Addition/5-IntegerStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/1-Addition/6-FloatIntegerStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/1-Addition/7-IntegerFloatStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/1-Addition/8-FloatStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/1-Addition/9-Nested",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/10-LogicalXORBinary/1-TruthTable",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/10-LogicalXORBinary/2-Nested",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/10-LogicalXORBinary/3-OptionalAN",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/11-LogicalNOTUnary/1-TruthTable",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/11-LogicalNOTUnary/2-Nested",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/12-LogicalANDNary/1-TruthTable",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/12-LogicalANDNary/2-Nested",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/12-LogicalANDNary/3-OptionalAN",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/12-LogicalANDNary/4-ManyArguments",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/13-LogicalORNary/1-TruthTable",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/13-LogicalORNary/2-Nested",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/13-LogicalORNary/3-OptionalAN",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/13-LogicalORNary/4-ManyArguments",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/14-Equality/1-Nil",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/14-Equality/2-Boolean",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/14-Equality/3-Integer",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/14-Equality/4-Float",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/14-Equality/5-String",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/14-Equality/6-OptionalAN",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/15-Inequality/1-Nil",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/15-Inequality/2-Boolean",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/15-Inequality/3-Integer",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/15-Inequality/4-Float",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/15-Inequality/5-String",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/15-Inequality/6-OptionalAN",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/16-Concatenation/1-Nil",
+    "status": "skip",
+    "feature": "noob-to-yarn-casting",
+    "reason": "Implicit NOOB-to-YARN conversion is accepted where lci requires an error."
+  },
+  {
+    "id": "1.3-Tests/7-Operators/16-Concatenation/2-Boolean",
+    "status": "skip",
+    "feature": "troof-to-yarn-casting",
+    "reason": "TROOF-to-YARN output and explicit/recast conversions are accepted where lci requires an error."
+  },
+  {
+    "id": "1.3-Tests/7-Operators/16-Concatenation/3-Integers",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/16-Concatenation/4-Floats",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/16-Concatenation/5-Strings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/16-Concatenation/6-Nested",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/16-Concatenation/7-ManyArguments",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/16-Concatenation/8-OptionalAN",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/1-ToNil/1-FromNil",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/1-ToNil/2-FromBoolean",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/1-ToNil/3-FromInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/1-ToNil/4-FromFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/1-ToNil/5-FromString",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/2-ToBoolean/1-FromNil",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/2-ToBoolean/2-FromBoolean",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/2-ToBoolean/3-FromInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/2-ToBoolean/4-FromFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/2-ToBoolean/5-FromString",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/3-ToInteger/1-FromNil",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/3-ToInteger/2-FromBoolean",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/3-ToInteger/3-FromInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/3-ToInteger/4-FromFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/3-ToInteger/5-FromString/1-Numbers",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/3-ToInteger/5-FromString/2-EmptyString",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/3-ToInteger/5-FromString/3-NonNumber",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/3-ToInteger/5-FromString/4-RelaxedNumbers",
+    "status": "skip",
+    "feature": "relaxed-numeric-parsing",
+    "reason": "Relaxed decimal, hexadecimal, and octal YARN-to-number parsing is not implemented."
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/4-ToFloat/1-FromNil",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/4-ToFloat/2-FromBoolean",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/4-ToFloat/3-FromInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/4-ToFloat/4-FromFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/4-ToFloat/5-FromString/1-Numbers",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/4-ToFloat/5-FromString/2-EmptyString",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/4-ToFloat/5-FromString/3-NonNumber",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/4-ToFloat/5-FromString/4-RelaxedNumbers",
+    "status": "skip",
+    "feature": "relaxed-numeric-parsing",
+    "reason": "Relaxed decimal, hexadecimal, and octal YARN-to-number parsing is not implemented."
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/5-ToString/1-FromNil",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/5-ToString/2-FromBoolean/1-False",
+    "status": "skip",
+    "feature": "troof-to-yarn-casting",
+    "reason": "TROOF-to-YARN output and explicit/recast conversions are accepted where lci requires an error."
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/5-ToString/2-FromBoolean/2-True",
+    "status": "skip",
+    "feature": "troof-to-yarn-casting",
+    "reason": "TROOF-to-YARN output and explicit/recast conversions are accepted where lci requires an error."
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/5-ToString/3-FromInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/5-ToString/4-FromFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/17-ExplicitCast/5-ToString/5-FromString",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/1-ToNil/1-FromNil",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/1-ToNil/2-FromBoolean",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/1-ToNil/3-FromInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/1-ToNil/4-FromFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/1-ToNil/5-FromString",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/2-ToBoolean/1-FromNil",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/2-ToBoolean/2-FromBoolean",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/2-ToBoolean/3-FromInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/2-ToBoolean/4-FromFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/2-ToBoolean/5-FromString",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/3-ToInteger/1-FromNil",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/3-ToInteger/2-FromBoolean",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/3-ToInteger/3-FromInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/3-ToInteger/4-FromFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/3-ToInteger/5-FromString/1-Numbers",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/3-ToInteger/5-FromString/2-EmptyString",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/3-ToInteger/5-FromString/3-NonNumber",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/3-ToInteger/5-FromString/4-RelaxedNumbers",
+    "status": "skip",
+    "feature": "relaxed-numeric-parsing",
+    "reason": "Relaxed decimal, hexadecimal, and octal YARN-to-number parsing is not implemented."
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/4-ToFloat/1-FromNil",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/4-ToFloat/2-FromBoolean",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/4-ToFloat/3-FromInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/4-ToFloat/4-FromFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/4-ToFloat/5-FromString/1-Numbers",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/4-ToFloat/5-FromString/2-EmptyString",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/4-ToFloat/5-FromString/3-NonNumber",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/4-ToFloat/5-FromString/4-RelaxedNumbers",
+    "status": "skip",
+    "feature": "relaxed-numeric-parsing",
+    "reason": "Relaxed decimal, hexadecimal, and octal YARN-to-number parsing is not implemented."
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/5-ToString/1-FromNil",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/5-ToString/2-FromBoolean/1-False",
+    "status": "skip",
+    "feature": "troof-to-yarn-casting",
+    "reason": "TROOF-to-YARN output and explicit/recast conversions are accepted where lci requires an error."
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/5-ToString/2-FromBoolean/2-True",
+    "status": "skip",
+    "feature": "troof-to-yarn-casting",
+    "reason": "TROOF-to-YARN output and explicit/recast conversions are accepted where lci requires an error."
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/5-ToString/3-FromInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/5-ToString/4-FromFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/18-ExplicitRecast/5-ToString/5-FromString",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/2-Subtraction/1-Intergers",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/2-Subtraction/10-ArityCheck",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/2-Subtraction/11-OptionalAN",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/2-Subtraction/2-FloatInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/2-Subtraction/3-IntegerFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/2-Subtraction/4-Floats",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/2-Subtraction/5-IntegerStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/2-Subtraction/6-FloatIntegerStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/2-Subtraction/7-IntegerFloatStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/2-Subtraction/8-FloatStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/2-Subtraction/9-Nested",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/3-Multiplication/1-Intergers",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/3-Multiplication/10-ArityCheck",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/3-Multiplication/11-OptionalAN",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/3-Multiplication/2-FloatInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/3-Multiplication/3-IntegerFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/3-Multiplication/4-Floats",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/3-Multiplication/5-IntegerStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/3-Multiplication/6-FloatIntegerStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/3-Multiplication/7-IntegerFloatStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/3-Multiplication/8-FloatStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/3-Multiplication/9-Nested",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/4-Division/1-Intergers",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/4-Division/10-ArityCheck",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/4-Division/11-OptionalAN",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/4-Division/12-IntegerDivisionBy0",
+    "status": "skip",
+    "feature": "zero-divisor-errors",
+    "reason": "Division and modulo by zero do not raise the errors required by this lci corpus."
+  },
+  {
+    "id": "1.3-Tests/7-Operators/4-Division/13-FloatDivisionBy0",
+    "status": "skip",
+    "feature": "zero-divisor-errors",
+    "reason": "Division and modulo by zero do not raise the errors required by this lci corpus."
+  },
+  {
+    "id": "1.3-Tests/7-Operators/4-Division/2-FloatInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/4-Division/3-IntegerFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/4-Division/4-Floats",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/4-Division/5-IntegerStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/4-Division/6-FloatIntegerStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/4-Division/7-IntegerFloatStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/4-Division/8-FloatStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/4-Division/9-Nested",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/5-Modulo/1-Intergers",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/5-Modulo/10-ArityCheck",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/5-Modulo/11-OptionalAN",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/5-Modulo/12-IntegerDivisionBy0",
+    "status": "skip",
+    "feature": "zero-divisor-errors",
+    "reason": "Division and modulo by zero do not raise the errors required by this lci corpus."
+  },
+  {
+    "id": "1.3-Tests/7-Operators/5-Modulo/13-FloatDivisionBy0",
+    "status": "skip",
+    "feature": "zero-divisor-errors",
+    "reason": "Division and modulo by zero do not raise the errors required by this lci corpus."
+  },
+  {
+    "id": "1.3-Tests/7-Operators/5-Modulo/2-FloatInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/5-Modulo/3-IntegerFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/5-Modulo/4-Floats",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/5-Modulo/5-IntegerStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/5-Modulo/6-FloatIntegerStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/5-Modulo/7-IntegerFloatStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/5-Modulo/8-FloatStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/5-Modulo/9-Nested",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/6-Maximum/1-Intergers",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/6-Maximum/10-ArityCheck",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/6-Maximum/11-OptionalAN",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/6-Maximum/2-FloatInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/6-Maximum/3-IntegerFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/6-Maximum/4-Floats",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/6-Maximum/5-IntegerStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/6-Maximum/6-FloatIntegerStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/6-Maximum/7-IntegerFloatStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/6-Maximum/8-FloatStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/6-Maximum/9-Nested",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/7-Minimum/1-Intergers",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/7-Minimum/10-ArityCheck",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/7-Minimum/11-OptionalAN",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/7-Minimum/2-FloatInteger",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/7-Minimum/3-IntegerFloat",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/7-Minimum/4-Floats",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/7-Minimum/5-IntegerStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/7-Minimum/6-FloatIntegerStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/7-Minimum/7-IntegerFloatStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/7-Minimum/8-FloatStrings",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/7-Minimum/9-Nested",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/8-LogicalANDBinary/1-TruthTable",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/8-LogicalANDBinary/2-Nested",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/8-LogicalANDBinary/3-OptionalAN",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/9-LogicalORBinary/1-TruthTable",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/9-LogicalORBinary/2-Nested",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/7-Operators/9-LogicalORBinary/3-OptionalAN",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/8-Conditionals/1-IfThenElse/1-If",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/8-Conditionals/1-IfThenElse/2-Else",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/8-Conditionals/1-IfThenElse/3-ElseIf",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/8-Conditionals/2-Switch/1-Simple",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/8-Conditionals/2-Switch/2-Breaks",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/8-Conditionals/2-Switch/3-Default",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/8-Conditionals/2-Switch/4-MixedTypes",
+    "status": "skip",
+    "feature": "typed-switch-cases",
+    "reason": "OMG duplicate detection does not distinguish literals with different runtime types."
+  },
+  {
+    "id": "1.3-Tests/8-Conditionals/2-Switch/5-LiteralsMustBeUnique",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/8-Conditionals/2-Switch/6-MustNotBeExpressions",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/8-Conditionals/2-Switch/7-MustNotBeVariables",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/9-Functions/1-VoidWithSideEffects",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/9-Functions/10-TooFewArguments",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/9-Functions/11-EmptyBody",
+    "status": "skip",
+    "feature": "empty-function-codegen",
+    "reason": "Emitting a function with an empty body currently produces an internal compiler diagnostic."
+  },
+  {
+    "id": "1.3-Tests/9-Functions/2-ReturnValue",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/9-Functions/3-VoidReturnValue",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/9-Functions/4-NilReturnValue",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/9-Functions/5-Recursion",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/9-Functions/6-DoubleRecursion",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/9-Functions/7-ExpressionArguments",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/9-Functions/8-VoidMustHaveNoArguments",
+    "status": "pass"
+  },
+  {
+    "id": "1.3-Tests/9-Functions/9-TooManyArguments",
+    "status": "pass"
+  },
+  {
+    "id": "1.4-Tests/13-Bindings/1-stdio/1-fopen",
+    "status": "skip",
+    "feature": "module-bindings",
+    "reason": "CAN HAS modules and 1.4 external library bindings are not implemented."
+  },
+  {
+    "id": "1.4-Tests/13-Bindings/1-stdio/2-fread",
+    "status": "skip",
+    "feature": "module-bindings",
+    "reason": "CAN HAS modules and 1.4 external library bindings are not implemented."
+  },
+  {
+    "id": "1.4-Tests/13-Bindings/3-socket/1-lookup",
+    "status": "skip",
+    "feature": "module-bindings",
+    "reason": "CAN HAS modules and 1.4 external library bindings are not implemented."
+  },
+  {
+    "id": "1.4-Tests/13-Bindings/3-socket/2-openclose",
+    "status": "skip",
+    "feature": "module-bindings",
+    "reason": "CAN HAS modules and 1.4 external library bindings are not implemented."
+  }
+]
