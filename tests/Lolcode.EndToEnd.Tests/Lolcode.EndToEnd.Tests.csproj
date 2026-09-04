@@ -33,7 +33,6 @@
     <None Include="../../externals/lci/test/**/*"
           Link="Conformance/lci/upstream/test/%(RecursiveDir)%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />
-    <None Update="Conformance/lci/README.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

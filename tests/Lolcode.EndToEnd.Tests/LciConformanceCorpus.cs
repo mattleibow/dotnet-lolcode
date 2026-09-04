@@ -2,6 +2,9 @@ using System.Text.RegularExpressions;
 
 namespace Lolcode.EndToEnd.Tests;
 
+/// <summary>
+/// Discovers upstream lci tests from their CMake registration metadata.
+/// </summary>
 internal static partial class LciConformanceCorpus
 {
     private static readonly Lazy<IReadOnlyList<LciTestRegistration>> RegistrationsValue =
@@ -91,7 +94,9 @@ internal static partial class LciConformanceCorpus
         return Path.Combine(directory, arguments[index]);
     }
 
-    [GeneratedRegex(@"ADD_LOL_TEST\s*\((?<arguments>[^)]*)\)")]
+    [GeneratedRegex(
+        @"ADD_LOL_TEST\s*\((?<arguments>[^)]*)\)",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex RegistrationRegex();
 
     [GeneratedRegex(@"\s+")]
