@@ -110,6 +110,15 @@ public class SdkSampleTests
     }
 
     [Fact]
+    public void FileBasedHelloWorld_BuildsWithoutRunning()
+    {
+        var sampleDir = Path.Combine(RepoRoot, "samples", "basics", "hello-world");
+        var (exitCode, stdout, stderr) = RunDotnet("build hello.lol", sampleDir);
+
+        exitCode.Should().Be(0, $"dotnet build failed:\n{stderr}\n{stdout}");
+    }
+
+    [Fact]
     public void FileBasedHelloWorld_Runs_CorrectOutput()
     {
         var sampleDir = Path.Combine(RepoRoot, "samples", "basics", "hello-world");

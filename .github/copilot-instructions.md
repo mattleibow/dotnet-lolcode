@@ -113,7 +113,8 @@ dotnet run                      # Compile and execute
 - `samples/Directory.Build.props` always uses source-built compiler binaries for `.lolproj` samples and file-based apps
 
 ## File-Based Apps
-- `dotnet run --file hello.lol` works with `#:sdk Lolcode.NET.Sdk@0.2.0` at top of file
+- `dotnet build hello.lol` works when the file starts with a `#!` shebang
+- `dotnet run --file hello.lol` works with `#:sdk Lolcode.NET.Sdk@0.2.0` at the top of the file
 - Lexer skips `#:` directives and `#!` shebang lines (treated as trivia)
 - `Sdk.targets` filters `@(Compile)` to `.lol` files only (prevents auto-generated .cs contamination)
 - `Sdk.props` sets `ImplicitUsings=disable` to suppress GlobalUsings.g.cs

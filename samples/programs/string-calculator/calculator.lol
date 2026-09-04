@@ -1,3 +1,4 @@
+#!/usr/bin/env -S dotnet run --file
 #:sdk Lolcode.NET.Sdk@0.2.0
 
 BTW String Calculator - Parse and evaluate simple math expressions

@@ -47,7 +47,7 @@ if (!result.Success)
 - 🐱 **Full LOLCODE 1.2** — variables, types, math, booleans, conditionals, loops, functions, casting, string ops
 - 🎯 **Compiles to .NET IL** — produces real .NET assemblies (not interpreted)
 - 📦 **MSBuild SDK** — `dotnet build` and `dotnet run` for `.lolproj` projects
-- 🚀 **File-based apps** — `dotnet run --file hello.lol` with no project needed
+- 🚀 **File-based apps** — `dotnet build hello.lol` and `dotnet run --file hello.lol` with no project needed
 - 📊 **Pretty diagnostics** — error messages with source context and line/column info
 - 🧪 **Comprehensive tests** — unit, runtime, end-to-end compiler, and SDK integration coverage
 
@@ -58,13 +58,15 @@ if (!result.Success)
 ```bash
 # Create a LOLCODE file with the SDK directive
 cat > hello.lol << 'EOF'
+#!/usr/bin/env -S dotnet run --file
 #:sdk Lolcode.NET.Sdk@0.2.0
 HAI 1.2
   VISIBLE "HAI WORLD!"
 KTHXBYE
 EOF
 
-# Run it directly
+# Build or run it directly
+dotnet build hello.lol
 dotnet run --file hello.lol
 ```
 

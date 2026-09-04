@@ -1,14 +1,15 @@
 # LOLCODE Samples
 
 Example programs demonstrating LOLCODE features, organized by complexity.
-File-based apps are the primary experience: each sample carries its own
-`#:sdk` directive and runs without a project file.
+File-based apps are the primary experience: each sample carries a shebang and
+`#:sdk` directive, so it builds and runs without a project file.
 
 ```bash
 # From the repo root, build the local compiler first:
 dotnet build dotnet-lolcode.slnx
 
 # Then run any sample:
+dotnet build samples/basics/hello-world/hello.lol
 dotnet run --file samples/basics/hello-world/hello.lol
 dotnet run --file samples/programs/fizzbuzz/fizzbuzz.lol
 dotnet run --file samples/games/arena-game/Game.lol
