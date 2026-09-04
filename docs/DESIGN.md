@@ -20,6 +20,7 @@ This document describes the internal architecture of the LOLCODE .NET compiler, 
 - [Type System Mapping](#type-system-mapping)
 - [Runtime Type Representation](#runtime-type-representation)
 - [IL Emission Strategy](#il-emission-strategy)
+- [In-Memory Execution](#in-memory-execution)
 - [MSBuild SDK Integration](#msbuild-sdk-integration)
 - [File-Based App Support](#file-based-app-support)
 - [VS Code Extension Architecture](#vs-code-extension-architecture)
@@ -109,7 +110,7 @@ Source Text (.lol)
 ┌─────────────────────────────┐
 │   CodeGenerator             │  Walks bound tree → CIL opcodes
 │                             │  Uses PersistedAssemblyBuilder
-│                             │  Outputs: .dll + .runtimeconfig.json
+│                             │  Writes PE/PDB streams
 └──────────────┬──────────────┘
                │
                ▼
@@ -245,9 +246,9 @@ SyntaxNode (abstract)
 **IL mapping for key constructs:**
 
 | LOLCODE Construct | CIL Implementation |
-| --- | --- |
-| `VISIBLE expr` | `ldstr` / `ldloc` + `call Console.WriteLine` |
-| `GIMMEH var` | `call Console.ReadLine` + `stloc` |
+|---|---|
+| `VISIBLE expr` | `ldstr` / `ldloc` + `call LolRuntime.Print` |
+| `GIMMEH var` | `call LolRuntime.ReadLine` + `stloc` |
 | `I HAS A var ITZ val` | `.locals init` + `stloc` |
 | `SUM OF x AN y` | `ldloc x` + `ldloc y` + `add` |
 | `BOTH SAEM x AN y` | `ldloc x` + `ldloc y` + `ceq` |
@@ -258,9 +259,10 @@ SyntaxNode (abstract)
 | `I IZ func YR arg MKAY` | `ldarg` + `call` |
 | `FOUND YR expr` | `ldloc/ldarg` + `ret` |
 
-**Output files:**
-- `<name>.dll` — The compiled .NET assembly
-- `<name>.runtimeconfig.json` — Runtime configuration for `dotnet` host
+The generator writes a PE and optional portable PDB to caller-provided streams. The
+path-based compiler API writes those bytes to `<name>.dll` and `<name>.pdb`, then
+creates `<name>.runtimeconfig.json` for the `dotnet` host. Stream-based emission
+does not touch the file system.
 
 ### 6. Usage
 
@@ -287,9 +289,40 @@ dotnet publish                # publish for deployment
 ```csharp
 var tree = SyntaxTree.ParseText(source, filePath);
 var compilation = LolcodeCompilation.Create(tree);
+
+// Existing file-based host API
 var result = compilation.Emit(outputPath, runtimePath);
-// result is EmitResult with Success (bool) and Diagnostics
+
+// Roslyn-shaped in-memory emission API
+using var peStream = new MemoryStream();
+using var pdbStream = new MemoryStream();
+var memoryResult = compilation.Emit(peStream, pdbStream);
 ```
+
+**In-memory execution API:**
+```csharp
+using Lolcode.CodeAnalysis.Scripting;
+
+var script = LolcodeScript.Create(source);
+var diagnostics = script.Compile();
+var state = script.Run(new LolcodeScriptExecutionOptions
+{
+    StandardInput = "LOLCAT\n",
+    MaximumOutputLength = 64_000,
+});
+
+if (!state.Success)
+{
+    // Compilation failures are in Diagnostics; runtime failures are in Exception.
+}
+
+Console.Write(state.Output);
+```
+
+`LolcodeCompilation` only parses, binds, and emits, matching the responsibility of Roslyn's `Compilation`. `LolcodeScript` follows Roslyn's
+script lifecycle: `Create` returns a reusable script, `Compile` produces diagnostics without execution, `GetCompilation` exposes the underlying
+compilation, and `Run` returns a state associated with that script. The static `LolcodeScript.Run` method remains a one-call convenience analogous
+to `CSharpScript.RunAsync`, but LOLCODE execution is synchronous because generated programs and runtime I/O are synchronous.
 
 **Features:**
 - Colored diagnostic output with source context
@@ -470,7 +503,16 @@ ILGenerator il = main.GetILGenerator();
 il.Emit(OpCodes.Ret);
 
 tb.CreateType();
-ab.Save("MyProgram.dll");
+var metadata = ab.GenerateMetadata(out var il, out var fields, out _);
+var pe = new ManagedPEBuilder(
+    header: new PEHeaderBuilder(),
+    metadataRootBuilder: new MetadataRootBuilder(metadata),
+    ilStream: il,
+    mappedFieldData: fields,
+    entryPoint: MetadataTokens.MethodDefinitionHandle(main.MetadataToken));
+var peBlob = new BlobBuilder();
+pe.Serialize(peBlob);
+peBlob.WriteContentTo(outputStream);
 ```
 
 **Why not Roslyn/transpile to C#?**
@@ -481,7 +523,59 @@ ab.Save("MyProgram.dll");
 
 **Why not `System.Reflection.Metadata` / ECMA-335 directly?**
 - `Reflection.Emit` provides a higher-level API (ILGenerator, DefineMethod, etc.)
-- Lower-level metadata writing is possible as a fallback if needed
+- `System.Reflection.Metadata` is used only to serialize the completed dynamic module and portable PDB
+
+---
+
+## In-Memory Execution
+
+`LolcodeCompilation.Emit(Stream peStream, Stream? pdbStream = null)` follows
+Roslyn's stream-first emission convention. It emits references to the
+`Lolcode.Runtime` assembly already loaded with the compiler, so in-memory callers
+do not need a runtime DLL path. The existing path overload remains available to
+the MSBuild and command-line hosts and delegates to the same stream serializer
+before writing the DLL, PDB, and runtime configuration. Path emission stages all
+artifacts, backs up existing outputs, and replaces the PE last as the commit
+marker; a required replacement failure restores the prior artifact set. Portable
+symbols remain optional for this compatibility overload: a PDB serialization or
+persistence failure emits a PE without a debug-directory reference, removes any
+stale PDB when possible, and reports `PdbPath` as `null`. If an existing PDB is
+locked, it is preserved through the required-output transaction and left
+unreferenced by the new PE; failed post-commit cleanup produces warning `LOL9002`.
+Caller-provided stream emission remains strict and propagates PDB stream failures.
+
+`LolcodeScript.Create` parses source into a reusable script. `Compile` returns diagnostics without execution, `GetCompilation` exposes its
+`LolcodeCompilation`, and each `Run` emits fresh PE and PDB bytes into memory, loads them, and invokes the generated entry point. `Run` returns a
+`LolcodeScriptState` linked back to the script with:
+
+- syntax and semantic `Diagnostics`
+- whether the entry point was `Executed`
+- captured `Output` and the entry-point `ReturnValue`
+- `OutputTruncated` when a host-supplied maximum capture length was exceeded
+- the generated program's unwrapped runtime `Exception`, when present
+
+`LolcodeScriptOptions` configures source-level behavior such as the diagnostic/PDB file path. `LolcodeScriptExecutionOptions` configures one run's
+standard input and maximum retained output length. Execution continues after the output limit is reached, but additional output is discarded so
+browser and service hosts can cap memory used by untrusted programs.
+
+`GIMMEH` and `VISIBLE` use an `AsyncLocal`-scoped runtime I/O context. This permits deterministic input and output capture without changing
+process-global `Console.In` or `Console.Out`; ordinary file-based programs continue to use the console when no scope is active.
+
+Every stream emission receives a unique assembly identity. On CoreCLR, script assemblies are loaded into a collectible `AssemblyLoadContext`, and
+unloading is requested after each run. Actual reclamation remains nondeterministic because .NET unloads a collectible context only after garbage
+collection establishes that no references to its assemblies remain. A returned runtime exception can retain generated stack metadata until the
+state and exception are released.
+
+.NET 10 Blazor WebAssembly supports this pipeline when running with the Mono interpreter: `PersistedAssemblyBuilder` serializes the PE and portable
+PDB in the browser, and `Assembly.Load(byte[], byte[])` loads the result into the runtime's non-collectible individual load context.
+`LolcodeScript.Run` selects this path when `OperatingSystem.IsBrowser()` is true. The runtime reports generated Mono types as non-collectible, so
+each browser execution retains its generated assembly until the WebAssembly application is reloaded. Unique identities prevent binding collisions
+but do not remove that memory cost.
+
+Dynamic loading is not supported by Native AOT or fully AOT-compiled Mono
+environments. Browser hosts must preserve `Lolcode.Runtime` and compiler members
+needed through reflection when publishing with trimming. Emitting bytes remains a
+separate API where execution is unavailable.
 
 ---
 
@@ -664,5 +758,6 @@ This section records intentional implementation decisions where the LOLCODE 1.2 
 | `IT` variable semantics | Subtle semantic bugs | Rigorous definition (see §IT Variable Semantics above), dedicated test suite |
 | `GTFO` context sensitivity | Wrong break/return behavior | Control-flow context stack in binder (see §GTFO Context Sensitivity above) |
 | Dynamic typing performance | Boxing/unboxing overhead | Object-backed variables for MVP; static type specialization as optional Phase 4 optimization |
-
-```
+| In-memory assembly lifetime | Repeated CoreCLR execution can retain generated assemblies until GC | Unique identities plus collectible `AssemblyLoadContext`; do not retain generated reflection objects |
+| Browser WebAssembly assembly lifetime | Mono-generated types are non-collectible, so repeated runs grow memory use | Use unique identities and reset the app periodically for long-running playground sessions |
+| Native AOT / full Mono AOT hosting | Dynamic PE loading or execution is unavailable | Keep emission separate and use `LolcodeScript` only with CoreCLR or the browser Mono interpreter |
