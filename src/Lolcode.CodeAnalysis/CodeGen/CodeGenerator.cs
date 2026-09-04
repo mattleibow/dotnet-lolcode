@@ -10,6 +10,7 @@ using Lolcode.CodeAnalysis.Binding;
 using Lolcode.CodeAnalysis.BoundTree;
 using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.CodeAnalysis.Text;
+using Lolcode.Runtime;
 
 namespace Lolcode.CodeAnalysis.CodeGen;
 
@@ -22,7 +23,7 @@ internal sealed class CodeGenerator
 {
     private readonly BoundBlockStatement _boundTree;
     private readonly string _assemblyName;
-    private readonly string _runtimeAssemblyPath;
+    private readonly Type _runtimeType;
     private readonly Text.SourceText? _sourceText;
     private readonly string? _sourceFilePath;
     private ISymbolDocumentWriter? _document;
@@ -66,27 +67,22 @@ internal sealed class CodeGenerator
     /// <summary>
     /// Creates a new emitter.
     /// </summary>
-    public CodeGenerator(BoundBlockStatement boundTree, string assemblyName, string runtimeAssemblyPath,
+    public CodeGenerator(BoundBlockStatement boundTree, string assemblyName, Type runtimeType,
         Text.SourceText? sourceText = null, string? sourceFilePath = null)
     {
         _boundTree = boundTree;
         _assemblyName = assemblyName;
-        _runtimeAssemblyPath = runtimeAssemblyPath;
+        _runtimeType = runtimeType;
         _sourceText = sourceText;
         _sourceFilePath = sourceFilePath;
     }
 
     /// <summary>
-    /// Emits the assembly to the specified output path.
+    /// Emits the assembly to caller-provided streams.
     /// </summary>
-    /// <returns>The path to the emitted DLL.</returns>
-    public string Emit(string outputPath)
+    public void Emit(Stream peStream, Stream? pdbStream = null, string? pdbFileName = null)
     {
-        var runtimeAssembly = Assembly.LoadFrom(_runtimeAssemblyPath);
-        var runtimeType = runtimeAssembly.GetType("Lolcode.Runtime.LolRuntime")
-            ?? throw new InvalidOperationException("Could not find LolRuntime type");
-
-        ResolveRuntimeMethods(runtimeType);
+        ResolveRuntimeMethods(_runtimeType);
 
         var assemblyBuilder = new PersistedAssemblyBuilder(
             new AssemblyName(_assemblyName),
@@ -166,129 +162,85 @@ internal sealed class CodeGenerator
 
         _typeBuilder.CreateType();
 
-        // Save assembly with PDB
-        var dllPath = outputPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
-            ? outputPath
-            : Path.ChangeExtension(outputPath, ".dll");
-        Directory.CreateDirectory(Path.GetDirectoryName(dllPath) ?? ".");
-
         var metadataBuilder = assemblyBuilder.GenerateMetadata(out var ilStream, out var mappedFieldData, out MetadataBuilder pdbBuilder);
         var entryPointHandle = MetadataTokens.MethodDefinitionHandle(mainMethod.MetadataToken);
+        DebugDirectoryBuilder? debugDirectoryBuilder = null;
 
-        string? pdbPath = null;
-
-        if (_document != null)
+        if (pdbStream != null)
         {
-            try
-            {
-                pdbPath = Path.ChangeExtension(dllPath, ".pdb");
+            var portablePdbBlob = new BlobBuilder();
+            var portablePdbBuilder = new PortablePdbBuilder(
+                pdbBuilder, metadataBuilder.GetRowCounts(), entryPointHandle,
+                idProvider: content =>
+                {
+                    using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                    foreach (var blob in content)
+                        hasher.AppendData(blob.GetBytes().Array!, blob.GetBytes().Offset, blob.GetBytes().Count);
+                    return BlobContentId.FromHash(hasher.GetHashAndReset());
+                });
+            BlobContentId pdbContentId = portablePdbBuilder.Serialize(portablePdbBlob);
+            portablePdbBlob.WriteContentTo(pdbStream);
 
-                // Serialize PDB first (need BlobContentId for PE debug directory)
-                var portablePdbBlob = new BlobBuilder();
-                var portablePdbBuilder = new PortablePdbBuilder(
-                    pdbBuilder, metadataBuilder.GetRowCounts(), entryPointHandle,
-                    idProvider: content =>
-                    {
-                        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                        foreach (var blob in content)
-                            hasher.AppendData(blob.GetBytes().Array!, blob.GetBytes().Offset, blob.GetBytes().Count);
-                        return BlobContentId.FromHash(hasher.GetHashAndReset());
-                    });
-                BlobContentId pdbContentId = portablePdbBuilder.Serialize(portablePdbBlob);
-
-                using (var pdbStream = File.Create(pdbPath))
-                    portablePdbBlob.WriteContentTo(pdbStream);
-
-                // Build PE with debug info
-                var debugDirectoryBuilder = new DebugDirectoryBuilder();
-                debugDirectoryBuilder.AddCodeViewEntry(
-                    Path.GetFileName(pdbPath), pdbContentId, portablePdbBuilder.FormatVersion);
-
-                var peBuilder = new ManagedPEBuilder(
-                    header: new PEHeaderBuilder(
-                        imageCharacteristics: Characteristics.ExecutableImage,
-                        subsystem: Subsystem.WindowsCui),
-                    metadataRootBuilder: new MetadataRootBuilder(metadataBuilder),
-                    ilStream: ilStream,
-                    mappedFieldData: mappedFieldData,
-                    debugDirectoryBuilder: debugDirectoryBuilder,
-                    entryPoint: entryPointHandle);
-
-                var peBlob = new BlobBuilder();
-                peBuilder.Serialize(peBlob);
-
-                using (var fs = new FileStream(dllPath, FileMode.Create, FileAccess.Write))
-                    peBlob.WriteContentTo(fs);
-            }
-            catch
-            {
-                // PDB failed — fall back to DLL without debug info
-                pdbPath = null;
-                var peBuilder = new ManagedPEBuilder(
-                    header: new PEHeaderBuilder(
-                        imageCharacteristics: Characteristics.ExecutableImage,
-                        subsystem: Subsystem.WindowsCui),
-                    metadataRootBuilder: new MetadataRootBuilder(metadataBuilder),
-                    ilStream: ilStream,
-                    mappedFieldData: mappedFieldData,
-                    entryPoint: entryPointHandle);
-
-                var peBlob = new BlobBuilder();
-                peBuilder.Serialize(peBlob);
-
-                using (var fs = new FileStream(dllPath, FileMode.Create, FileAccess.Write))
-                    peBlob.WriteContentTo(fs);
-            }
-        }
-        else
-        {
-            // No PDB requested — emit without debug info
-            var peBuilder = new ManagedPEBuilder(
-                header: new PEHeaderBuilder(
-                    imageCharacteristics: Characteristics.ExecutableImage,
-                    subsystem: Subsystem.WindowsCui),
-                metadataRootBuilder: new MetadataRootBuilder(metadataBuilder),
-                ilStream: ilStream,
-                mappedFieldData: mappedFieldData,
-                entryPoint: entryPointHandle);
-
-            var peBlob = new BlobBuilder();
-            peBuilder.Serialize(peBlob);
-
-            using (var fs = new FileStream(dllPath, FileMode.Create, FileAccess.Write))
-                peBlob.WriteContentTo(fs);
+            debugDirectoryBuilder = new DebugDirectoryBuilder();
+            debugDirectoryBuilder.AddCodeViewEntry(
+                pdbFileName ?? $"{_assemblyName}.pdb",
+                pdbContentId,
+                portablePdbBuilder.FormatVersion);
         }
 
-        // Also write runtime config
-        WriteRuntimeConfig(dllPath);
+        var peBuilder = new ManagedPEBuilder(
+            header: new PEHeaderBuilder(
+                imageCharacteristics: Characteristics.ExecutableImage,
+                subsystem: Subsystem.WindowsCui),
+            metadataRootBuilder: new MetadataRootBuilder(metadataBuilder),
+            ilStream: ilStream,
+            mappedFieldData: mappedFieldData,
+            debugDirectoryBuilder: debugDirectoryBuilder,
+            entryPoint: entryPointHandle);
 
-        return dllPath;
+        var peBlob = new BlobBuilder();
+        peBuilder.Serialize(peBlob);
+        peBlob.WriteContentTo(peStream);
     }
 
     private void ResolveRuntimeMethods(Type runtimeType)
     {
-        _printMethod = runtimeType.GetMethod("Print")!;
-        _readLineMethod = runtimeType.GetMethod("ReadLine")!;
-        _addMethod = runtimeType.GetMethod("Add")!;
-        _subtractMethod = runtimeType.GetMethod("Subtract")!;
-        _multiplyMethod = runtimeType.GetMethod("Multiply")!;
-        _divideMethod = runtimeType.GetMethod("Divide")!;
-        _moduloMethod = runtimeType.GetMethod("Modulo")!;
-        _greaterMethod = runtimeType.GetMethod("Greater")!;
-        _smallerMethod = runtimeType.GetMethod("Smaller")!;
-        _andMethod = runtimeType.GetMethod("And")!;
-        _orMethod = runtimeType.GetMethod("Or")!;
-        _xorMethod = runtimeType.GetMethod("Xor")!;
-        _notMethod = runtimeType.GetMethod("Not")!;
-        _bothSaemMethod = runtimeType.GetMethod("BothSaem")!;
-        _diffrintMethod = runtimeType.GetMethod("Diffrint")!;
-        _smooshMethod = runtimeType.GetMethod("Smoosh")!;
-        _isTruthyMethod = runtimeType.GetMethod("IsTruthy")!;
-        _castToYarnMethod = runtimeType.GetMethod("CastToYarn")!;
-        _castToNumbrMethod = runtimeType.GetMethod("CastToNumbr")!;
-        _castToNumbarMethod = runtimeType.GetMethod("CastToNumbar")!;
-        _castToTroofMethod = runtimeType.GetMethod("CastToTroof")!;
-        _explicitCastMethod = runtimeType.GetMethod("ExplicitCast")!;
+        if (runtimeType != typeof(LolRuntime)
+            && !string.Equals(runtimeType.FullName, typeof(LolRuntime).FullName, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"Runtime type must be {typeof(LolRuntime).FullName}.",
+                nameof(runtimeType));
+        }
+
+        _printMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Print));
+        _readLineMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ReadLine));
+        _addMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Add));
+        _subtractMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Subtract));
+        _multiplyMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Multiply));
+        _divideMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Divide));
+        _moduloMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Modulo));
+        _greaterMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Greater));
+        _smallerMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Smaller));
+        _andMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.And));
+        _orMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Or));
+        _xorMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Xor));
+        _notMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Not));
+        _bothSaemMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.BothSaem));
+        _diffrintMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Diffrint));
+        _smooshMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.Smoosh));
+        _isTruthyMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.IsTruthy));
+        _castToYarnMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CastToYarn));
+        _castToNumbrMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CastToNumbr));
+        _castToNumbarMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CastToNumbar));
+        _castToTroofMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CastToTroof));
+        _explicitCastMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ExplicitCast));
+    }
+
+    private static MethodInfo GetRequiredRuntimeMethod(Type runtimeType, string methodName)
+    {
+        return runtimeType.GetMethod(methodName, BindingFlags.Public | BindingFlags.Static)
+            ?? throw new MissingMethodException(runtimeType.FullName, methodName);
     }
 
     private void EmitFunction(string name, BoundFunctionDeclaration decl)
@@ -901,20 +853,4 @@ internal sealed class CodeGenerator
             local.SetLocalSymInfo(name);
     }
 
-    private static void WriteRuntimeConfig(string dllPath)
-    {
-        var configPath = Path.ChangeExtension(dllPath, ".runtimeconfig.json");
-        var config = """
-            {
-              "runtimeOptions": {
-                "tfm": "net10.0",
-                "framework": {
-                  "name": "Microsoft.NETCore.App",
-                  "version": "10.0.0"
-                }
-              }
-            }
-            """;
-        File.WriteAllText(configPath, config);
-    }
 }
