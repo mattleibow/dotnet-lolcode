@@ -1,6 +1,9 @@
 using Lolcode.CodeAnalysis.Scripting;
 using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.Runtime;
+using System.Reflection;
+using System.Reflection.PortableExecutable;
+using System.Runtime.Loader;
 
 namespace Lolcode.CodeAnalysis.Tests;
 
@@ -37,6 +40,20 @@ public sealed class InMemoryExecutionTests
         {
             Directory.Delete(tempDirectory, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Emit_ToStreams_PropagatesPdbWriteFailures()
+    {
+        var compilation = LolcodeCompilation.Create(
+            SyntaxTree.ParseText(HelloProgram, "program.lol"));
+        using var peStream = new MemoryStream();
+        using var pdbStream = new ThrowingWriteStream();
+
+        var emit = () => compilation.Emit(peStream, pdbStream);
+
+        emit.Should().Throw<IOException>()
+            .WithMessage("Injected PDB serialization failure.");
     }
 
     [Fact]
@@ -227,6 +244,183 @@ public sealed class InMemoryExecutionTests
         }
     }
 
+    [Theory]
+    [InlineData(".runtimeconfig.json")]
+    [InlineData(".dll")]
+    public void Emit_ToPath_RestoresPreviousArtifactsWhenRequiredReplacementFails(
+        string failingExtension)
+    {
+        var tempDirectory = CreateTempDirectory();
+
+        try
+        {
+            var outputPath = Path.Combine(tempDirectory, "program.dll");
+            var pdbPath = Path.ChangeExtension(outputPath, ".pdb");
+            var runtimeConfigPath = Path.ChangeExtension(outputPath, ".runtimeconfig.json");
+            var oldDll = new byte[] { 1, 2, 3 };
+            var oldPdb = new byte[] { 4, 5, 6 };
+            var oldRuntimeConfig = new byte[] { 7, 8, 9 };
+            File.WriteAllBytes(outputPath, oldDll);
+            File.WriteAllBytes(pdbPath, oldPdb);
+            File.WriteAllBytes(runtimeConfigPath, oldRuntimeConfig);
+
+            var failingPath = Path.ChangeExtension(outputPath, failingExtension);
+            var fileSystem = new FaultingPathEmitFileSystem
+            {
+                MoveFailure = (sourcePath, destinationPath) =>
+                    destinationPath == failingPath && IsStagedPath(sourcePath)
+            };
+            var compilation = CreatePathCompilation(tempDirectory);
+
+            var result = compilation.Emit(
+                outputPath,
+                typeof(LolRuntime).Assembly.Location,
+                fileSystem);
+
+            result.Success.Should().BeFalse();
+            File.ReadAllBytes(outputPath).Should().Equal(oldDll);
+            File.ReadAllBytes(pdbPath).Should().Equal(oldPdb);
+            File.ReadAllBytes(runtimeConfigPath).Should().Equal(oldRuntimeConfig);
+            AssertNoTransactionFiles(tempDirectory);
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Emit_ToPath_OmitsPdbWhenPdbReplacementFails()
+    {
+        var tempDirectory = CreateTempDirectory();
+
+        try
+        {
+            var outputPath = Path.Combine(tempDirectory, "program.dll");
+            var pdbPath = Path.ChangeExtension(outputPath, ".pdb");
+            var runtimeConfigPath = Path.ChangeExtension(outputPath, ".runtimeconfig.json");
+            File.WriteAllText(outputPath, "old dll");
+            File.WriteAllText(pdbPath, "old pdb");
+            File.WriteAllText(runtimeConfigPath, "old runtime config");
+
+            var fileSystem = new FaultingPathEmitFileSystem
+            {
+                MoveFailure = (sourcePath, destinationPath) =>
+                    destinationPath == pdbPath && IsStagedPath(sourcePath)
+            };
+            var compilation = CreatePathCompilation(tempDirectory);
+
+            var result = compilation.Emit(
+                outputPath,
+                typeof(LolRuntime).Assembly.Location,
+                fileSystem);
+
+            result.Success.Should().BeTrue();
+            result.PdbPath.Should().BeNull();
+            File.Exists(pdbPath).Should().BeFalse();
+            AssertPathAssemblyHasNoPdbReference(outputPath);
+            AssertPathAssemblyRuns(outputPath);
+            AssertNoTransactionFiles(tempDirectory);
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Emit_ToPath_OmitsPdbWhenPdbStagingFails()
+    {
+        var tempDirectory = CreateTempDirectory();
+
+        try
+        {
+            var outputPath = Path.Combine(tempDirectory, "program.dll");
+            var pdbPath = Path.ChangeExtension(outputPath, ".pdb");
+            File.WriteAllText(pdbPath, "stale pdb");
+            var fileSystem = new FaultingPathEmitFileSystem
+            {
+                CreateFailure = path =>
+                    path.StartsWith($"{pdbPath}.", StringComparison.Ordinal)
+                    && IsStagedPath(path)
+            };
+            var compilation = CreatePathCompilation(tempDirectory);
+
+            var result = compilation.Emit(
+                outputPath,
+                typeof(LolRuntime).Assembly.Location,
+                fileSystem);
+
+            result.Success.Should().BeTrue();
+            result.PdbPath.Should().BeNull();
+            File.Exists(pdbPath).Should().BeFalse();
+            AssertPathAssemblyHasNoPdbReference(outputPath);
+            AssertPathAssemblyRuns(outputPath);
+            AssertNoTransactionFiles(tempDirectory);
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Emit_ToPath_OmitsPdbWhenPdbSerializationFails()
+    {
+        var tempDirectory = CreateTempDirectory();
+
+        try
+        {
+            var outputPath = Path.Combine(tempDirectory, "program.dll");
+            var pdbPath = Path.ChangeExtension(outputPath, ".pdb");
+            var compilation = CreatePathCompilation(tempDirectory);
+
+            var result = compilation.Emit(
+                outputPath,
+                typeof(LolRuntime).Assembly.Location,
+                PhysicalPathEmitFileSystem.Instance,
+                () => new ThrowingWriteStream());
+
+            result.Success.Should().BeTrue();
+            result.PdbPath.Should().BeNull();
+            File.Exists(pdbPath).Should().BeFalse();
+            AssertPathAssemblyHasNoPdbReference(outputPath);
+            AssertPathAssemblyRuns(outputPath);
+            AssertNoTransactionFiles(tempDirectory);
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Emit_ToPath_RemovesStalePdbWhenSymbolsAreNotRequested()
+    {
+        var tempDirectory = CreateTempDirectory();
+
+        try
+        {
+            var outputPath = Path.Combine(tempDirectory, "program.dll");
+            var pdbPath = Path.ChangeExtension(outputPath, ".pdb");
+            File.WriteAllText(pdbPath, "stale pdb");
+            var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(HelloProgram));
+
+            var result = compilation.Emit(outputPath, typeof(LolRuntime).Assembly.Location);
+
+            result.Success.Should().BeTrue();
+            result.PdbPath.Should().BeNull();
+            File.Exists(pdbPath).Should().BeFalse();
+            AssertPathAssemblyHasNoPdbReference(outputPath);
+            AssertPathAssemblyRuns(outputPath);
+            AssertNoTransactionFiles(tempDirectory);
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
     [Fact]
     public void Emit_ToPath_ReportsRuntimeLoadFailuresAsDiagnostics()
     {
@@ -249,10 +443,102 @@ public sealed class InMemoryExecutionTests
         }
     }
 
+    private static LolcodeCompilation CreatePathCompilation(string tempDirectory)
+    {
+        var sourcePath = Path.Combine(tempDirectory, "program.lol");
+        return LolcodeCompilation.Create(SyntaxTree.ParseText(HelloProgram, sourcePath));
+    }
+
+    private static void AssertPathAssemblyRuns(string outputPath)
+    {
+        var loadContext = new AssemblyLoadContext(
+            $"LolcodePathTest_{Guid.NewGuid():N}",
+            isCollectible: true);
+        loadContext.Resolving += (_, assemblyName) =>
+            AssemblyName.ReferenceMatchesDefinition(
+                assemblyName,
+                typeof(LolRuntime).Assembly.GetName())
+                ? typeof(LolRuntime).Assembly
+                : null;
+
+        try
+        {
+            using var peStream = File.OpenRead(outputPath);
+            var assembly = loadContext.LoadFromStream(peStream);
+            using var output = new StringWriter();
+            using var ioScope = LolRuntime.PushIo(new StringReader(string.Empty), output);
+
+            assembly.EntryPoint!.Invoke(obj: null, parameters: null);
+
+            output.ToString().Should().Be($"HAI FROM MEMORY{Environment.NewLine}");
+        }
+        finally
+        {
+            loadContext.Unload();
+        }
+    }
+
+    private static void AssertPathAssemblyHasNoPdbReference(string outputPath)
+    {
+        using var stream = File.OpenRead(outputPath);
+        using var peReader = new PEReader(stream);
+
+        peReader.ReadDebugDirectory().Should().BeEmpty();
+    }
+
+    private static bool IsStagedPath(string path)
+        => path.EndsWith(".tmp", StringComparison.Ordinal);
+
+    private static void AssertNoTransactionFiles(string tempDirectory)
+    {
+        Directory.EnumerateFiles(tempDirectory)
+            .Should().NotContain(path =>
+                path.EndsWith(".tmp", StringComparison.Ordinal)
+                || path.EndsWith(".bak", StringComparison.Ordinal));
+    }
+
     private static string CreateTempDirectory()
     {
         var path = Path.Combine(Path.GetTempPath(), "lolcode-in-memory-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(path);
         return path;
+    }
+
+    private sealed class FaultingPathEmitFileSystem : IPathEmitFileSystem
+    {
+        public Predicate<string>? CreateFailure { get; init; }
+
+        public Func<string, string, bool>? MoveFailure { get; init; }
+
+        public bool FileExists(string path) => File.Exists(path);
+
+        public void CreateDirectory(string path) => Directory.CreateDirectory(path);
+
+        public Stream CreateNewFile(string path)
+        {
+            if (CreateFailure?.Invoke(path) == true)
+                throw new IOException($"Injected create failure for '{path}'.");
+
+            return new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        }
+
+        public void MoveFile(string sourcePath, string destinationPath, bool overwrite)
+        {
+            if (MoveFailure?.Invoke(sourcePath, destinationPath) == true)
+                throw new IOException($"Injected move failure for '{destinationPath}'.");
+
+            File.Move(sourcePath, destinationPath, overwrite);
+        }
+
+        public void DeleteFile(string path) => File.Delete(path);
+    }
+
+    private sealed class ThrowingWriteStream : MemoryStream
+    {
+        public override void Write(byte[] buffer, int offset, int count)
+            => throw new IOException("Injected PDB serialization failure.");
+
+        public override void Write(ReadOnlySpan<byte> buffer)
+            => throw new IOException("Injected PDB serialization failure.");
     }
 }

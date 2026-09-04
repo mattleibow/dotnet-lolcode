@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Text;
 using Lolcode.CodeAnalysis.Binding;
 using Lolcode.CodeAnalysis.BoundTree;
 using Lolcode.CodeAnalysis.CodeGen;
@@ -81,10 +82,23 @@ public sealed class LolcodeCompilation
     /// This parameter is retained for compatibility with file-based compiler hosts.
     /// </param>
     /// <returns>The result of the emission.</returns>
+    /// <remarks>
+    /// The DLL, optional PDB, and runtime configuration are replaced as one coordinated
+    /// operation. If optional symbols cannot be produced or persisted, emission succeeds
+    /// without a PDB and <see cref="EmitResult.PdbPath"/> is <see langword="null"/>.
+    /// </remarks>
     public EmitResult Emit(string outputPath, string runtimeAssemblyPath)
+        => Emit(outputPath, runtimeAssemblyPath, PhysicalPathEmitFileSystem.Instance);
+
+    internal EmitResult Emit(
+        string outputPath,
+        string runtimeAssemblyPath,
+        IPathEmitFileSystem fileSystem,
+        Func<Stream>? pdbStreamFactory = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(runtimeAssemblyPath);
+        ArgumentNullException.ThrowIfNull(fileSystem);
 
         var diagnostics = GetDiagnostics();
 
@@ -100,10 +114,13 @@ public sealed class LolcodeCompilation
             var runtimeAssembly = System.Reflection.Assembly.LoadFrom(runtimeAssemblyPath);
             var runtimeType = runtimeAssembly.GetType(typeof(LolRuntime).FullName!, throwOnError: true)!;
             var emitPdb = !string.IsNullOrEmpty(SyntaxTrees[0].FilePath);
-            var pdbPath = emitPdb ? Path.ChangeExtension(dllPath, ".pdb") : null;
+            var pdbPath = Path.ChangeExtension(dllPath, ".pdb");
+            var runtimeConfigPath = Path.ChangeExtension(dllPath, ".runtimeconfig.json");
 
             using var peStream = new MemoryStream();
-            using var pdbStream = emitPdb ? new MemoryStream() : null;
+            using var pdbStream = emitPdb
+                ? pdbStreamFactory?.Invoke() ?? new MemoryStream()
+                : null;
             var result = EmitCore(
                 peStream,
                 pdbStream,
@@ -111,26 +128,89 @@ public sealed class LolcodeCompilation
                 assemblyName,
                 diagnostics,
                 dllPath,
-                pdbPath,
-                pdbPath == null ? null : Path.GetFileName(pdbPath));
+                emitPdb ? pdbPath : null,
+                emitPdb ? Path.GetFileName(pdbPath) : null,
+                toleratePdbFailure: true);
 
             var outputDirectory = Path.GetDirectoryName(dllPath);
             if (!string.IsNullOrEmpty(outputDirectory))
-                Directory.CreateDirectory(outputDirectory);
+                fileSystem.CreateDirectory(outputDirectory);
 
-            // Write symbols first so a locked PDB cannot leave a newly replaced DLL
-            // paired with stale symbols.
-            if (pdbStream != null && pdbPath != null)
+            var stagedPaths = new List<string>();
+            try
             {
-                pdbStream.Position = 0;
-                WriteStreamToFile(pdbStream, pdbPath);
+                string? stagedPdbPath = null;
+                if (result.PdbPath != null && pdbStream != null)
+                {
+                    try
+                    {
+                        stagedPdbPath = StageStream(fileSystem, pdbStream, pdbPath);
+                        stagedPaths.Add(stagedPdbPath);
+                    }
+                    catch (Exception ex) when (IsPathEmissionFailure(ex))
+                    {
+                        result = EmitPeWithoutSymbols(
+                            peStream,
+                            runtimeType,
+                            assemblyName,
+                            diagnostics,
+                            dllPath);
+                    }
+                }
+
+                var stagedRuntimeConfigPath = StageText(
+                    fileSystem,
+                    GetRuntimeConfigContents(),
+                    runtimeConfigPath);
+                stagedPaths.Add(stagedRuntimeConfigPath);
+
+                var stagedPePath = StageStream(fileSystem, peStream, dllPath);
+                stagedPaths.Add(stagedPePath);
+
+                string StagePeWithoutSymbols()
+                {
+                    result = EmitPeWithoutSymbols(
+                        peStream,
+                        runtimeType,
+                        assemblyName,
+                        diagnostics,
+                        dllPath);
+                    var fallbackPath = StageStream(fileSystem, peStream, dllPath);
+                    stagedPaths.Add(fallbackPath);
+                    return fallbackPath;
+                }
+
+                var commitResult = CommitPathArtifacts(
+                    fileSystem,
+                    dllPath,
+                    pdbPath,
+                    runtimeConfigPath,
+                    stagedPePath,
+                    stagedPdbPath,
+                    stagedRuntimeConfigPath,
+                    StagePeWithoutSymbols);
+
+                var emitDiagnostics = diagnostics;
+                foreach (var cleanupFailure in commitResult.CleanupFailures)
+                {
+                    emitDiagnostics = emitDiagnostics.Add(Diagnostic.Create(
+                        DiagnosticDescriptors.ArtifactCleanupFailed,
+                        default,
+                        cleanupFailure.Path,
+                        cleanupFailure.Exception.Message));
+                }
+
+                return new EmitResult(
+                    true,
+                    emitDiagnostics,
+                    dllPath,
+                    commitResult.PdbCommitted ? pdbPath : null);
             }
-
-            peStream.Position = 0;
-            WriteStreamToFile(peStream, dllPath);
-
-            WriteRuntimeConfig(dllPath);
-            return result;
+            finally
+            {
+                foreach (var stagedPath in stagedPaths)
+                    DeleteIfExists(fileSystem, stagedPath);
+            }
         }
         catch (Exception ex) when (IsPathEmissionFailure(ex))
         {
@@ -152,30 +232,29 @@ public sealed class LolcodeCompilation
             BadImageFormatException or
             TypeLoadException or
             MissingMethodException or
+            AggregateException or
             System.Security.SecurityException or
             System.Security.Cryptography.CryptographicException;
     }
 
-    private static void WriteStreamToFile(Stream source, string destinationPath)
+    private EmitResult EmitPeWithoutSymbols(
+        MemoryStream peStream,
+        Type runtimeType,
+        string assemblyName,
+        ImmutableArray<Diagnostic> diagnostics,
+        string dllPath)
     {
-        var temporaryPath = $"{destinationPath}.{Guid.NewGuid():N}.tmp";
-        try
-        {
-            using (var destination = new FileStream(
-                temporaryPath,
-                FileMode.CreateNew,
-                FileAccess.Write,
-                FileShare.None))
-            {
-                source.CopyTo(destination);
-            }
-
-            File.Move(temporaryPath, destinationPath, overwrite: true);
-        }
-        finally
-        {
-            File.Delete(temporaryPath);
-        }
+        peStream.SetLength(0);
+        peStream.Position = 0;
+        return EmitCore(
+            peStream,
+            null,
+            runtimeType,
+            assemblyName,
+            diagnostics,
+            dllPath,
+            pdbPath: null,
+            pdbFileName: null);
     }
 
     /// <summary>
@@ -223,7 +302,8 @@ public sealed class LolcodeCompilation
         ImmutableArray<Diagnostic> diagnostics,
         string? outputPath,
         string? pdbPath,
-        string? pdbFileName)
+        string? pdbFileName,
+        bool toleratePdbFailure = false)
     {
         var tree = SyntaxTrees[0];
         var generator = new CodeGenerator(
@@ -232,8 +312,16 @@ public sealed class LolcodeCompilation
             runtimeType,
             sourceText: tree.Text,
             sourceFilePath: tree.FilePath);
-        generator.Emit(peStream, pdbStream, pdbFileName);
-        return new EmitResult(true, diagnostics, outputPath, pdbPath);
+        var pdbEmitted = false;
+        if (toleratePdbFailure && pdbStream != null && pdbFileName != null)
+            pdbEmitted = generator.EmitWithOptionalPdb(peStream, pdbStream, pdbFileName);
+        else
+        {
+            generator.Emit(peStream, pdbStream, pdbFileName);
+            pdbEmitted = pdbStream != null;
+        }
+
+        return new EmitResult(true, diagnostics, outputPath, pdbEmitted ? pdbPath : null);
     }
 
     private static void ValidateOutputStream(Stream stream, string parameterName)
@@ -243,10 +331,9 @@ public sealed class LolcodeCompilation
             throw new ArgumentException("Stream must support writing.", parameterName);
     }
 
-    private static void WriteRuntimeConfig(string dllPath)
+    private static string GetRuntimeConfigContents()
     {
-        var configPath = Path.ChangeExtension(dllPath, ".runtimeconfig.json");
-        var config = """
+        return """
             {
               "runtimeOptions": {
                 "tfm": "net10.0",
@@ -257,8 +344,178 @@ public sealed class LolcodeCompilation
               }
             }
             """;
-        File.WriteAllText(configPath, config);
     }
+
+    private static string StageStream(
+        IPathEmitFileSystem fileSystem,
+        Stream source,
+        string destinationPath)
+    {
+        var temporaryPath = CreateArtifactPath(destinationPath, "tmp");
+        try
+        {
+            source.Position = 0;
+            using var destination = fileSystem.CreateNewFile(temporaryPath);
+            source.CopyTo(destination);
+            return temporaryPath;
+        }
+        catch (Exception ex) when (IsPathEmissionFailure(ex))
+        {
+            DeleteIfExists(fileSystem, temporaryPath);
+            throw;
+        }
+    }
+
+    private static string StageText(
+        IPathEmitFileSystem fileSystem,
+        string contents,
+        string destinationPath)
+    {
+        var temporaryPath = CreateArtifactPath(destinationPath, "tmp");
+        try
+        {
+            using var destination = fileSystem.CreateNewFile(temporaryPath);
+            using var writer = new StreamWriter(
+                destination,
+                new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+                bufferSize: 1024,
+                leaveOpen: false);
+            writer.Write(contents);
+            return temporaryPath;
+        }
+        catch (Exception ex) when (IsPathEmissionFailure(ex))
+        {
+            DeleteIfExists(fileSystem, temporaryPath);
+            throw;
+        }
+    }
+
+    private static PathCommitResult CommitPathArtifacts(
+        IPathEmitFileSystem fileSystem,
+        string dllPath,
+        string pdbPath,
+        string runtimeConfigPath,
+        string stagedPePath,
+        string? stagedPdbPath,
+        string stagedRuntimeConfigPath,
+        Func<string> stagePeWithoutSymbols)
+    {
+        var targetPaths = new[] { runtimeConfigPath, pdbPath, dllPath };
+        var originallyExisted = targetPaths.ToDictionary(
+            path => path,
+            fileSystem.FileExists,
+            StringComparer.Ordinal);
+        var backupPaths = new Dictionary<string, string>(StringComparer.Ordinal);
+        var pePathToCommit = stagedPePath;
+        var pdbCommitted = false;
+
+        try
+        {
+            foreach (var targetPath in targetPaths)
+            {
+                if (!originallyExisted[targetPath])
+                    continue;
+
+                var backupPath = CreateArtifactPath(targetPath, "bak");
+                fileSystem.MoveFile(targetPath, backupPath, overwrite: false);
+                backupPaths.Add(targetPath, backupPath);
+            }
+
+            fileSystem.MoveFile(stagedRuntimeConfigPath, runtimeConfigPath, overwrite: false);
+
+            if (stagedPdbPath != null)
+            {
+                try
+                {
+                    fileSystem.MoveFile(stagedPdbPath, pdbPath, overwrite: false);
+                    pdbCommitted = true;
+                }
+                catch (Exception ex) when (IsPathEmissionFailure(ex))
+                {
+                    DeleteIfExists(fileSystem, pdbPath);
+                    DeleteIfExists(fileSystem, stagedPdbPath);
+                    DeleteIfExists(fileSystem, pePathToCommit);
+                    pePathToCommit = stagePeWithoutSymbols();
+                }
+            }
+
+            // The PE is the commit marker: no fallible artifact replacement follows it.
+            fileSystem.MoveFile(pePathToCommit, dllPath, overwrite: false);
+        }
+        catch (Exception commitException) when (IsPathEmissionFailure(commitException))
+        {
+            var rollbackException = TryRollbackPathArtifacts(
+                fileSystem,
+                targetPaths,
+                originallyExisted,
+                backupPaths);
+            if (rollbackException != null)
+                throw new AggregateException(commitException, rollbackException);
+
+            throw;
+        }
+
+        var cleanupFailures = ImmutableArray.CreateBuilder<PathCleanupFailure>();
+        foreach (var backupPath in backupPaths.Values)
+        {
+            try
+            {
+                DeleteIfExists(fileSystem, backupPath);
+            }
+            catch (Exception ex) when (IsPathEmissionFailure(ex))
+            {
+                cleanupFailures.Add(new PathCleanupFailure(backupPath, ex));
+            }
+        }
+
+        return new PathCommitResult(pdbCommitted, cleanupFailures.ToImmutable());
+    }
+
+    private static Exception? TryRollbackPathArtifacts(
+        IPathEmitFileSystem fileSystem,
+        IEnumerable<string> targetPaths,
+        IReadOnlyDictionary<string, bool> originallyExisted,
+        IReadOnlyDictionary<string, string> backupPaths)
+    {
+        var failures = new List<Exception>();
+
+        foreach (var targetPath in targetPaths)
+        {
+            try
+            {
+                if (backupPaths.TryGetValue(targetPath, out var backupPath))
+                    fileSystem.MoveFile(backupPath, targetPath, overwrite: true);
+                else if (!originallyExisted[targetPath])
+                    DeleteIfExists(fileSystem, targetPath);
+            }
+            catch (Exception ex) when (IsPathEmissionFailure(ex))
+            {
+                failures.Add(ex);
+            }
+        }
+
+        return failures.Count switch
+        {
+            0 => null,
+            1 => failures[0],
+            _ => new AggregateException(failures)
+        };
+    }
+
+    private static string CreateArtifactPath(string targetPath, string suffix)
+        => $"{targetPath}.{Guid.NewGuid():N}.{suffix}";
+
+    private static void DeleteIfExists(IPathEmitFileSystem fileSystem, string path)
+    {
+        if (fileSystem.FileExists(path))
+            fileSystem.DeleteFile(path);
+    }
+
+    private sealed record PathCommitResult(
+        bool PdbCommitted,
+        ImmutableArray<PathCleanupFailure> CleanupFailures);
+
+    private sealed record PathCleanupFailure(string Path, Exception Exception);
 
     private void EnsureBound()
     {
@@ -273,4 +530,38 @@ public sealed class LolcodeCompilation
         // Lower the bound tree (simplify for code generation)
         _boundTree = Lowerer.Lower(_boundTree);
     }
+}
+
+internal interface IPathEmitFileSystem
+{
+    bool FileExists(string path);
+
+    void CreateDirectory(string path);
+
+    Stream CreateNewFile(string path);
+
+    void MoveFile(string sourcePath, string destinationPath, bool overwrite);
+
+    void DeleteFile(string path);
+}
+
+internal sealed class PhysicalPathEmitFileSystem : IPathEmitFileSystem
+{
+    public static PhysicalPathEmitFileSystem Instance { get; } = new();
+
+    private PhysicalPathEmitFileSystem()
+    {
+    }
+
+    public bool FileExists(string path) => File.Exists(path);
+
+    public void CreateDirectory(string path) => Directory.CreateDirectory(path);
+
+    public Stream CreateNewFile(string path)
+        => new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+
+    public void MoveFile(string sourcePath, string destinationPath, bool overwrite)
+        => File.Move(sourcePath, destinationPath, overwrite);
+
+    public void DeleteFile(string path) => File.Delete(path);
 }
