@@ -544,7 +544,13 @@ returns `LolcodeScriptResult` with:
 - syntax and semantic `Diagnostics`
 - whether the entry point was `Executed`
 - captured `Output` and the entry-point `ReturnValue`
+- `OutputTruncated` when a host-supplied maximum capture length was exceeded
 - the generated program's unwrapped runtime `Exception`, when present
+
+Hosts can bound retained output with
+`LolcodeScript.Run(compilation, standardInput, maximumOutputLength)`. Execution
+continues after the limit is reached, but additional output is discarded so
+browser and service hosts can cap memory used by untrusted programs.
 
 `GIMMEH` and `VISIBLE` use an `AsyncLocal`-scoped runtime I/O context. This permits
 deterministic input and output capture without changing process-global
