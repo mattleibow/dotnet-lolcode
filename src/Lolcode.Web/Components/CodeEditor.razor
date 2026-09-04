@@ -1,28 +1,80 @@
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
 <div class="editor-shell">
-    <div class="editor-gutter" aria-hidden="true">
-        @for (var line = 1; line <= LineCount; line++)
-        {
-            <span>@line</span>
-        }
-    </div>
+    <pre class="editor-gutter" aria-hidden="true" @ref="_gutter">@LineNumbers</pre>
     <textarea class="code-editor"
+              @ref="_editor"
               value="@Value"
               @oninput="HandleInput"
+              maxlength="@CodeRunnerLimits.MaxSourceLength"
               aria-label="LOLCODE source code"
               autocapitalize="off"
               autocomplete="off"
-              spellcheck="false"></textarea>
+              spellcheck="false"
+              wrap="off"></textarea>
 </div>
 
 @code {
+    private ElementReference _editor;
+    private ElementReference _gutter;
+    private IJSObjectReference? _module;
+
     [Parameter, EditorRequired]
     public string Value { get; set; } = string.Empty;
 
     [Parameter]
     public EventCallback<string> ValueChanged { get; set; }
 
-    private int LineCount => Math.Max(1, Value.Count(character => character == '\n') + 1);
+    private string LineNumbers
+    {
+        get
+        {
+            var lineCount = Math.Min(
+                CodeRunnerLimits.MaxSourceLength + 1,
+                Math.Max(1, Value.Count(character => character == '\n') + 1));
+            return string.Join('\n', Enumerable.Range(1, lineCount));
+        }
+    }
 
-    private Task HandleInput(ChangeEventArgs args) =>
-        ValueChanged.InvokeAsync(args.Value?.ToString() ?? string.Empty);
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _module = await JS.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./js/codeEditor.js");
+        await _module.InvokeVoidAsync("initialize", _editor, _gutter);
+    }
+
+    private Task HandleInput(ChangeEventArgs args)
+    {
+        var value = args.Value?.ToString() ?? string.Empty;
+        if (value.Length > CodeRunnerLimits.MaxSourceLength)
+        {
+            value = value[..CodeRunnerLimits.MaxSourceLength];
+        }
+
+        return ValueChanged.InvokeAsync(value);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _module.InvokeVoidAsync("dispose", _editor);
+            await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
 }

@@ -36,7 +36,8 @@ The deployable site is in `artifacts/lolcode-web/wwwroot`.
   CodeMirror were not added because either introduces a JavaScript package,
   asset pipeline, and interop layer for functionality the MVP doesn't yet
   require. A future editor can replace this component without changing the
-  playground page.
+  playground page. The gutter is a single bounded text node, and a small local
+  module keeps it vertically synchronized with the source textarea.
 - `Execution/ICodeRunner.cs` is the boundary between the UI and a language
   implementation.
 - `Execution/LolcodeCodeRunner.cs` creates a `LolcodeCompilation` and calls

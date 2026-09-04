@@ -286,29 +286,27 @@ h1 {
 .editor-shell {
     display: grid;
     grid-template-columns: 48px minmax(0, 1fr);
-    min-height: 520px;
+    height: 520px;
     background: #151412;
 }
 
 .editor-gutter {
     overflow: hidden;
-    padding: 18px 0;
+    height: 100%;
+    margin: 0;
+    padding: 18px 8px;
     color: #655f57;
     border-right: 1px solid #292622;
     background: #131210;
-    font: 12px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace;
-    text-align: center;
+    font: 13px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace;
+    text-align: right;
     user-select: none;
-}
-
-.editor-gutter span {
-    display: block;
 }
 
 .code-editor {
     width: 100%;
-    min-height: 520px;
-    resize: vertical;
+    height: 100%;
+    resize: none;
     padding: 18px 20px;
     color: #eee8dc;
     border: 0;
@@ -646,11 +644,7 @@ footer code {
 
     .editor-shell {
         grid-template-columns: 39px minmax(0, 1fr);
-    }
-
-    .code-editor,
-    .editor-shell {
-        min-height: 430px;
+        height: 430px;
     }
 
     footer {

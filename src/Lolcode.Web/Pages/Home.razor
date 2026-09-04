@@ -87,6 +87,7 @@
                 <textarea class="stdin"
                           @bind="_standardInput"
                           @bind:event="oninput"
+                          maxlength="@CodeRunnerLimits.MaxInputLength"
                           aria-label="Program input"
                           placeholder="One input value per line..."></textarea>
             </div>
@@ -280,6 +281,8 @@
     {
         _isRunning = true;
         _result = null;
+        StateHasChanged();
+        await Task.Delay(1);
 
         try
         {
