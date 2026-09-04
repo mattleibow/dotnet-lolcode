@@ -4,7 +4,6 @@ using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using Lolcode.CodeAnalysis;
 using Lolcode.CodeAnalysis.Scripting;
-using Lolcode.CodeAnalysis.Syntax;
 using CompilerDiagnosticSeverity = Lolcode.CodeAnalysis.DiagnosticSeverity;
 
 namespace Lolcode.Web.Execution;
@@ -37,28 +36,31 @@ internal sealed class LolcodeCodeRunner : ICodeRunner
 
         cancellationToken.ThrowIfCancellationRequested();
         var stopwatch = Stopwatch.StartNew();
-        var syntaxTree = SyntaxTree.ParseText(request.Source, SourceFileName);
-        var compilation = LolcodeCompilation.Create(syntaxTree);
-        var scriptResult = LolcodeScript.Run(
-            compilation,
-            request.StandardInput,
-            CodeRunnerLimits.MaxOutputLength);
-        var diagnostics = scriptResult.Diagnostics
+        var script = LolcodeScript.Create(request.Source, new LolcodeScriptOptions
+        {
+            FilePath = SourceFileName,
+        });
+        var state = script.Run(new LolcodeScriptExecutionOptions
+        {
+            StandardInput = request.StandardInput,
+            MaximumOutputLength = CodeRunnerLimits.MaxOutputLength,
+        });
+        var diagnostics = state.Diagnostics
             .Select(ToCodeDiagnostic)
             .ToImmutableArray();
 
-        if (scriptResult.Exception is not null)
+        if (state.Exception is not null)
         {
             diagnostics = diagnostics.Add(
-                CreateRuntimeDiagnostic(scriptResult.Exception, compilation));
+                CreateRuntimeDiagnostic(state.Exception, script.GetCompilation()));
         }
 
         stopwatch.Stop();
         return Task.FromResult(
             new CodeRunResult(
-                scriptResult.Success,
-                scriptResult.Executed,
-                TruncateOutput(scriptResult.Output, scriptResult.OutputTruncated),
+                state.Success,
+                state.Executed,
+                TruncateOutput(state.Output, state.OutputTruncated),
                 stopwatch.Elapsed,
                 diagnostics));
     }

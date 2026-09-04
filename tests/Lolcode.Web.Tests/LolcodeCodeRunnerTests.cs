@@ -1,6 +1,5 @@
 using Lolcode.CodeAnalysis;
 using Lolcode.CodeAnalysis.Scripting;
-using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.Web.Execution;
 
 namespace Lolcode.Web.Tests;
@@ -115,12 +114,13 @@ public sealed class LolcodeCodeRunnerTests
     [Fact]
     public void FindPortablePdbLocation_MapsRuntimeFrame()
     {
-        var compilation = CreateCompilation(RuntimeErrorProgram);
-        var scriptResult = LolcodeScript.Run(compilation);
+        var script = CreateScript(RuntimeErrorProgram);
+        var state = script.Run();
+        var compilation = state.Script.GetCompilation();
 
-        scriptResult.Exception.Should().NotBeNull();
+        state.Exception.Should().NotBeNull();
         LolcodeCodeRunner.FindPortablePdbLocation(
-                scriptResult.Exception!,
+                state.Exception!,
                 compilation)
             .Should().Be((3, 3));
     }
@@ -138,7 +138,13 @@ public sealed class LolcodeCodeRunnerTests
     }
 
     private static LolcodeCompilation CreateCompilation(string source) =>
-        LolcodeCompilation.Create(SyntaxTree.ParseText(source, "Program.lol"));
+        CreateScript(source).GetCompilation();
+
+    private static LolcodeScript CreateScript(string source) =>
+        LolcodeScript.Create(source, new LolcodeScriptOptions
+        {
+            FilePath = "Program.lol",
+        });
 
     private const string RuntimeErrorProgram = """
         HAI 1.2
