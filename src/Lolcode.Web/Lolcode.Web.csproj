@@ -11,4 +11,8 @@
     <ProjectReference Include="..\Lolcode.CodeAnalysis\Lolcode.CodeAnalysis.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lolcode.Web.Tests" />
+  </ItemGroup>
+
 </Project>

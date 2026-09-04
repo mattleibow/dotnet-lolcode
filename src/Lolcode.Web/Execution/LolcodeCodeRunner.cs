@@ -11,9 +11,6 @@ namespace Lolcode.Web.Execution;
 
 internal sealed class LolcodeCodeRunner : ICodeRunner
 {
-    private const int MaxSourceLength = 100_000;
-    private const int MaxInputLength = 32_000;
-    private const int MaxOutputLength = 128_000;
     private const string SourceFileName = "Program.lol";
 
     public string LanguageName => "LOLCODE 1.2";
@@ -24,16 +21,18 @@ internal sealed class LolcodeCodeRunner : ICodeRunner
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (request.Source.Length > MaxSourceLength)
+        if (request.Source.Length > CodeRunnerLimits.MaxSourceLength)
         {
             return Task.FromResult(
-                ValidationFailure($"Source is limited to {MaxSourceLength:N0} characters."));
+                ValidationFailure(
+                    $"Source is limited to {CodeRunnerLimits.MaxSourceLength:N0} characters."));
         }
 
-        if (request.StandardInput.Length > MaxInputLength)
+        if (request.StandardInput.Length > CodeRunnerLimits.MaxInputLength)
         {
             return Task.FromResult(
-                ValidationFailure($"Program input is limited to {MaxInputLength:N0} characters."));
+                ValidationFailure(
+                    $"Program input is limited to {CodeRunnerLimits.MaxInputLength:N0} characters."));
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -76,7 +75,7 @@ internal sealed class LolcodeCodeRunner : ICodeRunner
             diagnostic.Location.EndLine + 1,
             diagnostic.Location.EndCharacter + 1);
 
-    private static CodeDiagnostic CreateRuntimeDiagnostic(
+    internal static CodeDiagnostic CreateRuntimeDiagnostic(
         Exception exception,
         LolcodeCompilation compilation)
     {
@@ -100,7 +99,7 @@ internal sealed class LolcodeCodeRunner : ICodeRunner
             sourceLocation.Column > 0 ? sourceLocation.Column : null);
     }
 
-    private static (int Line, int Column) FindPortablePdbLocation(
+    internal static (int Line, int Column) FindPortablePdbLocation(
         Exception exception,
         LolcodeCompilation compilation)
     {
@@ -152,15 +151,15 @@ internal sealed class LolcodeCodeRunner : ICodeRunner
         return (0, 0);
     }
 
-    private static string TruncateOutput(string output)
+    internal static string TruncateOutput(string output)
     {
-        if (output.Length <= MaxOutputLength)
+        if (output.Length <= CodeRunnerLimits.MaxOutputLength)
         {
             return output;
         }
 
         return string.Concat(
-            output.AsSpan(0, MaxOutputLength),
+            output.AsSpan(0, CodeRunnerLimits.MaxOutputLength),
             Environment.NewLine,
             "[output truncated]");
     }
