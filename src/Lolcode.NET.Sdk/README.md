@@ -48,7 +48,7 @@ dotnet publish  # Publish for deployment
 Create `hello.lol` — no project file required:
 
 ```
-#:sdk Lolcode.NET.Sdk/0.2.0
+#:sdk Lolcode.NET.Sdk@0.2.0
 HAI 1.2
   VISIBLE "HAI WORLD!"
 KTHXBYE
@@ -56,8 +56,6 @@ KTHXBYE
 
 ```bash
 dotnet run --file hello.lol
-# Or even shorter:
-dotnet hello.lol
 ```
 
 ## Language Features

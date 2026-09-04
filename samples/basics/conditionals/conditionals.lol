@@ -1,3 +1,5 @@
+#:sdk Lolcode.NET.Sdk@0.2.0
+
 BTW Conditionals - If/else and truthiness
 BTW Demonstrates: O RLY?, YA RLY, NO WAI, MEBBE, OIC, truthiness rules
 

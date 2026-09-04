@@ -1,3 +1,5 @@
+#:sdk Lolcode.NET.Sdk@0.2.0
+
 BTW FizzBuzz - The classic programming challenge in LOLCODE
 BTW Demonstrates: loops, conditionals, modulo, string ops, combined logic
 

@@ -1,3 +1,5 @@
+#:sdk Lolcode.NET.Sdk@0.2.0
+
 BTW Loops - Counting, iteration, and break
 BTW Demonstrates: IM IN YR, IM OUTTA YR, UPPIN, NERFIN, TIL, WILE, GTFO
 

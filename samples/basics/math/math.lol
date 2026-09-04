@@ -1,3 +1,5 @@
+#:sdk Lolcode.NET.Sdk@0.2.0
+
 BTW Math Operations - All arithmetic operators
 BTW Demonstrates: SUM OF, DIFF OF, PRODUKT OF, QUOSHUNT OF, MOD OF, BIGGR OF, SMALLR OF
 

@@ -1,3 +1,5 @@
+#:sdk Lolcode.NET.Sdk@0.2.0
+
 BTW Fibonacci - Iterative and function-based approaches
 BTW Demonstrates: functions, loops, multiple variables, return values
 

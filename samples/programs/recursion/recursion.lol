@@ -1,3 +1,5 @@
+#:sdk Lolcode.NET.Sdk@0.2.0
+
 BTW Recursion - Recursive functions for classic algorithms
 BTW Demonstrates: recursive function calls, base cases, FOUND YR
 

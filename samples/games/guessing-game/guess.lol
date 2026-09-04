@@ -1,3 +1,5 @@
+#:sdk Lolcode.NET.Sdk@0.2.0
+
 BTW Guessing Game - Interactive number guessing
 BTW Demonstrates: GIMMEH input, loops, conditionals, casting, GTFO, comparison
 

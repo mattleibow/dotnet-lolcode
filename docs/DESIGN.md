@@ -245,7 +245,7 @@ SyntaxNode (abstract)
 **IL mapping for key constructs:**
 
 | LOLCODE Construct | CIL Implementation |
-|---|---|
+| --- | --- |
 | `VISIBLE expr` | `ldstr` / `ldloc` + `call Console.WriteLine` |
 | `GIMMEH var` | `call Console.ReadLine` + `stloc` |
 | `I HAS A var ITZ val` | `.locals init` + `stloc` |
@@ -267,13 +267,12 @@ SyntaxNode (abstract)
 **File-based (no project needed):**
 ```bash
 # hello.lol:
-# #:sdk Lolcode.NET.Sdk
+# #:sdk Lolcode.NET.Sdk@0.2.0
 # HAI 1.2
 #   VISIBLE "HAI WORLD!"
 # KTHXBYE
 
 dotnet run --file hello.lol   # compile and execute
-dotnet hello.lol              # shorthand
 ```
 
 **Project-based (`.lolproj`):**
@@ -309,7 +308,7 @@ var result = compilation.Emit(outputPath, runtimePath);
 **Diagnostic ID ranges:**
 
 | Range | Category | Example |
-|-------|----------|---------|
+| --- | --- | --- |
 | LOL0xxx | Lexer | LOL0001 Unexpected character |
 | LOL1xxx | Parser | LOL1001 Unexpected token |
 | LOL2xxx | Binder | LOL2001 Undeclared variable |
@@ -369,7 +368,7 @@ The implicit `IT` variable is central to LOLCODE's control flow. These rules gov
 `GTFO` has different semantics depending on the enclosing context:
 
 | Context | Behavior |
-|---------|----------|
+| --- | --- |
 | Inside a loop (`IM IN YR ... IM OUTTA YR`) | Breaks out of the innermost loop |
 | Inside a switch (`WTF? ... OIC`) | Breaks out of the current `OMG` case (prevents fall-through) |
 | Inside a function (`HOW IZ I ... IF U SAY SO`) | Returns `NOOB` from the function |
@@ -382,7 +381,7 @@ The binder must maintain a **control-flow context stack** to determine the corre
 ## Type System Mapping
 
 | LOLCODE Type | .NET Type | IL Type | Default Value |
-|-------------|-----------|---------|---------------|
+| --- | --- | --- | --- |
 | `NUMBR` | `System.Int32` | `int32` | `0` |
 | `NUMBAR` | `System.Double` | `float64` | `0.0` |
 | `YARN` | `System.String` | `string` | `""` |
@@ -411,7 +410,7 @@ All LOLCODE variables are emitted as `System.Object` locals in IL. Arithmetic, c
 A small runtime support assembly provides these helpers, referenced by all compiled LOLCODE programs:
 
 | Helper Method | Purpose |
-|--------------|---------|
+| --- | --- |
 | `LolRuntime.IsTruthy(object)` → `bool` | Evaluate truthiness per LOLCODE rules |
 | `LolRuntime.Coerce(object, LolType)` → `object` | Explicit cast with LOLCODE semantics |
 | `LolRuntime.Add(object, object)` → `object` | `SUM OF` with type promotion |
@@ -504,7 +503,7 @@ Save as `MyApp.lolproj`, then `dotnet build` and `dotnet run` work natively.
 **Architecture:**
 
 | Component | Location | Purpose |
-|-----------|----------|---------|
+| --- | --- | --- |
 | `Sdk.props` | `src/Lolcode.NET.Sdk/Sdk/` | Imports Microsoft.NET.Sdk, sets `Language=LOLCODE`, globs `**/*.lol`, disables C# analyzers |
 | `Sdk.targets` | `src/Lolcode.NET.Sdk/Sdk/` | Overrides `CoreCompile` target with `Lolc` task, auto-references `Lolcode.Runtime.dll`, supports `dotnet watch` |
 | `Lolc` task | `src/Lolcode.Build/Lolc.cs` | MSBuild task (`Lolcode.Build.Lolc`) — invokes `LolcodeCompilation` in-process, maps diagnostics to MSBuild errors/warnings |
@@ -542,18 +541,18 @@ This means `dotnet build`, `dotnet run`, `dotnet publish`, `dotnet clean`, and `
 LOLCODE supports .NET 10's file-based app model, allowing single-file execution without a project:
 
 ```lolcode
-#:sdk Lolcode.NET.Sdk
+#:sdk Lolcode.NET.Sdk@0.2.0
 HAI 1.2
   VISIBLE "HAI WORLD!"
 KTHXBYE
 ```
 
 ```bash
-dotnet run --file hello.lol   # or: dotnet hello.lol
+dotnet run --file hello.lol
 ```
 
 **How it works:**
-1. The .NET SDK parses the `#:sdk Lolcode.NET.Sdk` directive and generates a virtual project using our SDK
+1. The .NET SDK parses the `#:sdk Lolcode.NET.Sdk@0.2.0` directive, restores that SDK version from NuGet, and generates a virtual project using it
 2. Our `Sdk.props` sets `Language=LOLCODE`, disables C# auto-generated files (`ImplicitUsings=disable`, `GenerateAssemblyInfo=false`), and globs `**/*.lol`
 3. Our `Sdk.targets` filters `@(Compile)` to `.lol` files only (prevents any stray `.cs` files from being compiled as LOLCODE)
 4. The `Lolc` MSBuild task compiles the `.lol` file and produces a .NET assembly
@@ -563,15 +562,15 @@ dotnet run --file hello.lol   # or: dotnet hello.lol
 
 **Shebang support (Unix):**
 ```lolcode
-#!/usr/bin/env dotnet run --file
-#:sdk Lolcode.NET.Sdk
+#!/usr/bin/env -S dotnet run --file
+#:sdk Lolcode.NET.Sdk@0.2.0
 HAI 1.2
   VISIBLE "SHEBANG!"
 KTHXBYE
 ```
 ```bash
 chmod +x hello.lol && ./hello.lol
-
+```
 ---
 
 ## VS Code Extension Architecture
@@ -665,3 +664,5 @@ This section records intentional implementation decisions where the LOLCODE 1.2 
 | `IT` variable semantics | Subtle semantic bugs | Rigorous definition (see §IT Variable Semantics above), dedicated test suite |
 | `GTFO` context sensitivity | Wrong break/return behavior | Control-flow context stack in binder (see §GTFO Context Sensitivity above) |
 | Dynamic typing performance | Boxing/unboxing overhead | Object-backed variables for MVP; static type specialization as optional Phase 4 optimization |
+
+```

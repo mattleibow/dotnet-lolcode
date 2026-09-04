@@ -1,3 +1,5 @@
+#:sdk Lolcode.NET.Sdk@0.2.0
+
 BTW Functions - Declaration, parameters, return values
 BTW Demonstrates: HOW IZ I, IF U SAY SO, FOUND YR, I IZ ... MKAY, YR, AN YR
 

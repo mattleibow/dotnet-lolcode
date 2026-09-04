@@ -1,0 +1,8 @@
+<Project>
+  <Target Name="_ValidateLolcodeLocalBuildTasks"
+          BeforeTargets="CoreCompile"
+          Condition="'$(_LolcodeUseLocalBuildTasks)' == 'true'">
+    <Error Condition="!Exists('$(_LolcodeBuildTasksDir)Lolcode.Build.dll')"
+           Text="The source-built LOLCODE compiler was not found at '$(_LolcodeBuildTasksDir)'. Run 'dotnet build dotnet-lolcode.slnx --configuration $(_LolcodeLocalConfiguration)' from the repository root first." />
+  </Target>
+</Project>

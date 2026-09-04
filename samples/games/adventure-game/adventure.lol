@@ -1,3 +1,5 @@
+#:sdk Lolcode.NET.Sdk@0.2.0
+
 BTW Text Adventure Game - A simple room-based adventure
 BTW Demonstrates: functions, loops, switch, I/O, string ops, IT, state via params
 

@@ -1,3 +1,5 @@
+#:sdk Lolcode.NET.Sdk@0.2.0
+
 BTW Type Casting - Converting between types
 BTW Demonstrates: MAEK, IS NOW A, implicit casting, type names
 

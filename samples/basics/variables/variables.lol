@@ -1,3 +1,5 @@
+#:sdk Lolcode.NET.Sdk@0.2.0
+
 BTW Variables - Declaration, initialization, and assignment
 BTW Demonstrates: I HAS A, ITZ, R, types (NUMBR, NUMBAR, YARN, TROOF)
 

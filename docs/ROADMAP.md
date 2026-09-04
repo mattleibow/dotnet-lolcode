@@ -241,14 +241,15 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [x] Handle design-time builds (`SkipCompilerExecution` property)
 - [x] Support `<Project Sdk="Lolcode.NET.Sdk">` in `.lolproj` files
 - [x] Create `dotnet new lolcode` template (`src/Lolcode.NET.Templates/`)
-- [x] Create SDK sample project (`samples/basics/hello-world/`)
-- [x] Source-tree imports for local development (`samples/Directory.Build.props`)
+- [x] Create dedicated SDK sample project (`samples/project-based/hello-world/`)
+- [x] Source-built compiler override for local development (`samples/Directory.Build.props`)
 - [x] Test: `dotnet build` compiles `.lol` → `.dll`
 - [x] Test: `dotnet run` executes the program
 - [x] Enable file-based app support (`dotnet run --file hello.lol` with `#:sdk` directive)
 - [x] Lexer skips `#:` directives and `#!` shebang lines
 - [x] Sdk.targets filters `@(Compile)` to `.lol` files only
 - [x] Remove CLI project (replaced by SDK + file-based apps)
+- [x] Add attributed community compatibility samples from Wikipedia and Esolang
 
 ## Phase 8: Debugging Support (Bonus)
 > Enable VS Code debugging for LOLCODE programs.
@@ -273,9 +274,9 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [x] Tag-based versioning (`v0.1.0` → NuGet version `0.1.0`)
 - [x] Centralized `Version` in `Directory.Build.props` with `IsPackable` controls
 - [x] 3 publishable NuGet packages: `Lolcode.NET.Sdk`, `Lolcode.Runtime`, `Lolcode.NET.Templates`
-- [x] All 16 samples verified working end-to-end
+- [x] All 16 file-based samples verified working end-to-end
 - [x] Restructured tests: 2 projects, 19 E2E category classes, 289 total tests
-- [x] Sample organization: basics/, programs/, games/, file-based/ with `.lolproj` per sample
+- [x] File-based sample catalog under basics/, programs/, and games/, plus one dedicated project-based sample
 - [ ] Record demo GIF for README
 - [ ] Consider: REPL mode
 - [ ] Consider: Language Server Protocol for rich VS Code features
