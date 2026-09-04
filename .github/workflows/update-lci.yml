@@ -60,16 +60,14 @@ jobs:
         shell: bash
         run: |
           branch=automation/update-lci-future
-          body=$(cat <<EOF
-Updates the pinned \`externals/lci\` submodule from
-\`${{ steps.update.outputs.before }}\` to
-\`${{ steps.update.outputs.after }}\`.
-
-All registered upstream conformance tests are discovered automatically.
-The pull request CI result shows whether the new interpreter behavior
-is already supported.
-EOF
-)
+          body=$(printf '%s\n' \
+            'Updates the pinned `externals/lci` submodule from' \
+            '`${{ steps.update.outputs.before }}` to' \
+            '`${{ steps.update.outputs.after }}`.' \
+            '' \
+            'All registered upstream conformance tests are discovered automatically.' \
+            'The pull request CI result shows whether the new interpreter behavior' \
+            'is already supported.')
 
           number=$(gh pr list \
             --head "$branch" \
