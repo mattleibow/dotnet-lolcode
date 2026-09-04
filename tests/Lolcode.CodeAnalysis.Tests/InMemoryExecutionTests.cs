@@ -85,8 +85,49 @@ public sealed class InMemoryExecutionTests
         result.Executed.Should().BeTrue();
         result.Diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
         result.Output.Should().Be($"HAI FROM MEMORY{Environment.NewLine}");
+        result.OutputTruncated.Should().BeFalse();
         result.ReturnValue.Should().BeNull();
         result.Exception.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(6, "ABCDE", false)]
+    [InlineData(5, "ABCDE", false)]
+    [InlineData(4, "ABCD", true)]
+    public void Run_BoundsCapturedOutput(
+        int maximumOutputLength,
+        string expectedOutput,
+        bool expectedTruncated)
+    {
+        var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(
+            """
+            HAI 1.2
+              VISIBLE "ABCDE"!
+            KTHXBYE
+            """));
+
+        var result = LolcodeScript.Run(
+            compilation,
+            standardInput: null,
+            maximumOutputLength: maximumOutputLength);
+
+        result.Success.Should().BeTrue();
+        result.Output.Should().Be(expectedOutput);
+        result.OutputTruncated.Should().Be(expectedTruncated);
+    }
+
+    [Fact]
+    public void Run_RejectsNegativeMaximumOutputLength()
+    {
+        var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(HelloProgram));
+
+        var run = () => LolcodeScript.Run(
+            compilation,
+            standardInput: null,
+            maximumOutputLength: -1);
+
+        run.Should().Throw<ArgumentOutOfRangeException>()
+            .Which.ParamName.Should().Be("maximumOutputLength");
     }
 
     [Fact]
