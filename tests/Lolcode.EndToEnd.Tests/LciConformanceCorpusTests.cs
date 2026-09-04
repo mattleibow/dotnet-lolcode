@@ -1,6 +1,8 @@
+using System.Text.RegularExpressions;
+
 namespace Lolcode.EndToEnd.Tests;
 
-public class LciConformanceCorpusTests
+public partial class LciConformanceCorpusTests
 {
     [Fact]
     public void Registered_inventory_is_not_empty()
@@ -15,6 +17,18 @@ public class LciConformanceCorpusTests
             .Select(test => test.Id)
             .Should()
             .OnlyHaveUniqueItems();
+    }
+
+    [Fact]
+    public void Every_registration_command_is_discovered()
+    {
+        string testRoot = Path.Combine(
+            AppContext.BaseDirectory, "Conformance", "lci", "upstream", "test");
+        int commandCount = Directory.EnumerateFiles(
+                testRoot, "CMakeLists.txt", SearchOption.AllDirectories)
+            .Sum(path => RegistrationStartRegex().Count(File.ReadAllText(path)));
+
+        LciConformanceCorpus.Registrations.Should().HaveCount(commandCount);
     }
 
     [Fact]
@@ -50,4 +64,8 @@ public class LciConformanceCorpusTests
         }
     }
 
+    [GeneratedRegex(
+        @"^[ \t]*ADD_LOL_TEST\s*\(",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Multiline)]
+    private static partial Regex RegistrationStartRegex();
 }

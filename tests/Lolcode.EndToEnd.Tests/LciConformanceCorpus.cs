@@ -95,8 +95,8 @@ internal static partial class LciConformanceCorpus
     }
 
     [GeneratedRegex(
-        @"ADD_LOL_TEST\s*\((?<arguments>[^)]*)\)",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+        @"^[ \t]*ADD_LOL_TEST\s*\((?<arguments>[^)]*)\)",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Multiline)]
     private static partial Regex RegistrationRegex();
 
     [GeneratedRegex(@"\s+")]

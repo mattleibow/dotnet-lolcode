@@ -16,7 +16,7 @@ upstream's `AddLolTest.cmake`:
 | Argument | Runner behavior |
 |---|---|
 | first positional value | Upstream CTest display name |
-| `SOURCE <path>` | Source file; defaults to `test.lol` |
+| `LOLCODE <path>` | Source file; defaults to `test.lol` |
 | `INPUT <path>` | Standard input fixture |
 | `OUTPUT <path>` | Exact standard output fixture |
 | `ERROR` | Requires a nonzero result |
