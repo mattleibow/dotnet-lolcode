@@ -46,7 +46,6 @@ public class SdkSampleTests
             process.StandardInput.Write(standardInput);
             process.StandardInput.Close();
         }
-
         string stdout = process.StandardOutput.ReadToEnd();
         string stderr = process.StandardError.ReadToEnd();
         process.WaitForExit(timeoutMs);
@@ -79,6 +78,7 @@ public class SdkSampleTests
             "guess.lol" => "42\n",
             "adventure.lol" => "quit\n",
             "Game.lol" => "TESTER\nflee\n",
+            "chess.lol" => "quit\n",
             "calculator.lol" => "quit\n",
             _ => null,
         };
@@ -144,5 +144,23 @@ public class SdkSampleTests
         $"{stdout}\n{stderr}".Should().Contain(
             "The source-built LOLCODE compiler was not found",
             "file-based samples must never fall back to the packaged compiler");
+    }
+
+    [Fact]
+    public void Chess_Runs_PlayerAndAiTurn()
+    {
+        var sampleDir = Path.Combine(RepoRoot, "samples", "games", "chess");
+        var (exitCode, stdout, stderr) = RunDotnet(
+            "run --file chess.lol",
+            sampleDir,
+            "e2\ne4\nquit\n",
+            timeoutMs: 60_000);
+
+        exitCode.Should().Be(0, $"dotnet run --file failed:\n{stderr}");
+        stdout.Should().Contain("8 | r n b q k b n r | 8");
+        stdout.Should().Contain("1 | R N B Q K B N R | 1");
+        stdout.Should().Contain("AI MOVE:");
+        stdout.Should().Contain("4 | . . . . P . . . | 4");
+        stdout.Should().Contain("KTHXBAI! TANKS 4 PLAYIN LOLCHESS!");
     }
 }

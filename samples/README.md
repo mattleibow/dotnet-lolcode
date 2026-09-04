@@ -51,6 +51,7 @@ Interactive programs with user input (`GIMMEH`).
 | [guessing-game](games/guessing-game/) | `dotnet run --file samples/games/guessing-game/guess.lol` | Number guessing with I/O, loops, casting |
 | [adventure-game](games/adventure-game/) | `dotnet run --file samples/games/adventure-game/adventure.lol` | Room-based text adventure |
 | [arena-game](games/arena-game/) | `dotnet run --file samples/games/arena-game/Game.lol` | Turn-based RPG battle |
+| [chess](games/chess/) | `dotnet run --file samples/games/chess/chess.lol` | Terminal chess against a one-ply material AI |
 
 ## Project-Based
 
