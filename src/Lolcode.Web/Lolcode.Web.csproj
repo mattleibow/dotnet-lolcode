@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <RootNamespace>Lolcode.Web</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.11" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
+    <PackageReference Include="Microsoft.NETCore.App.Ref" Version="10.0.11" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <CompilerReference Include="System.Collections.Concurrent.dll" />
+    <CompilerReference Include="System.Collections.dll" />
+    <CompilerReference Include="System.Console.dll" />
+    <CompilerReference Include="System.Diagnostics.StackTrace.dll" />
+    <CompilerReference Include="System.Linq.dll" />
+    <CompilerReference Include="System.Linq.Expressions.dll" />
+    <CompilerReference Include="System.Memory.dll" />
+    <CompilerReference Include="System.Runtime.dll" />
+    <CompilerReference Include="System.Runtime.Extensions.dll" />
+    <CompilerReference Include="System.Text.Encoding.dll" />
+    <CompilerReference Include="System.Text.Json.dll" />
+    <CompilerReference Include="System.Text.RegularExpressions.dll" />
+    <CompilerReference Include="System.Threading.dll" />
+    <CompilerReference Include="netstandard.dll" />
+
+    <Content Include="@(CompilerReference->'$(IntermediateOutputPath)compiler-references/%(Filename).bin')"
+             Link="wwwroot/framework-references/%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="PrepareCompilerReferenceAssets" BeforeTargets="AssignTargetPaths">
+    <ItemGroup>
+      <CompilerReferenceAsset Include="@(CompilerReference)">
+        <SourcePath>$(PkgMicrosoft_NETCore_App_Ref)/ref/net10.0/%(Identity)</SourcePath>
+        <TargetPath>$(IntermediateOutputPath)compiler-references/%(Filename).bin</TargetPath>
+      </CompilerReferenceAsset>
+    </ItemGroup>
+
+    <MakeDir Directories="$(IntermediateOutputPath)compiler-references" />
+    <Copy SourceFiles="@(CompilerReferenceAsset->'%(SourcePath)')"
+          DestinationFiles="@(CompilerReferenceAsset->'%(TargetPath)')"
+          SkipUnchangedFiles="true" />
+
+  </Target>
+
+</Project>

@@ -48,6 +48,7 @@ if (!result.Success)
 - 🎯 **Compiles to .NET IL** — produces real .NET assemblies (not interpreted)
 - 📦 **MSBuild SDK** — `dotnet build` and `dotnet run` for `.lolproj` projects
 - 🚀 **File-based apps** — `dotnet build hello.lol` and `dotnet run --file hello.lol` with no project needed
+- 🌐 **Browser playground** — standalone Blazor WebAssembly fiddle that compiles and runs LOLCODE in the browser
 - 📊 **Pretty diagnostics** — error messages with source context and line/column info
 - 🧪 **Comprehensive tests** — unit, runtime, end-to-end compiler, and SDK integration coverage
 
@@ -123,6 +124,15 @@ cd MyApp && dotnet run
 ```
 
 See [samples/project-based/hello-world](samples/project-based/hello-world/) for a complete example.
+
+## Browser Playground
+
+The standalone Blazor WebAssembly playground lives in
+[`src/Lolcode.Web`](src/Lolcode.Web) and compiles and runs LOLCODE entirely in
+the browser for deployment to GitHub Pages.
+
+See [the playground documentation](docs/WEB_PLAYGROUND.md) for local
+development, deployment, architecture, and browser execution limitations.
 
 ## Example: Hello World
 

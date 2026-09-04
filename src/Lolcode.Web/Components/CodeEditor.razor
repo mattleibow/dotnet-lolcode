@@ -1,0 +1,28 @@
+<div class="editor-shell">
+    <div class="editor-gutter" aria-hidden="true">
+        @for (var line = 1; line <= LineCount; line++)
+        {
+            <span>@line</span>
+        }
+    </div>
+    <textarea class="code-editor"
+              value="@Value"
+              @oninput="HandleInput"
+              aria-label="C# source code"
+              autocapitalize="off"
+              autocomplete="off"
+              spellcheck="false"></textarea>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    private int LineCount => Math.Max(1, Value.Count(character => character == '\n') + 1);
+
+    private Task HandleInput(ChangeEventArgs args) =>
+        ValueChanged.InvokeAsync(args.Value?.ToString() ?? string.Empty);
+}
