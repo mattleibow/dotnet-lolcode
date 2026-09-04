@@ -14,6 +14,8 @@ namespace Lolcode.CodeAnalysis.Scripting;
 /// Compilation and emission remain available separately through
 /// <see cref="LolcodeCompilation"/>. This facade is the execution host, analogous
 /// to the role of Roslyn's language scripting APIs rather than <c>Compilation</c>.
+/// Browser WebAssembly execution uses non-collectible assembly loading, so generated
+/// assemblies remain loaded until the application is reloaded.
 /// </remarks>
 public static class LolcodeScript
 {
@@ -48,14 +50,21 @@ public static class LolcodeScript
     /// </param>
     /// <returns>Structured diagnostics, output, return value, and runtime failure state.</returns>
     /// <remarks>
-    /// Each call emits a unique assembly identity and loads it into a collectible
-    /// <see cref="AssemblyLoadContext"/>. Unloading is requested before this method
-    /// returns, but the runtime reclaims collectible assemblies only after a later
-    /// garbage collection confirms that no references remain.
+    /// Each call emits a unique assembly identity. CoreCLR loads it into a collectible
+    /// <see cref="AssemblyLoadContext"/> and requests unloading before this method returns.
+    /// Browser WebAssembly loads it with <see cref="Assembly.Load(byte[], byte[])"/> because
+    /// Mono WebAssembly does not expose generated types as collectible; browser-loaded
+    /// assemblies therefore remain for the lifetime of the application.
     /// </remarks>
     public static LolcodeScriptResult Run(
         LolcodeCompilation compilation,
         string? standardInput = null)
+        => RunCore(compilation, standardInput, useNonCollectibleAssemblyLoad: OperatingSystem.IsBrowser());
+
+    internal static LolcodeScriptResult RunCore(
+        LolcodeCompilation compilation,
+        string? standardInput,
+        bool useNonCollectibleAssemblyLoad)
     {
         ArgumentNullException.ThrowIfNull(compilation);
 
@@ -77,14 +86,24 @@ public static class LolcodeScript
 
         using var input = new StringReader(standardInput ?? string.Empty);
         using var output = new StringWriter(CultureInfo.InvariantCulture);
-        var loadContext = new ScriptAssemblyLoadContext();
+        ScriptAssemblyLoadContext? loadContext = null;
         var executed = false;
         object? returnValue = null;
         Exception? runtimeException = null;
 
         try
         {
-            var assembly = loadContext.LoadFromStream(peStream, pdbStream);
+            Assembly assembly;
+            if (useNonCollectibleAssemblyLoad)
+            {
+                assembly = Assembly.Load(peStream.ToArray(), pdbStream.ToArray());
+            }
+            else
+            {
+                loadContext = new ScriptAssemblyLoadContext();
+                assembly = loadContext.LoadFromStream(peStream, pdbStream);
+            }
+
             var entryPoint = assembly.EntryPoint
                 ?? throw new InvalidOperationException("Emitted LOLCODE assembly has no entry point.");
 
@@ -102,7 +121,7 @@ public static class LolcodeScript
         }
         finally
         {
-            loadContext.Unload();
+            loadContext?.Unload();
         }
 
         return new LolcodeScriptResult(
