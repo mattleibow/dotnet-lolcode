@@ -49,7 +49,7 @@ if (!result.Success)
 - 📦 **MSBuild SDK** — `dotnet build` and `dotnet run` for `.lolproj` projects
 - 🚀 **File-based apps** — `dotnet run --file hello.lol` with no project needed
 - 📊 **Pretty diagnostics** — error messages with source context and line/column info
-- 🧪 **289 tests** — unit tests, runtime tests, end-to-end compiler tests, SDK integration tests
+- 🧪 **Comprehensive tests** — unit, runtime, end-to-end, SDK integration, and upstream `lci` conformance
 
 ## Quick Start
 
@@ -86,7 +86,7 @@ dotnet run
 
 ```bash
 # Clone and build the compiler
-git clone https://github.com/mattleibow/dotnet-lolcode.git
+git clone --recurse-submodules https://github.com/mattleibow/dotnet-lolcode.git
 cd dotnet-lolcode
 dotnet build
 
@@ -182,6 +182,7 @@ dotnet-lolcode/
 ├── tests/
 │   ├── Lolcode.CodeAnalysis.Tests/ # Unit tests (lexer, parser, runtime)
 │   └── Lolcode.EndToEnd.Tests/     # End-to-end compiler tests (19 categories)
+├── externals/lci/                # Pinned lci/future conformance baseline
 ├── samples/                      # 16 example programs (basics, programs, games)
 └── docs/                         # Design documents and language spec
 ```
@@ -189,7 +190,10 @@ dotnet-lolcode/
 ## Running Tests
 
 ```bash
-# Run all 289 tests
+# Initialize the upstream conformance corpus after a non-recursive clone
+git submodule update --init --recursive
+
+# Run all tests
 dotnet test
 
 # Run only unit tests (lexer, parser, runtime)
