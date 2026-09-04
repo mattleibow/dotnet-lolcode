@@ -160,6 +160,23 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
+    public void Run_NonCollectibleLoaderSupportsRepeatedExecution()
+    {
+        var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(HelloProgram));
+
+        var results = Enumerable.Range(0, 3)
+            .Select(_ => LolcodeScript.RunCore(
+                compilation,
+                standardInput: null,
+                useNonCollectibleAssemblyLoad: true))
+            .ToArray();
+
+        results.Should().OnlyContain(result => result.Success);
+        results.Select(result => result.Output)
+            .Should().OnlyContain(output => output == $"HAI FROM MEMORY{Environment.NewLine}");
+    }
+
+    [Fact]
     public async Task Run_ParallelExecutionsKeepInputAndOutputScoped()
     {
         const string program = """

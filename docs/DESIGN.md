@@ -543,18 +543,26 @@ deterministic input and output capture without changing process-global
 `Console.In` or `Console.Out`; ordinary file-based programs continue to use the
 console when no scope is active.
 
-Every stream emission receives a unique assembly identity. Script assemblies are
-loaded into a collectible `AssemblyLoadContext`, and unloading is requested after
-each run. Actual reclamation remains nondeterministic because .NET unloads a
-collectible context only after garbage collection establishes that no references
-to its assemblies remain. A returned runtime exception can retain generated stack
-metadata until the result and exception are released.
+Every stream emission receives a unique assembly identity. On CoreCLR, script
+assemblies are loaded into a collectible `AssemblyLoadContext`, and unloading is
+requested after each run. Actual reclamation remains nondeterministic because .NET
+unloads a collectible context only after garbage collection establishes that no
+references to its assemblies remain. A returned runtime exception can retain
+generated stack metadata until the result and exception are released.
 
-The execution host depends on runtime PE loading and collectible
-`AssemblyLoadContext`. It is therefore intended for CoreCLR desktop/server hosts,
-not browser WebAssembly or Native AOT environments where dynamic assembly loading
-or collectible contexts are unavailable. Emitting bytes to streams remains a
-separate API, but platform support for `PersistedAssemblyBuilder` still applies.
+.NET 10 Blazor WebAssembly supports this pipeline when running with the Mono
+interpreter: `PersistedAssemblyBuilder` serializes the PE and portable PDB in the
+browser, and `Assembly.Load(byte[], byte[])` loads the result into the runtime's
+non-collectible individual load context. `LolcodeScript` selects this path when
+`OperatingSystem.IsBrowser()` is true. The runtime reports generated Mono types as
+non-collectible, so each browser execution retains its generated assembly until
+the WebAssembly application is reloaded. Unique identities prevent binding
+collisions but do not remove that memory cost.
+
+Dynamic loading is not supported by Native AOT or fully AOT-compiled Mono
+environments. Browser hosts must preserve `Lolcode.Runtime` and compiler members
+needed through reflection when publishing with trimming. Emitting bytes remains a
+separate API where execution is unavailable.
 
 ---
 
@@ -737,5 +745,6 @@ This section records intentional implementation decisions where the LOLCODE 1.2 
 | `IT` variable semantics | Subtle semantic bugs | Rigorous definition (see §IT Variable Semantics above), dedicated test suite |
 | `GTFO` context sensitivity | Wrong break/return behavior | Control-flow context stack in binder (see §GTFO Context Sensitivity above) |
 | Dynamic typing performance | Boxing/unboxing overhead | Object-backed variables for MVP; static type specialization as optional Phase 4 optimization |
-| In-memory assembly lifetime | Repeated execution can retain generated assemblies until GC | Unique identities plus collectible `AssemblyLoadContext`; do not retain generated reflection objects |
-| Browser WebAssembly / Native AOT hosting | Dynamic PE loading is unavailable | Keep emission separate; use `LolcodeScript` only on CoreCLR hosts |
+| In-memory assembly lifetime | Repeated CoreCLR execution can retain generated assemblies until GC | Unique identities plus collectible `AssemblyLoadContext`; do not retain generated reflection objects |
+| Browser WebAssembly assembly lifetime | Mono-generated types are non-collectible, so repeated runs grow memory use | Use unique identities and reset the app periodically for long-running playground sessions |
+| Native AOT / full Mono AOT hosting | Dynamic PE loading or execution is unavailable | Keep emission separate and use `LolcodeScript` only with CoreCLR or the browser Mono interpreter |
