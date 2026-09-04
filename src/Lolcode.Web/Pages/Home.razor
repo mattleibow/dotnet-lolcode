@@ -1,0 +1,282 @@
+@page "/"
+@inject ICodeRunner CodeRunner
+
+<PageTitle>dotnet-lolcode playground</PageTitle>
+
+<main>
+    <header class="site-header">
+        <a class="brand" href="./" aria-label="dotnet-lolcode playground home">
+            <span class="brand-mark" aria-hidden="true">:3</span>
+            <span>
+                <strong>dotnet-lolcode</strong>
+                <small>browser playground</small>
+            </span>
+        </a>
+        <a class="github-link" href="https://github.com/mattleibow/dotnet-lolcode">
+            View source
+        </a>
+    </header>
+
+    <section class="hero">
+        <div>
+            <p class="eyebrow">NO SERVER. JUST .NET IN YOUR BROWSER.</p>
+            <h1>Write it. Run it. See what happens.</h1>
+            <p class="hero-copy">
+                A preview of the LOLCODE fiddle experience, currently powered by
+                a temporary <strong>@CodeRunner.LanguageName</strong> runner.
+            </p>
+        </div>
+        <div class="runtime-badge">
+            <span class="status-dot"></span>
+            Browser runtime ready
+        </div>
+    </section>
+
+    <section class="notice" role="note">
+        <strong>Browser execution is not a sandbox.</strong>
+        Code runs on the UI thread. An infinite loop can freeze this tab, and
+        loaded assemblies remain in memory until the page is refreshed.
+    </section>
+
+    <section class="workspace" aria-label="Code playground">
+        <div class="panel editor-panel">
+            <div class="panel-header">
+                <div>
+                    <span class="panel-kicker">SOURCE</span>
+                    <h2>Program.cs</h2>
+                </div>
+                <div class="toolbar">
+                    <label class="sample-picker">
+                        <span>Sample</span>
+                        <select @bind="_selectedSampleId">
+                            @foreach (var sample in Samples)
+                            {
+                                <option value="@sample.Id">@sample.Name</option>
+                            }
+                        </select>
+                    </label>
+                    <button class="button secondary" @onclick="LoadSelectedSample">
+                        Load sample
+                    </button>
+                    <button class="button ghost" @onclick="Reset">Reset</button>
+                    <button class="button run" @onclick="RunAsync" disabled="@_isRunning">
+                        @(_isRunning ? "Running..." : "Run")
+                        <span aria-hidden="true">▶</span>
+                    </button>
+                </div>
+            </div>
+
+            <CodeEditor @bind-Value="_source" />
+
+            <div class="editor-status">
+                <span>@LineCount lines</span>
+                <span>@_source.Length.ToString("N0") / 100,000 characters</span>
+                <span>C# 14</span>
+            </div>
+        </div>
+
+        <div class="side-column">
+            <div class="panel input-panel">
+                <div class="panel-header compact">
+                    <div>
+                        <span class="panel-kicker">PROGRAM INPUT</span>
+                        <h2>FiddleInput.ReadLine()</h2>
+                    </div>
+                    <span class="optional-label">optional</span>
+                </div>
+                <textarea class="stdin"
+                          @bind="_standardInput"
+                          @bind:event="oninput"
+                          aria-label="Program input"
+                          placeholder="One input value per line..."></textarea>
+            </div>
+
+            <div class="panel terminal-panel">
+                <div class="terminal-header">
+                    <div class="terminal-lights" aria-hidden="true">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <span>program output</span>
+                    @if (_result is not null)
+                    {
+                        <span class="terminal-meta">
+                            @_result.Duration.TotalMilliseconds.ToString("N0") ms
+                            @if (_result.ExitCode is not null)
+                            {
+                                <text> · exit @_result.ExitCode</text>
+                            }
+                        </span>
+                    }
+                </div>
+                <pre class="terminal-output" aria-live="polite">@TerminalText</pre>
+            </div>
+        </div>
+    </section>
+
+    @if (_result is not null)
+    {
+        <section class="diagnostics-panel" aria-live="polite">
+            <div class="diagnostics-heading">
+                <div>
+                    <span class="panel-kicker">DIAGNOSTICS</span>
+                    <h2>@DiagnosticHeading</h2>
+                </div>
+                <span class="@($"result-pill {(_result.Success ? "success" : "failure")}")">
+                    @(_result.Success ? "RUN COMPLETE" : "RUN FAILED")
+                </span>
+            </div>
+
+            @if (_result.Diagnostics.IsDefaultOrEmpty)
+            {
+                <p class="clean-run">No compiler or runtime diagnostics.</p>
+            }
+            else
+            {
+                <ol class="diagnostic-list">
+                    @foreach (var diagnostic in _result.Diagnostics)
+                    {
+                        <li class="@diagnostic.Severity.ToString().ToLowerInvariant()">
+                            <span class="diagnostic-icon" aria-hidden="true">
+                                @(diagnostic.Severity == CodeDiagnosticSeverity.Error ? "×" : "!")
+                            </span>
+                            <div>
+                                <div class="diagnostic-title">
+                                    <strong>@diagnostic.Id</strong>
+                                    @if (diagnostic.StartLine is not null)
+                                    {
+                                        <span>
+                                            line @diagnostic.StartLine,
+                                            column @(diagnostic.StartColumn ?? 1)
+                                        </span>
+                                    }
+                                </div>
+                                <p>@diagnostic.Message</p>
+                            </div>
+                        </li>
+                    }
+                </ol>
+            }
+        </section>
+    }
+
+    <footer>
+        <p>
+            This terminal presents program output only. Browser input is exposed
+            through <code>FiddleInput.ReadLine()</code>; this is not an OS shell
+            and cannot run <code>dotnet</code> commands.
+        </p>
+        <p>Built with Blazor WebAssembly, .NET 10, and Roslyn.</p>
+    </footer>
+</main>
+
+@code {
+    private static readonly Sample[] Samples =
+    [
+        new(
+            "hello",
+            "Hello browser",
+            """
+            Console.WriteLine("OH HAI from .NET in WebAssembly!");
+
+            var name = FiddleInput.ReadLine();
+            Console.WriteLine($"Nice to meet you, {name ?? "mysterious human"}.");
+            """,
+            "LOLCAT\n"),
+        new(
+            "fizzbuzz",
+            "FizzBuzz",
+            """
+            for (var number = 1; number <= 30; number++)
+            {
+                var text = number % 15 == 0 ? "FizzBuzz"
+                    : number % 3 == 0 ? "Fizz"
+                    : number % 5 == 0 ? "Buzz"
+                    : number.ToString();
+
+                Console.WriteLine(text);
+            }
+            """,
+            string.Empty),
+        new(
+            "diagnostics",
+            "Compile error",
+            """
+            Console.WriteLine("This sample shows a compiler diagnostic")
+            """,
+            string.Empty),
+        new(
+            "runtime",
+            "Runtime error",
+            """
+            Console.WriteLine("The program starts...");
+            throw new InvalidOperationException("Something went sideways.");
+            """,
+            string.Empty),
+    ];
+
+    private readonly string _initialSource = Samples[0].Source;
+    private string _source = Samples[0].Source;
+    private string _standardInput = Samples[0].StandardInput;
+    private string _selectedSampleId = Samples[0].Id;
+    private CodeRunResult? _result;
+    private bool _isRunning;
+
+    private int LineCount => Math.Max(1, _source.Count(character => character == '\n') + 1);
+
+    private string TerminalText => _result is null
+        ? "$ Select a sample or write a program, then press Run."
+        : string.IsNullOrEmpty(_result.Output)
+            ? _result.Success ? "[program completed without output]" : "[no program output]"
+            : _result.Output;
+
+    private string DiagnosticHeading
+    {
+        get
+        {
+            var errors = _result!.Diagnostics.Count(
+                diagnostic => diagnostic.Severity == CodeDiagnosticSeverity.Error);
+            var warnings = _result.Diagnostics.Count(
+                diagnostic => diagnostic.Severity == CodeDiagnosticSeverity.Warning);
+
+            return $"{errors} error{(errors == 1 ? string.Empty : "s")}, "
+                + $"{warnings} warning{(warnings == 1 ? string.Empty : "s")}";
+        }
+    }
+
+    private async Task RunAsync()
+    {
+        _isRunning = true;
+        _result = null;
+
+        try
+        {
+            _result = await CodeRunner.RunAsync(new CodeRunRequest(_source, _standardInput));
+        }
+        finally
+        {
+            _isRunning = false;
+        }
+    }
+
+    private void LoadSelectedSample()
+    {
+        var sample = Samples.Single(sample => sample.Id == _selectedSampleId);
+        _source = sample.Source;
+        _standardInput = sample.StandardInput;
+        _result = null;
+    }
+
+    private void Reset()
+    {
+        _selectedSampleId = Samples[0].Id;
+        _source = _initialSource;
+        _standardInput = Samples[0].StandardInput;
+        _result = null;
+    }
+
+    private sealed record Sample(
+        string Id,
+        string Name,
+        string Source,
+        string StandardInput);
+}
