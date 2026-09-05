@@ -46,9 +46,14 @@ internal enum BoundKind
     FunctionDeclaration,
     ReturnStatement,
     CastStatement,
+    ScopedDeclaration,
+    IdentifierAssignment,
+    ObjectDefinition,
+    ImportStatement,
 
     // Expressions
     LiteralExpression,
+    InterpolatedStringExpression,
     VariableExpression,
     UnaryExpression,
     BinaryExpression,
@@ -59,6 +64,9 @@ internal enum BoundKind
     CastExpression,
     FunctionCallExpression,
     ItExpression,
+    IdentifierExpression,
+    ObjectCreationExpression,
+    SystemCommandExpression,
 }
 
 // ============ Bound Statements ============
@@ -111,21 +119,36 @@ internal sealed class BoundVisibleStatement : BoundStatement
 {
     public ImmutableArray<BoundExpression> Arguments { get; }
     public bool SuppressNewline { get; }
-    public BoundVisibleStatement(ImmutableArray<BoundExpression> arguments, bool suppressNewline, SyntaxNode? syntax = null)
+    public bool WritesToStandardError { get; }
+    public BoundVisibleStatement(
+        ImmutableArray<BoundExpression> arguments,
+        bool suppressNewline,
+        bool writesToStandardError = false,
+        SyntaxNode? syntax = null)
         : base(syntax)
     {
         Arguments = arguments;
         SuppressNewline = suppressNewline;
+        WritesToStandardError = writesToStandardError;
     }
     public override BoundKind Kind => BoundKind.VisibleStatement;
+}
+
+/// <summary>Imports a built-in library selected by an identifier name.</summary>
+internal sealed class BoundImportStatement : BoundStatement
+{
+    public BoundIdentifier Library { get; }
+    public BoundImportStatement(BoundIdentifier library, SyntaxNode? syntax = null)
+        : base(syntax) => Library = library;
+    public override BoundKind Kind => BoundKind.ImportStatement;
 }
 
 /// <summary>GIMMEH statement.</summary>
 internal sealed class BoundGimmehStatement : BoundStatement
 {
-    public VariableSymbol Variable { get; }
-    public BoundGimmehStatement(VariableSymbol variable, SyntaxNode? syntax = null)
-        : base(syntax) => Variable = variable;
+    public BoundIdentifier Target { get; }
+    public BoundGimmehStatement(BoundIdentifier target, SyntaxNode? syntax = null)
+        : base(syntax) => Target = target;
     public override BoundKind Kind => BoundKind.GimmehStatement;
 }
 
@@ -201,8 +224,11 @@ internal sealed class BoundLoopStatement : BoundStatement
 {
     public string Label { get; }
 
-    /// <summary>"UPPIN", "NERFIN", or a custom function name. Null for infinite loops.</summary>
+    /// <summary>"UPPIN" or "NERFIN". Null for custom-operation and infinite loops.</summary>
     public string? Operation { get; }
+
+    /// <summary>The custom unary function call, or null for built-in/infinite loops.</summary>
+    public BoundFunctionCallExpression? OperationCall { get; }
 
     /// <summary>The loop variable. Null for infinite loops.</summary>
     public VariableSymbol? Variable { get; }
@@ -216,12 +242,13 @@ internal sealed class BoundLoopStatement : BoundStatement
     public BoundBlockStatement Body { get; }
 
     public BoundLoopStatement(
-        string label, string? operation, VariableSymbol? variable,
+        string label, string? operation, BoundFunctionCallExpression? operationCall, VariableSymbol? variable,
         bool? isTil, BoundExpression? condition, BoundBlockStatement body,
         SyntaxNode? syntax = null) : base(syntax)
     {
         Label = label;
         Operation = operation;
+        OperationCall = operationCall;
         Variable = variable;
         IsTil = isTil;
         Condition = condition;
@@ -245,11 +272,25 @@ internal sealed class BoundFunctionDeclaration : BoundStatement
 {
     public FunctionSymbol Function { get; }
     public BoundBlockStatement Body { get; }
-    public BoundFunctionDeclaration(FunctionSymbol function, BoundBlockStatement body, SyntaxNode? syntax = null)
+    public BoundIdentifier? Scope { get; }
+    public BoundIdentifier? Identifier { get; }
+    public ImmutableArray<BoundIdentifier> ParameterIdentifiers { get; }
+    public BoundFunctionDeclaration(
+        FunctionSymbol function,
+        BoundBlockStatement body,
+        SyntaxNode? syntax = null,
+        BoundIdentifier? scope = null,
+        BoundIdentifier? identifier = null,
+        ImmutableArray<BoundIdentifier> parameterIdentifiers = default)
         : base(syntax)
     {
         Function = function;
         Body = body;
+        Scope = scope;
+        Identifier = identifier;
+        ParameterIdentifiers = parameterIdentifiers.IsDefault
+            ? ImmutableArray<BoundIdentifier>.Empty
+            : parameterIdentifiers;
     }
     public override BoundKind Kind => BoundKind.FunctionDeclaration;
 }
@@ -266,15 +307,91 @@ internal sealed class BoundReturnStatement : BoundStatement
 /// <summary>IS NOW A cast statement.</summary>
 internal sealed class BoundCastStatement : BoundStatement
 {
-    public VariableSymbol Variable { get; }
+    public BoundIdentifier Target { get; }
     public string TargetType { get; }
-    public BoundCastStatement(VariableSymbol variable, string targetType, SyntaxNode? syntax = null)
+    public BoundCastStatement(BoundIdentifier target, string targetType, SyntaxNode? syntax = null)
         : base(syntax)
     {
-        Variable = variable;
+        Target = target;
         TargetType = targetType;
     }
     public override BoundKind Kind => BoundKind.CastStatement;
+}
+
+/// <summary>A runtime-resolved identifier path.</summary>
+internal sealed class BoundIdentifier
+{
+        public string? DirectName { get; }
+        public BoundExpression? DynamicName { get; }
+        public BoundIdentifier? Slot { get; }
+
+        public BoundIdentifier(string? directName, BoundExpression? dynamicName, BoundIdentifier? slot)
+        {
+            DirectName = directName;
+            DynamicName = dynamicName;
+            Slot = slot;
+        }
+}
+
+/// <summary>Declares a value in a selected runtime namespace.</summary>
+internal sealed class BoundScopedDeclaration : BoundStatement
+{
+        public BoundIdentifier Scope { get; }
+        public BoundIdentifier Name { get; }
+        public BoundExpression? Initializer { get; }
+
+        public BoundScopedDeclaration(
+            BoundIdentifier scope,
+            BoundIdentifier name,
+            BoundExpression? initializer,
+            SyntaxNode? syntax = null) : base(syntax)
+        {
+            Scope = scope;
+            Name = name;
+            Initializer = initializer;
+        }
+
+        public override BoundKind Kind => BoundKind.ScopedDeclaration;
+}
+
+/// <summary>Assigns through a runtime-resolved identifier path.</summary>
+internal sealed class BoundIdentifierAssignment : BoundStatement
+{
+        public BoundIdentifier Target { get; }
+        public BoundExpression Expression { get; }
+
+        public BoundIdentifierAssignment(BoundIdentifier target, BoundExpression expression, SyntaxNode? syntax = null)
+            : base(syntax)
+        {
+            Target = target;
+            Expression = expression;
+        }
+
+        public override BoundKind Kind => BoundKind.IdentifierAssignment;
+}
+
+/// <summary>Creates and populates an alternate-syntax BUKKIT.</summary>
+internal sealed class BoundObjectDefinition : BoundStatement
+{
+        public BoundIdentifier Name { get; }
+        public BoundIdentifier? Parent { get; }
+        public ImmutableArray<BoundIdentifier> Mixins { get; }
+        public BoundBlockStatement Body { get; }
+
+        public BoundObjectDefinition(
+            BoundIdentifier name,
+            BoundIdentifier? parent,
+            ImmutableArray<BoundIdentifier> mixins,
+            BoundBlockStatement body,
+            SyntaxNode? syntax = null) : base(syntax)
+        {
+            Name = name;
+            Parent = parent;
+            Mixins = mixins;
+            Body = body;
+        }
+
+        public override BoundKind Kind => BoundKind.ObjectDefinition;
 }
 
 // ============ Bound Expressions ============
@@ -292,6 +409,24 @@ internal sealed class BoundLiteralExpression : BoundExpression
     public BoundLiteralExpression(object? value, SyntaxNode? syntax = null)
         : base(syntax) => Value = value;
     public override BoundKind Kind => BoundKind.LiteralExpression;
+}
+
+/// <summary>A source YARN split into literal text and runtime-resolved interpolation names.</summary>
+internal sealed class BoundInterpolatedStringExpression : BoundExpression
+{
+    public ImmutableArray<string> TextParts { get; }
+    public ImmutableArray<string> Names { get; }
+
+    public BoundInterpolatedStringExpression(
+        ImmutableArray<string> textParts,
+        ImmutableArray<string> names,
+        SyntaxNode? syntax = null) : base(syntax)
+    {
+        TextParts = textParts;
+        Names = names;
+    }
+
+    public override BoundKind Kind => BoundKind.InterpolatedStringExpression;
 }
 
 /// <summary>Variable reference.</summary>
@@ -396,13 +531,60 @@ internal sealed class BoundFunctionCallExpression : BoundExpression
 {
     public FunctionSymbol Function { get; }
     public ImmutableArray<BoundExpression> Arguments { get; }
-    public BoundFunctionCallExpression(FunctionSymbol function, ImmutableArray<BoundExpression> arguments, SyntaxNode? syntax = null)
+    public BoundIdentifier? Scope { get; }
+    public BoundIdentifier? Identifier { get; }
+    public bool StaticDispatch { get; }
+    public BoundFunctionCallExpression(
+        FunctionSymbol function,
+        ImmutableArray<BoundExpression> arguments,
+        SyntaxNode? syntax = null,
+        BoundIdentifier? scope = null,
+        BoundIdentifier? identifier = null,
+        bool staticDispatch = false)
         : base(syntax)
     {
         Function = function;
         Arguments = arguments;
+        Scope = scope;
+        Identifier = identifier;
+        StaticDispatch = staticDispatch;
     }
     public override BoundKind Kind => BoundKind.FunctionCallExpression;
+}
+
+/// <summary>Reads through a runtime-resolved identifier path.</summary>
+internal sealed class BoundIdentifierExpression : BoundExpression
+{
+        public BoundIdentifier Identifier { get; }
+        public BoundIdentifierExpression(BoundIdentifier identifier, SyntaxNode? syntax = null)
+            : base(syntax) => Identifier = identifier;
+        public override BoundKind Kind => BoundKind.IdentifierExpression;
+}
+
+/// <summary>Creates a BUKKIT with an optional prototype and mixins.</summary>
+internal sealed class BoundObjectCreationExpression : BoundExpression
+{
+        public BoundIdentifier? Parent { get; }
+        public ImmutableArray<BoundIdentifier> Mixins { get; }
+        public BoundObjectCreationExpression(
+            BoundIdentifier? parent,
+            ImmutableArray<BoundIdentifier> mixins,
+            SyntaxNode? syntax = null) : base(syntax)
+        {
+            Parent = parent;
+            Mixins = mixins;
+        }
+
+        public override BoundKind Kind => BoundKind.ObjectCreationExpression;
+}
+
+/// <summary>Executes a system command and captures its standard output.</summary>
+internal sealed class BoundSystemCommandExpression : BoundExpression
+{
+    public BoundExpression Command { get; }
+    public BoundSystemCommandExpression(BoundExpression command, SyntaxNode? syntax = null)
+        : base(syntax) => Command = command;
+    public override BoundKind Kind => BoundKind.SystemCommandExpression;
 }
 
 /// <summary>IT implicit variable reference.</summary>

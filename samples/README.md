@@ -30,6 +30,7 @@ Language fundamentals, with one concept per sample.
 | [string-ops](basics/string-ops/) | `dotnet run --file samples/basics/string-ops/strings.lol` | SMOOSH, string escapes |
 | [casting](basics/casting/) | `dotnet run --file samples/basics/casting/casting.lol` | MAEK, IS NOW A |
 | [switch](basics/switch/) | `dotnet run --file samples/basics/switch/switch.lol` | WTF?, OMG, OMGWTF |
+| [comments](basics/comments/) | `dotnet run --file samples/basics/comments/comments.lol` | BTW, OBTW, TLDR |
 
 ## Programs
 
@@ -41,6 +42,25 @@ Algorithmic demos combining multiple language features.
 | [fibonacci](programs/fibonacci/) | `dotnet run --file samples/programs/fibonacci/fibonacci.lol` | Functions + recursion |
 | [recursion](programs/recursion/) | `dotnet run --file samples/programs/recursion/recursion.lol` | Recursive functions |
 | [string-calculator](programs/string-calculator/) | `dotnet run --file samples/programs/string-calculator/calculator.lol` | Parsing + switch + functions |
+| [file-io](programs/file-io/) | `dotnet run --file samples/programs/file-io/file-io.lol` | lci/future STDIO file reading |
+| [stack](programs/stack/) | `dotnet run --file samples/programs/stack/stack.lol` | BUKKIT, methods, ME, SRS |
+| [truth-machine](programs/truth-machine/) | `dotnet run --file samples/programs/truth-machine/truth-machine.lol` | Input and intentionally unbounded loops |
+
+### Community Adaptations
+
+The comments and file-I/O samples are original adaptations of examples on the
+[Wikipedia LOLCODE page](https://en.wikipedia.org/wiki/LOLCODE). The file-I/O
+example replaces that page's obsolete `PLZ OPEN FILE` syntax with the
+lci/future `STDIO` binding.
+
+The stack and truth-machine samples are original adaptations of examples on the
+[Esolang LOLCODE page](https://esolangs.org/wiki/LOLCODE). The truth-machine
+compares the input YARN directly with `"1"`; the page version branches on the
+input's truthiness and therefore loops for `"0"` as well as `"1"`.
+
+Each LOLCODE body was run with the pinned `externals/lci` interpreter. The
+`#:sdk` line is a .NET file-based-app launcher directive and is excluded when
+running a sample with lci.
 
 ## Games
 

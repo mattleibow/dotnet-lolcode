@@ -8,14 +8,14 @@ public class ComparisonTests : EndToEndTestBase
         AssertOutput("""
             BTW BOTH SAEM: equality for same type same value vs diff value
             HAI 1.2
-              VISIBLE BOTH SAEM 3 AN 3
-              VISIBLE BOTH SAEM 3 AN 4
-              VISIBLE BOTH SAEM "hai" AN "hai"
-              VISIBLE BOTH SAEM "hai" AN "hai!"
-              VISIBLE BOTH SAEM WIN AN WIN
-              VISIBLE BOTH SAEM FAIL AN WIN
+              VISIBLE MAEK BOTH SAEM 3 AN 3 A NUMBR
+              VISIBLE MAEK BOTH SAEM 3 AN 4 A NUMBR
+              VISIBLE MAEK BOTH SAEM "hai" AN "hai" A NUMBR
+              VISIBLE MAEK BOTH SAEM "hai" AN "hai!" A NUMBR
+              VISIBLE MAEK BOTH SAEM WIN AN WIN A NUMBR
+              VISIBLE MAEK BOTH SAEM FAIL AN WIN A NUMBR
             KTHXBYE
-            """, "WIN\nFAIL\nWIN\nFAIL\nWIN\nFAIL");
+            """, "1\n0\n1\n0\n1\n0");
     }
 
     [Fact]
@@ -24,12 +24,12 @@ public class ComparisonTests : EndToEndTestBase
         AssertOutput("""
             BTW DIFFRINT: inequality
             HAI 1.2
-              VISIBLE DIFFRINT 3 AN 4
-              VISIBLE DIFFRINT 3 AN 3
-              VISIBLE DIFFRINT "hai" AN "hai"
-              VISIBLE DIFFRINT WIN AN FAIL
+              VISIBLE MAEK DIFFRINT 3 AN 4 A NUMBR
+              VISIBLE MAEK DIFFRINT 3 AN 3 A NUMBR
+              VISIBLE MAEK DIFFRINT "hai" AN "hai" A NUMBR
+              VISIBLE MAEK DIFFRINT WIN AN FAIL A NUMBR
             KTHXBYE
-            """, "WIN\nFAIL\nFAIL\nWIN");
+            """, "1\n0\n0\n1");
     }
 
     [Fact]
@@ -40,21 +40,21 @@ public class ComparisonTests : EndToEndTestBase
             HAI 1.2
               I HAS A x ITZ 5
               I HAS A y ITZ 3
-              VISIBLE BOTH SAEM x AN BIGGR OF x AN y
+              VISIBLE MAEK BOTH SAEM x AN BIGGR OF x AN y A NUMBR
               x R 3
               y R 5
-              VISIBLE BOTH SAEM x AN BIGGR OF x AN y
+              VISIBLE MAEK BOTH SAEM x AN BIGGR OF x AN y A NUMBR
               x R 5
               y R 5
-              VISIBLE BOTH SAEM x AN BIGGR OF x AN y
+              VISIBLE MAEK BOTH SAEM x AN BIGGR OF x AN y A NUMBR
               x R 3.0
               y R 3
-              VISIBLE BOTH SAEM x AN BIGGR OF x AN y
+              VISIBLE MAEK BOTH SAEM x AN BIGGR OF x AN y A NUMBR
               x R 2
               y R 2.5
-              VISIBLE BOTH SAEM x AN BIGGR OF x AN y
+              VISIBLE MAEK BOTH SAEM x AN BIGGR OF x AN y A NUMBR
             KTHXBYE
-            """, "WIN\nFAIL\nWIN\nWIN\nFAIL");
+            """, "1\n0\n1\n1\n0");
     }
 
     [Fact]
@@ -65,21 +65,21 @@ public class ComparisonTests : EndToEndTestBase
             HAI 1.2
               I HAS A x ITZ 5
               I HAS A y ITZ 3
-              VISIBLE DIFFRINT x AN SMALLR OF x AN y
+              VISIBLE MAEK DIFFRINT x AN SMALLR OF x AN y A NUMBR
               x R 3
               y R 5
-              VISIBLE DIFFRINT x AN SMALLR OF x AN y
+              VISIBLE MAEK DIFFRINT x AN SMALLR OF x AN y A NUMBR
               x R 5
               y R 5
-              VISIBLE DIFFRINT x AN SMALLR OF x AN y
+              VISIBLE MAEK DIFFRINT x AN SMALLR OF x AN y A NUMBR
               x R 3.0
               y R 2
-              VISIBLE DIFFRINT x AN SMALLR OF x AN y
+              VISIBLE MAEK DIFFRINT x AN SMALLR OF x AN y A NUMBR
               x R 3.0
               y R 3
-              VISIBLE DIFFRINT x AN SMALLR OF x AN y
+              VISIBLE MAEK DIFFRINT x AN SMALLR OF x AN y A NUMBR
             KTHXBYE
-            """, "WIN\nFAIL\nFAIL\nWIN\nFAIL");
+            """, "1\n0\n0\n1\n0");
     }
 
     [Fact]
@@ -88,11 +88,11 @@ public class ComparisonTests : EndToEndTestBase
         AssertOutput("""
             BTW BOTH SAEM has NO automatic casting: YARN "3" vs NUMBR 3
             HAI 1.2
-              VISIBLE BOTH SAEM "3" AN 3
-              VISIBLE BOTH SAEM "3.0" AN 3
-              VISIBLE DIFFRINT "3" AN 3
+              VISIBLE MAEK BOTH SAEM "3" AN 3 A NUMBR
+              VISIBLE MAEK BOTH SAEM "3.0" AN 3 A NUMBR
+              VISIBLE MAEK DIFFRINT "3" AN 3 A NUMBR
             KTHXBYE
-            """, "FAIL\nFAIL\nWIN");
+            """, "0\n0\n1");
     }
 
     [Fact]
@@ -101,11 +101,11 @@ public class ComparisonTests : EndToEndTestBase
         AssertOutput("""
             BTW NUMBAR comparison and NUMBR vs NUMBAR promotion
             HAI 1.2
-              VISIBLE BOTH SAEM 3 AN 3.0
-              VISIBLE BOTH SAEM 3.14 AN 3.140
-              VISIBLE DIFFRINT 3 AN 3.1
-              VISIBLE DIFFRINT 3.14 AN 3.13
+              VISIBLE MAEK BOTH SAEM 3 AN 3.0 A NUMBR
+              VISIBLE MAEK BOTH SAEM 3.14 AN 3.140 A NUMBR
+              VISIBLE MAEK DIFFRINT 3 AN 3.1 A NUMBR
+              VISIBLE MAEK DIFFRINT 3.14 AN 3.13 A NUMBR
             KTHXBYE
-            """, "WIN\nWIN\nWIN\nWIN");
+            """, "1\n1\n1\n1");
     }
 }

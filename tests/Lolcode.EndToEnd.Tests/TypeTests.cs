@@ -14,11 +14,6 @@ public class TypeTests : EndToEndTestBase
               BTW uninitialized is NOOB
               I HAS A noob_var
 
-              BTW NOOB printed is empty string (cast to YARN)
-              VISIBLE "BEFORE"
-              VISIBLE noob_var
-              VISIBLE "AFTER"
-
               BTW NOOB is falsy
               noob_var
               O RLY?
@@ -30,7 +25,7 @@ public class TypeTests : EndToEndTestBase
 
               BTW explicit cast NOOB to TROOF
               I HAS A noob2
-              VISIBLE MAEK noob2 A TROOF
+              VISIBLE MAEK MAEK noob2 A TROOF A NUMBR
 
               BTW explicit cast NOOB to NUMBR
               I HAS A noob3
@@ -48,10 +43,10 @@ public class TypeTests : EndToEndTestBase
 
               BTW NOOB in boolean expression (implicitly cast to FAIL)
               I HAS A noob6
-              VISIBLE NOT noob6
-              VISIBLE EITHER OF noob6 AN WIN
+              VISIBLE MAEK NOT noob6 A NUMBR
+              VISIBLE MAEK EITHER OF noob6 AN WIN A NUMBR
             KTHXBYE
-            """, "BEFORE\n\nAFTER\nNOOB IS FALSY\nFAIL\n0\n0.00\nYARN:\n\n:END\nWIN\nWIN");
+            """, "NOOB IS FALSY\n0\n0\n0.00\nYARN:\n\n:END\n1\n1");
     }
 
     [Fact]
@@ -166,8 +161,8 @@ public class TypeTests : EndToEndTestBase
               I HAS A yes ITZ WIN
               I HAS A no ITZ FAIL
 
-              VISIBLE yes
-              VISIBLE no
+              VISIBLE MAEK yes A NUMBR
+              VISIBLE MAEK no A NUMBR
 
               BTW booleans in conditionals
               yes
@@ -185,14 +180,14 @@ public class TypeTests : EndToEndTestBase
               OIC
 
               BTW boolean operators
-              VISIBLE BOTH OF WIN AN WIN
-              VISIBLE BOTH OF WIN AN FAIL
-              VISIBLE EITHER OF WIN AN FAIL
-              VISIBLE EITHER OF FAIL AN FAIL
-              VISIBLE WON OF WIN AN FAIL
-              VISIBLE WON OF WIN AN WIN
-              VISIBLE NOT WIN
-              VISIBLE NOT FAIL
+              VISIBLE MAEK BOTH OF WIN AN WIN A NUMBR
+              VISIBLE MAEK BOTH OF WIN AN FAIL A NUMBR
+              VISIBLE MAEK EITHER OF WIN AN FAIL A NUMBR
+              VISIBLE MAEK EITHER OF FAIL AN FAIL A NUMBR
+              VISIBLE MAEK WON OF WIN AN FAIL A NUMBR
+              VISIBLE MAEK WON OF WIN AN WIN A NUMBR
+              VISIBLE MAEK NOT WIN A NUMBR
+              VISIBLE MAEK NOT FAIL A NUMBR
 
               BTW truthiness casting
               BTW empty string is FAIL
@@ -234,7 +229,7 @@ public class TypeTests : EndToEndTestBase
                 YA RLY, VISIBLE "NEGATIVE TRUTHY"
               OIC
             KTHXBYE
-            """, "WIN\nFAIL\nYES IS TRUTHY\nNO IS FALSY\nWIN\nFAIL\nWIN\nFAIL\nWIN\nFAIL\nFAIL\nWIN\nEMPTY STRING FALSY\nZERO FALSY\n0.0 FALSY\nNON-EMPTY STRING TRUTHY\nNON-ZERO TRUTHY\nNEGATIVE TRUTHY");
+            """, "1\n0\nYES IS TRUTHY\nNO IS FALSY\n1\n0\n1\n0\n1\n0\n0\n1\nEMPTY STRING FALSY\nZERO FALSY\n0.0 FALSY\nNON-EMPTY STRING TRUTHY\nNON-ZERO TRUTHY\nNEGATIVE TRUTHY");
     }
 
     [Fact]

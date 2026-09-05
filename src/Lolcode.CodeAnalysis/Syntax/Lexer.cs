@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Lolcode.CodeAnalysis.Text;
 
 namespace Lolcode.CodeAnalysis.Syntax;
@@ -10,6 +11,7 @@ internal sealed class Lexer
     private readonly SourceText _text;
     private readonly DiagnosticBag _diagnostics = new();
     private int _position;
+    private bool _hasCodeOnLine;
 
     /// <summary>
     /// Gets the diagnostics produced during lexing.
@@ -45,6 +47,16 @@ internal sealed class Lexer
         while (true)
         {
             var token = NextToken();
+
+            if (token.Kind == SyntaxKind.EndOfLineToken)
+                _hasCodeOnLine = false;
+            else if (token.Kind is not (SyntaxKind.WhitespaceToken
+                or SyntaxKind.SingleLineCommentToken
+                or SyntaxKind.MultiLineCommentToken
+                or SyntaxKind.LineContinuationToken
+                or SyntaxKind.EndOfFileToken))
+                _hasCodeOnLine = true;
+
             if (token.Kind == SyntaxKind.WhitespaceToken ||
                 token.Kind == SyntaxKind.SingleLineCommentToken ||
                 token.Kind == SyntaxKind.MultiLineCommentToken ||
@@ -67,6 +79,12 @@ internal sealed class Lexer
     {
         if (_position >= _text.Length)
             return new SyntaxToken(SyntaxKind.EndOfFileToken, _position, "\0");
+
+        if (_position == 0 && Current == '\uFEFF')
+        {
+            _position++;
+            return new SyntaxToken(SyntaxKind.WhitespaceToken, 0, "\uFEFF");
+        }
 
         // Newline => EndOfLineToken
         if (Current == '\n')
@@ -114,6 +132,20 @@ internal sealed class Lexer
             int start = _position;
             _position++;
             return new SyntaxToken(SyntaxKind.ExclamationToken, start, "!");
+        }
+
+        if (Current == '?')
+        {
+            int start = _position;
+            _position++;
+            return new SyntaxToken(SyntaxKind.QuestionToken, start, "?");
+        }
+
+        if (Current == '\'' && Lookahead == 'Z')
+        {
+            int start = _position;
+            _position += 2;
+            return new SyntaxToken(SyntaxKind.ApostrophezToken, start, "'Z");
         }
 
         // File-based app directives (#:sdk, #:package, etc.) and shebang (#!)
@@ -189,6 +221,21 @@ internal sealed class Lexer
                 _position++;
         }
 
+        int nextContent = _position;
+        while (nextContent < _text.Length &&
+               (_text[nextContent] == ' ' || _text[nextContent] == '\t'))
+        {
+            nextContent++;
+        }
+
+        if (nextContent >= _text.Length ||
+            _text[nextContent] == '\r' ||
+            _text[nextContent] == '\n')
+        {
+            var span = new TextSpan(start, _position - start);
+            _diagnostics.ReportInvalidLineContinuation(TextLocation.FromSpan(_text, span));
+        }
+
         string text = _text.ToString(start, _position - start);
         return new SyntaxToken(SyntaxKind.LineContinuationToken, start, text);
     }
@@ -212,6 +259,7 @@ internal sealed class Lexer
         _position++; // skip "
 
         var sb = new System.Text.StringBuilder();
+        var interpolationStarts = ImmutableArray.CreateBuilder<int>();
         bool terminated = false;
 
         while (_position < _text.Length)
@@ -258,16 +306,9 @@ internal sealed class Lexer
                         {
                             string hex = _text.ToString(hexStart, _position - hexStart);
                             _position++; // skip )
-                            if (int.TryParse(hex, System.Globalization.NumberStyles.HexNumber, null, out int codePoint))
-                            {
-                                sb.Append(char.ConvertFromUtf32(codePoint));
-                            }
-                            else
-                            {
-                                var hexSpan = new TextSpan(hexStart - 2, _position - hexStart + 2);
-                                var hexLoc = TextLocation.FromSpan(_text, hexSpan);
-                                _diagnostics.ReportInvalidEscapeSequence(hexLoc, $":({hex})");
-                            }
+                            sb.Append(":(");
+                            sb.Append(hex);
+                            sb.Append(')');
                         }
                         break;
                     case '[':
@@ -280,23 +321,14 @@ internal sealed class Lexer
                         {
                             string name = _text.ToString(nameStart, _position - nameStart);
                             _position++; // skip ]
-                            char? named = ResolveUnicodeName(name);
-                            if (named.HasValue)
-                            {
-                                sb.Append(named.Value);
-                            }
-                            else
-                            {
-                                var nameSpan = new TextSpan(nameStart - 2, _position - nameStart + 2);
-                                var nameLoc = TextLocation.FromSpan(_text, nameSpan);
-                                _diagnostics.ReportInvalidEscapeSequence(nameLoc, $":[{name}]");
-                            }
+                            sb.Append(":[");
+                            sb.Append(name);
+                            sb.Append(']');
                         }
                         break;
                     case '{':
                         // Variable interpolation :{<var>}
-                        // For now, we include the raw text in the string value.
-                        // The parser will handle interpolation.
+                        interpolationStarts.Add(sb.Length);
                         _position--; // back to ':'
                         sb.Append(Current);
                         _position++;
@@ -339,47 +371,9 @@ internal sealed class Lexer
         string tokenText = _text.ToString(start, _position - start);
         string value = sb.ToString();
 
-        // Check if the string contains interpolation markers
-        if (value.Contains(":{"))
+        return new SyntaxToken(SyntaxKind.YarnLiteralToken, start, tokenText, value)
         {
-            return new SyntaxToken(SyntaxKind.YarnLiteralToken, start, tokenText, value);
-        }
-
-        return new SyntaxToken(SyntaxKind.YarnLiteralToken, start, tokenText, value);
-    }
-
-    private static char? ResolveUnicodeName(string name)
-    {
-        // Curated subset of Unicode named characters
-        return name.ToUpperInvariant() switch
-        {
-            "SPACE" => ' ',
-            "TAB" or "CHARACTER TABULATION" => '\t',
-            "NEWLINE" or "LINE FEED" or "LINE FEED (LF)" => '\n',
-            "CARRIAGE RETURN" or "CARRIAGE RETURN (CR)" => '\r',
-            "NULL" => '\0',
-            "BELL" => '\a',
-            "BACKSPACE" => '\b',
-            "FORM FEED" or "FORM FEED (FF)" => '\f',
-            "VERTICAL TAB" or "LINE TABULATION" => '\v',
-            "QUOTATION MARK" => '"',
-            "COLON" => ':',
-            "EXCLAMATION MARK" => '!',
-            "QUESTION MARK" => '?',
-            "NUMBER SIGN" => '#',
-            "DOLLAR SIGN" => '$',
-            "PERCENT SIGN" => '%',
-            "AMPERSAND" => '&',
-            "APOSTROPHE" => '\'',
-            "LEFT PARENTHESIS" => '(',
-            "RIGHT PARENTHESIS" => ')',
-            "ASTERISK" => '*',
-            "PLUS SIGN" => '+',
-            "COMMA" => ',',
-            "HYPHEN-MINUS" => '-',
-            "FULL STOP" => '.',
-            "SOLIDUS" => '/',
-            _ => null
+            InterpolationStarts = interpolationStarts.ToImmutable(),
         };
     }
 
@@ -446,7 +440,14 @@ internal sealed class Lexer
         // Handle OBTW multi-line comment
         if (text == "OBTW")
         {
+            if (_hasCodeOnLine)
+            {
+                var startLocation = TextLocation.FromSpan(_text, new TextSpan(start, text.Length));
+                _diagnostics.ReportMultilineCommentMustStartOnOwnLine(startLocation);
+            }
+
             // Read until TLDR
+            bool terminated = false;
             while (_position < _text.Length)
             {
                 if (_position + 3 < _text.Length &&
@@ -454,10 +455,31 @@ internal sealed class Lexer
                     _text[_position + 2] == 'D' && _text[_position + 3] == 'R')
                 {
                     _position += 4;
+                    terminated = true;
                     break;
                 }
                 _position++;
             }
+
+            if (terminated)
+            {
+                int nextContent = _position;
+                while (nextContent < _text.Length &&
+                       (_text[nextContent] == ' ' || _text[nextContent] == '\t'))
+                {
+                    nextContent++;
+                }
+
+                if (nextContent < _text.Length &&
+                    _text[nextContent] is not ('\r' or '\n' or ','))
+                {
+                    var endLocation = TextLocation.FromSpan(
+                        _text,
+                        new TextSpan(_position - 4, 4));
+                    _diagnostics.ReportMultilineCommentMustEndOnOwnLine(endLocation);
+                }
+            }
+
             string commentText = _text.ToString(start, _position - start);
             return new SyntaxToken(SyntaxKind.MultiLineCommentToken, start, commentText);
         }

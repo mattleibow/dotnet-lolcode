@@ -1,68 +1,66 @@
-# LOLCODE 1.4 Changes Specification
+# LOLCODE 1.4 Reference-Implementation Changes
 
-This document describes features present in the LOLCODE 1.4 implementation but **never formally specified**. All information is extracted from the [`lci` interpreter's `future` branch](https://github.com/justinmeza/lci/tree/future) (Justin Meza's reference interpreter), specifically from `tokenizer.h`, `parser.h`, `binding.c`, and the `test/1.4-Tests/` directory.
+This document describes observable language changes present in Justin Meza's [`lci` interpreter `future` branch](https://github.com/justinmeza/lci/tree/future), pinned for this review at commit [`9377c404c79a122a4698d98118eef44310c751be`](https://github.com/justinmeza/lci/commit/9377c404c79a122a4698d98118eef44310c751be) (23 February 2026). It is a behavioral delta from the archived [LOLCODE 1.3 Draft](archive/lolcode-spec-v1.3.md), not a community-ratified specification.
 
-> ⚠️ **There is no official LOLCODE 1.4 specification document.** The `lolcode-spec` repository contains only `v1.2/` and `v1.3/` — no 1.4 was ever written. The features below are **implementation-defined** by the reference interpreter.
+> **No archived 1.4 specification is known to this repository.** The local archive and `lolcode-spec` repository stop at the unfinished 1.3 draft. Every rule below is therefore identified from the pinned interpreter source and executable behavior.
 
-> *These changes are **not implemented** in the dotnet-lolcode compiler (which targets 1.2). They are documented here for completeness and future planning.*
+Compiler support and .NET-specific guidance are kept in the non-normative [Implementation Profile](LANGUAGE_IMPLEMENTATION.md).
 
 ---
 
-## Status
+## Provenance Warning: BRAINZ
 
-| Feature | Category | Source | This Compiler |
-|---------|----------|--------|---------------|
-| Version header `HAI 1.4` | Changed | Test files | ❌ Not implemented |
-| `CAN HAS <lib>?` library imports | New Feature | tokenizer.h, parser.h | ❌ Not implemented |
-| `STDIO` built-in library | New Feature | binding.c | ❌ Not implemented |
-| `SOCKS` socket library | New Feature | binding.c, inet.c | ❌ Not implemented |
-| `STDLIB` random library | New Feature | binding.c | ❌ Not implemented |
-| `STRING` string library | New Feature | binding.c | ❌ Not implemented |
-| `INVISIBLE` (stderr output) | New Feature | tokenizer.h, parser.h | ❌ Not implemented |
-| `I DUZ` system commands | New Feature | tokenizer.h, parser.h | ❌ Not implemented |
-| `HAS AN` (alternate declaration) | Syntactic Sugar | tokenizer.h | ❌ Not implemented |
-| `R NOOB` (explicit deallocation token) | Tokenizer Change | tokenizer.h | ❌ Not implemented |
+The 2026 `lci` README claims a `BRAINZ` neural-network library. No loader, binding, or test was added. At the pinned commit, `CAN HAS BRAINZ?` does nothing and later access to `BRAINZ` fails because the variable does not exist. **BRAINZ is not an implemented 1.4 feature.**
 
 ---
 
 ## 1. Version Header
 
-Programs targeting 1.4 use:
+The 1.4 fixtures conventionally use:
 
 ```lolcode
 HAI 1.4
 KTHXBYE
 ```
 
+`lci` parses but does not enforce the version value, so `HAI 1.4` selects no distinct mode and is not itself an observable semantic change.
+
 ## 2. Library Import System (`CAN HAS`)
 
 ### Overview
 
-LOLCODE 1.4 reintroduces `CAN HAS` from the original 1.0 spec, but with a completely different mechanism. Instead of file inclusion, it loads **named built-in libraries** that expose functions via BUKKIT (object) semantics.
+LOLCODE 1.4 reuses the `CAN HAS` phrase found in the sparse 1.0 inclusion/requirement proposal. In `lci/future`, it loads named built-in libraries exposed through BUKKIT semantics.
 
 ### Syntax
 
 ```
-CAN HAS <library>?
+CAN HAS <library>[?]
 ```
 
-The `?` is a required token (not syntactic sugar). The library name is an identifier (e.g., `STDIO`, `SOCKS`, `STDLIB`, `STRING`).
+The `?` is optional. The library name is an identifier. Direct identifiers use
+their spelling and SRS identifiers explicitly cast their expression to YARN;
+`loadLibrary` only uses that leading identifier name, so any parsed slot suffix
+does not participate in library selection. The implemented names are `STDIO`,
+`SOCKS`, `STDLIB`, and `STRING`. An unknown name is silently ignored; attempting
+to use the missing library later fails as an undefined variable.
 
-### Grammar (from parser.h EBNF)
+### Effective Grammar (`parser.c`)
 
 ```
-ImportStmtNode ::= TT_CANHAS IdentifierNode TT_QUESTION TT_NEWLINE
+ImportStmtNode ::= TT_CANHAS IdentifierNode TT_QUESTION? TT_NEWLINE
 ```
 
 ### Behavior
 
-After import, the library is available as a BUKKIT variable in the current scope, with functions accessible via the `'Z` slot operator (from 1.3):
+After import, the library is available as a BUKKIT variable in the current scope. `lci` accepts both a function-value call through `'Z` and the 1.3 object-call spelling:
 
 ```lolcode
 HAI 1.4
     CAN HAS STDIO?
     I HAS A file
     file R I IZ STDIO'Z OPEN YR "read.dat" AN YR "r" MKAY
+    BTW Equivalent call form:
+    BTW file R STDIO IZ OPEN YR "read.dat" AN YR "r" MKAY
 KTHXBYE
 ```
 
@@ -80,6 +78,8 @@ Provides file operations. Loaded as a BUKKIT with the following function slots:
 | `SCRIBBEL` | `YR file AN YR data` | `fwrite(data, 1, len, file)` | (none) |
 | `AGEIN` | `YR file` | `rewind(file)` | (none) |
 | `CLOSE` | `YR file` | `fclose(file)` | (none) |
+
+File handles are opaque BLOB values. Operations returning "(none)" return `NOOB`. The implementation does not define a portable text encoding, ownership model, or complete error contract; callers use `DIAF` to detect a null or failed stream.
 
 **Example — reading a file:**
 
@@ -123,6 +123,8 @@ KTHXBYE
 
 The special address `"ANY"` maps to `INADDR_ANY` for binding to all interfaces.
 
+`GET` returns an empty YARN when the underlying receive operation returns a negative result. Blocking, address-family, and broader socket-error behavior remain implementation-defined.
+
 ### 3.3 `STDLIB` — Random Numbers
 
 Provides seeded random number generation:
@@ -143,6 +145,8 @@ HAI 1.4
 KTHXBYE
 ```
 
+`BLOW 0` returns `0`. Behavior for negative maxima is not specified by tests.
+
 ### 3.4 `STRING` — String Operations
 
 Provides basic string manipulation:
@@ -152,11 +156,13 @@ Provides basic string manipulation:
 | `LEN` | `YR string` | `strlen(string)` | NUMBR |
 | `AT` | `YR string AN YR position` | `string[position]` | YARN (single char) |
 
+Both operations use encoded bytes, not Unicode scalar values or grapheme clusters. `AT` returns an empty YARN when the index is negative or outside the byte range.
+
 ## 4. `INVISIBLE` — Standard Error Output
 
 A counterpart to `VISIBLE` that prints to stderr instead of stdout.
 
-### Grammar (from parser.h EBNF)
+### Grammar
 
 ```
 PrintStmtNode ::= TT_VISIBLE ExprNodeList TT_BANG? TT_NEWLINE
@@ -171,15 +177,17 @@ Behaves identically to `VISIBLE` (including the `!` newline suppression) but out
 
 Executes a system command and returns its standard output as a YARN.
 
-### Grammar (from parser.h EBNF)
+### Effective Grammar (`parser.c`)
 
 ```
-SystemCommandExprNode ::= TT_DUZ IdentifierNode
+SystemCommandExprNode ::= TT_IDUZ ExprNode
 ```
 
-This is an **expression** (not a statement) — the result of the system command can be assigned or used in expressions. The identifier is evaluated and its string value is passed to the system shell.
+This is an **expression**, not a statement. Its operand may be any expression; the resulting value is converted to a command string and passed to the system shell. Standard output is returned as a YARN. A successful command that produces no standard output returns an empty YARN.
 
-> **Security consideration:** This provides arbitrary shell command execution. A .NET implementation would need careful sandboxing.
+The EBNF comment in `parser.h` still says `TT_DUZ IdentifierNode`; both the token name and operand restriction are stale relative to `parser.c`.
+
+Exit status, standard error, shell selection, encoding, and failure behavior are not specified as portable language contracts.
 
 ## 6. `HAS AN` — Grammatically Correct Declaration
 
@@ -190,13 +198,13 @@ I HAS AN APPLE ITZ "red"     BTW grammatically correct
 I HAS A BANANA ITZ "yellow"  BTW also correct
 ```
 
-Both `HAS A` and `HAS AN` are semantically identical. This was contributed by community member D.E. Akers with reference to [forum discussion](http://forum.lolcode.org/viewtopic.php?f=4&t=13#p19).
+`HAS A` and `HAS AN` are semantically identical. No vowel-sound validation occurs. `HAS AN` is accepted for ordinary variable declarations and BUKKIT slot declarations, including the same SRS forms as `HAS A`.
 
-## 7. `R NOOB` — Tokenizer-Level Deallocation
+## 7. `R NOOB` — Dedicated Parsing, Unchanged Semantics
 
-In 1.2 and 1.3, `<var> R NOOB` is parsed as an assignment of the NOOB literal. In the 1.4 tokenizer, `R NOOB` is a dedicated token (`TT_RNOOB`) that maps to a `DeallocationStmtNode` rather than an assignment — giving the interpreter the ability to truly release resources rather than just reassigning to nil.
+In 1.2 and 1.3, `<var> R NOOB` is assignment of the NOOB literal. `lci/future` gives `R NOOB` a dedicated token and `DeallocationStmtNode`, but execution still replaces the value with NOOB while retaining the declaration. This is an internal parser distinction, not a new observable deallocation rule.
 
-### Grammar (from parser.h EBNF)
+### Effective Grammar (`parser.c`)
 
 ```
 DeallocationStmtNode ::= IdentifierNode TT_RNOOB TT_NEWLINE
@@ -204,39 +212,31 @@ DeallocationStmtNode ::= IdentifierNode TT_RNOOB TT_NEWLINE
 
 ---
 
-## Implementation Notes for .NET
+## 8. Opaque BLOB Values
 
-### BLOB Type
+The library binding system introduces an interpreter runtime value for opaque native handles. BLOB is not a source-level type keyword: it has no literal, cannot be named as a `MAEK` target, and has no specified casts or equality behavior. It can only be received from and passed back to built-in library functions.
 
-The library binding system introduces a `BLOB` value type (opaque pointer) that has no LOLCODE-level operations — it can only be passed between library functions. In a .NET implementation, this could map to `System.IntPtr` or a wrapper object.
-
-### Library Loading Model
-
-Libraries are loaded as BUKKIT objects in the current scope. This means:
-- The `CAN HAS` statement creates a scope-level variable (e.g., `STDIO`)
-- Library functions are BUKKIT slots accessed via `'Z` (e.g., `STDIO'Z OPEN`)
-- Function calls use the standard `I IZ <obj>'Z <func> YR ... MKAY` syntax
-- This naturally builds on the 1.3 BUKKIT/slot system
-
-### Security Considerations
-
-- `I DUZ` provides unrestricted shell command execution
-- `SOCKS` provides raw TCP networking
-- `STDIO` provides arbitrary filesystem access
-- A production .NET implementation should consider sandboxing or omitting these features
+Lifetime, ownership, truthiness, and invalid-handle behavior are not coherently specified. The pinned interpreter also has unsafe equality behavior for BUKKIT, function, and BLOB values; that defect is not promoted into a language rule.
 
 ---
 
 ## Source References
 
-All features documented above were extracted from the `future` branch of [justinmeza/lci](https://github.com/justinmeza/lci/tree/future):
+All behavior documented above was checked against pinned commit `9377c404c79a122a4698d98118eef44310c751be`:
 
 | File | Key Content |
 |------|------------|
-| `tokenizer.h` | Token definitions: `TT_INVISIBLE`, `TT_IDUZ`, `TT_CANHAS`, `TT_QUESTION`, `TT_HASAN`, `TT_RNOOB` |
-| `parser.h` | EBNF grammar, AST node types: `ImportStmtNode`, `BindingStmtNode`, `SystemCommandExprNode` |
+| `tokenizer.h` / `tokenizer.c` | Tokens and lexical behavior |
+| `parser.h` / `parser.c` | Grammar, optional import punctuation, `HAS AN`, and expression parsing |
+| `interpreter.h` / `interpreter.c` | Runtime value kinds, loop execution, `I DUZ`, and `R NOOB` behavior |
 | `binding.c` | Library implementations: `STDIO`, `SOCKS`, `STDLIB`, `STRING` |
 | `inet.h` / `inet.c` | TCP socket abstraction layer |
-| `test/1.4-Tests/13-Bindings/` | Test cases for stdio, sockets, stdlib |
+| `test/1.4-Tests/13-Bindings/` | Registered tests for STDIO open/read and SOCKS lookup/open-close |
 
-Last significant feature work on `future` branch: 2015–2016. Last commit: January 2023.
+The pinned branch contains three commits after January 2023:
+
+- `e1d2f6464fbd755cbb2c7667f28749a6f0949fbe` (22 February 2026) fixes interpreter defects, including numeric-token validation, unterminated block comments, four-byte UTF-8 escapes, BOM detection, STRING bounds, `BLOW 0`, negative socket receives, and empty `I DUZ` output. These are conformance and safety fixes, not a new 1.4 syntax layer.
+- `dd0daf8b575f99f87b58bbf6f48c579ba048a89b` (22 February 2026) documents BRAINZ in the README but adds no working implementation.
+- `9377c404c79a122a4698d98118eef44310c751be` (23 February 2026) changes only an external README link.
+
+The upstream CTest registration covers only four 1.4 binding cases; STRING and STDLIB behavior above was confirmed directly against the executable and source rather than inferred from comprehensive upstream tests.

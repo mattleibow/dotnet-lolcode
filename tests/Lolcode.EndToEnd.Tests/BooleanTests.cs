@@ -8,14 +8,14 @@ public class BooleanTests : EndToEndTestBase
         AssertOutput("""
             BTW ALL OF: infinite arity AND; MKAY terminator; MKAY may be omitted at EOL
             HAI 1.2
-              VISIBLE ALL OF WIN AN WIN AN WIN MKAY
-              VISIBLE ALL OF WIN AN WIN AN FAIL MKAY
-              VISIBLE ALL OF 1 AN "hai" AN 2 MKAY
-              VISIBLE ALL OF WIN AN WIN AN WIN
-              VISIBLE ALL OF WIN AN WIN AN FAIL
-              VISIBLE ALL OF 1 2 3 MKAY
+              VISIBLE MAEK ALL OF WIN AN WIN AN WIN MKAY A NUMBR
+              VISIBLE MAEK ALL OF WIN AN WIN AN FAIL MKAY A NUMBR
+              VISIBLE MAEK ALL OF 1 AN "hai" AN 2 MKAY A NUMBR
+              VISIBLE MAEK ALL OF WIN AN WIN AN WIN MKAY A NUMBR
+              VISIBLE MAEK ALL OF WIN AN WIN AN FAIL MKAY A NUMBR
+              VISIBLE MAEK ALL OF 1 2 3 MKAY A NUMBR
             KTHXBYE
-            """, "WIN\nFAIL\nWIN\nWIN\nFAIL\nWIN");
+            """, "1\n0\n1\n1\n0\n1");
     }
 
     [Fact]
@@ -24,13 +24,13 @@ public class BooleanTests : EndToEndTestBase
         AssertOutput("""
             BTW ANY OF: infinite arity OR; MKAY terminator; MKAY may be omitted at EOL
             HAI 1.2
-              VISIBLE ANY OF FAIL AN FAIL AN WIN MKAY
-              VISIBLE ANY OF FAIL AN FAIL AN FAIL MKAY
-              VISIBLE ANY OF "" AN 0 AN "x" MKAY
-              VISIBLE ANY OF "" AN 0 AN NOOB MKAY
-              VISIBLE ANY OF FAIL AN WIN
+              VISIBLE MAEK ANY OF FAIL AN FAIL AN WIN MKAY A NUMBR
+              VISIBLE MAEK ANY OF FAIL AN FAIL AN FAIL MKAY A NUMBR
+              VISIBLE MAEK ANY OF "" AN 0 AN "x" MKAY A NUMBR
+              VISIBLE MAEK ANY OF "" AN 0 AN NOOB MKAY A NUMBR
+              VISIBLE MAEK ANY OF FAIL AN WIN MKAY A NUMBR
             KTHXBYE
-            """, "WIN\nFAIL\nWIN\nFAIL\nWIN");
+            """, "1\n0\n1\n0\n1");
     }
 
     [Fact]
@@ -39,14 +39,14 @@ public class BooleanTests : EndToEndTestBase
         AssertOutput("""
             BTW Boolean auto-cast: 0=FAIL, ""=FAIL, 42=WIN, "hai"=WIN, NOOB=FAIL
             HAI 1.2
-              VISIBLE MAEK 0 A TROOF
-              VISIBLE MAEK "" A TROOF
-              VISIBLE MAEK 42 A TROOF
-              VISIBLE MAEK "hai" A TROOF
+              VISIBLE MAEK MAEK 0 A TROOF A NUMBR
+              VISIBLE MAEK MAEK "" A TROOF A NUMBR
+              VISIBLE MAEK MAEK 42 A TROOF A NUMBR
+              VISIBLE MAEK MAEK "hai" A TROOF A NUMBR
               I HAS A n
-              VISIBLE MAEK n A TROOF
+              VISIBLE MAEK MAEK n A TROOF A NUMBR
             KTHXBYE
-            """, "FAIL\nFAIL\nWIN\nWIN\nFAIL");
+            """, "0\n0\n1\n1\n0");
     }
 
     [Fact]
@@ -55,16 +55,16 @@ public class BooleanTests : EndToEndTestBase
         AssertOutput("""
             BTW BOTH OF (AND): WIN/FAIL and auto-cast to TROOF from other types
             HAI 1.2
-              VISIBLE BOTH OF WIN AN WIN
-              VISIBLE BOTH OF WIN AN FAIL
-              VISIBLE BOTH OF 1 AN "hai"
-              VISIBLE BOTH OF 0 AN "hai"
-              VISIBLE BOTH OF 42 AN ""
+              VISIBLE MAEK BOTH OF WIN AN WIN A NUMBR
+              VISIBLE MAEK BOTH OF WIN AN FAIL A NUMBR
+              VISIBLE MAEK BOTH OF 1 AN "hai" A NUMBR
+              VISIBLE MAEK BOTH OF 0 AN "hai" A NUMBR
+              VISIBLE MAEK BOTH OF 42 AN "" A NUMBR
               I HAS A x
-              VISIBLE BOTH OF x AN WIN
-              VISIBLE BOTH OF 0.0 AN WIN
+              VISIBLE MAEK BOTH OF x AN WIN A NUMBR
+              VISIBLE MAEK BOTH OF 0.0 AN WIN A NUMBR
             KTHXBYE
-            """, "WIN\nFAIL\nWIN\nFAIL\nFAIL\nFAIL\nFAIL");
+            """, "1\n0\n1\n0\n0\n0\n0");
     }
 
     [Fact]
@@ -73,14 +73,14 @@ public class BooleanTests : EndToEndTestBase
         AssertOutput("""
             BTW EITHER OF (OR): truthiness across values
             HAI 1.2
-              VISIBLE EITHER OF WIN AN FAIL
-              VISIBLE EITHER OF FAIL AN FAIL
-              VISIBLE EITHER OF 0 AN "hai"
-              VISIBLE EITHER OF "" AN 0
-              VISIBLE EITHER OF NOOB AN FAIL
-              VISIBLE EITHER OF NOOB AN "x"
+              VISIBLE MAEK EITHER OF WIN AN FAIL A NUMBR
+              VISIBLE MAEK EITHER OF FAIL AN FAIL A NUMBR
+              VISIBLE MAEK EITHER OF 0 AN "hai" A NUMBR
+              VISIBLE MAEK EITHER OF "" AN 0 A NUMBR
+              VISIBLE MAEK EITHER OF NOOB AN FAIL A NUMBR
+              VISIBLE MAEK EITHER OF NOOB AN "x" A NUMBR
             KTHXBYE
-            """, "WIN\nFAIL\nWIN\nFAIL\nFAIL\nWIN");
+            """, "1\n0\n1\n0\n0\n1");
     }
 
     [Fact]
@@ -89,15 +89,15 @@ public class BooleanTests : EndToEndTestBase
         AssertOutput("""
             BTW NOT: unary negation with truthiness auto-cast
             HAI 1.2
-              VISIBLE NOT WIN
-              VISIBLE NOT FAIL
-              VISIBLE NOT 0
-              VISIBLE NOT 42
-              VISIBLE NOT ""
-              VISIBLE NOT "hai"
-              VISIBLE NOT NOOB
+              VISIBLE MAEK NOT WIN A NUMBR
+              VISIBLE MAEK NOT FAIL A NUMBR
+              VISIBLE MAEK NOT 0 A NUMBR
+              VISIBLE MAEK NOT 42 A NUMBR
+              VISIBLE MAEK NOT "" A NUMBR
+              VISIBLE MAEK NOT "hai" A NUMBR
+              VISIBLE MAEK NOT NOOB A NUMBR
             KTHXBYE
-            """, "FAIL\nWIN\nWIN\nFAIL\nWIN\nFAIL\nWIN");
+            """, "0\n1\n1\n0\n1\n0\n1");
     }
 
     [Fact]
@@ -106,12 +106,12 @@ public class BooleanTests : EndToEndTestBase
         AssertOutput("""
             BTW WON OF (XOR): FAIL if same, WIN if different
             HAI 1.2
-              VISIBLE WON OF WIN AN WIN
-              VISIBLE WON OF WIN AN FAIL
-              VISIBLE WON OF 1 AN "hai"
-              VISIBLE WON OF 0 AN ""
-              VISIBLE WON OF 42 AN 0
+              VISIBLE MAEK WON OF WIN AN WIN A NUMBR
+              VISIBLE MAEK WON OF WIN AN FAIL A NUMBR
+              VISIBLE MAEK WON OF 1 AN "hai" A NUMBR
+              VISIBLE MAEK WON OF 0 AN "" A NUMBR
+              VISIBLE MAEK WON OF 42 AN 0 A NUMBR
             KTHXBYE
-            """, "FAIL\nWIN\nFAIL\nFAIL\nWIN");
+            """, "0\n1\n0\n0\n1");
     }
 }

@@ -84,7 +84,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
   - [x] Handle optional `AN` separator between binary operator arguments
   - [x] Handle `MKAY` omission at end of line/statement for variadic operators
   - [x] Comma as statement separator
-  - [x] HAI version number parsing and validation
+  - [x] HAI optional numeric version parsing
 - [x] Write parser tests for each language construct
 - [x] Write parser error recovery tests
 - [x] Verify: can parse all sample programs
@@ -94,7 +94,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 >
 > **Depends on:** Phase 2
 
-- [x] Define type symbols (`TypeSymbol` for NUMBR, NUMBAR, YARN, TROOF, NOOB, TYPE)
+- [x] Define type symbols (`TypeSymbol` for NUMBR, NUMBAR, YARN, TROOF, NOOB)
 - [x] Define `VariableSymbol` and `FunctionSymbol` (part of `Symbol` hierarchy)
 - [x] Implement `BoundScope` (nested scopes for variables/functions)
 - [x] Define bound node hierarchy (mirrors syntax nodes with type info)
@@ -118,10 +118,10 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
   - [x] `GTFO` context tracking: control-flow stack for loop/switch/function (see DESIGN.md §GTFO Context Sensitivity)
   - [x] Loop iteration variable scoping (temporary, local to the loop)
   - [x] Loop operation validation: UPPIN, NERFIN, or valid unary function name
-  - [x] `TYPE` type handling (bare word values, TYPE → TROOF casting, TYPE → YARN casting)
-  - [x] `BUKKIT` usage detection → produce error diagnostic
+  - [x] Defer tentative `TYPE` runtime values; keep type words syntactic
+  - [x] Keep `BUKKIT` outside the 1.2 value model
   - [x] `GIMMEH` always stores as YARN type
-  - [x] `HAI` version number handling (accept 1.2, warn on others)
+  - [x] `HAI` version number handling (record any numeric version; target 1.2)
   - [x] Semantic error reporting
 - [x] Implement `Lowerer` in `Lowering/Lowerer.cs` (currently identity pass; simplifies bound tree for code generator)
   - [x] `UPPIN`/`NERFIN` loops → while-loop with explicit increment/decrement
@@ -131,7 +131,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
   - [x] `VISIBLE` with multiple args → concatenate YARN-cast values + print
   - [x] Interpolated strings → SMOOSH-equivalent concatenation
 - [x] Write binder tests (positive and negative cases)
-- [x] Write binder error tests (undeclared vars, type mismatches, NOOB misuse, BUKKIT usage)
+- [x] Write binder error tests (undeclared vars, type mismatches, NOOB misuse)
 - [x] Create conformance test matrix (one test per LANGUAGE_SPEC section × positive × negative)
 - [x] Verify: all sample programs pass semantic analysis
 
@@ -169,7 +169,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
   - [x] String concatenation → `LolRuntime.Concat` or `String.Concat`
   - [x] String interpolation → lowered to concatenation (handled by lowerer)
   - [x] Type casting → conversion opcodes / runtime helpers
-  - [x] TYPE values → string representations
+  - [x] Type-position keywords → runtime cast targets
 - [x] Generate `.runtimeconfig.json` alongside DLL
 - [x] Reference `Lolcode.Runtime.dll` in output
 - [x] Implement `--emit-il` flag to dump human-readable IL for debugging
@@ -210,7 +210,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [ ] Scaffold VS Code extension (`yo code`)
 - [ ] Create TextMate grammar (`lolcode.tmLanguage.json`)
   - [ ] Keywords (HAI, KTHXBYE, VISIBLE, etc.)
-  - [ ] Type names (NUMBR, NUMBAR, YARN, TROOF, NOOB, TYPE)
+  - [ ] Type names (NUMBR, NUMBAR, YARN, TROOF, NOOB)
   - [ ] Comments (BTW, OBTW...TLDR)
   - [ ] Strings with escape sequences
   - [ ] Number literals

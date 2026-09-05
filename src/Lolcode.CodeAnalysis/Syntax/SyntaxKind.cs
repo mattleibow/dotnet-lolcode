@@ -74,6 +74,9 @@ public enum SyntaxKind
     /// <summary>VISIBLE — print statement.</summary>
     VisibleKeyword,
 
+    /// <summary>INVISIBLE — print to standard error.</summary>
+    InvisibleKeyword,
+
     /// <summary>GIMMEH — input statement.</summary>
     GimmehKeyword,
 
@@ -218,6 +221,21 @@ public enum SyntaxKind
     /// <summary>SO — used in "IF U SAY SO".</summary>
     SoKeyword,
 
+    /// <summary>SRS — evaluates an expression as an identifier.</summary>
+    SrsKeyword,
+
+    /// <summary>BUKKIT — object/container type.</summary>
+    BukkitKeyword,
+
+    /// <summary>ME — the object receiving the current method call.</summary>
+    MeKeyword,
+
+    /// <summary>LIEK — introduces a BUKKIT prototype.</summary>
+    LiekKeyword,
+
+    /// <summary>KTHX — ends an alternate BUKKIT definition.</summary>
+    KthxKeyword,
+
     // --- Type keywords ---
 
     /// <summary>NOOB — untyped/null value.</summary>
@@ -250,6 +268,9 @@ public enum SyntaxKind
 
     /// <summary>Question mark — part of RLY?, WTF?.</summary>
     QuestionToken,
+
+    /// <summary>'Z — BUKKIT slot access.</summary>
+    ApostrophezToken,
 
     // --- Syntax node kinds ---
 
@@ -313,10 +334,22 @@ public enum SyntaxKind
     /// <summary>Block of statements.</summary>
     BlockStatement,
 
+    /// <summary>O HAI IM alternate BUKKIT definition.</summary>
+    ObjectDefinitionStatement,
+
+    /// <summary>Declaration in a selected namespace.</summary>
+    ScopedDeclarationStatement,
+
+    /// <summary>CAN HAS library import statement.</summary>
+    ImportStatement,
+
     // --- Expression node kinds ---
 
     /// <summary>Literal expression (NUMBR, NUMBAR, YARN, WIN, FAIL, NOOB).</summary>
     LiteralExpression,
+
+    /// <summary>Typed default expression (A NOOB, A TROOF, A NUMBR, A NUMBAR, A YARN).</summary>
+    TypeDefaultExpression,
 
     /// <summary>Variable reference expression.</summary>
     VariableExpression,
@@ -353,4 +386,13 @@ public enum SyntaxKind
 
     /// <summary>Interpolated string expression (YARN with :<var>).</summary>
     InterpolatedStringExpression,
+
+    /// <summary>BUKKIT creation, prototyping, or mixin expression.</summary>
+    ObjectCreationExpression,
+
+    /// <summary>Runtime-resolved identifier or slot access.</summary>
+    IdentifierExpression,
+
+    /// <summary>I DUZ system command expression.</summary>
+    SystemCommandExpression,
 }

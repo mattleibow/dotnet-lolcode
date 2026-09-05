@@ -31,7 +31,7 @@ public class VariableTests : EndToEndTestBase
               var R 3.14
               VISIBLE var
               var R WIN
-              VISIBLE var
+              VISIBLE MAEK var A NUMBR
 
               BTW assignment using another variable
               I HAS A a ITZ 100
@@ -44,7 +44,7 @@ public class VariableTests : EndToEndTestBase
               n R PRODUKT OF n AN n
               VISIBLE n
             KTHXBYE
-            """, "10\n20\n25\n42\nNOW A STRING\n3.14\nWIN\n100\n25");
+            """, "10\n20\n25\n42\nNOW A STRING\n3.14\n1\n100\n25");
     }
 
     [Fact]
@@ -115,8 +115,8 @@ public class VariableTests : EndToEndTestBase
               VISIBLE num
               VISIBLE float_num
               VISIBLE str
-              VISIBLE truth
-              VISIBLE lie
+              VISIBLE MAEK truth A NUMBR
+              VISIBLE MAEK lie A NUMBR
 
               BTW declare and init with expression
               I HAS A sum ITZ SUM OF 10 AN 20
@@ -134,7 +134,7 @@ public class VariableTests : EndToEndTestBase
               VISIBLE b
               VISIBLE c
             KTHXBYE
-            """, "42\n3.14\nHELLO\nWIN\nFAIL\n30\n42\n1\n2\n3");
+            """, "42\n3.14\nHELLO\n1\n0\n30\n42\n1\n2\n3");
     }
 
     [Fact]
@@ -234,12 +234,12 @@ public class VariableTests : EndToEndTestBase
 
               BTW comparison expression sets IT
               BOTH SAEM 5 AN 5
-              VISIBLE IT
+              VISIBLE MAEK IT A NUMBR
 
               DIFFRINT 5 AN 10
-              VISIBLE IT
+              VISIBLE MAEK IT A NUMBR
             KTHXBYE
-            """, "8\n28\n10 IS TRUTHY\n0 IS FALSY\nIT WAS B\n42\nWIN\nWIN");
+            """, "8\n28\n10 IS TRUTHY\n0 IS FALSY\nIT WAS B\n42\n1\n1");
     }
 
     [Fact]
@@ -252,11 +252,6 @@ public class VariableTests : EndToEndTestBase
             HAI 1.2
               BTW declare without initialization
               I HAS A noob_var
-
-              BTW NOOB printed via VISIBLE casts to YARN which is ""
-              VISIBLE "START"
-              VISIBLE noob_var
-              VISIBLE "END"
 
               BTW NOOB is falsy (only implicit cast from NOOB is to TROOF = FAIL)
               noob_var
@@ -281,6 +276,17 @@ public class VariableTests : EndToEndTestBase
                   VISIBLE "ANOTHER IS FALSY"
               OIC
             KTHXBYE
-            """, "START\n\nEND\nNOOB IS FALSY\nNOW DEFINED\nANOTHER IS FALSY");
+            """, "NOOB IS FALSY\nNOW DEFINED\nANOTHER IS FALSY");
+    }
+
+    [Fact]
+    public void NoobVariableCannotBePrintedImplicitly()
+    {
+        AssertRuntimeError("""
+            HAI 1.2
+              I HAS A noob_var
+              VISIBLE noob_var
+            KTHXBYE
+            """, "NOOB");
     }
 }

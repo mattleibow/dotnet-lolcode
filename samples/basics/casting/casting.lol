@@ -5,6 +5,17 @@ BTW Type Casting - Converting between types
 BTW Demonstrates: MAEK, IS NOW A, implicit casting, type names
 
 HAI 1.2
+  BTW TROOF does not cast to YARN, so convert it explicitly for display
+  HOW IZ I troofToYarn YR value
+    value
+    O RLY?
+      YA RLY
+        FOUND YR "WIN"
+      NO WAI
+        FOUND YR "FAIL"
+    OIC
+  IF U SAY SO
+
   BTW string to number
   I HAS A numstr ITZ "42"
   VISIBLE "BEFORE CAST:: " numstr
@@ -36,12 +47,12 @@ HAI 1.2
   BTW number to boolean (truthiness)
   I HAS A zero ITZ 0
   I HAS A nonzero ITZ 42
-  VISIBLE "0 AS TROOF:: " MAEK zero A TROOF
-  VISIBLE "42 AS TROOF:: " MAEK nonzero A TROOF
+  VISIBLE "0 AS TROOF:: " I IZ troofToYarn YR MAEK zero A TROOF MKAY
+  VISIBLE "42 AS TROOF:: " I IZ troofToYarn YR MAEK nonzero A TROOF MKAY
 
   BTW string to boolean
   I HAS A empty ITZ ""
   I HAS A notempty ITZ "HAI"
-  VISIBLE "EMPTY YARN AS TROOF:: " MAEK empty A TROOF
-  VISIBLE "NON-EMPTY YARN AS TROOF:: " MAEK notempty A TROOF
+  VISIBLE "EMPTY YARN AS TROOF:: " I IZ troofToYarn YR MAEK empty A TROOF MKAY
+  VISIBLE "NON-EMPTY YARN AS TROOF:: " I IZ troofToYarn YR MAEK notempty A TROOF MKAY
 KTHXBYE
