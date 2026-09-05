@@ -69,7 +69,7 @@ jobs:
       - name: Generate CI version
         id: version
         run: |
-          VERSION="0.0.0-ci.$(date -u '+%y%m%d.%H%M%S')"
+          VERSION="0.0.0-ci.$(date -u '+%Y%m%d%H%M%S')"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "📦 CI version: $VERSION"
 
