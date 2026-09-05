@@ -1,3 +1,6 @@
+#!/usr/bin/env -S dotnet run --file
+#:sdk Lolcode.NET.Sdk@0.2.0
+
 BTW ========================================
 BTW   LOLCODE ARENA - Turn-Based Battle Game
 BTW ========================================

@@ -1,3 +1,6 @@
+#!/usr/bin/env -S dotnet run --file
+#:sdk Lolcode.NET.Sdk@0.2.0
+
 BTW Hello World - The simplest LOLCODE program
 BTW Demonstrates: HAI/KTHXBYE program structure, VISIBLE output
 
