@@ -185,7 +185,7 @@ dotnet-lolcode/
 │   ├── Lolcode.CodeAnalysis.Tests/ # Unit tests (lexer, parser, runtime)
 │   └── Lolcode.EndToEnd.Tests/     # End-to-end compiler and pinned lci conformance tests
 ├── externals/lci/                # Pinned lci/future conformance baseline
-├── samples/                      # 18 file-based examples plus one .lolproj example
+├── samples/                      # 22 file-based examples plus one .lolproj example
 └── docs/                         # Design documents and language spec
 ```
 
