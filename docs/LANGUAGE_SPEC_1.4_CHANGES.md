@@ -37,7 +37,12 @@ LOLCODE 1.4 reuses the `CAN HAS` phrase found in the sparse 1.0 inclusion/requir
 CAN HAS <library>[?]
 ```
 
-The `?` is optional. The library name is an identifier. The implemented names are `STDIO`, `SOCKS`, `STDLIB`, and `STRING`. An unknown name is silently ignored; attempting to use the missing library later fails as an undefined variable.
+The `?` is optional. The library name is an identifier. Direct identifiers use
+their spelling and SRS identifiers explicitly cast their expression to YARN;
+`loadLibrary` only uses that leading identifier name, so any parsed slot suffix
+does not participate in library selection. The implemented names are `STDIO`,
+`SOCKS`, `STDLIB`, and `STRING`. An unknown name is silently ignored; attempting
+to use the missing library later fails as an undefined variable.
 
 ### Effective Grammar (`parser.c`)
 

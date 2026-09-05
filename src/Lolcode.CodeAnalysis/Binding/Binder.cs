@@ -38,7 +38,7 @@ internal sealed class Binder
     /// </summary>
     public BoundBlockStatement BindCompilationUnit(CompilationUnitSyntax compilationUnit)
     {
-        _runtimeIdentifiers = compilationUnit.Program.VersionToken?.Text == "1.3";
+        _runtimeIdentifiers = compilationUnit.Program.VersionToken?.Text is "1.3" or "1.4";
         return BindBlock(compilationUnit.Program.Statements);
     }
 
@@ -112,6 +112,7 @@ internal sealed class Binder
             ReturnStatementSyntax s => BindReturn(s),
             CastStatementSyntax s => BindCastStatement(s),
             ObjectDefinitionSyntax s => BindObjectDefinition(s),
+            ImportStatementSyntax s => new BoundImportStatement(BindIdentifier(s.Library), s),
             _ => null,
         };
     }
@@ -207,7 +208,11 @@ internal sealed class Binder
     private BoundVisibleStatement BindVisible(VisibleStatementSyntax syntax)
     {
         var args = syntax.Arguments.Select(BindExpression).ToImmutableArray();
-        return new BoundVisibleStatement(args, syntax.SuppressNewline, syntax: syntax);
+        return new BoundVisibleStatement(
+            args,
+            syntax.SuppressNewline,
+            syntax.WritesToStandardError,
+            syntax);
     }
 
     private BoundGimmehStatement BindGimmeh(GimmehStatementSyntax syntax)
@@ -457,6 +462,8 @@ internal sealed class Binder
                 s.Parent is null ? null : BindIdentifier(s.Parent),
                 s.Mixins.Select(BindIdentifier).ToImmutableArray(),
                 syntax: s),
+            SystemCommandExpressionSyntax s =>
+                new BoundSystemCommandExpression(BindExpression(s.Command), s),
             ItExpressionSyntax s => new BoundItExpression(syntax: s),
             _ => new BoundLiteralExpression(null),
         };

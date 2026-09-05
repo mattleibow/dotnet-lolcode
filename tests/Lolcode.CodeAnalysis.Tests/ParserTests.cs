@@ -94,6 +94,87 @@ public class ParserTests
     }
 
     [Fact]
+    public void Parse_Invisible_UsesStandardError()
+    {
+        var tree = ParseWithDiagnostics(
+            "HAI 1.4\nINVISIBLE \"a\" AN \"b\"!\nKTHXBYE",
+            out var diagnostics);
+
+        diagnostics.Should().BeEmpty();
+        var invisible = tree.Program.Statements.Should().ContainSingle()
+            .Which.Should().BeOfType<VisibleStatementSyntax>().Subject;
+        invisible.WritesToStandardError.Should().BeTrue();
+        invisible.Arguments.Should().HaveCount(2);
+        invisible.SuppressNewline.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("CAN HAS STDIO", false)]
+    [InlineData("CAN HAS STDIO?", true)]
+    public void Parse_Import_OptionalQuestionMark(string statement, bool hasQuestionMark)
+    {
+        var tree = ParseWithDiagnostics(
+            $"HAI 1.4\n{statement}\nKTHXBYE",
+            out var diagnostics);
+
+        diagnostics.Should().BeEmpty();
+        var import = tree.Program.Statements.Should().ContainSingle()
+            .Which.Should().BeOfType<ImportStatementSyntax>().Subject;
+        import.Library.DirectToken!.Text.Should().Be("STDIO");
+        (import.QuestionToken is not null).Should().Be(hasQuestionMark);
+    }
+
+    [Fact]
+    public void Parse_Import_SupportsSrsIdentifier()
+    {
+        var tree = ParseWithDiagnostics(
+            "HAI 1.4\nCAN HAS SRS libraryName?\nKTHXBYE",
+            out var diagnostics);
+
+        diagnostics.Should().BeEmpty();
+        tree.Program.Statements.Should().ContainSingle()
+            .Which.Should().BeOfType<ImportStatementSyntax>()
+            .Which.Library.NameExpression.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Parse_SystemCommand_AcceptsExpression()
+    {
+        var tree = ParseWithDiagnostics(
+            "HAI 1.4\nI DUZ SMOOSH \"echo \" AN \"HAI\" MKAY\nKTHXBYE",
+            out var diagnostics);
+
+        diagnostics.Should().BeEmpty();
+        tree.Program.Statements.Should().ContainSingle()
+            .Which.Should().BeOfType<ExpressionStatementSyntax>()
+            .Which.Expression.Should().BeOfType<SystemCommandExpressionSyntax>()
+            .Which.Command.Should().BeOfType<SmooshExpressionSyntax>();
+    }
+
+    [Fact]
+    public void Parse_HasAn_AndRNoob_AcceptDirectSrsAndSlots()
+    {
+        var tree = ParseWithDiagnostics(
+            """
+            HAI 1.4
+            I HAS AN direct
+            I HAS A name ITZ "dynamic"
+            I HAS SRS name
+            I HAS A box ITZ A BUKKIT
+            box HAS AN slot
+            direct R NOOB
+            SRS name R NOOB
+            box'Z slot R NOOB
+            KTHXBYE
+            """,
+            out var diagnostics);
+
+        diagnostics.Should().BeEmpty();
+        tree.Program.Statements.Should().HaveCount(8);
+        tree.Program.Statements.OfType<IdentifierAssignmentSyntax>().Should().HaveCount(2);
+    }
+
+    [Fact]
     public void Parse_VisibleWithoutArguments_ReportsDiagnostic()
     {
         ParseWithDiagnostics("HAI 1.3\nVISIBLE\nKTHXBYE", out var diagnostics);

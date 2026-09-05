@@ -44,4 +44,11 @@ without invoking Python, CMake, or the `lci` executable:
 The pinned tree also contains three 1.4 fixtures that are not registered by
 upstream CMake: two nondeterministic STDLIB programs and one interactive
 socket-accept program. Deterministic/coordinated tests cover those behaviors
-separately rather than pretending they are upstream registrations.
+in `LciAdditionalFixtureTests` rather than pretending they are upstream
+registrations. The random fixtures assert portable bounds and deterministic
+reseeding instead of libc-specific sequences. The socket fixture substitutes
+an available loopback port, connects a managed client with a bounded retry,
+sends `HAI`, asserts `CMD IZ HAI`, and kills the child process on timeout.
+
+At the pinned gitlink, the suite contains 325 registered cases plus these three
+additional fixture cases. All run unconditionally; none use xUnit skips.

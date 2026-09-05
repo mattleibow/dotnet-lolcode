@@ -188,6 +188,8 @@ public sealed class VisibleStatementSyntax : StatementSyntax
     public SyntaxToken Keyword { get; }
     public ImmutableArray<ExpressionSyntax> Arguments { get; }
     public bool SuppressNewline { get; }
+    /// <summary>Gets whether output is written to standard error.</summary>
+    public bool WritesToStandardError => Keyword.Kind == SyntaxKind.InvisibleKeyword;
 
     public VisibleStatementSyntax(
         SyntaxToken keyword,
@@ -208,6 +210,35 @@ public sealed class VisibleStatementSyntax : StatementSyntax
             return TextSpan.FromBounds(Keyword.Position, end);
         }
     }
+}
+
+/// <summary><c>CAN HAS &lt;identifier&gt;[?]</c> built-in library import.</summary>
+public sealed class ImportStatementSyntax : StatementSyntax
+{
+    /// <summary>Gets the CAN token.</summary>
+    public SyntaxToken CanToken { get; }
+    /// <summary>Gets the imported library identifier.</summary>
+    public IdentifierSyntax Library { get; }
+    /// <summary>Gets the optional question mark.</summary>
+    public SyntaxToken? QuestionToken { get; }
+
+    /// <summary>Creates a library import statement.</summary>
+    public ImportStatementSyntax(
+        SyntaxToken canToken,
+        IdentifierSyntax library,
+        SyntaxToken? questionToken)
+    {
+        CanToken = canToken;
+        Library = library;
+        QuestionToken = questionToken;
+    }
+
+    /// <inheritdoc/>
+    public override SyntaxKind Kind => SyntaxKind.ImportStatement;
+    /// <inheritdoc/>
+    public override TextSpan Span => TextSpan.FromBounds(
+        CanToken.Position,
+        QuestionToken?.Span.End ?? Library.Span.End);
 }
 
 /// <summary>GIMMEH &lt;name&gt;</summary>
@@ -717,6 +748,27 @@ public sealed class CastExpressionSyntax : ExpressionSyntax
 
     public override SyntaxKind Kind => SyntaxKind.CastExpression;
     public override TextSpan Span => TextSpan.FromBounds(Keyword.Position, TypeToken.Span.End);
+}
+
+/// <summary><c>I DUZ &lt;expression&gt;</c> system command expression.</summary>
+public sealed class SystemCommandExpressionSyntax : ExpressionSyntax
+{
+    /// <summary>Gets the I token beginning the expression.</summary>
+    public SyntaxToken IToken { get; }
+    /// <summary>Gets the command expression.</summary>
+    public ExpressionSyntax Command { get; }
+
+    /// <summary>Creates a system command expression.</summary>
+    public SystemCommandExpressionSyntax(SyntaxToken iToken, ExpressionSyntax command)
+    {
+        IToken = iToken;
+        Command = command;
+    }
+
+    /// <inheritdoc/>
+    public override SyntaxKind Kind => SyntaxKind.SystemCommandExpression;
+    /// <inheritdoc/>
+    public override TextSpan Span => TextSpan.FromBounds(IToken.Position, Command.Span.End);
 }
 
 /// <summary>I IZ &lt;name&gt; [YR &lt;expr&gt; [AN YR &lt;expr&gt;]*] MKAY</summary>

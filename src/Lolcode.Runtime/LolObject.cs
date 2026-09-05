@@ -7,6 +7,7 @@ public class LolScope
     internal Dictionary<string, object?> Values { get; } = new(StringComparer.Ordinal);
     internal LolScope? Parent { get; }
     internal LolObject? Caller { get; }
+    internal LolResourceTracker Resources { get; }
 
     /// <summary>Gets or sets the implicit IT value for this scope.</summary>
     public object? It { get; set; }
@@ -17,6 +18,7 @@ public class LolScope
     {
         Parent = parent;
         Caller = caller;
+        Resources = parent?.Resources ?? caller?.Resources ?? new LolResourceTracker();
     }
 }
 
@@ -27,8 +29,91 @@ public sealed class LolObject : LolScope
 
     /// <summary>Creates an empty BUKKIT with the supplied prototype and active calling BUKKIT.</summary>
     public LolObject(LolScope? prototype = null, LolObject? caller = null)
-        : base(caller: caller) =>
+        : base(parent: prototype, caller: caller) =>
         Prototype = prototype;
+}
+
+internal sealed class LolResourceTracker
+{
+    private readonly object _gate = new();
+    private readonly HashSet<LolBlob> _resources = new(ReferenceEqualityComparer.Instance);
+    private bool _disposed;
+
+    internal T Register<T>(T resource) where T : LolBlob
+    {
+        lock (_gate)
+        {
+            if (_disposed)
+            {
+                resource.Dispose();
+                throw new ObjectDisposedException(nameof(LolScope));
+            }
+            resource.AttachTracker(this);
+            _resources.Add(resource);
+        }
+        return resource;
+    }
+
+    internal void Unregister(LolBlob resource)
+    {
+        lock (_gate)
+            _resources.Remove(resource);
+    }
+
+    internal void Dispose()
+    {
+        LolBlob[] resources;
+        lock (_gate)
+        {
+            if (_disposed)
+                return;
+            _disposed = true;
+            resources = [.. _resources];
+            _resources.Clear();
+        }
+
+        foreach (LolBlob resource in resources)
+            resource.Dispose();
+    }
+}
+
+/// <summary>
+/// Represents a managed opaque handle returned by a built-in LOLCODE library.
+/// </summary>
+public abstract class LolBlob : IDisposable
+{
+    private int _disposed;
+    private LolResourceTracker? _tracker;
+
+    /// <summary>Gets whether the handle has been closed.</summary>
+    public bool IsClosed => Volatile.Read(ref _disposed) != 0;
+
+    /// <summary>Closes the handle. Repeated calls are safe.</summary>
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) == 0)
+        {
+            LolResourceTracker? tracker = Interlocked.Exchange(ref _tracker, null);
+            tracker?.Unregister(this);
+            DisposeCore();
+        }
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>Releases the managed operating-system resource.</summary>
+    protected abstract void DisposeCore();
+
+    internal void ThrowIfClosed(string operation)
+    {
+        if (IsClosed)
+            throw new LolRuntimeException($"Cannot {operation} a closed BLOB handle");
+    }
+
+    internal void AttachTracker(LolResourceTracker tracker)
+    {
+        if (Interlocked.CompareExchange(ref _tracker, tracker, null) is not null)
+            throw new InvalidOperationException("BLOB handle is already tracked.");
+    }
 }
 
 /// <summary>Incrementally resolves an identifier path in evaluation order.</summary>

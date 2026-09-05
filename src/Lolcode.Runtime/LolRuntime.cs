@@ -1,6 +1,55 @@
 using System.Globalization;
+using System.Reflection;
+using System.Text;
 
 namespace Lolcode.Runtime;
+
+internal sealed record LolByteYarn(byte[] Bytes);
+
+internal static class YarnByteSink
+{
+    internal static void Write(TextWriter writer, byte[] bytes, bool suppressNewline)
+    {
+        if (TryGetStream(writer, out Stream stream))
+        {
+            writer.Flush();
+            stream.Write(bytes);
+            if (!suppressNewline)
+                stream.Write(Encoding.UTF8.GetBytes(writer.NewLine));
+            stream.Flush();
+            return;
+        }
+
+        string text = Encoding.UTF8.GetString(bytes);
+        if (suppressNewline)
+            writer.Write(text);
+        else
+            writer.WriteLine(text);
+    }
+
+    private static bool TryGetStream(TextWriter writer, out Stream stream)
+    {
+        var visited = new HashSet<TextWriter>(ReferenceEqualityComparer.Instance);
+        TextWriter? current = writer;
+        while (current is not null && visited.Add(current))
+        {
+            if (current is StreamWriter streamWriter)
+            {
+                stream = streamWriter.BaseStream;
+                return true;
+            }
+
+            current = current.GetType()
+                .GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
+                .Where(static field => typeof(TextWriter).IsAssignableFrom(field.FieldType))
+                .Select(field => field.GetValue(current) as TextWriter)
+                .FirstOrDefault(static nested => nested is not null);
+        }
+
+        stream = null!;
+        return false;
+    }
+}
 
 /// <summary>
 /// Runtime support library for compiled LOLCODE programs.
@@ -17,6 +66,22 @@ public static class LolRuntime
 
     /// <summary>Creates an empty root namespace.</summary>
     public static LolScope CreateScope() => new();
+
+    /// <summary>Closes all managed BLOB handles created by a program scope.</summary>
+    public static void DisposeScope(LolScope scope) => scope.Resources.Dispose();
+
+    /// <summary>
+    /// Loads a named built-in library into the current scope.
+    /// Unknown names and duplicate imports are ignored.
+    /// </summary>
+    public static void LoadLibrary(LolScope scope, string name)
+    {
+        if (scope.Values.ContainsKey(name))
+            return;
+        LolObject? library = LolLibraries.Create(scope, name);
+        if (library is not null)
+            scope.Values[name] = library;
+    }
 
     /// <summary>Creates a lexical child of an existing namespace.</summary>
     public static LolScope CreateChildScope(LolScope parent) => new(parent, parent.Caller);
@@ -47,8 +112,8 @@ public static class LolRuntime
     }
 
     /// <summary>Resolves an SRS expression to its identifier spelling.</summary>
-    public static string ResolveIdentifierName(object? value) => ExplicitCast(value, "YARN") as string
-        ?? throw new LolRuntimeException("Identifier name is not a YARN");
+    public static string ResolveIdentifierName(object? value) =>
+        CastToYarn(ExplicitCast(value, "YARN"));
 
     /// <summary>Begins resolving an identifier path relative to a captured destination.</summary>
     public static LolIdentifierResolver BeginIdentifierPath(
@@ -463,8 +528,10 @@ public static class LolRuntime
             double d => d != 0.0,
             string s => s.Length > 0,
             YarnLiteral yarn => yarn.Value.Length > 0,
+            LolByteYarn yarn => yarn.Bytes.Length > 0,
             LolObject => throw new LolRuntimeException("Cannot cast BUKKIT to TROOF"),
             LolFunction => throw new LolRuntimeException("Cannot cast function to TROOF"),
+            LolBlob => throw new LolRuntimeException("Cannot cast BLOB to TROOF"),
             _ => true
         };
     }
@@ -482,8 +549,10 @@ public static class LolRuntime
             bool b => b ? 1 : 0,
             string s => ParseNumbrPrefix(s),
             YarnLiteral yarn => ParseNumbrPrefix(ResolveUnicodeEscapes(yarn.Value)),
+            LolByteYarn yarn => ParseNumbrPrefix(System.Text.Encoding.Latin1.GetString(yarn.Bytes)),
             LolObject => throw new LolRuntimeException("Cannot cast BUKKIT to NUMBR"),
             LolFunction => throw new LolRuntimeException("Cannot cast function to NUMBR"),
+            LolBlob => throw new LolRuntimeException("Cannot cast BLOB to NUMBR"),
             _ => 0
         };
     }
@@ -501,8 +570,10 @@ public static class LolRuntime
             bool b => b ? 1.0 : 0.0,
             string s => ParseNumbarPrefix(s),
             YarnLiteral yarn => ParseNumbarPrefix(ResolveUnicodeEscapes(yarn.Value)),
+            LolByteYarn yarn => ParseNumbarPrefix(System.Text.Encoding.Latin1.GetString(yarn.Bytes)),
             LolObject => throw new LolRuntimeException("Cannot cast BUKKIT to NUMBAR"),
             LolFunction => throw new LolRuntimeException("Cannot cast function to NUMBAR"),
+            LolBlob => throw new LolRuntimeException("Cannot cast BLOB to NUMBAR"),
             _ => 0.0
         };
     }
@@ -521,8 +592,10 @@ public static class LolRuntime
             double d => FormatNumbar(d),
             string s => s,
             YarnLiteral yarn => ResolveYarnLiteral(yarn.Value),
+            LolByteYarn yarn => System.Text.Encoding.Latin1.GetString(yarn.Bytes),
             LolObject => throw new LolRuntimeException("Cannot cast BUKKIT to YARN"),
             LolFunction => throw new LolRuntimeException("Cannot cast function to YARN"),
+            LolBlob => throw new LolRuntimeException("Cannot cast BLOB to YARN"),
             _ => value.ToString() ?? ""
         };
     }
@@ -530,21 +603,44 @@ public static class LolRuntime
     /// <summary>Creates a source YARN whose Unicode escapes resolve when the value is used.</summary>
     public static object CreateYarnLiteral(string value) => new YarnLiteral(value);
 
-    /// <summary>Builds a source YARN by resolving its parsed interpolation names in the active scope.</summary>
+    internal static object CreateByteYarn(byte value) => new LolByteYarn([value]);
+
+    internal static byte[] GetYarnBytes(object? value) =>
+        value is LolByteYarn yarn
+            ? yarn.Bytes
+            : Encoding.UTF8.GetBytes(CastToYarn(value));
+
+    internal static byte[] GetExplicitYarnBytes(object? value) =>
+        value is null
+            ? []
+            : value is LolByteYarn yarn
+                ? yarn.Bytes
+                : GetYarnBytes(ExplicitCast(value, "YARN"));
+
+    /// <summary>
+    /// Builds a source YARN by resolving its parsed interpolation names in the active scope.
+    /// This compatibility API represents byte-backed YARNs as Latin-1 text.
+    /// </summary>
     public static string InterpolateYarn(LolScope scope, string[] textParts, string[] names)
+        => CastToYarn(InterpolateYarnValue(scope, textParts, names));
+
+    /// <summary>
+    /// Builds a source YARN while preserving byte-backed interpolated values.
+    /// </summary>
+    public static object InterpolateYarnValue(LolScope scope, string[] textParts, string[] names)
     {
         if (textParts.Length != names.Length + 1)
             throw new ArgumentException("Interpolation text and name counts do not match.");
 
-        var result = new System.Text.StringBuilder();
+        var values = new object?[textParts.Length + names.Length];
         for (int index = 0; index < names.Length; index++)
         {
-            result.Append(ResolveUnicodeEscapes(textParts[index]));
-            object? value = names[index] == "IT" ? scope.It : Lookup(scope, names[index]);
-            result.Append(CastToYarn(value));
+            values[index * 2] = ResolveUnicodeEscapes(textParts[index]);
+            values[(index * 2) + 1] =
+                names[index] == "IT" ? scope.It : Lookup(scope, names[index]);
         }
-        result.Append(ResolveUnicodeEscapes(textParts[^1]));
-        return result.ToString();
+        values[^1] = ResolveUnicodeEscapes(textParts[^1]);
+        return ConcatenateYarns(values);
     }
 
     /// <summary>Resolves Unicode escapes in a source YARN literal.</summary>
@@ -764,6 +860,7 @@ public static class LolRuntime
             "NUMBR" => (object)CastToNumbr(value),
             "NUMBAR" => (object)CastToNumbar(value),
             "YARN" when value is null => string.Empty,
+            "YARN" when value is LolByteYarn => value,
             "YARN" => (object)CastToYarn(value),
             "NOOB" => null,
             _ => throw new InvalidOperationException($"Unknown type: {targetType}")
@@ -786,6 +883,7 @@ public static class LolRuntime
             double => value,
             bool b => b ? 1 : 0,
             YarnLiteral yarn => CoerceToNumeric(ResolveUnicodeEscapes(yarn.Value)),
+            LolByteYarn yarn => CoerceToNumeric(Encoding.Latin1.GetString(yarn.Bytes)),
             string s when s.Contains('.') => double.TryParse(s, CultureInfo.InvariantCulture, out double d)
                 ? (object)d
                 : throw new LolRuntimeException("Cannot cast YARN to numeric: " + s),
@@ -925,6 +1023,9 @@ public static class LolRuntime
         if (a is null && b is null) return true;
         if (a is null || b is null) return false;
 
+        if (IsYarn(a) && IsYarn(b))
+            return GetYarnBytes(a).AsSpan().SequenceEqual(GetYarnBytes(b));
+
         // Same type comparison
         if (a.GetType() == b.GetType())
         {
@@ -952,23 +1053,44 @@ public static class LolRuntime
 
         if (value is null || caseValue is null)
             return value is null && caseValue is null;
+        if (IsYarn(value) && IsYarn(caseValue))
+            return GetYarnBytes(value).AsSpan().SequenceEqual(GetYarnBytes(caseValue));
         return value.GetType() == caseValue.GetType() && value.Equals(caseValue);
     }
 
     private static object? ResolveYarnLiteral(object? value) =>
-        value is YarnLiteral yarn ? ResolveUnicodeEscapes(yarn.Value) : value;
+        value switch
+        {
+            YarnLiteral yarn => ResolveUnicodeEscapes(yarn.Value),
+            _ => value,
+        };
+
+    private static bool IsYarn(object value) => value is string or LolByteYarn;
 
     // ==================== String Operations ====================
 
     /// <summary>
     /// SMOOSH: concatenate all arguments after casting each to YARN.
     /// </summary>
-    public static string Smoosh(params object?[] args)
+    public static string Smoosh(params object?[] args) => CastToYarn(SmooshValue(args));
+
+    /// <summary>SMOOSH preserving the exact bytes of byte-backed YARN operands.</summary>
+    public static object SmooshValue(params object?[] args) => ConcatenateYarns(args);
+
+    private static object ConcatenateYarns(object?[] values)
     {
-        var sb = new System.Text.StringBuilder();
-        foreach (var arg in args)
-            sb.Append(CastToYarn(arg));
-        return sb.ToString();
+        if (!values.Any(static value => value is LolByteYarn))
+        {
+            var text = new StringBuilder();
+            foreach (object? value in values)
+                text.Append(CastToYarn(value));
+            return text.ToString();
+        }
+
+        var bytes = new List<byte>();
+        foreach (object? value in values)
+            bytes.AddRange(GetYarnBytes(value));
+        return new LolByteYarn([.. bytes]);
     }
 
     // ==================== I/O ====================
@@ -976,16 +1098,97 @@ public static class LolRuntime
     /// <summary>
     /// VISIBLE: print arguments concatenated as YARN.
     /// </summary>
-    public static void Print(object?[] args, bool suppressNewline)
+    public static void Print(object?[] args, bool suppressNewline) =>
+        Print(args, suppressNewline, standardError: false);
+
+    /// <summary>
+    /// VISIBLE or INVISIBLE: print arguments concatenated as YARN to the selected stream.
+    /// </summary>
+    public static void Print(object?[] args, bool suppressNewline, bool standardError)
     {
+        TextWriter writer = standardError ? Console.Error : Console.Out;
+        if (args.Any(static arg => arg is LolByteYarn))
+        {
+            byte[] bytes = GetYarnBytes(ConcatenateYarns(args));
+            YarnByteSink.Write(writer, bytes, suppressNewline);
+            return;
+        }
+
         var sb = new System.Text.StringBuilder();
         foreach (var arg in args)
             sb.Append(CastToYarn(arg));
 
         if (suppressNewline)
-            Console.Write(sb.ToString());
+            writer.Write(sb.ToString());
         else
-            Console.WriteLine(sb.ToString());
+            writer.WriteLine(sb.ToString());
+    }
+
+    /// <summary>Executes a command through the host shell and returns standard output as text.</summary>
+    public static string ExecuteSystemCommand(object? command) =>
+        DecodeProcessOutput(GetYarnBytes(ExecuteSystemCommandValue(command)));
+
+    /// <summary>
+    /// Executes a command through the host shell and returns standard output while preserving its bytes.
+    /// </summary>
+    public static object ExecuteSystemCommandValue(object? command)
+    {
+        string commandText = CastToYarn(ExplicitCast(command, "YARN"));
+        bool windows = OperatingSystem.IsWindows();
+        string shell = windows
+            ? Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe"
+            : "/bin/sh";
+        var startInfo = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = shell,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+        };
+        startInfo.ArgumentList.Add(windows ? "/C" : "-c");
+        startInfo.ArgumentList.Add(commandText);
+
+        try
+        {
+            using var process = System.Diagnostics.Process.Start(startInfo)
+                ?? throw new LolRuntimeException($"Unable to launch system shell: {shell}");
+            Task<byte[]> output = ReadAllBytesAsync(process.StandardOutput.BaseStream);
+            Task<byte[]> error = ReadAllBytesAsync(process.StandardError.BaseStream);
+            process.WaitForExit();
+            byte[] outputBytes = output.GetAwaiter().GetResult();
+            byte[] errorBytes = error.GetAwaiter().GetResult();
+            if (errorBytes.Length > 0)
+                YarnByteSink.Write(Console.Error, errorBytes, suppressNewline: true);
+            return new LolByteYarn(outputBytes);
+        }
+        catch (LolRuntimeException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (
+            ex is InvalidOperationException or System.ComponentModel.Win32Exception or
+                IOException or UnauthorizedAccessException)
+        {
+            throw new LolRuntimeException($"Unable to execute system command: {commandText}", ex);
+        }
+    }
+
+    private static async Task<byte[]> ReadAllBytesAsync(Stream stream)
+    {
+        using var result = new MemoryStream();
+        await stream.CopyToAsync(result);
+        return result.ToArray();
+    }
+
+    private static string DecodeProcessOutput(byte[] bytes)
+    {
+        using var stream = new MemoryStream(bytes, writable: false);
+        using var reader = new StreamReader(
+            stream,
+            Encoding.UTF8,
+            detectEncodingFromByteOrderMarks: true);
+        return reader.ReadToEnd();
     }
 
     /// <summary>

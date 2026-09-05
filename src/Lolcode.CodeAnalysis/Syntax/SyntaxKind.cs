@@ -74,6 +74,9 @@ public enum SyntaxKind
     /// <summary>VISIBLE — print statement.</summary>
     VisibleKeyword,
 
+    /// <summary>INVISIBLE — print to standard error.</summary>
+    InvisibleKeyword,
+
     /// <summary>GIMMEH — input statement.</summary>
     GimmehKeyword,
 
@@ -337,6 +340,9 @@ public enum SyntaxKind
     /// <summary>Declaration in a selected namespace.</summary>
     ScopedDeclarationStatement,
 
+    /// <summary>CAN HAS library import statement.</summary>
+    ImportStatement,
+
     // --- Expression node kinds ---
 
     /// <summary>Literal expression (NUMBR, NUMBAR, YARN, WIN, FAIL, NOOB).</summary>
@@ -386,4 +392,7 @@ public enum SyntaxKind
 
     /// <summary>Runtime-resolved identifier or slot access.</summary>
     IdentifierExpression,
+
+    /// <summary>I DUZ system command expression.</summary>
+    SystemCommandExpression,
 }

@@ -68,6 +68,8 @@ internal sealed class Lowerer
                 s.Parent is null ? null : RewriteIdentifier(s.Parent),
                 s.Mixins.Select(RewriteIdentifier).ToImmutableArray(),
                 RewriteBlockStatement(s.Body), s.Syntax),
+            BoundImportStatement s => new BoundImportStatement(
+                RewriteIdentifier(s.Library), s.Syntax),
             _ => node,
         };
     }
@@ -90,6 +92,8 @@ internal sealed class Lowerer
             BoundFunctionCallExpression e => RewriteFunctionCallExpression(e),
             BoundIdentifierExpression => node,
             BoundObjectCreationExpression => node,
+            BoundSystemCommandExpression e => new BoundSystemCommandExpression(
+                RewriteExpression(e.Command), e.Syntax),
             _ => node,
         };
     }
@@ -131,7 +135,11 @@ internal sealed class Lowerer
         if (!changed)
             return node;
 
-        return new BoundVisibleStatement(builder.MoveToImmutable(), node.SuppressNewline, syntax: node.Syntax);
+        return new BoundVisibleStatement(
+            builder.MoveToImmutable(),
+            node.SuppressNewline,
+            node.WritesToStandardError,
+            node.Syntax);
     }
 
     private BoundExpressionStatement RewriteExpressionStatement(BoundExpressionStatement node)

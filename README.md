@@ -1,6 +1,8 @@
 # 🐱 dotnet-lolcode
 
-A **LOLCODE 1.2 compiler** written in C# 14 that compiles `.lol` source files to valid .NET IL assemblies, runnable with `dotnet`.
+A **LOLCODE compiler** written in C# 14 that implements the stable 1.2 language
+plus the behavior present in the pinned `lci/future` 1.3/1.4 reference, compiling
+`.lol` source files to valid .NET IL assemblies runnable with `dotnet`.
 
 > HAI 1.2
 > VISIBLE "OH HAI! I CAN HAZ COMPILER!"
@@ -44,7 +46,7 @@ if (!result.Success)
 
 ## Features
 
-- 🐱 **Full LOLCODE 1.2** — variables, types, math, booleans, conditionals, loops, functions, casting, string ops
+- 🐱 **LOLCODE 1.2 + pinned future behavior** — including BUKKIT/SRS, built-in libraries, `INVISIBLE`, and `I DUZ`
 - 🎯 **Compiles to .NET IL** — produces real .NET assemblies (not interpreted)
 - 📦 **MSBuild SDK** — `dotnet build` and `dotnet run` for `.lolproj` projects
 - 🚀 **File-based apps** — `dotnet run --file hello.lol` with no project needed
@@ -181,7 +183,7 @@ dotnet-lolcode/
 │   └── Lolcode.NET.Templates/    # dotnet new template pack
 ├── tests/
 │   ├── Lolcode.CodeAnalysis.Tests/ # Unit tests (lexer, parser, runtime)
-│   └── Lolcode.EndToEnd.Tests/     # End-to-end compiler tests (19 categories)
+│   └── Lolcode.EndToEnd.Tests/     # End-to-end compiler and pinned lci conformance tests
 ├── externals/lci/                # Pinned lci/future conformance baseline
 ├── samples/                      # 16 example programs (basics, programs, games)
 └── docs/                         # Design documents and language spec
@@ -232,6 +234,11 @@ dotnet test --filter "StringTests"
 | Comments | `BTW` (line), `OBTW...TLDR` (block) | ✅ |
 | IT variable | Implicit per-scope variable | ✅ |
 | Line continuation | `...` and `…` | ✅ |
+| BUKKIT and SRS | objects, slots, methods, prototypes, dynamic identifiers | ✅ |
+| Library imports | `CAN HAS STDIO?` (`STDIO`, `SOCKS`, `STDLIB`, `STRING`) | ✅ |
+| Standard error | `INVISIBLE "message"` | ✅ |
+| System commands | `I DUZ <expression>` | ✅ |
+| BRAINZ | README-only pinned-lci claim | ❌ Unsupported |
 | TYPE proposal | Tentative bare-word metatype values | 🚧 Deferred |
 
 ## Documentation

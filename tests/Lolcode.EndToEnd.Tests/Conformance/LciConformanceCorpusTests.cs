@@ -10,7 +10,7 @@ public partial class LciConformanceCorpusTests
     [Fact]
     public void Registered_inventory_is_not_empty()
     {
-        LciConformanceCorpus.Registrations.Should().NotBeEmpty();
+        LciConformanceCorpus.Registrations.Should().HaveCount(325);
     }
 
     [Fact]

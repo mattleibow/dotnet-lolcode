@@ -134,6 +134,13 @@ internal sealed class Lexer
             return new SyntaxToken(SyntaxKind.ExclamationToken, start, "!");
         }
 
+        if (Current == '?')
+        {
+            int start = _position;
+            _position++;
+            return new SyntaxToken(SyntaxKind.QuestionToken, start, "?");
+        }
+
         if (Current == '\'' && Lookahead == 'Z')
         {
             int start = _position;

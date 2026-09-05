@@ -206,9 +206,16 @@ internal sealed class Parser
         if (CheckSequence(SyntaxKind.OKeyword, SyntaxKind.HaiKeyword, SyntaxKind.ImKeyword))
             return FinishStatement(ParseObjectDefinition());
 
+        if (Current.Kind == SyntaxKind.IdentifierToken &&
+            Current.Text == "CAN" &&
+            Peek(1).Kind == SyntaxKind.HasKeyword)
+        {
+            return FinishStatement(ParseImport());
+        }
+
         StatementSyntax? result = Current.Kind switch
         {
-            SyntaxKind.VisibleKeyword => ParseVisible(),
+            SyntaxKind.VisibleKeyword or SyntaxKind.InvisibleKeyword => ParseVisible(),
             SyntaxKind.GimmehKeyword => ParseGimmeh(),
 
             // O RLY?
@@ -417,6 +424,17 @@ internal sealed class Parser
             _diagnostics.ReportVisibleRequiresArgument(TextLocation.FromSpan(_text, keyword.Span));
 
         return new VisibleStatementSyntax(keyword, args.ToImmutable(), suppressNewline);
+    }
+
+    private ImportStatementSyntax ParseImport()
+    {
+        var can = Advance();
+        Match(SyntaxKind.HasKeyword);
+        var library = ParseIdentifier();
+        SyntaxToken? question = null;
+        if (Current.Kind == SyntaxKind.QuestionToken)
+            question = Advance();
+        return new ImportStatementSyntax(can, library, question);
     }
 
     private GimmehStatementSyntax ParseGimmeh()
@@ -671,6 +689,8 @@ internal sealed class Parser
     {
         return Current.Kind switch
         {
+            SyntaxKind.IKeyword when CheckText(1, "DUZ") => ParseSystemCommandExpression(),
+
             // SUM OF, DIFF OF, PRODUKT OF, QUOSHUNT OF, MOD OF, BIGGR OF, SMALLR OF
             SyntaxKind.SumKeyword or SyntaxKind.DiffKeyword or SyntaxKind.ProduktKeyword or
             SyntaxKind.QuoshuntKeyword or SyntaxKind.ModKeyword or SyntaxKind.BiggrKeyword or
@@ -715,6 +735,13 @@ internal sealed class Parser
             // Literals and variables
             _ => ParsePrimary(),
         };
+    }
+
+    private SystemCommandExpressionSyntax ParseSystemCommandExpression()
+    {
+        var i = Advance();
+        MatchIdentifier("DUZ");
+        return new SystemCommandExpressionSyntax(i, ParseExpression());
     }
 
     private ExpressionSyntax ParseBinaryExpression()

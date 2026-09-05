@@ -26,9 +26,9 @@ stale grammar comments, or README-only claims are language rules.
 ## Current Compiler Target
 
 `dotnet-lolcode` implements the 1.2 stable profile plus the pinned `lci/future`
-1.3 object and indirect-identifier behavior. It requires and retains one token
-after `HAI`, matching pinned `lci`; `HAI 1.3` enables runtime name resolution
-where static resolution is not possible.
+1.3 object/indirect-identifier behavior and implemented 1.4 behavior. It requires
+and retains one token after `HAI`, matching pinned `lci`; `HAI 1.3` and `HAI 1.4`
+enable runtime name resolution where static resolution is not possible.
 
 | Area | Support | Notes |
 |---|---:|---|
@@ -39,7 +39,7 @@ where static resolution is not possible.
 | TYPE runtime values | No | Bare type words remain syntax, not first-class values |
 | BUKKIT | Yes | Runtime namespaces with prototype lookup, methods, `ME`, alternate definitions, and mixin copying |
 | SRS and 1.3 object features | Yes | Runtime-resolved variable, function, object, parameter, and slot identifiers |
-| 1.4 libraries, `INVISIBLE`, `I DUZ`, and `HAS AN` | No | Recorded only in the reference-implementation delta |
+| 1.4 libraries, `INVISIBLE`, `I DUZ`, and `HAS AN` | Yes | Matches the pinned implementation; README-only BRAINZ remains unsupported |
 
 ## .NET Value Representation
 
@@ -51,11 +51,12 @@ select them dynamically.
 |---|---|
 | `NUMBR` | `System.Int32` |
 | `NUMBAR` | `System.Double` |
-| `YARN` | `System.String`; source literals with deferred Unicode escapes use an internal runtime wrapper until string use |
+| `YARN` | `System.String`; internal wrappers preserve deferred source escapes or exact byte sequences from libraries and commands |
 | `TROOF` | `System.Boolean` |
 | `NOOB` | `null` |
 | `BUKKIT` | `LolObject`, with an ordinal slot dictionary and prototype reference |
 | function | `LolFunction`, containing arity and an emitted .NET delegate |
+| `BLOB` | `LolBlob`, an opaque managed owner around a file or TCP socket resource |
 
 TYPE has no runtime representation. Type words accepted after `MAEK`, `IS NOW A`,
 or `ITZ A` are parser tokens, not first-class values.
@@ -145,27 +146,69 @@ The draft's `omgwtf`/`izmakin` prose is not exercised or implemented by pinned
 `lci`; its references to undefined `canhas` remain ambiguous rather than being
 given invented behavior.
 
+## Implemented 1.4 Runtime Policy
+
+`CAN HAS` installs `STDIO`, `SOCKS`, `STDLIB`, or `STRING` as a BUKKIT in the
+current scope. Both `I IZ LIBRARY'Z SLOT ...` and `LIBRARY IZ SLOT ...` call
+forms use the ordinary object/function machinery. The optional `?`, direct and
+SRS library names, duplicate imports, and silently ignored unknown names match
+the pinned interpreter. BRAINZ remains unsupported because the pinned tree has
+no loader, binding, or tests for it.
+
+`LolBlob` is deliberately not a source-level type. A program cannot name it in
+a cast or construct one. File streams and sockets are held by managed owners;
+`CLOSE` is idempotent, use after close raises `LolRuntimeException`, and every
+handle is also registered with the program's shared resource tracker and closed
+from a generated `finally` block when `Main` exits. This replaces lci's raw
+pointers and undefined double-close/use-after-close behavior without changing
+successful library calls.
+
+- `STDIO` maps the six C modes to `FileStream`, shares open files sufficiently
+  for lci's repeated-open fixture, encodes ordinary YARNs as UTF-8, and preserves
+  byte-backed YARN data exactly. `OPEN`
+  returns an error-state BLOB rather than throwing for path, mode, permission,
+  or I/O failures; `DIAF` reports failed, faulted, or closed handles. Other
+  operations reject invalid handles explicitly.
+- `SOCKS` uses managed TCP sockets. `ANY` maps to `IPAddress.Any`, name lookup
+  prefers IPv4 to preserve the `localhost` fixture, `GET` maps EOF and receive
+  errors to an empty YARN, and all accepted/connected sockets join the same
+  cleanup tracker. Accept and receive retain lci's blocking behavior.
+- `STDLIB` uses a per-import managed PRNG, avoiding process-global races while
+  preserving bounded values, deterministic reseeding, and `BLOW 0 == 0`.
+- `STRING` indexes UTF-8 encoded bytes. `LEN` is the byte count; `AT` returns an
+  empty YARN out of bounds and otherwise returns a byte-backed YARN. Equality,
+  concatenation, interpolation, file/socket I/O, and process output preserve
+  those bytes until they form ordinary text or reach a byte stream.
+- `INVISIBLE` uses the same infinite-arity conversion and `!` rules as
+  `VISIBLE`, but writes to `Console.Error`.
+- `I DUZ` invokes `cmd.exe /C` on Windows and `/bin/sh -c` elsewhere, drains
+  stdout and stderr without deadlock, preserves stdout as raw YARN bytes
+  (including `""`), forwards stderr bytes unchanged, and raises
+  `LolRuntimeException` when the shell cannot be launched.
+  Shell execution is intentionally unrestricted language behavior; embedders
+  must sandbox untrusted programs and apply their own process, filesystem, and
+  network policy.
+
 ## Future-Version Engineering Notes
 
 These constraints are implementation guidance, not additions to the language deltas:
 
 - 1.3's global/local `IT` statements contradict one another and require a language
   decision beyond pinned `lci`'s per-scope `IT`.
-- A future BLOB representation should own native resources safely rather than expose
-  raw pointers.
-- `I DUZ`, SOCKS, and STDIO expose process, network, and filesystem capabilities and
-  require an explicit security policy before support is considered.
+- `I DUZ`, SOCKS, and STDIO intentionally expose process, network, and filesystem
+  capabilities. The compiler does not claim these APIs are a security boundary.
 
 ## `lci/future` Validation Notes
 
-The pinned interpreter corpus contains 325 registrations. The compiler passes all
-319 registrations that do not require modules. The six remaining registrations
-are the two 1.3 `CAN HAS` uses and four registered 1.4 library bindings; built-in
-libraries are deliberately deferred. The pinned interpreter was built with a
-Python-3-compatible equivalent of the upstream Python-2-era test driver. Direct probes
-were added for behavior not covered by that corpus, including TYPE rejection, loop
-ordering, custom loop functions, NUMBAR truncation, invalid numeric casts, optional
-`CAN HAS` punctuation, alternate library calls, and the nonfunctional BRAINZ claim.
+The pinned interpreter corpus contains 325 registrations and the compiler runs
+all 325 unconditionally with no skip manifest. Three source fixtures omitted
+from upstream CMake registration are also run: the seeded and unseeded STDLIB
+programs use portable range/reseeding assertions, and the SOCKS accept program
+uses a bounded coordinated client. Direct probes cover behavior not represented
+by exact-output registrations, including TYPE rejection, loop ordering, custom
+loop functions, NUMBAR truncation, invalid numeric casts, every library slot,
+optional `CAN HAS` punctuation, alternate library calls, `INVISIBLE`, `I DUZ`,
+safe handle cleanup, and the nonfunctional BRAINZ claim.
 
 The February 2026 `lci` changes mostly fix safety and edge cases. They do not establish
 a new formal language version. BRAINZ exists only in README text at the pinned commit

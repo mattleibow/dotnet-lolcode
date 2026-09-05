@@ -58,6 +58,9 @@ internal sealed class CodeGenerator
 
     // Runtime method references
     private MethodInfo _printMethod = null!;
+    private MethodInfo _loadLibraryMethod = null!;
+    private MethodInfo _executeSystemCommandMethod = null!;
+    private MethodInfo _disposeScopeMethod = null!;
     private MethodInfo _writeByteOrderMarkMethod = null!;
     private MethodInfo _createYarnLiteralMethod = null!;
     private MethodInfo _interpolateYarnMethod = null!;
@@ -227,10 +230,13 @@ internal sealed class CodeGenerator
         _il.Emit(OpCodes.Ldnull);
         _il.Emit(OpCodes.Stloc, mainIt);
 
+        _il.BeginExceptionBlock();
         foreach (var statement in _boundTree.Statements)
-        {
             EmitStatement(statement);
-        }
+        _il.BeginFinallyBlock();
+        _il.Emit(OpCodes.Ldloc, _scopeLocal);
+        _il.Emit(OpCodes.Call, _disposeScopeMethod);
+        _il.EndExceptionBlock();
 
         _il.EndScope();
         _il.Emit(OpCodes.Ret);
@@ -338,10 +344,15 @@ internal sealed class CodeGenerator
 
     private void ResolveRuntimeMethods(Type runtimeType)
     {
-        _printMethod = runtimeType.GetMethod("Print")!;
+        _printMethod = runtimeType.GetMethod(
+            "Print",
+            [typeof(object[]), typeof(bool), typeof(bool)])!;
+        _loadLibraryMethod = runtimeType.GetMethod("LoadLibrary")!;
+        _executeSystemCommandMethod = runtimeType.GetMethod("ExecuteSystemCommandValue")!;
+        _disposeScopeMethod = runtimeType.GetMethod("DisposeScope")!;
         _writeByteOrderMarkMethod = runtimeType.GetMethod("WriteByteOrderMark")!;
         _createYarnLiteralMethod = runtimeType.GetMethod("CreateYarnLiteral")!;
-        _interpolateYarnMethod = runtimeType.GetMethod("InterpolateYarn")!;
+        _interpolateYarnMethod = runtimeType.GetMethod("InterpolateYarnValue")!;
         _readLineMethod = runtimeType.GetMethod("ReadLine")!;
         _addMethod = runtimeType.GetMethod("Add")!;
         _subtractMethod = runtimeType.GetMethod("Subtract")!;
@@ -357,7 +368,7 @@ internal sealed class CodeGenerator
         _bothSaemMethod = runtimeType.GetMethod("BothSaem")!;
         _switchCaseMatchesMethod = runtimeType.GetMethod("SwitchCaseMatches")!;
         _diffrintMethod = runtimeType.GetMethod("Diffrint")!;
-        _smooshMethod = runtimeType.GetMethod("Smoosh")!;
+        _smooshMethod = runtimeType.GetMethod("SmooshValue")!;
         _isTruthyMethod = runtimeType.GetMethod("IsTruthy")!;
         _castToYarnMethod = runtimeType.GetMethod("CastToYarn")!;
         _castToNumbrMethod = runtimeType.GetMethod("CastToNumbr")!;
@@ -555,6 +566,10 @@ internal sealed class CodeGenerator
                 EmitSequencePoint(s);
                 EmitFunctionDeclaration(s);
                 break;
+            case BoundImportStatement s:
+                EmitSequencePoint(s);
+                EmitImport(s);
+                break;
         }
     }
 
@@ -705,7 +720,23 @@ internal sealed class CodeGenerator
         }
 
         _il.Emit(visible.SuppressNewline ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
+        _il.Emit(visible.WritesToStandardError ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
         _il.Emit(OpCodes.Call, _printMethod);
+    }
+
+    private void EmitImport(BoundImportStatement import)
+    {
+        _il.Emit(OpCodes.Ldloc, _scopeLocal);
+        if (import.Library.DirectName is { } directName)
+        {
+            _il.Emit(OpCodes.Ldstr, directName);
+        }
+        else
+        {
+            EmitExpression(import.Library.DynamicName!);
+            _il.Emit(OpCodes.Call, _resolveIdentifierNameMethod);
+        }
+        _il.Emit(OpCodes.Call, _loadLibraryMethod);
     }
 
     private void EmitGimmeh(BoundGimmehStatement gimmeh)
@@ -1043,6 +1074,10 @@ internal sealed class CodeGenerator
                 break;
             case BoundObjectCreationExpression e:
                 EmitObjectCreation(e);
+                break;
+            case BoundSystemCommandExpression e:
+                EmitExpression(e.Command);
+                _il.Emit(OpCodes.Call, _executeSystemCommandMethod);
                 break;
         }
     }

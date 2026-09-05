@@ -49,6 +49,7 @@ internal enum BoundKind
     ScopedDeclaration,
     IdentifierAssignment,
     ObjectDefinition,
+    ImportStatement,
 
     // Expressions
     LiteralExpression,
@@ -65,6 +66,7 @@ internal enum BoundKind
     ItExpression,
     IdentifierExpression,
     ObjectCreationExpression,
+    SystemCommandExpression,
 }
 
 // ============ Bound Statements ============
@@ -117,13 +119,28 @@ internal sealed class BoundVisibleStatement : BoundStatement
 {
     public ImmutableArray<BoundExpression> Arguments { get; }
     public bool SuppressNewline { get; }
-    public BoundVisibleStatement(ImmutableArray<BoundExpression> arguments, bool suppressNewline, SyntaxNode? syntax = null)
+    public bool WritesToStandardError { get; }
+    public BoundVisibleStatement(
+        ImmutableArray<BoundExpression> arguments,
+        bool suppressNewline,
+        bool writesToStandardError = false,
+        SyntaxNode? syntax = null)
         : base(syntax)
     {
         Arguments = arguments;
         SuppressNewline = suppressNewline;
+        WritesToStandardError = writesToStandardError;
     }
     public override BoundKind Kind => BoundKind.VisibleStatement;
+}
+
+/// <summary>Imports a built-in library selected by an identifier name.</summary>
+internal sealed class BoundImportStatement : BoundStatement
+{
+    public BoundIdentifier Library { get; }
+    public BoundImportStatement(BoundIdentifier library, SyntaxNode? syntax = null)
+        : base(syntax) => Library = library;
+    public override BoundKind Kind => BoundKind.ImportStatement;
 }
 
 /// <summary>GIMMEH statement.</summary>
@@ -557,7 +574,17 @@ internal sealed class BoundObjectCreationExpression : BoundExpression
             Parent = parent;
             Mixins = mixins;
         }
+
         public override BoundKind Kind => BoundKind.ObjectCreationExpression;
+}
+
+/// <summary>Executes a system command and captures its standard output.</summary>
+internal sealed class BoundSystemCommandExpression : BoundExpression
+{
+    public BoundExpression Command { get; }
+    public BoundSystemCommandExpression(BoundExpression command, SyntaxNode? syntax = null)
+        : base(syntax) => Command = command;
+    public override BoundKind Kind => BoundKind.SystemCommandExpression;
 }
 
 /// <summary>IT implicit variable reference.</summary>
