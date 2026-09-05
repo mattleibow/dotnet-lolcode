@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Lolcode.EndToEnd.Tests;
 
 /// <summary>End-to-end coverage for pinned lci/future language behavior.</summary>
@@ -132,7 +134,10 @@ public class FutureFeatureTests : EndToEndTestBase
 
         result.ExitCode.Should().Be(0);
         result.StandardOutputBytes.Should().Equal(
-            "2\nsame\ndifferent\ncast\nswitch\né\né\n"u8.ToArray());
+            Encoding.UTF8.GetBytes(
+                $"2{Environment.NewLine}same{Environment.NewLine}different{Environment.NewLine}" +
+                $"cast{Environment.NewLine}switch{Environment.NewLine}é{Environment.NewLine}" +
+                $"é{Environment.NewLine}"));
         File.ReadAllBytes(Path.Combine(TestDirectory, "selected.dat")).Should().Equal(0xC3);
     }
 
@@ -243,7 +248,8 @@ public class FutureFeatureTests : EndToEndTestBase
             """);
 
         result.ExitCode.Should().Be(0);
-        result.StandardOutputBytes.Should().Equal([0x31, 0x0A, 0xC3]);
+        result.StandardOutputBytes.Should().Equal(
+            [.. Encoding.UTF8.GetBytes($"1{Environment.NewLine}"), 0xC3]);
         result.StandardErrorBytes.Should().BeEmpty();
     }
 
@@ -302,12 +308,12 @@ public class FutureFeatureTests : EndToEndTestBase
 
     private static string GetFileOutputCommand(string fileName) =>
         OperatingSystem.IsWindows()
-            ? $"type \"{fileName}\""
+            ? $"type {fileName}"
             : $"cat '{fileName}'";
 
     private static string GetFileErrorCommand(string fileName) =>
         OperatingSystem.IsWindows()
-            ? $"type \"{fileName}\" 1>&2"
+            ? $"type {fileName} 1>&2"
             : $"cat '{fileName}' >&2";
 
     private static string EscapeYarn(string value) =>

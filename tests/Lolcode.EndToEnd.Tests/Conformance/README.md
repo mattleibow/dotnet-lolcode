@@ -18,7 +18,7 @@ upstream's `AddLolTest.cmake`:
 | first positional value | Upstream CTest display name |
 | `LOLCODE <path>` | Source file; defaults to `test.lol` |
 | `INPUT <path>` | Standard input fixture |
-| `OUTPUT <path>` | Exact standard output fixture |
+| `OUTPUT <path>` | Standard output fixture, with CRLF canonicalized to LF |
 | `ERROR` | Requires a nonzero result |
 | `CWD` | Runs with the fixture directory as the working directory |
 
@@ -36,7 +36,9 @@ empty registration inventory.
 The .NET runner reproduces the semantics of upstream's CMake/Python driver
 without invoking Python, CMake, or the `lci` executable:
 
-- `OUTPUT` compares exact standard output.
+- `OUTPUT` compares standard output exactly after canonicalizing CRLF to LF on
+  both sides. This avoids Git checkout conversion and host newline conventions
+  changing the result while preserving every other character.
 - `ERROR` checks only for a nonzero result. This matches upstream; its
   `test.err` fixtures are retained but are not asserted by `testDriver.py`.
 - Full relative paths avoid the 37 groups of duplicate short CTest names.

@@ -69,7 +69,8 @@ public class LciConformanceTests : IDisposable
             0,
             $"stderr was:{Environment.NewLine}{processResult.StandardError}");
         string expectedOutput = ReadUtf8PreservingBom(test.ExpectedOutputPath!);
-        processResult.StandardOutput.Should().Be(expectedOutput);
+        NormalizeLineEndings(processResult.StandardOutput)
+            .Should().Be(NormalizeLineEndings(expectedOutput));
     }
 
     public void Dispose()
@@ -87,6 +88,9 @@ public class LciConformanceTests : IDisposable
     private static string ReadUtf8PreservingBom(string path)
         => new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true)
             .GetString(File.ReadAllBytes(path));
+
+    private static string NormalizeLineEndings(string value) =>
+        value.Replace("\r\n", "\n", StringComparison.Ordinal);
 
     private static async Task<ProcessResult> RunAsync(
         string assemblyPath,
