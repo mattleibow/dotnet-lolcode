@@ -34,6 +34,12 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
     public string OutputType { get; set; } = "Exe";
 
     /// <summary>
+    /// Fully qualified CLR type name for a library's LOLCODE export container.
+    /// Ignored for executable output.
+    /// </summary>
+    public string LolcodeLibraryTypeName { get; set; } = "";
+
+    /// <summary>
     /// When true, skip actual compilation (design-time builds).
     /// Visual Studio calls this during design-time to gather metadata without compiling.
     /// </summary>
@@ -87,7 +93,12 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
 
             // Compile
             var compilation = LolcodeCompilation.Create(trees);
-            var result = compilation.Emit(outputPath, RuntimeAssemblyPath);
+            var result = compilation.Emit(
+                outputPath,
+                RuntimeAssemblyPath,
+                ReferencePath.Select(reference => reference.ItemSpec),
+                OutputType,
+                LolcodeLibraryTypeName);
 
             // Report diagnostics in MSBuild format
             foreach (var diagnostic in result.Diagnostics)

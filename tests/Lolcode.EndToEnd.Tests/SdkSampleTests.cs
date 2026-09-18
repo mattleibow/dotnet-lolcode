@@ -96,19 +96,42 @@ public class SdkSampleTests
     [Fact]
     public void ProjectBasedSample_Runs_CorrectOutput()
     {
-        var projectFiles = Directory
-            .EnumerateFiles(Path.Combine(RepoRoot, "samples"), "*.lolproj", SearchOption.AllDirectories)
-            .ToArray();
-        projectFiles.Should().ContainSingle("only the dedicated project-based sample should use a .lolproj");
+        string projectFile = Path.Combine(
+            RepoRoot,
+            "samples",
+            "project-based",
+            "hello-world",
+            "hello-world.lolproj");
 
         var (exitCode, stdout, stderr) = RunDotnet(
-            $"run --project \"{projectFiles[0]}\"",
+            $"run --project \"{projectFile}\"",
             RepoRoot);
 
         exitCode.Should().Be(0, $"dotnet run --project failed:\n{stderr}");
 
         var output = stdout.Replace("\r\n", "\n").TrimEnd('\n');
         output.Should().Be("HAI WORLD FROM A LOLPROJ!");
+    }
+
+    [Fact]
+    public void CSharpHeadLolcodeLibrarySample_Runs_CorrectOutput()
+    {
+        string projectFile = Path.Combine(
+            RepoRoot,
+            "samples",
+            "project-based",
+            "csharp-head-lolcode-library",
+            "CSharpHead",
+            "CSharpHead.csproj");
+
+        var (exitCode, stdout, stderr) = RunDotnet(
+            $"run --project \"{projectFile}\"",
+            RepoRoot);
+
+        exitCode.Should().Be(0, $"dotnet run --project failed:\n{stderr}");
+
+        var output = stdout.Replace("\r\n", "\n").TrimEnd('\n');
+        output.Should().Be("HAI DOTNET, U CAN HAZ 3 CHEEZBURGERZ!");
     }
 
     [Fact]

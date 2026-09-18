@@ -83,6 +83,14 @@ that traditional `.lolproj` applications remain supported:
 dotnet run --project samples/project-based/hello-world/hello-world.lolproj
 ```
 
+The [C# head with a LOLCODE library](project-based/csharp-head-lolcode-library/)
+sample shows a normal C# `ProjectReference` consuming the public static
+`InteropSamples.LolcatExports` API emitted by a LOLCODE class library:
+
+```bash
+dotnet run --project samples/project-based/csharp-head-lolcode-library/CSharpHead/CSharpHead.csproj
+```
+
 ## Local Development
 
 The `#:sdk Lolcode.NET.Sdk@0.2.0` directive restores the SDK's MSBuild props and

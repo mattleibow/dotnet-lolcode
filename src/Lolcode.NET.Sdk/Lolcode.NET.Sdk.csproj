@@ -33,6 +33,7 @@
     <Content Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Build.deps.json" PackagePath="tools\net10.0\" />
     <Content Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.CodeAnalysis.dll" PackagePath="tools\net10.0\" />
     <Content Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Runtime.dll" PackagePath="tools\net10.0\" />
+    <Content Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\System.Reflection.MetadataLoadContext.dll" PackagePath="tools\net10.0\" />
   </ItemGroup>
 
   <!-- Ensure dependencies are built first -->
