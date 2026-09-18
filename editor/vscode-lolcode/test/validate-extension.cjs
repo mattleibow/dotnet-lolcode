@@ -1,5 +1,5 @@
 const assert = require("node:assert/strict");
-const { readFileSync } = require("node:fs");
+const { existsSync, readFileSync } = require("node:fs");
 const { join } = require("node:path");
 const test = require("node:test");
 
@@ -26,6 +26,12 @@ test("contributes the LOLCODE language and grammar", () => {
     url: "https://github.com/mattleibow/dotnet-lolcode.git",
     directory: "editor/vscode-lolcode",
   });
+  assert.equal(manifest.icon, "assets/lolcode-icon.png");
+  assert.deepEqual(manifest.galleryBanner, {
+    color: "#1f2937",
+    theme: "dark",
+  });
+  assert.equal(manifest.pricing, "Free");
   assert.deepEqual(manifest.activationEvents, ["onCommand:lolcode.installTemplates"]);
   assert.deepEqual(manifest.contributes.snippets, [{
     language: "lolcode",
@@ -35,6 +41,24 @@ test("contributes the LOLCODE language and grammar", () => {
     command: "lolcode.installTemplates",
     title: "LOLCODE: Install .NET Templates",
   }]);
+});
+
+test("includes Marketplace listing assets", () => {
+  for (const path of [
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "assets/lolcode-icon.png",
+    ".vscodeignore",
+  ])
+    assert.ok(existsSync(join(root, path)), `missing ${path}`);
+
+  const icon = readFileSync(join(root, "assets/lolcode-icon.png"));
+  assert.deepEqual(icon.subarray(0, 8), Buffer.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+  ]));
+  assert.equal(icon.readUInt32BE(16), 256);
+  assert.equal(icon.readUInt32BE(20), 256);
 });
 
 test("snippets provide common LOLCODE authoring forms", () => {

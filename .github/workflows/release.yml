@@ -50,11 +50,17 @@ jobs:
           npm test
           npx @vscode/vsce package --no-dependencies --out ../../artifacts/vscode-lolcode-${{ steps.version.outputs.version }}.vsix
 
+      - name: Log in to NuGet.org with OIDC
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
       - name: Push to NuGet.org
         run: |
           for pkg in artifacts/*.nupkg; do
             echo "📤 Pushing $(basename $pkg)..."
-            dotnet nuget push "$pkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+            dotnet nuget push "$pkg" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
           done
 
       - name: Publish to Visual Studio Marketplace

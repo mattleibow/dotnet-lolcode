@@ -6,6 +6,13 @@
   "publisher": "mattleibow",
   "main": "./extension.js",
   "license": "MIT",
+  "icon": "assets/lolcode-icon.png",
+  "galleryBanner": {
+    "color": "#1f2937",
+    "theme": "dark"
+  },
+  "pricing": "Free",
+  "homepage": "https://github.com/mattleibow/dotnet-lolcode/tree/main/editor/vscode-lolcode",
   "repository": {
     "type": "git",
     "url": "https://github.com/mattleibow/dotnet-lolcode.git",
@@ -19,7 +26,11 @@
   ],
   "keywords": [
     "lolcode",
-    "syntax highlighting"
+    "syntax highlighting",
+    "textmate",
+    "dotnet",
+    "compiler",
+    "esolang"
   ],
   "scripts": {
     "test": "node --test ./test/validate-extension.cjs"
