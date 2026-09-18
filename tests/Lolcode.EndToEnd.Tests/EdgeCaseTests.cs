@@ -34,7 +34,7 @@ public class EdgeCaseTests : EndToEndTestBase
 
               BTW Boolean logic
               I HAS A logic ITZ BOTH OF WIN AN truth
-              VISIBLE "Both WIN:: " logic
+              VISIBLE "Both WIN:: " MAEK logic A NUMBR
 
               BTW Comparison
               BOTH SAEM result AN 50
@@ -75,7 +75,7 @@ public class EdgeCaseTests : EndToEndTestBase
 
               VISIBLE "ALL DONE!"
             KTHXBYE
-            """, "OH HAI CEILING CAT\nSum: 30\n42 + 8 = 50\nBoth WIN: WIN\nResult is 50!\nColor is red\nLoop: 0\nLoop: 1\nLoop: 2\nDoubled: 246\nIT is: 50\nALL DONE!");
+            """, "OH HAI CEILING CAT\nSum: 30\n42 + 8 = 50\nBoth WIN: 1\nResult is 50!\nColor is red\nLoop: 0\nLoop: 1\nLoop: 2\nDoubled: 246\nIT is: 50\nALL DONE!");
     }
 
     [Fact]
@@ -167,7 +167,7 @@ public class EdgeCaseTests : EndToEndTestBase
                   VISIBLE "IT in NO WAI:: " IT
               OIC
 
-              VISIBLE "IT after O RLY?:: " IT
+              VISIBLE "IT after O RLY?:: " MAEK IT A NUMBR
 
               BTW IT in loop
               IM IN YR loop UPPIN YR i TIL BOTH SAEM i AN 2
@@ -175,7 +175,7 @@ public class EdgeCaseTests : EndToEndTestBase
                 VISIBLE "IT in loop:: " IT
               IM OUTTA YR loop
 
-              VISIBLE "IT after loop:: " IT
+              VISIBLE "IT after loop:: " MAEK IT A NUMBR
 
               BTW IT in switch
               "apple"
@@ -191,7 +191,7 @@ public class EdgeCaseTests : EndToEndTestBase
 
               VISIBLE "Final IT:: " IT
             KTHXBYE
-            """, "Initial IT: 100\nIT in YA RLY: 200\nIT after O RLY?: 200\nIT in loop: 1000\nIT in loop: 1001\nIT after loop: 1001\nIT in OMG: 777\nFinal IT: 777");
+            """, "Initial IT: 100\nIT in YA RLY: 200\nIT after O RLY?: 1\nIT in loop: 1000\nIT in loop: 1001\nIT after loop: 1\nIT in OMG: 777\nFinal IT: apple");
     }
 
     [Fact]
@@ -209,14 +209,14 @@ public class EdgeCaseTests : EndToEndTestBase
 
               VISIBLE SUMMER
               VISIBLE NOTIFY
-              VISIBLE TRUFFLE
+              VISIBLE MAEK TRUFFLE A NUMBR
               VISIBLE WINNER
               VISIBLE YARN_VALUE
 
               I HAS A result ITZ SUM OF SUMMER AN 50
               VISIBLE result
             KTHXBYE
-            """, "100\nmessage\nWIN\nyou\nstring\n150");
+            """, "100\nmessage\n1\nyou\nstring\n150");
     }
 
     [Fact]

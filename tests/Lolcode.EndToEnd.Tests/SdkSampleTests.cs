@@ -81,6 +81,7 @@ public class SdkSampleTests
             "chess.lol" => "quit\n",
             "tic-tac-toe.lol" => "1\nq\n",
             "calculator.lol" => "quit\n",
+            "truth-machine.lol" => "0\n",
             _ => null,
         };
         var (exitCode, stdout, stderr) = RunDotnet(

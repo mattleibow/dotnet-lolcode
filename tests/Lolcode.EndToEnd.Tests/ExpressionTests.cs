@@ -79,9 +79,9 @@ public class ExpressionTests : EndToEndTestBase
               VISIBLE IT
 
               BOTH SAEM 5 AN 5
-              VISIBLE IT
+              VISIBLE MAEK IT A NUMBR
             KTHXBYE
-            """, "8\n40\nWIN");
+            """, "8\n40\n1");
     }
 
     [Fact]

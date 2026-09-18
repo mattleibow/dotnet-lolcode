@@ -13,7 +13,7 @@ Thank you for your interest in contributing to the LOLCODE .NET compiler! 🐱
 
 ```bash
 # Clone the repo
-git clone https://github.com/mattleibow/dotnet-lolcode.git
+git clone --recurse-submodules https://github.com/mattleibow/dotnet-lolcode.git
 cd dotnet-lolcode
 
 # Build everything
@@ -73,6 +73,7 @@ Tests are split into two projects:
   - Compile LOLCODE source → run the DLL → assert stdout
   - Categories: BasicProgram, Variables, Math, Boolean, Comparison, Casting, Conditional, Loop, Function, String, Switch, Comment, Formatting, IO, Gtfo, Type, Expression, EdgeCase, Error
   - SDK sample build tests (verify all 16 `.lolproj` samples compile)
+  - Every registered test in the pinned `externals/lci` `future` submodule
 
 ### Adding Sample Programs
 
@@ -102,6 +103,7 @@ The `samples/Directory.Build.props` overrides the compiler tools path to point a
 | `src/Lolcode.Build/` | MSBuild task (`Lolc`) for SDK integration |
 | `src/Lolcode.NET.Sdk/` | MSBuild SDK package (Sdk.props, Sdk.targets) |
 | `src/Lolcode.NET.Templates/` | `dotnet new` template pack |
+| `externals/lci/` | Pinned upstream `lci/future` source and conformance fixtures |
 | `tests/` | All test projects |
 | `samples/` | Example LOLCODE programs (basics, programs, games) |
 | `docs/` | Design and specification documents |

@@ -1,6 +1,8 @@
 # 🐱 dotnet-lolcode
 
-A **LOLCODE 1.2 compiler** written in C# 14 that compiles `.lol` source files to valid .NET IL assemblies, runnable with `dotnet`.
+A **LOLCODE compiler** written in C# 14 that implements the stable 1.2 language
+plus the behavior present in the pinned `lci/future` 1.3/1.4 reference, compiling
+`.lol` source files to valid .NET IL assemblies runnable with `dotnet`.
 
 > HAI 1.2
 > VISIBLE "OH HAI! I CAN HAZ COMPILER!"
@@ -44,12 +46,12 @@ if (!result.Success)
 
 ## Features
 
-- 🐱 **Full LOLCODE 1.2** — variables, types, math, booleans, conditionals, loops, functions, casting, string ops
+- 🐱 **LOLCODE 1.2 + pinned future behavior** — including BUKKIT/SRS, built-in libraries, `INVISIBLE`, and `I DUZ`
 - 🎯 **Compiles to .NET IL** — produces real .NET assemblies (not interpreted)
 - 📦 **MSBuild SDK** — `dotnet build` and `dotnet run` for `.lolproj` projects
 - 🚀 **File-based apps** — `dotnet build hello.lol` and `dotnet run --file hello.lol` with no project needed
 - 📊 **Pretty diagnostics** — error messages with source context and line/column info
-- 🧪 **Comprehensive tests** — unit, runtime, end-to-end compiler, and SDK integration coverage
+- 🧪 **Comprehensive tests** — unit, runtime, end-to-end, SDK integration, and upstream `lci` conformance
 
 ## Quick Start
 
@@ -86,7 +88,7 @@ dotnet run
 
 ```bash
 # Clone and build the compiler
-git clone https://github.com/mattleibow/dotnet-lolcode.git
+git clone --recurse-submodules https://github.com/mattleibow/dotnet-lolcode.git
 cd dotnet-lolcode
 dotnet build
 
@@ -181,14 +183,18 @@ dotnet-lolcode/
 │   └── Lolcode.NET.Templates/    # dotnet new template pack
 ├── tests/
 │   ├── Lolcode.CodeAnalysis.Tests/ # Unit tests (lexer, parser, runtime)
-│   └── Lolcode.EndToEnd.Tests/     # End-to-end compiler tests (19 categories)
-├── samples/                      # 18 file-based examples plus one .lolproj example
+│   └── Lolcode.EndToEnd.Tests/     # End-to-end compiler and pinned lci conformance tests
+├── externals/lci/                # Pinned lci/future conformance baseline
+├── samples/                      # 22 file-based examples plus one .lolproj example
 └── docs/                         # Design documents and language spec
 ```
 
 ## Running Tests
 
 ```bash
+# Initialize the upstream conformance corpus after a non-recursive clone
+git submodule update --init --recursive
+
 # Run all tests
 dotnet test
 
@@ -228,14 +234,22 @@ dotnet test --filter "StringTests"
 | Comments | `BTW` (line), `OBTW...TLDR` (block) | ✅ |
 | IT variable | Implicit per-scope variable | ✅ |
 | Line continuation | `...` and `…` | ✅ |
-| TYPE type | Bare word type values | 🚧 Deferred |
+| BUKKIT and SRS | objects, slots, methods, prototypes, dynamic identifiers | ✅ |
+| Library imports | `CAN HAS STDIO?` (`STDIO`, `SOCKS`, `STDLIB`, `STRING`) | ✅ |
+| Standard error | `INVISIBLE "message"` | ✅ |
+| System commands | `I DUZ <expression>` | ✅ |
+| BRAINZ | README-only pinned-lci claim | ❌ Unsupported |
+| TYPE proposal | Tentative bare-word metatype values | 🚧 Deferred |
 
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
 | [Design Document](docs/DESIGN.md) | Architecture, technical decisions, component details |
-| [Language Specification](docs/LANGUAGE_SPEC.md) | Full LOLCODE 1.2 spec as implemented |
+| [Language Specification](docs/LANGUAGE_SPEC.md) | Normative LOLCODE 1.2 stable profile |
+| [Implementation Profile](docs/LANGUAGE_IMPLEMENTATION.md) | .NET mappings, support status, and reference decisions |
+| [1.3 Draft Changes](docs/LANGUAGE_SPEC_1.3_CHANGES.md) | Archived 1.2-to-1.3 proposal delta |
+| [1.4 Reference Changes](docs/LANGUAGE_SPEC_1.4_CHANGES.md) | Pinned `lci/future` implementation delta |
 | [Roadmap](docs/ROADMAP.md) | Build phases and progress tracking |
 | [Contributing](CONTRIBUTING.md) | How to contribute |
 

@@ -33,6 +33,24 @@ public static class DiagnosticDescriptors
         "Invalid escape sequence '{0}'.",
         "Lexer");
 
+    /// <summary>Line continuation is not followed by source on the next physical line.</summary>
+    public static readonly DiagnosticDescriptor InvalidLineContinuation = new(
+        "LOL0005", "Invalid line continuation",
+        "A line continuation must be followed by a non-empty physical line.",
+        "Lexer");
+
+    /// <summary>Multi-line comment starts after code on the same logical line.</summary>
+    public static readonly DiagnosticDescriptor MultilineCommentMustStartOnOwnLine = new(
+        "LOL0006", "Invalid multi-line comment start",
+        "'OBTW' must start on its own logical line.",
+        "Lexer");
+
+    /// <summary>Multi-line comment ends before code on the same logical line.</summary>
+    public static readonly DiagnosticDescriptor MultilineCommentMustEndOnOwnLine = new(
+        "LOL0007", "Invalid multi-line comment end",
+        "'TLDR' must end its logical line.",
+        "Lexer");
+
     // --- Parser ---
 
     /// <summary>Unexpected token encountered during parsing.</summary>
@@ -57,6 +75,18 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor MissingKthxbye = new(
         "LOL1004", "Missing KTHXBYE",
         "Program must end with 'KTHXBYE'.",
+        "Parser");
+
+    /// <summary>Program header omits its required language version.</summary>
+    public static readonly DiagnosticDescriptor MissingVersion = new(
+        "LOL1005", "Missing language version",
+        "'HAI' must be followed by a language version token.",
+        "Parser");
+
+    /// <summary>VISIBLE has no output arguments.</summary>
+    public static readonly DiagnosticDescriptor VisibleRequiresArgument = new(
+        "LOL1006", "VISIBLE requires an argument",
+        "'VISIBLE' requires at least one argument.",
         "Parser");
 
     // --- Binder ---

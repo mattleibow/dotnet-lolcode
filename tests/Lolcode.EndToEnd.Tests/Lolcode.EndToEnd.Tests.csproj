@@ -24,4 +24,16 @@
     <Using Include="FluentAssertions" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="../../externals/lci/COPYING"
+          Link="Conformance/lci/upstream/COPYING"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../externals/lci/cmake/**/*"
+          Link="Conformance/lci/upstream/cmake/%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../externals/lci/test/**/*"
+          Link="Conformance/lci/upstream/test/%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

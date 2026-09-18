@@ -119,11 +119,14 @@ internal sealed class Parser
     {
         var hai = Match(SyntaxKind.HaiKeyword);
 
-        // Optional version number
         SyntaxToken? version = null;
-        if (Current.Kind == SyntaxKind.NumbarLiteralToken || Current.Kind == SyntaxKind.NumbrLiteralToken)
+        if (Current.Kind is not (SyntaxKind.EndOfLineToken or SyntaxKind.EndOfFileToken))
         {
             version = Advance();
+        }
+        else
+        {
+            _diagnostics.ReportMissingVersion(GetCurrentLocation());
         }
 
         ExpectEndOfLine();
@@ -147,7 +150,8 @@ internal sealed class Parser
         bool inOmg = false,
         bool inOmgwtf = false,
         bool inLoop = false,
-        bool inFunction = false)
+        bool inFunction = false,
+        bool inObject = false)
     {
         var statements = ImmutableArray.CreateBuilder<StatementSyntax>();
 
@@ -186,6 +190,9 @@ internal sealed class Parser
             if (inFunction && CheckSequence(SyntaxKind.IfKeyword, SyntaxKind.UKeyword))
                 break;
 
+            if (inObject && Current.Kind == SyntaxKind.KthxKeyword)
+                break;
+
             var statement = ParseStatement();
             if (statement != null)
                 statements.Add(statement);
@@ -196,22 +203,19 @@ internal sealed class Parser
 
     private StatementSyntax? ParseStatement()
     {
+        if (CheckSequence(SyntaxKind.OKeyword, SyntaxKind.HaiKeyword, SyntaxKind.ImKeyword))
+            return FinishStatement(ParseObjectDefinition());
+
+        if (Current.Kind == SyntaxKind.IdentifierToken &&
+            Current.Text == "CAN" &&
+            Peek(1).Kind == SyntaxKind.HasKeyword)
+        {
+            return FinishStatement(ParseImport());
+        }
+
         StatementSyntax? result = Current.Kind switch
         {
-            // I HAS A / I IZ (as statement)
-            SyntaxKind.IKeyword when Peek(1).Kind == SyntaxKind.HasKeyword => ParseVariableDeclaration(),
-            SyntaxKind.IKeyword when Peek(1).Kind == SyntaxKind.IzKeyword => ParseExpressionOrFunctionCallStatement(),
-
-            // Variable assignment: <identifier> R <expr>
-            // Variable cast: <identifier> IS NOW A <type>
-            SyntaxKind.IdentifierToken when Peek(1).Kind == SyntaxKind.RKeyword => ParseAssignment(),
-            SyntaxKind.IdentifierToken when Peek(1).Kind == SyntaxKind.IsKeyword => ParseCastStatement(),
-
-            // IT R <expr> or IT IS NOW A <type>
-            SyntaxKind.ItKeyword when Peek(1).Kind == SyntaxKind.RKeyword => ParseAssignment(),
-            SyntaxKind.ItKeyword when Peek(1).Kind == SyntaxKind.IsKeyword => ParseCastStatement(),
-
-            SyntaxKind.VisibleKeyword => ParseVisible(),
+            SyntaxKind.VisibleKeyword or SyntaxKind.InvisibleKeyword => ParseVisible(),
             SyntaxKind.GimmehKeyword => ParseGimmeh(),
 
             // O RLY?
@@ -231,10 +235,14 @@ internal sealed class Parser
             // FOUND YR
             SyntaxKind.FoundKeyword when Peek(1).Kind == SyntaxKind.YrKeyword => ParseReturn(),
 
-            // BTW comment (should have been filtered by lexer, but handle gracefully)
-            _ => ParseExpressionStatement(),
+            _ => ParseIdentifierLedStatement(),
         };
 
+        return FinishStatement(result);
+    }
+
+    private StatementSyntax? FinishStatement(StatementSyntax? result)
+    {
         // Each statement should end with a newline (or EOF)
         if (result != null && Current.Kind != SyntaxKind.EndOfFileToken)
         {
@@ -245,25 +253,104 @@ internal sealed class Parser
         return result;
     }
 
-    private VariableDeclarationSyntax ParseVariableDeclaration()
+    private StatementSyntax ParseIdentifierLedStatement()
     {
-        Match(SyntaxKind.IKeyword);  // I
-        Match(SyntaxKind.HasKeyword); // HAS
-        Match(SyntaxKind.AKeyword);   // A
+        if (!IsIdentifierStart(Current.Kind))
+            return ParseExpressionStatement();
 
-        var name = Match(SyntaxKind.IdentifierToken);
+        int start = _position;
+        var identifier = ParseIdentifier();
 
-        ExpressionSyntax? initializer = null;
-        if (Current.Kind == SyntaxKind.ItzKeyword)
+        if (Current.Kind == SyntaxKind.HasKeyword)
+            return ParseScopedDeclaration(identifier);
+
+        if (Current.Kind == SyntaxKind.RKeyword)
         {
-            Advance(); // ITZ
-
-            // ITZ A <type> is a special case for typed initialization
-            // For now, treat as expression
-            initializer = ParseExpression();
+            Advance();
+            var expression = ParseExpression();
+            if (identifier.DirectToken is { } direct && identifier.Slot is null)
+                return new AssignmentStatementSyntax(direct, expression);
+            return new IdentifierAssignmentSyntax(identifier, expression);
         }
 
-        return new VariableDeclarationSyntax(name, initializer);
+        if (Current.Kind == SyntaxKind.IsKeyword)
+        {
+            _position = start;
+            return ParseCastStatement();
+        }
+
+        _position = start;
+        return ParseExpressionStatement();
+    }
+
+    private StatementSyntax ParseScopedDeclaration(IdentifierSyntax scope)
+    {
+        Match(SyntaxKind.HasKeyword);
+        if (Current.Kind is SyntaxKind.AKeyword or SyntaxKind.AnKeyword)
+            Advance();
+        else if (Current.Kind != SyntaxKind.SrsKeyword)
+            _diagnostics.ReportExpectedToken(GetCurrentLocation(), "A or AN");
+
+        var name = ParseIdentifier();
+        var initializer = ParseOptionalInitializer();
+        if (scope.DirectToken?.Text == "I" && scope.Slot is null &&
+            name.DirectToken is { } direct && name.Slot is null)
+            return new VariableDeclarationSyntax(direct, initializer);
+        return new ScopedDeclarationSyntax(scope, name, initializer);
+    }
+
+    private ExpressionSyntax? ParseOptionalInitializer()
+    {
+        if (Current.Kind != SyntaxKind.ItzKeyword)
+            return null;
+
+        Advance();
+        if (Current.Kind == SyntaxKind.LiekKeyword)
+        {
+            var start = Advance();
+            if (Current.Kind == SyntaxKind.AKeyword)
+                Advance();
+            var parent = ParseIdentifier();
+            return ParseObjectCreationTail(start, parent);
+        }
+
+        if (Current.Kind == SyntaxKind.AKeyword && Peek(1).Kind == SyntaxKind.BukkitKeyword)
+        {
+            var start = Advance();
+            Advance();
+            return ParseObjectCreationTail(start, parent: null);
+        }
+
+        if (Current.Kind == SyntaxKind.AKeyword && IsIdentifierStart(Peek(1).Kind))
+        {
+            var start = Advance();
+            var parent = ParseIdentifier();
+            return ParseObjectCreationTail(start, parent);
+        }
+
+        if (Current.Kind == SyntaxKind.AKeyword && SyntaxFacts.IsTypeKeyword(Peek(1).Kind))
+        {
+            var a = Advance();
+            return new TypeDefaultExpressionSyntax(a, ParseTypeKeyword());
+        }
+
+        return ParseExpression();
+    }
+
+    private ObjectCreationExpressionSyntax ParseObjectCreationTail(SyntaxToken start, IdentifierSyntax? parent)
+    {
+        var mixins = ImmutableArray.CreateBuilder<IdentifierSyntax>();
+        if (Current.Kind == SyntaxKind.SmooshKeyword)
+        {
+            Advance();
+            mixins.Add(ParseIdentifier());
+            while (Current.Kind == SyntaxKind.AnKeyword)
+            {
+                Advance();
+                mixins.Add(ParseIdentifier());
+            }
+        }
+        return new ObjectCreationExpressionSyntax(start, parent, mixins.ToImmutable());
     }
 
     private AssignmentStatementSyntax ParseAssignment()
@@ -276,12 +363,12 @@ internal sealed class Parser
 
     private CastStatementSyntax ParseCastStatement()
     {
-        var name = Advance(); // identifier or IT
+        var target = ParseIdentifier();
         Match(SyntaxKind.IsKeyword);  // IS
         Match(SyntaxKind.NowKeyword); // NOW
         Match(SyntaxKind.AKeyword);   // A
         var type = ParseTypeKeyword();
-        return new CastStatementSyntax(name, type);
+        return new CastStatementSyntax(target, type);
     }
 
     private SyntaxToken ParseTypeKeyword()
@@ -333,14 +420,28 @@ internal sealed class Parser
             args.Add(ParseExpression());
         }
 
+        if (args.Count == 0)
+            _diagnostics.ReportVisibleRequiresArgument(TextLocation.FromSpan(_text, keyword.Span));
+
         return new VisibleStatementSyntax(keyword, args.ToImmutable(), suppressNewline);
+    }
+
+    private ImportStatementSyntax ParseImport()
+    {
+        var can = Advance();
+        Match(SyntaxKind.HasKeyword);
+        var library = ParseIdentifier();
+        SyntaxToken? question = null;
+        if (Current.Kind == SyntaxKind.QuestionToken)
+            question = Advance();
+        return new ImportStatementSyntax(can, library, question);
     }
 
     private GimmehStatementSyntax ParseGimmeh()
     {
         var keyword = Advance(); // GIMMEH
-        var name = Match(SyntaxKind.IdentifierToken);
-        return new GimmehStatementSyntax(keyword, name);
+        var target = ParseIdentifier();
+        return new GimmehStatementSyntax(keyword, target);
     }
 
     private IfStatementSyntax ParseIf()
@@ -424,24 +525,52 @@ internal sealed class Parser
         Match(SyntaxKind.YrKeyword); // YR
         var label = Match(SyntaxKind.IdentifierToken);
 
-        SyntaxToken? operation = null;
+        SyntaxToken? builtInOperation = null;
+        FunctionCallExpressionSyntax? operationCall = null;
         SyntaxToken? variable = null;
         SyntaxToken? conditionKeyword = null;
         ExpressionSyntax? condition = null;
 
-        // Optional: UPPIN/NERFIN YR <var> [TIL|WILE <expr>]
-        if (Current.Kind == SyntaxKind.UppinKeyword || Current.Kind == SyntaxKind.NerfinKeyword ||
-            Current.Kind == SyntaxKind.IdentifierToken)
+        // Optional: UPPIN/NERFIN YR <var>, or <scope> IZ <name> YR <var> MKAY.
+        if (IsIdentifierStart(Current.Kind))
         {
-            operation = Advance();
+            int start = _position;
+            var scope = ParseIdentifier(terminateBeforeIz: true);
+            if (Current.Kind == SyntaxKind.IzKeyword)
+            {
+                Advance();
+                var identifier = ParseIdentifier();
+                var name = identifier.DirectToken
+                    ?? new SyntaxToken(SyntaxKind.IdentifierToken, identifier.Span.Start, "");
+                Match(SyntaxKind.YrKeyword);
+                variable = Match(SyntaxKind.IdentifierToken);
+                Match(SyntaxKind.MkayKeyword);
+                var argumentIdentifier = new IdentifierSyntax(variable, null, null);
+                operationCall = new FunctionCallExpressionSyntax(
+                    scope,
+                    identifier,
+                    name,
+                    [new IdentifierExpressionSyntax(argumentIdentifier)]);
+            }
+            else
+            {
+                _position = start;
+            }
+        }
+
+        if (operationCall is null &&
+            Current.Kind is SyntaxKind.UppinKeyword or SyntaxKind.NerfinKeyword)
+        {
+            builtInOperation = Advance();
             Match(SyntaxKind.YrKeyword); // YR
             variable = Match(SyntaxKind.IdentifierToken);
+        }
 
-            if (Current.Kind == SyntaxKind.TilKeyword || Current.Kind == SyntaxKind.WileKeyword)
-            {
-                conditionKeyword = Advance();
-                condition = ParseExpression();
-            }
+        if (variable != null &&
+            (Current.Kind == SyntaxKind.TilKeyword || Current.Kind == SyntaxKind.WileKeyword))
+        {
+            conditionKeyword = Advance();
+            condition = ParseExpression();
         }
 
         ExpectEndOfLine();
@@ -454,7 +583,8 @@ internal sealed class Parser
         var endLabel = Match(SyntaxKind.IdentifierToken);
 
         return new LoopStatementSyntax(
-            im, label, operation, variable, conditionKeyword, condition, body, im, endLabel);
+            im, label, builtInOperation, operationCall, variable,
+            conditionKeyword, condition, body, im, endLabel);
     }
 
     private GtfoStatementSyntax ParseGtfo()
@@ -467,22 +597,23 @@ internal sealed class Parser
     {
         Match(SyntaxKind.HowKeyword); // HOW
         Match(SyntaxKind.IzKeyword);  // IZ
-        Match(SyntaxKind.IKeyword);   // I
-
-        var name = Match(SyntaxKind.IdentifierToken);
-        var parameters = ImmutableArray.CreateBuilder<SyntaxToken>();
+        var scope = ParseIdentifier(terminateBeforeIz: true);
+        var identifier = ParseIdentifier();
+        var name = identifier.DirectToken
+            ?? new SyntaxToken(SyntaxKind.IdentifierToken, identifier.Span.Start, "");
+        var parameters = ImmutableArray.CreateBuilder<IdentifierSyntax>();
 
         // Optional parameters: YR <param> [AN YR <param>]*
         if (Current.Kind == SyntaxKind.YrKeyword)
         {
             Advance(); // YR
-            parameters.Add(Match(SyntaxKind.IdentifierToken));
+            parameters.Add(ParseIdentifier());
 
             while (Current.Kind == SyntaxKind.AnKeyword && Peek(1).Kind == SyntaxKind.YrKeyword)
             {
                 Advance(); // AN
                 Advance(); // YR
-                parameters.Add(Match(SyntaxKind.IdentifierToken));
+                parameters.Add(ParseIdentifier());
             }
         }
 
@@ -493,9 +624,40 @@ internal sealed class Parser
         Match(SyntaxKind.IfKeyword);  // IF
         Match(SyntaxKind.UKeyword);   // U
         Match(SyntaxKind.SayKeyword); // SAY
-        Match(SyntaxKind.SoKeyword);  // SO
+        var so = Match(SyntaxKind.SoKeyword);  // SO
 
-        return new FunctionDeclarationSyntax(name, parameters.ToImmutable(), body);
+        return new FunctionDeclarationSyntax(scope, identifier, name, parameters.ToImmutable(), body, so);
+    }
+
+    private ObjectDefinitionSyntax ParseObjectDefinition()
+    {
+        Match(SyntaxKind.OKeyword);
+        Match(SyntaxKind.HaiKeyword);
+        Match(SyntaxKind.ImKeyword);
+        var name = ParseIdentifier();
+        IdentifierSyntax? parent = null;
+        var mixins = ImmutableArray.CreateBuilder<IdentifierSyntax>();
+        if (Current.Kind == SyntaxKind.ImKeyword && Peek(1).Kind == SyntaxKind.LiekKeyword)
+        {
+            Advance();
+            Advance();
+            parent = ParseIdentifier();
+            if (Current.Kind == SyntaxKind.SmooshKeyword)
+            {
+                Advance();
+                mixins.Add(ParseIdentifier());
+                while (Current.Kind == SyntaxKind.AnKeyword)
+                {
+                    Advance();
+                    mixins.Add(ParseIdentifier());
+                }
+            }
+        }
+
+        ExpectEndOfLine();
+        var body = new BlockStatementSyntax(ParseStatements(inObject: true));
+        var end = Match(SyntaxKind.KthxKeyword);
+        return new ObjectDefinitionSyntax(name, parent, mixins.ToImmutable(), body, end);
     }
 
     private ReturnStatementSyntax ParseReturn()
@@ -521,10 +683,14 @@ internal sealed class Parser
     /// <summary>
     /// Parses an expression.
     /// </summary>
-    public ExpressionSyntax ParseExpression()
+    public ExpressionSyntax ParseExpression() => ParseExpressionCore(terminateBeforeIz: false);
+
+    private ExpressionSyntax ParseExpressionCore(bool terminateBeforeIz)
     {
         return Current.Kind switch
         {
+            SyntaxKind.IKeyword when CheckText(1, "DUZ") => ParseSystemCommandExpression(),
+
             // SUM OF, DIFF OF, PRODUKT OF, QUOSHUNT OF, MOD OF, BIGGR OF, SMALLR OF
             SyntaxKind.SumKeyword or SyntaxKind.DiffKeyword or SyntaxKind.ProduktKeyword or
             SyntaxKind.QuoshuntKeyword or SyntaxKind.ModKeyword or SyntaxKind.BiggrKeyword or
@@ -560,15 +726,22 @@ internal sealed class Parser
             // MAEK (cast expression)
             SyntaxKind.MaekKeyword => ParseCastExpression(),
 
-            // I IZ (function call)
-            SyntaxKind.IKeyword when Peek(1).Kind == SyntaxKind.IzKeyword => ParseFunctionCall(),
-
             // IT (implicit variable)
             SyntaxKind.ItKeyword => ParseIt(),
+
+            SyntaxKind.IdentifierToken or SyntaxKind.IKeyword or SyntaxKind.MeKeyword or SyntaxKind.SrsKeyword
+                => ParseIdentifierOrCallExpression(terminateBeforeIz),
 
             // Literals and variables
             _ => ParsePrimary(),
         };
+    }
+
+    private SystemCommandExpressionSyntax ParseSystemCommandExpression()
+    {
+        var i = Advance();
+        MatchIdentifier("DUZ");
+        return new SystemCommandExpressionSyntax(i, ParseExpression());
     }
 
     private ExpressionSyntax ParseBinaryExpression()
@@ -682,10 +855,11 @@ internal sealed class Parser
 
     private ExpressionSyntax ParseFunctionCall()
     {
-        Advance(); // I
-        Advance(); // IZ
-
-        var name = Match(SyntaxKind.IdentifierToken);
+        var scope = ParseIdentifier(terminateBeforeIz: true);
+        Match(SyntaxKind.IzKeyword);
+        var identifier = ParseIdentifier();
+        var name = identifier.DirectToken
+            ?? new SyntaxToken(SyntaxKind.IdentifierToken, identifier.Span.Start, "");
         var args = ImmutableArray.CreateBuilder<ExpressionSyntax>();
 
         // YR <expr> [AN YR <expr>]*
@@ -706,8 +880,97 @@ internal sealed class Parser
         if (Current.Kind == SyntaxKind.MkayKeyword)
             Advance();
 
-        return new FunctionCallExpressionSyntax(name, args.ToImmutable());
+        return new FunctionCallExpressionSyntax(scope, identifier, name, args.ToImmutable());
     }
+
+    private ExpressionSyntax ParseIdentifierOrCallExpression(bool terminateBeforeIz = false)
+    {
+        int start = _position;
+        ParseIdentifier(terminateBeforeIz);
+        bool isCall = Current.Kind == SyntaxKind.IzKeyword &&
+            (!terminateBeforeIz ||
+             CurrentIdentifierStartsCanonicalCallScope(start) ||
+             HasCallTerminatorBeforeEnclosingIz());
+
+        if (!terminateBeforeIz &&
+            !isCall &&
+            HasContextualSrsScopeCandidate(start))
+        {
+            _position = start;
+            ParseIdentifier(terminateBeforeIz: true);
+            isCall = Current.Kind == SyntaxKind.IzKeyword;
+        }
+
+        _position = start;
+        if (isCall)
+            return ParseFunctionCall();
+        return new IdentifierExpressionSyntax(ParseIdentifier(terminateBeforeIz));
+    }
+
+    private bool CurrentIdentifierStartsCanonicalCallScope(int start) =>
+        _tokens[start].Kind is SyntaxKind.IKeyword or SyntaxKind.MeKeyword;
+
+    private bool HasContextualSrsScopeCandidate(int start)
+    {
+        for (int index = start;
+             index + 1 < _tokens.Count &&
+             _tokens[index].Kind is not SyntaxKind.EndOfLineToken and not SyntaxKind.EndOfFileToken;
+             index++)
+        {
+            if (_tokens[index].Kind == SyntaxKind.SrsKeyword &&
+                _tokens[index + 1].Kind is not SyntaxKind.IKeyword and not SyntaxKind.MeKeyword)
+                return true;
+        }
+
+        return false;
+    }
+
+    private IdentifierSyntax ParseIdentifier(bool terminateBeforeIz = false)
+    {
+        SyntaxToken? direct = null;
+        ExpressionSyntax? expression = null;
+        if (Current.Kind == SyntaxKind.SrsKeyword)
+        {
+            Advance();
+            expression = ParseExpressionCore(terminateBeforeIz);
+        }
+        else if (IsIdentifierStart(Current.Kind) && Current.Kind != SyntaxKind.SrsKeyword)
+        {
+            direct = Advance();
+        }
+        else
+        {
+            _diagnostics.ReportExpectedToken(GetCurrentLocation(), "identifier");
+            direct = new SyntaxToken(SyntaxKind.IdentifierToken, Current.Position, "");
+        }
+
+        IdentifierSyntax? slot = null;
+        if (Current.Kind == SyntaxKind.ApostrophezToken)
+        {
+            Advance();
+            slot = ParseIdentifier(terminateBeforeIz);
+        }
+        return new IdentifierSyntax(direct, expression, slot);
+    }
+
+    private bool HasCallTerminatorBeforeEnclosingIz()
+    {
+        for (int index = _position + 1;
+             index + 1 < _tokens.Count &&
+             _tokens[index].Kind is not SyntaxKind.EndOfLineToken and not SyntaxKind.EndOfFileToken;
+             index++)
+        {
+            if (_tokens[index].Kind == SyntaxKind.MkayKeyword &&
+                _tokens[index + 1].Kind == SyntaxKind.IzKeyword)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsIdentifierStart(SyntaxKind kind) => kind is
+        SyntaxKind.IdentifierToken or SyntaxKind.IKeyword or SyntaxKind.ItKeyword or
+        SyntaxKind.MeKeyword or SyntaxKind.SrsKeyword;
 
     private ExpressionSyntax ParseIt()
     {
@@ -751,8 +1014,7 @@ internal sealed class Parser
             }
             case SyntaxKind.IdentifierToken:
             {
-                var token = Advance();
-                return new VariableExpressionSyntax(token);
+                return ParseIdentifierOrCallExpression();
             }
             default:
             {

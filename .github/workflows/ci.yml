@@ -14,6 +14,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -56,6 +58,8 @@ jobs:
     needs: build-and-test
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -65,7 +69,7 @@ jobs:
       - name: Generate CI version
         id: version
         run: |
-          VERSION="0.0.0-ci.$(date -u '+%y%m%d.%H%M%S')"
+          VERSION="0.0.0-ci.$(date -u '+%Y%m%d%H%M%S')"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "📦 CI version: $VERSION"
 

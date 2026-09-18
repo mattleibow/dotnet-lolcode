@@ -16,6 +16,12 @@ public enum ErrorCode
     LOL0003,
     /// <summary>Invalid escape sequence in string.</summary>
     LOL0004,
+    /// <summary>Invalid line continuation.</summary>
+    LOL0005,
+    /// <summary>Multi-line comment must start on its own logical line.</summary>
+    LOL0006,
+    /// <summary>Multi-line comment must end on its own logical line.</summary>
+    LOL0007,
 
     // --- Parser (LOL1xxx) ---
 
@@ -27,6 +33,10 @@ public enum ErrorCode
     LOL1003,
     /// <summary>Missing KTHXBYE.</summary>
     LOL1004,
+    /// <summary>Missing language version after HAI.</summary>
+    LOL1005,
+    /// <summary>VISIBLE requires at least one argument.</summary>
+    LOL1006,
 
     // --- Binder (LOL2xxx) ---
 

@@ -1,0 +1,4 @@
+[submodule "externals/lci"]
+	path = externals/lci
+	url = https://github.com/justinmeza/lci.git
+	branch = future

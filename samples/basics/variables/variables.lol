@@ -18,8 +18,21 @@ HAI 1.2
   VISIBLE "NAME:: " name
   VISIBLE "AGE:: " age
   VISIBLE "WEIGHT:: " weight                BTW prints 4.20 (NUMBAR → YARN = 2 decimal places)
-  VISIBLE "HAPPY:: " happy
-  VISIBLE "MYSTERY:: " mystery
+  BTW TROOF and NOOB do not implicitly cast to YARN, so label them explicitly
+  happy
+  O RLY?
+    YA RLY
+      VISIBLE "HAPPY:: WIN"
+    NO WAI
+      VISIBLE "HAPPY:: FAIL"
+  OIC
+  BOTH SAEM mystery AN NOOB
+  O RLY?
+    YA RLY
+      VISIBLE "MYSTERY:: NOOB"
+    NO WAI
+      VISIBLE "MYSTERY:: NOT NOOB"
+  OIC
 
   BTW reassignment
   age R 10

@@ -194,11 +194,25 @@ KTHXBYE
         };
 
         using var process = Process.Start(psi)!;
-        _ = process.StandardOutput.ReadToEnd();
-        var stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit(10000);
+        Task<string> stdout = process.StandardOutput.ReadToEndAsync();
+        Task<string> stderr = process.StandardError.ReadToEndAsync();
+        int timeoutSeconds = int.TryParse(
+                Environment.GetEnvironmentVariable("LOLCODE_TEST_TIMEOUT_SECONDS"),
+                out int configuredSeconds) &&
+            configuredSeconds > 0
+                ? configuredSeconds
+                : 60;
+        if (!process.WaitForExit(TimeSpan.FromSeconds(timeoutSeconds)))
+        {
+            process.Kill(entireProcessTree: true);
+            process.WaitForExit();
+            Task.WaitAll(stdout, stderr);
+            throw new TimeoutException(
+                $"LOLCODE program did not exit within {timeoutSeconds} seconds.");
+        }
+        Task.WaitAll(stdout, stderr);
 
-        return (process.ExitCode, stderr);
+        return (process.ExitCode, stderr.Result);
     }
 
     // (2) A test that reads the PDB and verifies document presence

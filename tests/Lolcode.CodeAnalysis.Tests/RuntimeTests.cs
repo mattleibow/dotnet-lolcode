@@ -100,8 +100,10 @@ public class RuntimeTests
     // ==================== CastToYarn ====================
 
     [Fact]
-    public void CastToYarn_Null_ReturnsEmpty() =>
-        LolRuntime.CastToYarn(null).Should().Be("");
+    public void CastToYarn_Null_Throws() =>
+        FluentActions.Invoking(() => LolRuntime.CastToYarn(null))
+            .Should().Throw<LolRuntimeException>()
+            .WithMessage("*NOOB*");
 
     [Fact]
     public void CastToYarn_Int_ReturnsString() =>
@@ -111,17 +113,64 @@ public class RuntimeTests
     public void CastToYarn_Double_ReturnsTwoDecimals() =>
         LolRuntime.CastToYarn(3.14159).Should().Be("3.14");
 
+    [Theory]
+    [InlineData(1.239, "1.23")]
+    [InlineData(-1.239, "-1.23")]
+    public void CastToYarn_Double_TruncatesTowardZero(double value, string expected) =>
+        LolRuntime.CastToYarn(value).Should().Be(expected);
+
     [Fact]
     public void CastToYarn_DoubleWhole_ReturnsTwoDecimals() =>
         LolRuntime.CastToYarn(7.0).Should().Be("7.00");
 
     [Fact]
-    public void CastToYarn_True_ReturnsWIN() =>
-        LolRuntime.CastToYarn(true).Should().Be("WIN");
+    public void CastToYarn_True_Throws() =>
+        FluentActions.Invoking(() => LolRuntime.CastToYarn(true))
+            .Should().Throw<LolRuntimeException>()
+            .WithMessage("*TROOF*");
 
     [Fact]
-    public void CastToYarn_False_ReturnsFAIL() =>
-        LolRuntime.CastToYarn(false).Should().Be("FAIL");
+    public void CastToYarn_False_Throws() =>
+        FluentActions.Invoking(() => LolRuntime.CastToYarn(false))
+            .Should().Throw<LolRuntimeException>()
+            .WithMessage("*TROOF*");
+
+    [Fact]
+    public void CastToYarn_UnicodeEscapes_ResolvesAtUseTime() =>
+        LolRuntime.CastToYarn(
+                LolRuntime.CreateYarnLiteral(":[DOLLAR SIGN]:[CENT SIGN]:[EURO SIGN] :(1F600)"))
+            .Should().Be("$\u00A2\u20AC \U0001F600");
+
+    [Fact]
+    public void CastToYarn_InvalidUnicodeCodePoint_ThrowsAtUseTime() =>
+        FluentActions.Invoking(() =>
+                LolRuntime.CastToYarn(LolRuntime.CreateYarnLiteral(":(110000)")))
+            .Should().Throw<LolRuntimeException>()
+            .WithMessage("*Unicode code point*");
+
+    [Fact]
+    public void CastToYarn_InputLikeUnicodeText_RemainsLiteral() =>
+        LolRuntime.CastToYarn(":[ ] x [ ] y").Should().Be(":[ ] x [ ] y");
+
+    [Fact]
+    public void ExplicitCast_NoobToYarn_ReturnsEmptyString() =>
+        LolRuntime.ExplicitCast(null, "YARN").Should().Be(string.Empty);
+
+    [Theory]
+    [InlineData(" 123", 123)]
+    [InlineData("123x", 123)]
+    [InlineData("0377", 255)]
+    [InlineData("0xFF", 255)]
+    [InlineData("-077", -63)]
+    public void CastToNumbr_RelaxedPrefixParsing(string source, int expected) =>
+        LolRuntime.CastToNumbr(source).Should().Be(expected);
+
+    [Theory]
+    [InlineData(" 1.23", 1.23)]
+    [InlineData("1.23x", 1.23)]
+    [InlineData("-2.5e2tail", -250.0)]
+    public void CastToNumbar_RelaxedPrefixParsing(string source, double expected) =>
+        LolRuntime.CastToNumbar(source).Should().Be(expected);
 
     [Fact]
     public void CastToYarn_String_ReturnsSame() =>
@@ -331,16 +380,28 @@ public class RuntimeTests
     // ==================== Division Edge Cases ====================
 
     [Fact]
-    public void Divide_IntByZero_ReturnsZero() =>
-        LolRuntime.Divide(10, 0).Should().Be(0);
+    public void Divide_IntByZero_Throws() =>
+        FluentActions.Invoking(() => LolRuntime.Divide(10, 0))
+            .Should().Throw<LolRuntimeException>()
+            .WithMessage("*zero*");
 
     [Fact]
-    public void Divide_FloatByZero_ReturnsInfinity() =>
-        LolRuntime.Divide(10.0, 0.0).Should().Be(double.PositiveInfinity);
+    public void Divide_FloatByZero_Throws() =>
+        FluentActions.Invoking(() => LolRuntime.Divide(10.0, 0.0))
+            .Should().Throw<LolRuntimeException>()
+            .WithMessage("*zero*");
 
     [Fact]
-    public void Modulo_IntByZero_ReturnsZero() =>
-        LolRuntime.Modulo(10, 0).Should().Be(0);
+    public void Modulo_IntByZero_Throws() =>
+        FluentActions.Invoking(() => LolRuntime.Modulo(10, 0))
+            .Should().Throw<LolRuntimeException>()
+            .WithMessage("*zero*");
+
+    [Fact]
+    public void Modulo_FloatByZero_Throws() =>
+        FluentActions.Invoking(() => LolRuntime.Modulo(10.0, 0.0))
+            .Should().Throw<LolRuntimeException>()
+            .WithMessage("*zero*");
 
     // ==================== SMOOSH Additional ====================
 
@@ -349,8 +410,10 @@ public class RuntimeTests
         LolRuntime.Smoosh().Should().Be("");
 
     [Fact]
-    public void Smoosh_WithNull_CastsToEmpty() =>
-        LolRuntime.Smoosh("a", null, "b").Should().Be("ab");
+    public void Smoosh_WithNull_Throws() =>
+        FluentActions.Invoking(() => LolRuntime.Smoosh("a", null, "b"))
+            .Should().Throw<LolRuntimeException>()
+            .WithMessage("*NOOB*");
 
     // ==================== BothSaem Edge Cases ====================
 
@@ -385,12 +448,23 @@ public class RuntimeTests
         LolRuntime.CastToYarn(3.14159).Should().Be("3.14");
 
     [Fact]
-    public void CastToYarn_Null_EmptyString() =>
-        LolRuntime.CastToYarn(null).Should().Be("");
+    public void CastToYarn_Null_ThrowsRuntimeError() =>
+        FluentActions.Invoking(() => LolRuntime.CastToYarn(null))
+            .Should().Throw<LolRuntimeException>();
 
     [Fact]
-    public void CastToYarn_Bool_WinFail() =>
-        LolRuntime.CastToYarn(true).Should().Be("WIN");
+    public void CastToYarn_Bool_ThrowsRuntimeError() =>
+        FluentActions.Invoking(() => LolRuntime.CastToYarn(true))
+            .Should().Throw<LolRuntimeException>();
+
+    [Fact]
+    public void SwitchCaseMatches_RequiresSameRuntimeType()
+    {
+        LolRuntime.SwitchCaseMatches(1, 1).Should().BeTrue();
+        LolRuntime.SwitchCaseMatches(1, 1.0).Should().BeFalse();
+        LolRuntime.SwitchCaseMatches(1, true).Should().BeFalse();
+        LolRuntime.SwitchCaseMatches(1, "1").Should().BeFalse();
+    }
 
     [Fact]
     public void Greater_Equal_ReturnsFirst() =>

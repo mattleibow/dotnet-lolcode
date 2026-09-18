@@ -17,10 +17,6 @@ public class CastingTests : EndToEndTestBase
               I HAS A numbar ITZ 3.14159
               VISIBLE "NUMBAR->YARN:: " MAEK numbar A YARN
 
-              BTW TROOF -> YARN
-              VISIBLE "TROOF WIN->YARN:: " MAEK WIN A YARN
-              VISIBLE "TROOF FAIL->YARN:: " MAEK FAIL A YARN
-
               BTW YARN -> NUMBR
               VISIBLE "YARN :"123:"->NUMBR:: " MAEK "123" A NUMBR
               VISIBLE "YARN :"4.56:"->NUMBR:: " MAEK "4.56" A NUMBR
@@ -29,18 +25,18 @@ public class CastingTests : EndToEndTestBase
               VISIBLE "YARN :"4.56:"->NUMBAR:: " MAEK "4.56" A NUMBAR
 
               BTW YARN -> TROOF
-              VISIBLE "YARN :":"->TROOF:: " MAEK "" A TROOF
-              VISIBLE "YARN :"LOL:"->TROOF:: " MAEK "LOL" A TROOF
+              VISIBLE "YARN :":"->TROOF:: " MAEK MAEK "" A TROOF A NUMBR
+              VISIBLE "YARN :"LOL:"->TROOF:: " MAEK MAEK "LOL" A TROOF A NUMBR
 
               BTW NUMBR -> TROOF
-              VISIBLE "NUMBR 0->TROOF:: " MAEK 0 A TROOF
-              VISIBLE "NUMBR 5->TROOF:: " MAEK 5 A TROOF
+              VISIBLE "NUMBR 0->TROOF:: " MAEK MAEK 0 A TROOF A NUMBR
+              VISIBLE "NUMBR 5->TROOF:: " MAEK MAEK 5 A TROOF A NUMBR
 
               BTW NUMBAR -> TROOF
               I HAS A zeroNumbar ITZ 0.0
               I HAS A nonzeroNumbar ITZ -1.5
-              VISIBLE "NUMBAR 0.0->TROOF:: " MAEK zeroNumbar A TROOF
-              VISIBLE "NUMBAR -1.5->TROOF:: " MAEK nonzeroNumbar A TROOF
+              VISIBLE "NUMBAR 0.0->TROOF:: " MAEK MAEK zeroNumbar A TROOF A NUMBR
+              VISIBLE "NUMBAR -1.5->TROOF:: " MAEK MAEK nonzeroNumbar A TROOF A NUMBR
 
               BTW TROOF -> NUMBR
               VISIBLE "TROOF WIN->NUMBR:: " MAEK WIN A NUMBR
@@ -52,7 +48,7 @@ public class CastingTests : EndToEndTestBase
 
               BTW NOOB -> TROOF (implicit and explicit)
               I HAS A nothing ITZ NOOB
-              VISIBLE "NOOB->TROOF (explicit):: " MAEK nothing A TROOF
+              VISIBLE "NOOB->TROOF (explicit):: " MAEK MAEK nothing A TROOF A NUMBR
               nothing
               O RLY?
                 YA RLY
@@ -66,7 +62,7 @@ public class CastingTests : EndToEndTestBase
               VISIBLE "NOOB->NUMBAR:: " MAEK nothing A NUMBAR
               VISIBLE "NOOB->YARN:: [" MAEK nothing A YARN "]"
             KTHXBYE
-            """, "NUMBR->YARN: 42\nNUMBAR->YARN: 3.14\nTROOF WIN->YARN: WIN\nTROOF FAIL->YARN: FAIL\nYARN \"123\"->NUMBR: 123\nYARN \"4.56\"->NUMBR: 4\nYARN \"4.56\"->NUMBAR: 4.56\nYARN \"\"->TROOF: FAIL\nYARN \"LOL\"->TROOF: WIN\nNUMBR 0->TROOF: FAIL\nNUMBR 5->TROOF: WIN\nNUMBAR 0.0->TROOF: FAIL\nNUMBAR -1.5->TROOF: WIN\nTROOF WIN->NUMBR: 1\nTROOF FAIL->NUMBR: 0\nTROOF WIN->NUMBAR: 1.00\nTROOF FAIL->NUMBAR: 0.00\nNOOB->TROOF (explicit): FAIL\nNOOB->TROOF (implicit in O RLY?): FAIL BRANCH\nNOOB->NUMBR: 0\nNOOB->NUMBAR: 0.00\nNOOB->YARN: []");
+            """, "NUMBR->YARN: 42\nNUMBAR->YARN: 3.14\nYARN \"123\"->NUMBR: 123\nYARN \"4.56\"->NUMBR: 4\nYARN \"4.56\"->NUMBAR: 4.56\nYARN \"\"->TROOF: 0\nYARN \"LOL\"->TROOF: 1\nNUMBR 0->TROOF: 0\nNUMBR 5->TROOF: 1\nNUMBAR 0.0->TROOF: 0\nNUMBAR -1.5->TROOF: 1\nTROOF WIN->NUMBR: 1\nTROOF FAIL->NUMBR: 0\nTROOF WIN->NUMBAR: 1.00\nTROOF FAIL->NUMBAR: 0.00\nNOOB->TROOF (explicit): 0\nNOOB->TROOF (implicit in O RLY?): FAIL BRANCH\nNOOB->NUMBR: 0\nNOOB->NUMBAR: 0.00\nNOOB->YARN: []");
     }
 
     [Fact]
@@ -91,9 +87,9 @@ public class CastingTests : EndToEndTestBase
 
               I HAS A flag ITZ 0
               flag IS NOW A TROOF
-              VISIBLE "0 IS NOW A TROOF:: " flag
+              VISIBLE "0 IS NOW A TROOF:: " MAEK flag A NUMBR
             KTHXBYE
-            """, "START YARN: 42\nAFTER IS NOW A NUMBR: 42\nAFTER IS NOW A NUMBAR: 42.00\nAFTER IS NOW A YARN: 42.00\n0 IS NOW A TROOF: FAIL");
+            """, "START YARN: 42\nAFTER IS NOW A NUMBR: 42\nAFTER IS NOW A NUMBAR: 42.00\nAFTER IS NOW A YARN: 42.00\n0 IS NOW A TROOF: 0");
     }
 
     [Fact]
@@ -154,30 +150,30 @@ public class CastingTests : EndToEndTestBase
 
             HAI 1.2
               BTW numeric zero is FAIL
-              VISIBLE "0 AS TROOF:: " MAEK 0 A TROOF
+              VISIBLE "0 AS TROOF:: " MAEK MAEK 0 A TROOF A NUMBR
 
               BTW empty string is FAIL
-              VISIBLE ":":" AS TROOF:: " MAEK "" A TROOF
+              VISIBLE ":":" AS TROOF:: " MAEK MAEK "" A TROOF A NUMBR
 
               BTW non-zero number is WIN
-              VISIBLE "42 AS TROOF:: " MAEK 42 A TROOF
+              VISIBLE "42 AS TROOF:: " MAEK MAEK 42 A TROOF A NUMBR
 
               BTW non-empty string is WIN
-              VISIBLE ":"hai:" AS TROOF:: " MAEK "hai" A TROOF
+              VISIBLE ":"hai:" AS TROOF:: " MAEK MAEK "hai" A TROOF A NUMBR
 
               BTW NOOB casts to FAIL
               I HAS A nothing ITZ NOOB
-              VISIBLE "NOOB AS TROOF:: " MAEK nothing A TROOF
+              VISIBLE "NOOB AS TROOF:: " MAEK MAEK nothing A TROOF A NUMBR
             KTHXBYE
-            """, "0 AS TROOF: FAIL\n\"\" AS TROOF: FAIL\n42 AS TROOF: WIN\n\"hai\" AS TROOF: WIN\nNOOB AS TROOF: FAIL");
+            """, "0 AS TROOF: 0\n\"\" AS TROOF: 0\n42 AS TROOF: 1\n\"hai\" AS TROOF: 1\nNOOB AS TROOF: 0");
     }
 
     [Fact]
     public void MaekYarn()
     {
         AssertOutput("""
-            BTW Test MAEK <expression> A YARN from NUMBR, NUMBAR, and TROOF
-            BTW Per spec: NUMBAR is truncated to 2 decimal places, TROOF prints WIN/FAIL
+            BTW Test MAEK <expression> A YARN from NUMBR and NUMBAR
+            BTW Per spec: NUMBAR is truncated to 2 decimal places
 
             HAI 1.2
               BTW NUMBR to YARN
@@ -186,11 +182,18 @@ public class CastingTests : EndToEndTestBase
               BTW NUMBAR to YARN with 2 decimal digits
               VISIBLE "NUMBAR 3.14159 AS YARN:: " MAEK 3.14159 A YARN
 
-              BTW TROOF to YARN
-              VISIBLE "WIN AS YARN:: " MAEK WIN A YARN
-              VISIBLE "FAIL AS YARN:: " MAEK FAIL A YARN
             KTHXBYE
-            """, "NUMBR 42 AS YARN: 42\nNUMBAR 3.14159 AS YARN: 3.14\nWIN AS YARN: WIN\nFAIL AS YARN: FAIL");
+            """, "NUMBR 42 AS YARN: 42\nNUMBAR 3.14159 AS YARN: 3.14");
+    }
+
+    [Fact]
+    public void MaekTroofToYarnFails()
+    {
+        AssertRuntimeError("""
+            HAI 1.2
+              VISIBLE MAEK WIN A YARN
+            KTHXBYE
+            """, "TROOF");
     }
 
     [Fact]
@@ -203,12 +206,12 @@ public class CastingTests : EndToEndTestBase
             HAI 1.2
               I HAS A nothing ITZ NOOB
 
-              VISIBLE "NOOB AS TROOF:: " MAEK nothing A TROOF
+              VISIBLE "NOOB AS TROOF:: " MAEK MAEK nothing A TROOF A NUMBR
               VISIBLE "NOOB AS NUMBR:: " MAEK nothing A NUMBR
               VISIBLE "NOOB AS NUMBAR:: " MAEK nothing A NUMBAR
               VISIBLE "NOOB AS YARN:: [" MAEK nothing A YARN "]"
             KTHXBYE
-            """, "NOOB AS TROOF: FAIL\nNOOB AS NUMBR: 0\nNOOB AS NUMBAR: 0.00\nNOOB AS YARN: []");
+            """, "NOOB AS TROOF: 0\nNOOB AS NUMBR: 0\nNOOB AS NUMBAR: 0.00\nNOOB AS YARN: []");
     }
 
     [Fact]
@@ -219,24 +222,21 @@ public class CastingTests : EndToEndTestBase
             BTW Per spec: NUMBAR prints with two decimal digits when cast to YARN
 
             HAI 1.2
-              I HAS A pi ITZ 3.14159
-              VISIBLE "PI AS YARN:: " MAEK pi A YARN
+              I HAS A positive ITZ 1.239
+              VISIBLE "POSITIVE AS YARN:: " MAEK positive A YARN
 
-              I HAS A half ITZ 0.5
-              VISIBLE "0.5 AS YARN:: " MAEK half A YARN
-
-              I HAS A neg ITZ -1.234
-              VISIBLE "-1.234 AS YARN:: " MAEK neg A YARN
+              I HAS A negative ITZ -1.239
+              VISIBLE "NEGATIVE AS YARN:: " MAEK negative A YARN
             KTHXBYE
-            """, "PI AS YARN: 3.14\n0.5 AS YARN: 0.50\n-1.234 AS YARN: -1.23");
+            """, "POSITIVE AS YARN: 1.23\nNEGATIVE AS YARN: -1.23");
     }
 
     [Fact]
     public void YarnToNumbrParsing()
     {
         AssertOutput("""
-            BTW Test parsing YARN to NUMBR and error on non-numeric
-            BTW Per spec: integer parses directly, decimal truncates, non-numeric causes runtime error
+            BTW Test parsing YARN to NUMBR
+            BTW Reference behavior: decimal truncates and non-numeric becomes zero
 
             HAI 1.2
               BTW integer string
@@ -245,9 +245,9 @@ public class CastingTests : EndToEndTestBase
               BTW decimal string truncates toward zero
               VISIBLE ":"3.14:" AS NUMBR:: " MAEK "3.14" A NUMBR
 
-              BTW non-numeric string should cause runtime error (no further output)
-              MAEK "LOL" A NUMBR
+              BTW non-numeric string becomes zero
+              VISIBLE ":"LOL:" AS NUMBR:: " MAEK "LOL" A NUMBR
             KTHXBYE
-            """, "\"42\" AS NUMBR: 42\n\"3.14\" AS NUMBR: 3");
+            """, "\"42\" AS NUMBR: 42\n\"3.14\" AS NUMBR: 3\n\"LOL\" AS NUMBR: 0");
     }
 }

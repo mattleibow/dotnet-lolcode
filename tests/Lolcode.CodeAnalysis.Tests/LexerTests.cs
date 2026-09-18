@@ -114,14 +114,32 @@ public class LexerTests
     public void Lex_StringWithHexEscape_ProcessesCorrectly()
     {
         var tokens = Lex("\":(41)\"");
-        tokens[0].Value.Should().Be("A"); // 0x41 = 'A'
+        tokens[0].Value.Should().Be(":(41)");
     }
 
     [Fact]
-    public void Lex_StringWithNamedUnicode_ProcessesCorrectly()
+    public void Lex_StringWithUnicodeNormativeNames_ProcessesCorrectly()
+    {
+        var tokens = Lex("\":[DOLLAR SIGN]:[CENT SIGN]:[EURO SIGN]\"");
+        tokens[0].Value.Should().Be(":[DOLLAR SIGN]:[CENT SIGN]:[EURO SIGN]");
+    }
+
+    [Theory]
+    [InlineData("110000")]
+    [InlineData("D800")]
+    public void Lex_StringWithInvalidCodePoint_DefersValidation(string codePoint)
+    {
+        var tokens = LexWithDiagnostics($"\":({codePoint})\"", out var diagnostics);
+
+        diagnostics.Should().BeEmpty();
+        tokens[0].Value.Should().Be($":({codePoint})");
+    }
+
+    [Fact]
+    public void Lex_StringWithNamedUnicode_DefersResolution()
     {
         var tokens = Lex("\":[SPACE]\"");
-        tokens[0].Value.Should().Be(" ");
+        tokens[0].Value.Should().Be(":[SPACE]");
     }
 
     [Fact]
@@ -323,5 +341,62 @@ public class LexerTests
         // The line continuation + newline should be consumed
         tokens[0].Kind.Should().Be(SyntaxKind.SumKeyword);
         tokens[1].Kind.Should().Be(SyntaxKind.OfKeyword);
+    }
+
+    [Theory]
+    [InlineData("SUM ...\n\nOF")]
+    [InlineData("SUM ...\r\rOF")]
+    [InlineData("SUM ...\r\n\r\nOF")]
+    [InlineData("SUM ...\n  \nOF")]
+    public void Lex_LineContinuationBeforeEmptyLine_ReportsDiagnostic(string source)
+    {
+        LexWithDiagnostics(source, out var diagnostics);
+
+        diagnostics.Should().ContainSingle()
+            .Which.Id.Should().Be("LOL0005");
+    }
+
+    [Fact]
+    public void Lex_LineContinuationAtEndOfFile_ReportsDiagnostic()
+    {
+        LexWithDiagnostics("SUM ...", out var diagnostics);
+
+        diagnostics.Should().ContainSingle()
+            .Which.Id.Should().Be("LOL0005");
+    }
+
+    [Fact]
+    public void Lex_MultilineCommentAfterCode_ReportsDiagnostic()
+    {
+        LexWithDiagnostics("VISIBLE \"x\" OBTW\ncomment\nTLDR", out var diagnostics);
+
+        diagnostics.Should().ContainSingle()
+            .Which.Id.Should().Be("LOL0006");
+    }
+
+    [Fact]
+    public void Lex_MultilineCommentFollowedByCode_ReportsDiagnostic()
+    {
+        LexWithDiagnostics("OBTW\ncomment\nTLDR VISIBLE \"x\"", out var diagnostics);
+
+        diagnostics.Should().ContainSingle()
+            .Which.Id.Should().Be("LOL0007");
+    }
+
+    [Fact]
+    public void Lex_MultilineCommentDelimitedBySoftBreaks_IsValid()
+    {
+        LexWithDiagnostics("VISIBLE \"x\", OBTW\ncomment\nTLDR, VISIBLE \"y\"", out var diagnostics);
+
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Lex_LeadingByteOrderMark_IsTrivia()
+    {
+        var tokens = LexWithDiagnostics("\uFEFFHAI 1.3\nKTHXBYE", out var diagnostics);
+
+        diagnostics.Should().BeEmpty();
+        tokens[0].Kind.Should().Be(SyntaxKind.HaiKeyword);
     }
 }
