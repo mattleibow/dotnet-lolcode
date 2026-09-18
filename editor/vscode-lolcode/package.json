@@ -6,6 +6,11 @@
   "publisher": "mattleibow",
   "main": "./extension.js",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mattleibow/dotnet-lolcode.git",
+    "directory": "editor/vscode-lolcode"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },

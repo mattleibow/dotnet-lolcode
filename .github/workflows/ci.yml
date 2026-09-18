@@ -7,6 +7,30 @@ on:
     branches: [main]
 
 jobs:
+  test-vscode-extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test extension assets
+        working-directory: editor/vscode-lolcode
+        run: npm test
+
+      - name: Package extension
+        working-directory: editor/vscode-lolcode
+        run: npx @vscode/vsce package --no-dependencies --out ../../artifacts/vscode-lolcode.vsix
+
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-extension
+          path: artifacts/vscode-lolcode.vsix
+
   build-and-test:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -136,7 +160,7 @@ jobs:
           </configuration>
           EOF
 
-          dotnet new lolcode -n MyApp
+          dotnet new lolconsole -n MyApp
 
           # Verify version is baked into .lolproj
           echo "Generated .lolproj:"
@@ -149,3 +173,19 @@ jobs:
           OUTPUT=$(dotnet run --project MyApp/MyApp.lolproj)
           [ "$OUTPUT" = "HAI WORLD!" ] || { echo "❌ Unexpected output: $OUTPUT"; exit 1; }
           echo "✅ Template project builds and runs"
+
+          # Source-file template must not contain file-based directives.
+          dotnet new lol -n Greeter
+          test -f Greeter.lol
+          ! grep -q '^#:' Greeter.lol
+          ! grep -q '^#!' Greeter.lol
+          echo "✅ Source-file template is directive-free"
+
+          # File-based template must contain the directives and run through the packaged SDK.
+          dotnet new lolcode -n hello
+          test -f hello.lol
+          grep -q '^#!/usr/bin/env -S dotnet run --file$' hello.lol
+          grep -q "#:sdk Lolcode.NET.Sdk@$VERSION" hello.lol
+          OUTPUT=$(dotnet run --file hello.lol)
+          [ "$OUTPUT" = "OH HAI!" ] || { echo "❌ Unexpected file-based output: $OUTPUT"; exit 1; }
+          echo "✅ File-based template builds and runs"

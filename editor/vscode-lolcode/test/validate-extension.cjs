@@ -21,6 +21,11 @@ test("contributes the LOLCODE language and grammar", () => {
     path: "./syntaxes/lolcode.tmLanguage.json",
   }]);
   assert.equal(manifest.main, "./extension.js");
+  assert.deepEqual(manifest.repository, {
+    type: "git",
+    url: "https://github.com/mattleibow/dotnet-lolcode.git",
+    directory: "editor/vscode-lolcode",
+  });
   assert.deepEqual(manifest.activationEvents, ["onCommand:lolcode.installTemplates"]);
   assert.deepEqual(manifest.contributes.snippets, [{
     language: "lolcode",

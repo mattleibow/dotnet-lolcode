@@ -36,3 +36,13 @@ The grammar is in `syntaxes/lolcode.tmLanguage.json`; editing behavior is in
 `src/Lolcode.CodeAnalysis/Syntax/Lexer.cs`. Run `npm test` to validate the
 manifest, editor configuration, and representative grammar patterns before
 packaging.
+
+## Publishing
+
+Pushing a `v<major>.<minor>.<patch>` tag runs the repository release workflow:
+it packages the NuGet artifacts and the VSIX, publishes NuGet packages, and
+publishes the VSIX to the Visual Studio Marketplace. Before the first extension
+release, create the `mattleibow` Marketplace publisher and configure a trusted
+publishing policy for this repository's release workflow. The workflow uses
+GitHub Actions OIDC instead of a long-lived Marketplace token. The existing
+`NUGET_API_KEY` secret is still required for the NuGet packages.
