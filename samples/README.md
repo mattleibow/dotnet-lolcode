@@ -83,6 +83,9 @@ that traditional `.lolproj` applications remain supported:
 dotnet run --project samples/project-based/hello-world/hello-world.lolproj
 ```
 
+The [mixed-language project](project-based/mixed-language/) demonstrates a
+LOLCODE executable importing an ordinary C# class library with `CAN HAS`.
+
 ## Local Development
 
 The `#:sdk Lolcode.NET.Sdk@0.2.0` directive restores the SDK's MSBuild props and

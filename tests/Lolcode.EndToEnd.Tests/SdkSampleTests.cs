@@ -93,22 +93,50 @@ public class SdkSampleTests
         exitCode.Should().Be(0, $"dotnet run --file failed for {sampleFile}:\n{stderr}\n{stdout}");
     }
 
-    [Fact]
-    public void ProjectBasedSample_Runs_CorrectOutput()
+    /// <summary>Discovers executable project-based samples.</summary>
+    public static IEnumerable<object[]> GetProjectBasedExecutableSamples()
     {
-        var projectFiles = Directory
+        return Directory
             .EnumerateFiles(Path.Combine(RepoRoot, "samples"), "*.lolproj", SearchOption.AllDirectories)
-            .ToArray();
-        projectFiles.Should().ContainSingle("only the dedicated project-based sample should use a .lolproj");
+            .Order()
+            .Select(project => new object[] { Path.GetRelativePath(RepoRoot, project) });
+    }
 
+    [Theory]
+    [MemberData(nameof(GetProjectBasedExecutableSamples))]
+    public void ProjectBasedExecutableSample_Runs(string projectFile)
+    {
         var (exitCode, stdout, stderr) = RunDotnet(
-            $"run --project \"{projectFiles[0]}\"",
+            $"run --project \"{projectFile}\"",
             RepoRoot);
 
-        exitCode.Should().Be(0, $"dotnet run --project failed:\n{stderr}");
+        exitCode.Should().Be(0, $"dotnet run --project failed for {projectFile}:\n{stderr}\n{stdout}");
+    }
 
+    [Fact]
+    public void ProjectBasedHelloWorld_Runs_CorrectOutput()
+    {
+        AssertProjectOutput(
+            "samples/project-based/hello-world/hello-world.lolproj",
+            "HAI WORLD FROM A LOLPROJ!");
+    }
+
+    [Fact]
+    public void LolcodeHead_CallsManagedTextPackage()
+    {
+        AssertProjectOutput(
+            "samples/project-based/mixed-language/lolcode-head-csharp-library/LolcodeHead/LolcodeHead.lolproj",
+            "HAI HAI HAI\n11");
+    }
+
+    private static void AssertProjectOutput(string projectFile, string expectedOutput)
+    {
+        var (exitCode, stdout, stderr) = RunDotnet(
+            $"run --project \"{projectFile}\"",
+            RepoRoot);
+        exitCode.Should().Be(0, $"dotnet run --project failed for {projectFile}:\n{stderr}\n{stdout}");
         var output = stdout.Replace("\r\n", "\n").TrimEnd('\n');
-        output.Should().Be("HAI WORLD FROM A LOLPROJ!");
+        output.Should().Be(expectedOutput);
     }
 
     [Fact]
