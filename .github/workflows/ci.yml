@@ -54,7 +54,9 @@ jobs:
 
       - name: Package extension
         working-directory: editor/vscode-lolcode
-        run: npx @vscode/vsce package --no-dependencies --out ../../artifacts/vscode-lolcode-${{ needs.version.outputs.version }}.vsix
+        run: |
+          mkdir -p ../../artifacts
+          npx @vscode/vsce package --no-dependencies --out ../../artifacts/vscode-lolcode-${{ needs.version.outputs.version }}.vsix
 
       - name: Upload VSIX
         uses: actions/upload-artifact@v4
@@ -228,6 +230,7 @@ jobs:
           </Project>
           EOF
           cat > Program.cs << 'EOF'
+          using System;
           using Lolcode.CodeAnalysis;
           using Lolcode.CodeAnalysis.Syntax;
 
