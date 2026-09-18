@@ -87,7 +87,8 @@ public static class LolRuntime
 
     private static LolObject? LoadManagedLibrary(LolScope scope, string name)
     {
-        string path = Path.Combine(AppContext.BaseDirectory, $"{name}.dll");
+        if (!TryGetManagedLibraryPath(name, out string path))
+            return null;
         if (!File.Exists(path))
             return null;
 
@@ -145,6 +146,44 @@ public static class LolRuntime
         }
 
         return library;
+    }
+
+    internal static bool TryGetManagedLibraryPath(string name, out string path)
+    {
+        path = string.Empty;
+        if (string.IsNullOrWhiteSpace(name) ||
+            name is "." or ".." ||
+            name.IndexOfAny(['/', '\\']) >= 0 ||
+            name.Contains(':', StringComparison.Ordinal) ||
+            Path.IsPathRooted(name) ||
+            Path.IsPathFullyQualified(name))
+        {
+            return false;
+        }
+
+        try
+        {
+            string baseDirectory = Path.GetFullPath(AppContext.BaseDirectory);
+            string candidate = Path.GetFullPath(Path.Combine(baseDirectory, $"{name}.dll"));
+            string normalizedBaseDirectory = Path.TrimEndingDirectorySeparator(baseDirectory);
+            string? candidateDirectory = Path.GetDirectoryName(candidate);
+            if (!string.Equals(
+                    candidateDirectory,
+                    normalizedBaseDirectory,
+                    OperatingSystem.IsWindows()
+                        ? StringComparison.OrdinalIgnoreCase
+                        : StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            path = candidate;
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
     }
 
     internal static Type? SelectManagedLibraryType(IEnumerable<Type> types, string name)
