@@ -71,16 +71,179 @@ public static class LolRuntime
     public static void DisposeScope(LolScope scope) => scope.Resources.Dispose();
 
     /// <summary>
-    /// Loads a named built-in library into the current scope.
-    /// Unknown names and duplicate imports are ignored.
+    /// Loads a named built-in or local managed library into the current scope.
+    /// Built-ins take precedence. Unknown names and duplicate imports are ignored.
     /// </summary>
     public static void LoadLibrary(LolScope scope, string name)
     {
         if (scope.Values.ContainsKey(name))
             return;
         LolObject? library = LolLibraries.Create(scope, name);
+        library ??= LoadManagedLibrary(scope, name);
         if (library is not null)
             scope.Values[name] = library;
+    }
+
+    /// <summary>Creates direct parameter slots for a generated CLR wrapper.</summary>
+    public static LolResolvedSlot[] CreateParameterSlots(LolScope scope, string[] names) =>
+        names.Select(name => new LolResolvedSlot(scope, name)).ToArray();
+
+    private static LolObject? LoadManagedLibrary(LolScope scope, string name)
+    {
+        Assembly assembly;
+        try
+        {
+            string path = Path.Combine(AppContext.BaseDirectory, $"{name}.dll");
+            if (!File.Exists(path))
+                return null;
+            assembly = Assembly.LoadFrom(path);
+        }
+        catch (Exception ex) when (
+            ex is BadImageFormatException or FileLoadException or FileNotFoundException or
+            PathTooLongException or ArgumentException or NotSupportedException)
+        {
+            return null;
+        }
+
+        Type? type;
+        try
+        {
+            type = SelectManagedLibraryType(assembly.GetTypes(), name);
+        }
+        catch (Exception ex) when (
+            ex is ReflectionTypeLoadException or FileNotFoundException or FileLoadException or
+            BadImageFormatException)
+        {
+            return null;
+        }
+        if (type is null)
+            return null;
+
+        var library = new LolObject(scope, scope.Caller);
+        MethodInfo[] methods = type.GetMethods(
+                BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(IsSupportedManagedMethod)
+            .ToArray();
+        foreach (IGrouping<string, MethodInfo> methodGroup in methods.GroupBy(method => method.Name))
+        {
+            MethodInfo[] overloads = methodGroup.Take(2).ToArray();
+            if (overloads.Length != 1)
+                continue;
+
+            MethodInfo method = overloads[0];
+            ParameterInfo[] parameters = method.GetParameters();
+            string[] parameterNames = parameters
+                .Select((parameter, index) => parameter.Name ?? $"arg{index}")
+                .ToArray();
+            LolParameterNameResolver[] resolvers = parameterNames
+                .Select(parameterName =>
+                    (LolParameterNameResolver)(caller => new LolResolvedSlot(caller, parameterName)))
+                .ToArray();
+            library.Values[method.Name] = new LolFunction(
+                parameters.Length,
+                (_, _, arguments, _) => InvokeManagedMethod(method, parameters, arguments),
+                resolvers);
+        }
+        return library;
+    }
+
+    internal static Type? SelectManagedLibraryType(IEnumerable<Type> types, string name)
+    {
+        Type[] candidates = types
+            .Where(static candidate => candidate.IsPublic &&
+                !candidate.IsNested &&
+                candidate.IsAbstract &&
+                candidate.IsSealed)
+            .ToArray();
+        Type[] markedLibraries = candidates
+            .Where(IsLolcodeLibrary)
+            .Take(2)
+            .ToArray();
+        if (markedLibraries.Length == 1)
+            return markedLibraries[0];
+        if (markedLibraries.Length > 1)
+            return null;
+
+        if (candidates.Length == 1)
+            return candidates[0];
+
+        Type[] legacyMatches = candidates
+            .Where(candidate => candidate.Name == name)
+            .Take(2)
+            .ToArray();
+        return legacyMatches.Length == 1 ? legacyMatches[0] : null;
+    }
+
+    private static bool IsLolcodeLibrary(Type candidate) =>
+        candidate.CustomAttributes.Any(attribute =>
+            attribute.AttributeType == typeof(LolcodeLibraryAttribute) &&
+            attribute.ConstructorArguments.Count == 0);
+
+    internal static bool IsSupportedManagedMethod(MethodInfo method)
+    {
+        if (method.IsGenericMethodDefinition || method.ContainsGenericParameters)
+            return false;
+        if (!IsSupportedManagedReturnType(method.ReturnType))
+            return false;
+
+        return method.GetParameters().All(parameter =>
+            !parameter.IsOut &&
+            !parameter.ParameterType.IsByRef &&
+            !parameter.ParameterType.IsPointer &&
+            !parameter.ParameterType.IsByRefLike &&
+            IsSupportedManagedValueType(parameter.ParameterType));
+    }
+
+    internal static object? ConvertManagedArgument(object? value, Type targetType)
+    {
+        if (targetType == typeof(object))
+            return value;
+        if (targetType == typeof(string))
+            return CastToYarn(value);
+        if (targetType == typeof(int))
+            return CastToNumbr(value);
+        if (targetType == typeof(double))
+            return CastToNumbar(value);
+        if (targetType == typeof(bool))
+            return CastToTroof(value);
+
+        throw new LolRuntimeException(
+            $"Unsupported managed library parameter type: {targetType.FullName}");
+    }
+
+    private static bool IsSupportedManagedReturnType(Type type) =>
+        type == typeof(void) || IsSupportedManagedValueType(type);
+
+    private static bool IsSupportedManagedValueType(Type type) =>
+        type == typeof(object) ||
+        type == typeof(string) ||
+        type == typeof(int) ||
+        type == typeof(double) ||
+        type == typeof(bool);
+
+    private static object? InvokeManagedMethod(
+        MethodInfo method,
+        ParameterInfo[] parameters,
+        object?[] arguments)
+    {
+        try
+        {
+            var convertedArguments = new object?[arguments.Length];
+            for (int index = 0; index < arguments.Length; index++)
+            {
+                convertedArguments[index] =
+                    ConvertManagedArgument(arguments[index], parameters[index].ParameterType);
+            }
+            return method.Invoke(null, convertedArguments);
+        }
+        catch (TargetInvocationException ex)
+        {
+            throw new LolRuntimeException(ex.InnerException?.Message ?? ex.Message);
+        }
+        catch (Exception ex)
+        {
+            throw new LolRuntimeException(ex.Message);
+        }
     }
 
     /// <summary>Creates a lexical child of an existing namespace.</summary>

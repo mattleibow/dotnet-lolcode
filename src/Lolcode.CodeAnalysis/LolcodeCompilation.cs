@@ -66,8 +66,45 @@ public sealed class LolcodeCompilation
         return builder.ToImmutable();
     }
 
-    /// <summary>Emit compiled assembly to disk.</summary>
-    public EmitResult Emit(string outputPath, string runtimeAssemblyPath)
+    /// <summary>
+    /// Emits a compiled executable or class library to disk.
+    /// </summary>
+    /// <param name="outputPath">The path for the emitted assembly.</param>
+    /// <param name="runtimeAssemblyPath">The path to <c>Lolcode.Runtime.dll</c>.</param>
+    /// <param name="outputType">
+    /// The MSBuild output type. Specify <c>Library</c> to emit a class library;
+    /// all other values emit an executable.
+    /// </param>
+    public EmitResult Emit(
+        string outputPath,
+        string runtimeAssemblyPath,
+        string outputType = "Exe",
+        string? libraryTypeName = null)
+        => Emit(outputPath, runtimeAssemblyPath, referenceAssemblyPaths: null, outputType, libraryTypeName);
+
+    /// <summary>
+    /// Emits a compiled executable or class library to disk using the supplied target reference assemblies.
+    /// </summary>
+    /// <param name="outputPath">The path for the emitted assembly.</param>
+    /// <param name="runtimeAssemblyPath">The path to <c>Lolcode.Runtime.dll</c>.</param>
+    /// <param name="referenceAssemblyPaths">
+    /// Resolved reference assembly paths for the target framework. When omitted, the compiler uses the
+    /// runtime assemblies from the current runtime.
+    /// </param>
+    /// <param name="outputType">
+    /// The MSBuild output type. Specify <c>Library</c> to emit a class library;
+    /// all other values emit an executable.
+    /// </param>
+    /// <param name="libraryTypeName">
+    /// The fully qualified CLR type name for a library's export container. When omitted,
+    /// libraries use <c>LolcodeExports</c>; executables always use <c>Program</c>.
+    /// </param>
+    public EmitResult Emit(
+        string outputPath,
+        string runtimeAssemblyPath,
+        IEnumerable<string>? referenceAssemblyPaths,
+        string outputType = "Exe",
+        string? libraryTypeName = null)
     {
         EnsureBound();
         var diagnostics = GetDiagnostics();
@@ -79,8 +116,14 @@ public sealed class LolcodeCompilation
         {
             var assemblyName = Path.GetFileNameWithoutExtension(outputPath);
             var tree = SyntaxTrees[0];
+            bool isLibrary = string.Equals(outputType, "Library", StringComparison.OrdinalIgnoreCase);
             var generator = new CodeGenerator(_boundTree!, assemblyName, runtimeAssemblyPath,
-                sourceText: tree.Text, sourceFilePath: tree.FilePath);
+                referenceAssemblyPaths,
+                sourceText: tree.Text, sourceFilePath: tree.FilePath,
+                isLibrary: isLibrary,
+                libraryTypeName: isLibrary && !string.IsNullOrWhiteSpace(libraryTypeName)
+                    ? libraryTypeName
+                    : null);
             var dllPath = generator.Emit(outputPath);
             return new EmitResult(true, diagnostics, dllPath);
         }

@@ -14,6 +14,11 @@
   <PropertyGroup>
     <_LolcodeBuildTasksDir Condition=" '$(_LolcodeBuildTasksDir)' == '' ">$(MSBuildThisFileDirectory)..\tools\net10.0\</_LolcodeBuildTasksDir>
     <LolcodeRuntimeAssemblyPath Condition=" '$(LolcodeRuntimeAssemblyPath)' == '' ">$(_LolcodeBuildTasksDir)Lolcode.Runtime.dll</LolcodeRuntimeAssemblyPath>
+    <!-- Project properties are available here, after Sdk.props and the project body. -->
+    <LolcodeLibraryTypeName
+        Condition="'$(OutputType)' == 'Library' and '$(LolcodeLibraryTypeName)' == '' and '$(RootNamespace)' != ''">$(RootNamespace).LolcodeExports</LolcodeLibraryTypeName>
+    <LolcodeLibraryTypeName
+        Condition="'$(OutputType)' == 'Library' and '$(LolcodeLibraryTypeName)' == ''">LolcodeExports</LolcodeLibraryTypeName>
   </PropertyGroup>
 
   <!-- Register the compiler task -->
@@ -58,6 +63,7 @@
           RuntimeAssemblyPath="$(LolcodeRuntimeAssemblyPath)"
           OutputType="$(OutputType)"
           AssemblyName="$(AssemblyName)"
+          LolcodeLibraryTypeName="$(LolcodeLibraryTypeName)"
           SkipCompilerExecution="$(SkipCompilerExecution)" />
 
   </Target>

@@ -93,22 +93,67 @@ public class SdkSampleTests
         exitCode.Should().Be(0, $"dotnet run --file failed for {sampleFile}:\n{stderr}\n{stdout}");
     }
 
-    [Fact]
-    public void ProjectBasedSample_Runs_CorrectOutput()
+    /// <summary>Discovers executable LOLCODE projects without running library projects.</summary>
+    public static IEnumerable<object[]> GetProjectBasedExecutableSamples()
     {
-        var projectFiles = Directory
+        return Directory
             .EnumerateFiles(Path.Combine(RepoRoot, "samples"), "*.lolproj", SearchOption.AllDirectories)
-            .ToArray();
-        projectFiles.Should().ContainSingle("only the dedicated project-based sample should use a .lolproj");
+            .Where(project => !File.ReadAllText(project).Contains(
+                "<OutputType>Library</OutputType>", StringComparison.OrdinalIgnoreCase))
+            .Order()
+            .Select(project => new object[] { Path.GetRelativePath(RepoRoot, project) });
+    }
 
+    [Theory]
+    [MemberData(nameof(GetProjectBasedExecutableSamples))]
+    public void ProjectBasedExecutableSample_Runs(string projectFile)
+    {
         var (exitCode, stdout, stderr) = RunDotnet(
-            $"run --project \"{projectFiles[0]}\"",
+            $"run --project \"{projectFile}\"",
             RepoRoot);
 
-        exitCode.Should().Be(0, $"dotnet run --project failed:\n{stderr}");
+        exitCode.Should().Be(0, $"dotnet run --project failed for {projectFile}:\n{stderr}\n{stdout}");
+    }
 
-        var output = stdout.Replace("\r\n", "\n").TrimEnd('\n');
-        output.Should().Be("HAI WORLD FROM A LOLPROJ!");
+    [Fact]
+    public void ProjectBasedHelloWorld_Runs_CorrectOutput()
+    {
+        AssertProjectOutput(
+            "samples/project-based/hello-world/hello-world.lolproj",
+            "HAI WORLD FROM A LOLPROJ!");
+    }
+
+    [Fact]
+    public void CSharpHead_CallsLolcatPhraseLibrary()
+    {
+        AssertProjectOutput(
+            "samples/project-based/mixed-language/csharp-head-lolcode-library/CSharpHead/CSharpHead.csproj",
+            "HAI DOTNET, U CAN HAZ 3 CHEEZBURGERZ!");
+    }
+
+    [Fact]
+    public void LolcodeHead_CallsManagedTextPackage()
+    {
+        AssertProjectOutput(
+            "samples/project-based/mixed-language/lolcode-head-csharp-library/LolcodeHead/LolcodeHead.lolproj",
+            "HAI HAI HAI\n11");
+    }
+
+    [Fact]
+    public void LolcodeHead_CallsLolNumericLibrary()
+    {
+        AssertProjectOutput(
+            "samples/project-based/mixed-language/lolcode-head-lolcode-library/LolcodeNumericApp/LolcodeNumericApp.lolproj",
+            "42");
+    }
+
+    private static void AssertProjectOutput(string projectFile, string expectedOutput)
+    {
+        var (exitCode, stdout, stderr) = RunDotnet(
+            $"run --project \"{projectFile}\"",
+            RepoRoot);
+        exitCode.Should().Be(0, $"dotnet run --project failed:\n{stderr}\n{stdout}");
+        stdout.Replace("\r\n", "\n").TrimEnd('\n').Should().Be(expectedOutput);
     }
 
     [Fact]

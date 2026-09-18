@@ -23,6 +23,7 @@
     <!-- Disable auto-generated C# files (GlobalUsings.g.cs, AssemblyAttributes.cs) -->
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <ImplicitUsings>disable</ImplicitUsings>
+
   </PropertyGroup>
 
   <!-- Disable default C# compile globbing, then add LOLCODE glob -->
