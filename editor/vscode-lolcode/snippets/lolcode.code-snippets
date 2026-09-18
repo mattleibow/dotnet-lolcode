@@ -1,0 +1,81 @@
+{
+  "LOLCODE program": {
+    "prefix": "hai",
+    "body": [
+      "HAI 1.2",
+      "\\t$0",
+      "KTHXBYE"
+    ],
+    "description": "Create a LOLCODE program"
+  },
+  "Variable declaration": {
+    "prefix": "var",
+    "body": [
+      "I HAS A ${1:name} ITZ ${2:value}"
+    ],
+    "description": "Declare and initialize a variable"
+  },
+  "Visible output": {
+    "prefix": "visible",
+    "body": [
+      "VISIBLE ${1:value}"
+    ],
+    "description": "Write a value to standard output"
+  },
+  "Input": {
+    "prefix": "gimmeh",
+    "body": [
+      "GIMMEH ${1:name}"
+    ],
+    "description": "Read a YARN value from standard input"
+  },
+  "Conditional": {
+    "prefix": "if",
+    "body": [
+      "${1:condition}",
+      "O RLY?",
+      "\\tYA RLY",
+      "\\t\\t$0",
+      "OIC"
+    ],
+    "description": "Create an O RLY? conditional"
+  },
+  "Loop": {
+    "prefix": "loop",
+    "body": [
+      "IM IN YR ${1:label} UPPIN YR ${2:i} TIL BOTH SAEM ${2:i} AN ${3:10}",
+      "\\t$0",
+      "IM OUTTA YR ${1:label}"
+    ],
+    "description": "Create an incrementing loop"
+  },
+  "Function": {
+    "prefix": "func",
+    "body": [
+      "HOW IZ I ${1:name} YR ${2:parameter}",
+      "\\t$0",
+      "IF U SAY SO"
+    ],
+    "description": "Declare a function"
+  },
+  "Function call": {
+    "prefix": "call",
+    "body": [
+      "I IZ ${1:name} YR ${2:argument} MKAY"
+    ],
+    "description": "Call a function"
+  },
+  "Switch": {
+    "prefix": "switch",
+    "body": [
+      "${1:value}, WTF?",
+      "\\tOMG ${2:literal}",
+      "\\t\\t$0",
+      "\\t\\tGTFO",
+      "\\tOMGWTF",
+      "\\t\\t",
+      "OIC"
+    ],
+    "description": "Create a WTF? switch"
+  }
+}

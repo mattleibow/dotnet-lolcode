@@ -384,7 +384,7 @@ public enum SyntaxKind
     /// <summary>IT implicit variable expression.</summary>
     ItExpression,
 
-    /// <summary>Interpolated string expression (YARN with :<var>).</summary>
+    /// <summary>Interpolated string expression (YARN with <c>:{var}</c>).</summary>
     InterpolatedStringExpression,
 
     /// <summary>BUKKIT creation, prototyping, or mixin expression.</summary>

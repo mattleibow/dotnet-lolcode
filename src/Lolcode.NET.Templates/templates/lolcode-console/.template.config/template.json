@@ -4,7 +4,7 @@
   "classifications": ["Console", "LOLCODE"],
   "identity": "Lolcode.NET.Templates.Console",
   "name": "LOLCODE Console App",
-  "shortName": "lolcode",
+  "shortName": "lolconsole",
   "tags": {
     "language": "LOLCODE",
     "type": "project"

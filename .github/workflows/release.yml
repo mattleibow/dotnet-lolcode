@@ -6,6 +6,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  pull-requests: write
 
 jobs:
   release:
@@ -19,6 +21,10 @@ jobs:
         id: version
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo "❌ Release tags must use the vX.Y.Z format."
+            exit 1
+          }
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "📦 Version: $VERSION"
 
@@ -27,21 +33,97 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Pack
         run: |
           dotnet pack -c Release -p:Version=${{ steps.version.outputs.version }} -o artifacts/
           echo "📦 Packages:"
           ls -la artifacts/*.nupkg
 
+      - name: Set extension version
+        working-directory: editor/vscode-lolcode
+        run: |
+          node -e 'const fs = require("node:fs"); const package = require("./package.json"); package.version = process.argv[1]; fs.writeFileSync("package.json", JSON.stringify(package, null, 2) + "\n");' "${{ steps.version.outputs.version }}"
+
+      - name: Test and package VS Code extension
+        working-directory: editor/vscode-lolcode
+        run: |
+          npm test
+          npx @vscode/vsce package --no-dependencies --out ../../artifacts/vscode-lolcode-${{ steps.version.outputs.version }}.vsix
+
+      - name: Log in to NuGet.org with OIDC
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
       - name: Push to NuGet.org
         run: |
           for pkg in artifacts/*.nupkg; do
             echo "📤 Pushing $(basename $pkg)..."
-            dotnet nuget push "$pkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+            dotnet nuget push "$pkg" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
           done
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: artifacts/*.nupkg
+          files: |
+            artifacts/*.nupkg
+            artifacts/*.vsix
+
+      - name: Open next patch version pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$RELEASE_VERSION"
+          NEXT_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+          BRANCH="automation/bump-version-$NEXT_VERSION"
+
+          EXISTING_PR="$(gh pr list --base main --head "$BRANCH" --state open --json url --jq '.[0].url')"
+          if [ -n "$EXISTING_PR" ]; then
+            echo "ℹ️ Next-version pull request already exists: $EXISTING_PR"
+            exit 0
+          fi
+
+          if git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null; then
+            echo "❌ Branch $BRANCH already exists without an open pull request."
+            exit 1
+          fi
+
+          git switch --create "$BRANCH"
+          NEXT_VERSION="$NEXT_VERSION" python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path("Directory.Build.props")
+          content = path.read_text(encoding="utf-8-sig")
+          old = "<VersionPrefix>"
+          start = content.find(old)
+          end = content.find("</VersionPrefix>", start)
+          if start == -1 or end == -1:
+              raise SystemExit("VersionPrefix was not found in Directory.Build.props.")
+
+          updated = (
+              content[:start]
+              + f"<VersionPrefix>{os.environ['NEXT_VERSION']}</VersionPrefix>"
+              + content[end + len("</VersionPrefix>"):]
+          )
+          path.write_text(updated, encoding="utf-8-sig")
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Directory.Build.props
+          git commit -m "Bump version to $NEXT_VERSION"
+          git push --set-upstream origin "$BRANCH"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "Bump version to $NEXT_VERSION" \
+            --body "Automatically created after release $RELEASE_VERSION. This increments the patch version for subsequent prerelease builds."

@@ -4,7 +4,7 @@
     <IsPackable>true</IsPackable>
     <PackageType>Template</PackageType>
     <PackageId>Lolcode.NET.Templates</PackageId>
-    <PackageDescription>Project templates for LOLCODE .NET projects. Install with: dotnet new install Lolcode.NET.Templates</PackageDescription>
+    <PackageDescription>Project and file templates for LOLCODE .NET applications. Install with: dotnet new install Lolcode.NET.Templates</PackageDescription>
     <PackageTags>lolcode;template;dotnet-new</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/mattleibow/dotnet-lolcode</RepositoryUrl>
@@ -25,25 +25,35 @@
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
-  <!-- Stamp the SDK version into the template .lolproj before packing -->
+  <!-- Stamp the SDK version into templates that require the LOLCODE SDK before packing. -->
   <Target Name="StampSdkVersion" BeforeTargets="GenerateNuspec">
     <PropertyGroup>
-      <_TemplateLolproj>$(MSBuildProjectDirectory)\templates\lolcode-console\LolcodeApp.lolproj</_TemplateLolproj>
+      <_ConsoleProjectTemplate>$(MSBuildProjectDirectory)\templates\lolcode-console\LolcodeApp.lolproj</_ConsoleProjectTemplate>
+      <_FileBasedAppTemplate>$(MSBuildProjectDirectory)\templates\lolcode-file\Program.lol</_FileBasedAppTemplate>
     </PropertyGroup>
     <WriteLinesToFile
-      File="$(_TemplateLolproj)"
-      Lines="$([System.IO.File]::ReadAllText('$(_TemplateLolproj)').Replace('LolcodeSdkVersion','$(Version)'))"
+      File="$(_ConsoleProjectTemplate)"
+      Lines="$([System.IO.File]::ReadAllText('$(_ConsoleProjectTemplate)').Replace('LolcodeSdkVersion','$(Version)'))"
+      Overwrite="true" />
+    <WriteLinesToFile
+      File="$(_FileBasedAppTemplate)"
+      Lines="$([System.IO.File]::ReadAllText('$(_FileBasedAppTemplate)').Replace('LolcodeSdkVersion','$(Version)'))"
       Overwrite="true" />
   </Target>
 
   <!-- Restore the placeholder after packing so source stays clean -->
   <Target Name="RestoreSdkVersionPlaceholder" AfterTargets="Pack">
     <PropertyGroup>
-      <_TemplateLolproj>$(MSBuildProjectDirectory)\templates\lolcode-console\LolcodeApp.lolproj</_TemplateLolproj>
+      <_ConsoleProjectTemplate>$(MSBuildProjectDirectory)\templates\lolcode-console\LolcodeApp.lolproj</_ConsoleProjectTemplate>
+      <_FileBasedAppTemplate>$(MSBuildProjectDirectory)\templates\lolcode-file\Program.lol</_FileBasedAppTemplate>
     </PropertyGroup>
     <WriteLinesToFile
-      File="$(_TemplateLolproj)"
-      Lines="$([System.IO.File]::ReadAllText('$(_TemplateLolproj)').Replace('$(Version)','LolcodeSdkVersion'))"
+      File="$(_ConsoleProjectTemplate)"
+      Lines="$([System.IO.File]::ReadAllText('$(_ConsoleProjectTemplate)').Replace('$(Version)','LolcodeSdkVersion'))"
+      Overwrite="true" />
+    <WriteLinesToFile
+      File="$(_FileBasedAppTemplate)"
+      Lines="$([System.IO.File]::ReadAllText('$(_FileBasedAppTemplate)').Replace('$(Version)','LolcodeSdkVersion'))"
       Overwrite="true" />
   </Target>
 

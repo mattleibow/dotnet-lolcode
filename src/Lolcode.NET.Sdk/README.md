@@ -8,7 +8,7 @@ MSBuild SDK for compiling **LOLCODE 1.2** programs to .NET assemblies. Write `.l
 
 ```bash
 dotnet new install Lolcode.NET.Templates
-dotnet new lolcode -n MyApp
+dotnet new lolconsole -n MyApp
 cd MyApp
 dotnet run
 ```

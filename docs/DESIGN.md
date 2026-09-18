@@ -277,7 +277,7 @@ dotnet run --file hello.lol   # compile and execute
 
 **Project-based (`.lolproj`):**
 ```bash
-dotnet new lolcode -n MyApp   # scaffold project
+dotnet new lolconsole -n MyApp   # scaffold project
 cd MyApp && dotnet run        # compile and execute
 dotnet build                  # compile only
 dotnet publish                # publish for deployment
@@ -533,7 +533,7 @@ Lolcode.NET.Sdk.nupkg/
 └── Lolcode.NET.Sdk.nuspec
 ```
 
-**`dotnet new` Template:** The `Lolcode.NET.Templates` package provides a `dotnet new lolcode` template that scaffolds a minimal `.lolproj` + `Program.lol`.
+**`dotnet new` Templates:** The `Lolcode.NET.Templates` package provides `dotnet new lolconsole` for a minimal `.lolproj` + `Program.lol`, `dotnet new lol` for a plain source file, and `dotnet new lolcode` for a file-based app.
 
 This means `dotnet build`, `dotnet run`, `dotnet publish`, `dotnet clean`, and `dotnet watch` all work natively with `.lol` projects.
 
