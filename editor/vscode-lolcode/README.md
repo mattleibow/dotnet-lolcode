@@ -75,12 +75,15 @@ packaging.
 
 Pushing a `v<major>.<minor>.<patch>` tag runs the repository release workflow:
 it packages the NuGet artifacts and the VSIX, publishes NuGet packages, and
-publishes the VSIX to the Visual Studio Marketplace. Before the first extension
-release, create the `mattleibow` Marketplace publisher and configure a trusted
-publishing policy for this repository's release workflow. The workflow uses
-GitHub Actions OIDC instead of a long-lived Marketplace token. NuGet publishing
-also uses OIDC; configure the NuGet trusted-publishing policy and set the
-`NUGET_USER` repository secret to the NuGet.org profile name. Scope the NuGet
+attaches the VSIX to the GitHub Release. Download
+`vscode-lolcode-<version>.vsix` from that release, then upload it through
+[Marketplace Publisher Management](https://marketplace.visualstudio.com/manage).
+The Marketplace's GitHub Actions trusted-publishing configuration is not
+publicly available yet, so the workflow deliberately does not use a
+long-lived Marketplace token or publish the VSIX automatically.
+
+NuGet publishing uses OIDC. Configure the NuGet trusted-publishing policy and
+set the `NUGET_USER` repository secret to the NuGet.org profile name. Scope the
 policy to these package IDs:
 
 ```text

@@ -63,10 +63,6 @@ jobs:
             dotnet nuget push "$pkg" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
           done
 
-      - name: Publish to Visual Studio Marketplace
-        working-directory: editor/vscode-lolcode
-        run: npx @vscode/vsce publish --packagePath ../../artifacts/vscode-lolcode-${{ steps.version.outputs.version }}.vsix --oidc
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
