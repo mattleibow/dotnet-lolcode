@@ -43,6 +43,24 @@ dotnet watch    # Recompile on changes
 dotnet publish  # Publish for deployment
 ```
 
+### Class libraries
+
+Set `OutputType` to `Library` to emit a DLL with no entry point or runtime
+configuration file. Top-level directly named `HOW IZ I` functions become public
+static methods returning and accepting `object`, so C# projects can consume the
+library through a normal `ProjectReference`.
+
+```xml
+<PropertyGroup>
+  <OutputType>Library</OutputType>
+  <TargetFramework>net10.0</TargetFramework>
+  <LolcodeLibraryTypeName>InteropSamples.LolcatExports</LolcodeLibraryTypeName>
+</PropertyGroup>
+```
+
+`LolcodeLibraryTypeName` defaults to `$(RootNamespace).LolcodeExports`, or
+`LolcodeExports` when no root namespace is set.
+
 ### File-based apps (no project needed)
 
 Create `hello.lol` — no project file required:
