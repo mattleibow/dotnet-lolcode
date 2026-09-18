@@ -1,0 +1,14 @@
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <main class="not-found">
+            <p class="eyebrow">404</p>
+            <h1>This code wandered off.</h1>
+            <p>The playground only has one page right now.</p>
+            <a href="./">Return to the fiddle</a>
+        </main>
+    </NotFound>
+</Router>
