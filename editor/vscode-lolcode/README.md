@@ -86,7 +86,9 @@ The repository-wide `VersionPrefix` controls prerelease artifacts. Pull
 requests use `<prefix>-pr.<pr-number>.<yyyyMMdd>.<run-number>` and pushes to
 `main` use `<prefix>-ci.<yyyyMMdd>.<run-number>`. Release tags must be stable
 `vX.Y.Z` tags; that exact `X.Y.Z` version is used for both NuGet packages and
-the VSIX.
+the VSIX. After a successful release, the workflow opens a pull request that
+increments the patch baseline (`X.Y.Z` to `X.Y.(Z+1)`). Update
+`VersionPrefix` manually before a release that requires a major or minor bump.
 
 NuGet publishing uses OIDC. Configure the NuGet trusted-publishing policy and
 set the `NUGET_USER` repository secret to the NuGet.org profile name. Scope the

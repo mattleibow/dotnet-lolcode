@@ -7,6 +7,7 @@ on:
 permissions:
   contents: write
   id-token: write
+  pull-requests: write
 
 jobs:
   release:
@@ -74,3 +75,55 @@ jobs:
           files: |
             artifacts/*.nupkg
             artifacts/*.vsix
+
+      - name: Open next patch version pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$RELEASE_VERSION"
+          NEXT_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+          BRANCH="automation/bump-version-$NEXT_VERSION"
+
+          EXISTING_PR="$(gh pr list --base main --head "$BRANCH" --state open --json url --jq '.[0].url')"
+          if [ -n "$EXISTING_PR" ]; then
+            echo "ℹ️ Next-version pull request already exists: $EXISTING_PR"
+            exit 0
+          fi
+
+          if git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null; then
+            echo "❌ Branch $BRANCH already exists without an open pull request."
+            exit 1
+          fi
+
+          git switch --create "$BRANCH"
+          NEXT_VERSION="$NEXT_VERSION" python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path("Directory.Build.props")
+          content = path.read_text(encoding="utf-8-sig")
+          old = "<VersionPrefix>"
+          start = content.find(old)
+          end = content.find("</VersionPrefix>", start)
+          if start == -1 or end == -1:
+              raise SystemExit("VersionPrefix was not found in Directory.Build.props.")
+
+          updated = (
+              content[:start]
+              + f"<VersionPrefix>{os.environ['NEXT_VERSION']}</VersionPrefix>"
+              + content[end + len("</VersionPrefix>"):]
+          )
+          path.write_text(updated, encoding="utf-8-sig")
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Directory.Build.props
+          git commit -m "Bump version to $NEXT_VERSION"
+          git push --set-upstream origin "$BRANCH"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "Bump version to $NEXT_VERSION" \
+            --body "Automatically created after release $RELEASE_VERSION. This increments the patch version for subsequent prerelease builds."
