@@ -36,63 +36,67 @@ public class LibraryEmissionTests
             result.PdbPath.Should().Be(Path.ChangeExtension(outputPath, ".pdb"));
             File.Exists(runtimeConfigPath).Should().BeFalse();
 
-            using var stream = File.OpenRead(outputPath);
-            using var peReader = new PEReader(stream);
-            peReader.PEHeaders.CorHeader!.EntryPointTokenOrRelativeVirtualAddress.Should().Be(0);
-            peReader.PEHeaders.CoffHeader.Characteristics.Should().HaveFlag(Characteristics.Dll);
-
-            MetadataReader metadata = peReader.GetMetadataReader();
-            TypeDefinitionHandle exportsHandle = metadata.TypeDefinitions.Single(handle =>
+            using (var stream = File.OpenRead(outputPath))
+            using (var peReader = new PEReader(stream))
             {
-                TypeDefinition definition = metadata.GetTypeDefinition(handle);
-                return metadata.GetString(definition.Name) == "LolcodeExports" &&
-                    metadata.GetString(definition.Namespace) == string.Empty;
-            });
-            MethodDefinition[] welcomeMethods = metadata.GetTypeDefinition(exportsHandle)
-                .GetMethods()
-                .Select(metadata.GetMethodDefinition)
-                .Where(method => metadata.GetString(method.Name) == "WELCOME")
-                .ToArray();
+                peReader.PEHeaders.CorHeader!.EntryPointTokenOrRelativeVirtualAddress.Should().Be(0);
+                peReader.PEHeaders.CoffHeader.Characteristics.Should().HaveFlag(Characteristics.Dll);
 
-            welcomeMethods.Should().ContainSingle(method =>
-                method.Attributes.HasFlag(MethodAttributes.Public) &&
-                method.Attributes.HasFlag(MethodAttributes.Static));
-            welcomeMethods.Should().ContainSingle(method =>
-                method.Attributes.HasFlag(MethodAttributes.Private) &&
-                method.Attributes.HasFlag(MethodAttributes.Static));
-
-            Type exports = Assembly.LoadFrom(outputPath).GetType("LolcodeExports")!;
-            MethodInfo wrapper = exports.GetMethod(
-                "WELCOME",
-                BindingFlags.Public | BindingFlags.Static)!;
-            wrapper.ReturnType.Should().Be(typeof(object));
-            wrapper.GetParameters()
-                .Select(parameter => parameter.ParameterType)
-                .Should()
-                .Equal(typeof(object), typeof(object));
-
-            using var pdbStream = File.OpenRead(result.PdbPath!);
-            using var pdbProvider = MetadataReaderProvider.FromPortablePdbStream(pdbStream);
-            MethodDefinitionHandle privateImplementation = metadata.GetTypeDefinition(exportsHandle)
-                .GetMethods()
-                .Single(handle =>
+                MetadataReader metadata = peReader.GetMetadataReader();
+                TypeDefinitionHandle exportsHandle = metadata.TypeDefinitions.Single(handle =>
                 {
-                    MethodDefinition method = metadata.GetMethodDefinition(handle);
-                    return metadata.GetString(method.Name) == "WELCOME" &&
-                        method.Attributes.HasFlag(MethodAttributes.Private);
+                    TypeDefinition definition = metadata.GetTypeDefinition(handle);
+                    return metadata.GetString(definition.Name) == "LolcodeExports" &&
+                        metadata.GetString(definition.Namespace) == string.Empty;
                 });
-            pdbProvider.GetMetadataReader()
-                .GetMethodDebugInformation(privateImplementation)
-                .SequencePointsBlob
-                .IsNil
-                .Should()
-                .BeFalse();
+                MethodDefinition[] welcomeMethods = metadata.GetTypeDefinition(exportsHandle)
+                    .GetMethods()
+                    .Select(metadata.GetMethodDefinition)
+                    .Where(method => metadata.GetString(method.Name) == "WELCOME")
+                    .ToArray();
+
+                welcomeMethods.Should().ContainSingle(method =>
+                    method.Attributes.HasFlag(MethodAttributes.Public) &&
+                    method.Attributes.HasFlag(MethodAttributes.Static));
+                welcomeMethods.Should().ContainSingle(method =>
+                    method.Attributes.HasFlag(MethodAttributes.Private) &&
+                    method.Attributes.HasFlag(MethodAttributes.Static));
+
+                MethodDefinition wrapper = welcomeMethods.Single(method =>
+                    method.Attributes.HasFlag(MethodAttributes.Public) &&
+                    method.Attributes.HasFlag(MethodAttributes.Static));
+                metadata.GetBlobBytes(wrapper.Signature)
+                    .Should()
+                    .Equal(0x00, 0x02, 0x1C, 0x1C, 0x1C);
+
+                using (var pdbStream = File.OpenRead(result.PdbPath!))
+                using (var pdbProvider = MetadataReaderProvider.FromPortablePdbStream(pdbStream))
+                {
+                    MethodDefinitionHandle privateImplementation = metadata.GetTypeDefinition(exportsHandle)
+                        .GetMethods()
+                        .Single(handle =>
+                        {
+                            MethodDefinition method = metadata.GetMethodDefinition(handle);
+                            return metadata.GetString(method.Name) == "WELCOME" &&
+                                method.Attributes.HasFlag(MethodAttributes.Private);
+                        });
+                    pdbProvider.GetMetadataReader()
+                        .GetMethodDebugInformation(privateImplementation)
+                        .SequencePointsBlob
+                        .IsNil
+                        .Should()
+                        .BeFalse();
+                }
+            }
         }
         finally
         {
             File.Delete(outputPath);
             File.Delete(Path.ChangeExtension(outputPath, ".pdb"));
             File.Delete(runtimeConfigPath);
+            File.Exists(outputPath).Should().BeFalse();
+            File.Exists(Path.ChangeExtension(outputPath, ".pdb")).Should().BeFalse();
+            File.Exists(runtimeConfigPath).Should().BeFalse();
         }
     }
 
