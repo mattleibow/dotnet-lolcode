@@ -46,18 +46,8 @@
                     <h2>Program.lol</h2>
                 </div>
                 <div class="toolbar">
-                    <label class="sample-picker">
-                        <span>Sample</span>
-                        <select @bind="_selectedSampleId">
-                            @foreach (var sample in Samples)
-                            {
-                                <option value="@sample.Id">@sample.Name</option>
-                            }
-                        </select>
-                    </label>
-                    <button class="button secondary" @onclick="LoadSelectedSample">
-                        Load sample
-                    </button>
+                    <SampleBrowser CurrentSampleId="_selectedSampleId"
+                                   SampleSelected="ApplySample" />
                     <button class="button ghost" @onclick="Reset">Reset</button>
                     <button class="button run" @onclick="RunAsync" disabled="@_isRunning">
                         @(_isRunning ? "Running..." : "Run")
@@ -167,91 +157,10 @@
 </main>
 
 @code {
-    private static readonly Sample[] Samples =
-    [
-        new(
-            "hello",
-            "Hello + input",
-            """
-            HAI 1.2
-              VISIBLE "OH HAI! WUT IZ UR NAME?"
-              I HAS A name
-              GIMMEH name
-              VISIBLE "NICE 2 MEET U, " name "!"
-            KTHXBYE
-            """,
-            "LOLCAT\n"),
-        new(
-            "fizzbuzz",
-            "FizzBuzz",
-            """
-            HAI 1.2
-              I HAS A i ITZ 1
-              IM IN YR fizzbuzz UPPIN YR i TIL BOTH SAEM i AN 101
-                I HAS A out ITZ ""
-                BOTH SAEM MOD OF i AN 3 AN 0
-                O RLY?
-                  YA RLY, out R "Fizz"
-                OIC
-                BOTH SAEM MOD OF i AN 5 AN 0
-                O RLY?
-                  YA RLY, out R SMOOSH out AN "Buzz" MKAY
-                OIC
-                BOTH SAEM out AN ""
-                O RLY?
-                  YA RLY, VISIBLE i
-                  NO WAI, VISIBLE out
-                OIC
-              IM OUTTA YR fizzbuzz
-            KTHXBYE
-            """,
-            string.Empty),
-        new(
-            "fibonacci",
-            "Fibonacci",
-            """
-            HAI 1.2
-              HOW IZ I fib YR n
-                BOTH SAEM n AN 0
-                O RLY?
-                  YA RLY, FOUND YR 0
-                OIC
-                BOTH SAEM n AN 1
-                O RLY?
-                  YA RLY, FOUND YR 1
-                OIC
-                FOUND YR SUM OF I IZ fib YR DIFF OF n AN 1 MKAY AN I IZ fib YR DIFF OF n AN 2 MKAY
-              IF U SAY SO
-              VISIBLE "FIB(10) = " I IZ fib YR 10 MKAY
-            KTHXBYE
-            """,
-            string.Empty),
-        new(
-            "diagnostics",
-            "Compile error",
-            """
-            HAI 1.2
-              VISIBLE missing
-            KTHXBYE
-            """,
-            string.Empty),
-        new(
-            "runtime",
-            "Runtime error",
-            """
-            HAI 1.2
-              VISIBLE "ABOUT 2 DO BAD MATH..."
-              I HAS A value
-              VISIBLE SUM OF value AN 1
-            KTHXBYE
-            """,
-            string.Empty),
-    ];
-
-    private readonly string _initialSource = Samples[0].Source;
-    private string _source = Samples[0].Source;
-    private string _standardInput = Samples[0].StandardInput;
-    private string _selectedSampleId = Samples[0].Id;
+    private readonly string _initialSource = PlaygroundSamples.All[0].Source;
+    private string _source = PlaygroundSamples.All[0].Source;
+    private string _standardInput = PlaygroundSamples.All[0].StandardInput;
+    private string _selectedSampleId = PlaygroundSamples.All[0].Id;
     private CodeRunResult? _result;
     private bool _isRunning;
 
@@ -294,9 +203,10 @@
         }
     }
 
-    private void LoadSelectedSample()
+    private void ApplySample(string sampleId)
     {
-        var sample = Samples.Single(sample => sample.Id == _selectedSampleId);
+        var sample = PlaygroundSamples.All.Single(sample => sample.Id == sampleId);
+        _selectedSampleId = sample.Id;
         _source = sample.Source;
         _standardInput = sample.StandardInput;
         _result = null;
@@ -304,15 +214,9 @@
 
     private void Reset()
     {
-        _selectedSampleId = Samples[0].Id;
+        _selectedSampleId = PlaygroundSamples.All[0].Id;
         _source = _initialSource;
-        _standardInput = Samples[0].StandardInput;
+        _standardInput = PlaygroundSamples.All[0].StandardInput;
         _result = null;
     }
-
-    private sealed record Sample(
-        string Id,
-        string Name,
-        string Source,
-        string StandardInput);
 }
