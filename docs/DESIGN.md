@@ -308,7 +308,8 @@ var diagnostics = script.Compile();
 var state = script.Run(new LolcodeScriptExecutionOptions
 {
     StandardInput = "LOLCAT\n",
-    MaximumOutputLength = 64_000,
+    MaximumStandardOutputBytes = 64_000,
+    MaximumStandardErrorBytes = 16_000,
 });
 
 if (!state.Success)
@@ -316,13 +317,15 @@ if (!state.Success)
     // Compilation failures are in Diagnostics; runtime failures are in Exception.
 }
 
-Console.Write(state.Output);
+Console.Write(state.StandardOutput);
+Console.Error.Write(state.StandardError);
 ```
 
 `LolcodeCompilation` only parses, binds, and emits, matching the responsibility of Roslyn's `Compilation`. `LolcodeScript` follows Roslyn's
 script lifecycle: `Create` returns a reusable script, `Compile` produces diagnostics without execution, `GetCompilation` exposes the underlying
 compilation, and `Run` returns a state associated with that script. The static `LolcodeScript.Run` method remains a one-call convenience analogous
-to `CSharpScript.RunAsync`, but LOLCODE execution is synchronous because generated programs and runtime I/O are synchronous.
+to `CSharpScript.RunAsync`, but LOLCODE execution is synchronous because generated programs and runtime I/O are synchronous. Unlike Roslyn scripts,
+LOLCODE programs are complete programs: they have no submission globals or continuation chain, and they do not support generic return values.
 
 **Features:**
 - Colored diagnostic output with source context
@@ -547,38 +550,56 @@ locked, it is preserved through the required-output transaction and left
 unreferenced by the new PE; failed post-commit cleanup produces warning `LOL9002`.
 Caller-provided stream emission remains strict and propagates PDB stream failures.
 
-`LolcodeScript.Create` parses source into a reusable script. `Compile` returns diagnostics without execution, `GetCompilation` exposes its
-`LolcodeCompilation`, and each `Run` emits fresh PE and PDB bytes into memory, loads them, and invokes the generated entry point. `Run` returns a
-`LolcodeScriptState` linked back to the script with:
+`LolcodeScript.Create` parses source into a reusable script. Like Roslyn's `Script.Compile`, `Compile` forces the script through emission and returns
+diagnostics without execution. `GetCompilation` exposes its `LolcodeCompilation`, and `Run` reuses the cached PE/PDB bytes before loading and
+invoking the generated entry point. Stream emission uses a stable in-memory assembly identity for the lifetime of one `LolcodeCompilation`, while
+distinct compilation instances use distinct identities. Path emission continues to use the requested output filename as its assembly identity.
+`Run` returns a `LolcodeScriptState` linked back to the script with:
 
 - syntax and semantic `Diagnostics`
 - whether the entry point was `Executed`
-- captured `Output` and the entry-point `ReturnValue`
-- `OutputTruncated` when a host-supplied maximum capture length was exceeded
+- separately captured `StandardOutput` and `StandardError`, plus exact retained `StandardOutputBytes` and `StandardErrorBytes`
+- independent `StandardOutputTruncated` and `StandardErrorTruncated` flags when a host-supplied byte bound was exceeded
+- the entry-point `ReturnValue`
 - the generated program's unwrapped runtime `Exception`, when present
 
-`LolcodeScriptOptions` configures source-level behavior such as the diagnostic/PDB file path. `LolcodeScriptExecutionOptions` configures one run's
-standard input and maximum retained output length. Execution continues after the output limit is reached, but additional output is discarded so
-browser and service hosts can cap memory used by untrusted programs.
+`LolcodeScriptOptions` configures source-level behavior such as the diagnostic/PDB file path and `EmitDebugInformation`. Debug information is off
+by default, matching Roslyn scripting; PDB bytes are emitted and loaded only when explicitly enabled. `LolcodeScriptExecutionOptions` configures
+one run's standard input and independent maximum retained byte counts for standard output and standard error. Text is UTF-8 without a BOM unless
+the source explicitly emits one. Byte-backed YARN values preserve their exact raw bytes. State text properties use UTF-8 replacement decoding, so
+a bound that ends in the middle of a multi-byte sequence produces a replacement character. Execution continues after either capture limit is
+reached, but additional bytes for that stream are discarded.
 
-`GIMMEH` and `VISIBLE` use an `AsyncLocal`-scoped runtime I/O context. This permits deterministic input and output capture without changing
-process-global `Console.In` or `Console.Out`; ordinary file-based programs continue to use the console when no scope is active.
+`GIMMEH`, `VISIBLE`, `INVISIBLE`, command standard error, and source BOM output use an `AsyncLocal`-scoped runtime I/O context. This permits
+deterministic input, standard-output, and standard-error capture without changing process-global console streams; ordinary file-based programs
+continue to use `Console.In`, `Console.Out`, and `Console.Error` when no scope is active.
 
-Every stream emission receives a unique assembly identity. On CoreCLR, script assemblies are loaded into a collectible `AssemblyLoadContext`, and
-unloading is requested after each run. Actual reclamation remains nondeterministic because .NET unloads a collectible context only after garbage
-collection establishes that no references to its assemblies remain. A returned runtime exception can retain generated stack metadata until the
-state and exception are released.
+On CoreCLR, each run loads cached script bytes into a collectible `AssemblyLoadContext`, and unloading is requested after each run. Actual
+reclamation remains nondeterministic because .NET unloads a collectible context only after garbage collection establishes that no references to
+its assemblies remain. A returned runtime exception can retain generated stack metadata until the state and exception are released.
 
 .NET 10 Blazor WebAssembly supports this pipeline when running with the Mono interpreter: `PersistedAssemblyBuilder` serializes the PE and portable
 PDB in the browser, and `Assembly.Load(byte[], byte[])` loads the result into the runtime's non-collectible individual load context.
 `LolcodeScript.Run` selects this path when `OperatingSystem.IsBrowser()` is true. The runtime reports generated Mono types as non-collectible, so
-each browser execution retains its generated assembly until the WebAssembly application is reloaded. Unique identities prevent binding collisions
-but do not remove that memory cost.
+the script caches one loaded assembly and entry point for repeated or parallel runs. It remains until the WebAssembly application is reloaded.
 
 Dynamic loading is not supported by Native AOT or fully AOT-compiled Mono
 environments. Browser hosts must preserve `Lolcode.Runtime` and compiler members
 needed through reflection when publishing with trimming. Emitting bytes remains a
 separate API where execution is unavailable.
+
+`Compile`, stream `Emit`, and static or instance `Run` accept a `CancellationToken`. It is checked before and after compilation, during meaningful
+emission and serialization loops, at assembly loading boundaries, and immediately before invocation. Cancellation does not stop a generated program
+once invocation has begun.
+
+Execution is for **trusted code only**. In-process execution and bounded output capture are not a sandbox: a program can loop forever, allocate
+memory, access available libraries, or execute shell commands. Hosts that run untrusted code should use process or container isolation, or a
+terminable browser worker.
+
+Roslyn similarly separates `Compilation` emission from `CSharpScript`/`Script` execution and caches a script executor. LOLCODE deliberately
+diverges by returning a structured state: compilation diagnostics prevent invocation and remain in `Diagnostics`; runtime exceptions are unwrapped
+and retained in `Exception`. Host, loader, and reflection infrastructure failures are not converted into a success-shaped state and continue to
+surface to the caller.
 
 ---
 

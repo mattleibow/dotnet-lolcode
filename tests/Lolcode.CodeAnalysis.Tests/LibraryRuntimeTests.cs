@@ -250,6 +250,41 @@ public class LibraryRuntimeTests
     }
 
     [Fact]
+    public void Print_UsesScopedStandardError()
+    {
+        using var standardOutput = new StringWriter();
+        using var standardError = new StringWriter();
+        using var ioScope = LolRuntime.PushIo(
+            new StringReader(string.Empty),
+            standardOutput,
+            standardError);
+
+        LolRuntime.Print(["error"], suppressNewline: true, standardError: true);
+
+        standardOutput.ToString().Should().BeEmpty();
+        standardError.ToString().Should().Be("error");
+    }
+
+    [Fact]
+    public void ExecuteSystemCommand_UsesScopedStandardError()
+    {
+        string command = OperatingSystem.IsWindows()
+            ? "echo scoped-error 1>&2"
+            : "printf scoped-error >&2";
+        using var standardOutput = new StringWriter();
+        using var standardError = new StringWriter();
+        using var ioScope = LolRuntime.PushIo(
+            new StringReader(string.Empty),
+            standardOutput,
+            standardError);
+
+        LolRuntime.ExecuteSystemCommandValue(command);
+
+        standardOutput.ToString().Should().BeEmpty();
+        standardError.ToString().Should().Contain("scoped-error");
+    }
+
+    [Fact]
     public async Task Socks_SlotsResolveConnectSendReceiveClose_AndReturnEmptyAtEof()
     {
         using var listener = new TcpListener(IPAddress.Loopback, 0);

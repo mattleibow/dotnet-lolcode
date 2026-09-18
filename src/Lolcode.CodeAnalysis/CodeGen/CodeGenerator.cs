@@ -124,23 +124,33 @@ internal sealed class CodeGenerator
     /// <summary>
     /// Emits the assembly to caller-provided streams.
     /// </summary>
-    public void Emit(Stream peStream, Stream? pdbStream = null, string? pdbFileName = null)
-        => EmitCore(peStream, pdbStream, pdbFileName, toleratePdbFailure: false);
+    public void Emit(
+        Stream peStream,
+        Stream? pdbStream = null,
+        string? pdbFileName = null,
+        CancellationToken cancellationToken = default)
+        => EmitCore(peStream, pdbStream, pdbFileName, toleratePdbFailure: false, cancellationToken);
 
     /// <summary>
     /// Emits an assembly for the compatibility path API, omitting optional symbols
     /// when portable PDB serialization fails.
     /// </summary>
     /// <returns>Whether portable PDB symbols were emitted.</returns>
-    public bool EmitWithOptionalPdb(Stream peStream, Stream pdbStream, string pdbFileName)
-        => EmitCore(peStream, pdbStream, pdbFileName, toleratePdbFailure: true);
+    public bool EmitWithOptionalPdb(
+        Stream peStream,
+        Stream pdbStream,
+        string pdbFileName,
+        CancellationToken cancellationToken = default)
+        => EmitCore(peStream, pdbStream, pdbFileName, toleratePdbFailure: true, cancellationToken);
 
     private bool EmitCore(
         Stream peStream,
         Stream? pdbStream,
         string? pdbFileName,
-        bool toleratePdbFailure)
+        bool toleratePdbFailure,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var runtimeAssembly = _runtimeType.Assembly;
         _scopeType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolScope));
         _objectType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolObject));
@@ -176,6 +186,7 @@ internal sealed class CodeGenerator
         var emittedNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (var funcDecl in EnumerateFunctions(_boundTree))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             string preferredName =
                 funcDecl.Scope?.DirectName == "I" &&
                 funcDecl.Scope.Slot is null &&
@@ -217,11 +228,17 @@ internal sealed class CodeGenerator
 
         // Emit function bodies
         foreach (var pair in _functionMethods)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             EmitFunction(pair.Value, pair.Key);
+        }
         foreach (var pair in _parameterResolverMethods)
         {
             for (int index = 0; index < pair.Value.Length; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
                 EmitParameterResolver(pair.Value[index], pair.Key.ParameterIdentifiers[index]);
+            }
         }
 
         // Emit Main body
@@ -244,7 +261,10 @@ internal sealed class CodeGenerator
 
         _il.BeginExceptionBlock();
         foreach (var statement in _boundTree.Statements)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             EmitStatement(statement);
+        }
         _il.BeginFinallyBlock();
         _il.Emit(OpCodes.Ldloc, _scopeLocal);
         _il.Emit(OpCodes.Call, _disposeScopeMethod);
@@ -255,6 +275,7 @@ internal sealed class CodeGenerator
 
         _typeBuilder.CreateType();
 
+        cancellationToken.ThrowIfCancellationRequested();
         var metadataBuilder = assemblyBuilder.GenerateMetadata(out var ilStream, out var mappedFieldData, out MetadataBuilder pdbBuilder);
         var entryPointHandle = MetadataTokens.MethodDefinitionHandle(mainMethod.MetadataToken);
         DebugDirectoryBuilder? debugDirectoryBuilder = null;
@@ -264,6 +285,7 @@ internal sealed class CodeGenerator
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var portablePdbBlob = new BlobBuilder();
                 var portablePdbBuilder = new PortablePdbBuilder(
                     pdbBuilder, metadataBuilder.GetRowCounts(), entryPointHandle,
@@ -275,6 +297,7 @@ internal sealed class CodeGenerator
                         return BlobContentId.FromHash(hasher.GetHashAndReset());
                     });
                 BlobContentId pdbContentId = portablePdbBuilder.Serialize(portablePdbBlob);
+                cancellationToken.ThrowIfCancellationRequested();
                 portablePdbBlob.WriteContentTo(pdbStream);
 
                 debugDirectoryBuilder = new DebugDirectoryBuilder();
@@ -302,7 +325,9 @@ internal sealed class CodeGenerator
 
         var peBlob = new BlobBuilder();
         peBuilder.Serialize(peBlob);
+        cancellationToken.ThrowIfCancellationRequested();
         peBlob.WriteContentTo(peStream);
+        cancellationToken.ThrowIfCancellationRequested();
         return pdbEmitted;
     }
 

@@ -1097,22 +1097,24 @@ public static class LolRuntime
     // ==================== I/O ====================
 
     /// <summary>
-    /// Overrides the input and output used by LOLCODE I/O within the current asynchronous context.
+    /// Overrides the input, standard output, and standard error used by LOLCODE I/O within the current asynchronous context.
     /// </summary>
     /// <param name="input">The reader used by <c>GIMMEH</c>.</param>
-    /// <param name="output">The writer used by <c>VISIBLE</c>.</param>
+    /// <param name="standardOutput">The writer used by <c>VISIBLE</c>.</param>
+    /// <param name="standardError">The writer used by <c>INVISIBLE</c> and system-command standard error.</param>
     /// <returns>A scope that restores the previous I/O when disposed.</returns>
     /// <remarks>
     /// Scopes may be nested and must be disposed in reverse order. When no scope is active,
-    /// LOLCODE programs use <see cref="Console.In"/> and <see cref="Console.Out"/>.
+    /// LOLCODE programs use <see cref="Console.In"/>, <see cref="Console.Out"/>, and <see cref="Console.Error"/>.
     /// </remarks>
-    public static IDisposable PushIo(TextReader input, TextWriter output)
+    public static IDisposable PushIo(TextReader input, TextWriter standardOutput, TextWriter standardError)
     {
         ArgumentNullException.ThrowIfNull(input);
-        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(standardOutput);
+        ArgumentNullException.ThrowIfNull(standardError);
 
         var previous = CurrentIo.Value;
-        var current = new IoContext(input, output);
+        var current = new IoContext(input, standardOutput, standardError);
         CurrentIo.Value = current;
         return new IoScope(previous, current);
     }
@@ -1129,8 +1131,8 @@ public static class LolRuntime
     public static void Print(object?[] args, bool suppressNewline, bool standardError)
     {
         TextWriter writer = standardError
-            ? Console.Error
-            : CurrentIo.Value?.Output ?? Console.Out;
+            ? CurrentIo.Value?.StandardError ?? Console.Error
+            : CurrentIo.Value?.StandardOutput ?? Console.Out;
         if (args.Any(static arg => arg is LolByteYarn))
         {
             byte[] bytes = GetYarnBytes(ConcatenateYarns(args));
@@ -1183,7 +1185,10 @@ public static class LolRuntime
             byte[] outputBytes = output.GetAwaiter().GetResult();
             byte[] errorBytes = error.GetAwaiter().GetResult();
             if (errorBytes.Length > 0)
-                YarnByteSink.Write(Console.Error, errorBytes, suppressNewline: true);
+                YarnByteSink.Write(
+                    CurrentIo.Value?.StandardError ?? Console.Error,
+                    errorBytes,
+                    suppressNewline: true);
             return new LolByteYarn(outputBytes);
         }
         catch (LolRuntimeException)
@@ -1224,7 +1229,10 @@ public static class LolRuntime
         return input.ReadLine() ?? "";
     }
 
-    private sealed record IoContext(TextReader Input, TextWriter Output);
+    private sealed record IoContext(
+        TextReader Input,
+        TextWriter StandardOutput,
+        TextWriter StandardError);
 
     private sealed class IoScope(IoContext? previous, IoContext current) : IDisposable
     {
@@ -1244,7 +1252,7 @@ public static class LolRuntime
 
     /// <summary>Writes the UTF-8 byte-order mark preserved from source.</summary>
     public static void WriteByteOrderMark() =>
-        (CurrentIo.Value?.Output ?? Console.Out).Write('\uFEFF');
+        (CurrentIo.Value?.StandardOutput ?? Console.Out).Write('\uFEFF');
 }
 
 /// <summary>

@@ -2,6 +2,7 @@ using Lolcode.CodeAnalysis.Scripting;
 using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.Runtime;
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Runtime.Loader;
 
@@ -91,8 +92,11 @@ public sealed class InMemoryExecutionTests
         state.Success.Should().BeTrue();
         state.Executed.Should().BeTrue();
         state.Diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
-        state.Output.Should().Be($"HAI FROM MEMORY{Environment.NewLine}");
-        state.OutputTruncated.Should().BeFalse();
+        state.StandardOutput.Should().Be($"HAI FROM MEMORY{Environment.NewLine}");
+        state.StandardError.Should().BeEmpty();
+        state.StandardOutputBytes.Should().Equal(System.Text.Encoding.UTF8.GetBytes($"HAI FROM MEMORY{Environment.NewLine}"));
+        state.StandardOutputTruncated.Should().BeFalse();
+        state.StandardErrorTruncated.Should().BeFalse();
         state.ReturnValue.Should().BeNull();
         state.Exception.Should().BeNull();
     }
@@ -113,8 +117,8 @@ public sealed class InMemoryExecutionTests
     [InlineData(6, "ABCDE", false)]
     [InlineData(5, "ABCDE", false)]
     [InlineData(4, "ABCD", true)]
-    public void Run_BoundsCapturedOutput(
-        int maximumOutputLength,
+    public void Run_BoundsCapturedStandardOutputBytes(
+        int maximumStandardOutputBytes,
         string expectedOutput,
         bool expectedTruncated)
     {
@@ -127,24 +131,104 @@ public sealed class InMemoryExecutionTests
 
         var state = script.Run(new LolcodeScriptExecutionOptions
         {
-            MaximumOutputLength = maximumOutputLength,
+            MaximumStandardOutputBytes = maximumStandardOutputBytes,
         });
 
         state.Success.Should().BeTrue();
-        state.Output.Should().Be(expectedOutput);
-        state.OutputTruncated.Should().Be(expectedTruncated);
+        state.StandardOutput.Should().Be(expectedOutput);
+        state.StandardOutputTruncated.Should().Be(expectedTruncated);
+        state.StandardErrorTruncated.Should().BeFalse();
     }
 
     [Fact]
-    public void Run_RejectsNegativeMaximumOutputLength()
+    public void Run_BoundsStandardStreamsIndependentlyAndUsesReplacementForPartialUtf8()
     {
-        var createOptions = () => new LolcodeScriptExecutionOptions
+        var state = LolcodeScript.Run(
+            """
+            HAI 1.2
+              VISIBLE "é"!
+              INVISIBLE "é"!
+            KTHXBYE
+            """,
+            executionOptions: new LolcodeScriptExecutionOptions
+            {
+                MaximumStandardOutputBytes = 1,
+                MaximumStandardErrorBytes = 2,
+            });
+
+        state.Success.Should().BeTrue();
+        state.StandardOutputBytes.Should().Equal(0xC3);
+        state.StandardOutput.Should().Be("\uFFFD");
+        state.StandardOutputTruncated.Should().BeTrue();
+        state.StandardErrorBytes.Should().Equal(0xC3, 0xA9);
+        state.StandardError.Should().Be("é");
+        state.StandardErrorTruncated.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Run_RejectsNegativeMaximumStandardStreamByteLimits()
+    {
+        var createOutputOptions = () => new LolcodeScriptExecutionOptions
         {
-            MaximumOutputLength = -1,
+            MaximumStandardOutputBytes = -1,
+        };
+        var createErrorOptions = () => new LolcodeScriptExecutionOptions
+        {
+            MaximumStandardErrorBytes = -1,
         };
 
-        createOptions.Should().Throw<ArgumentOutOfRangeException>()
-            .Which.ParamName.Should().Be("MaximumOutputLength");
+        createOutputOptions.Should().Throw<ArgumentOutOfRangeException>()
+            .Which.ParamName.Should().Be("MaximumStandardOutputBytes");
+        createErrorOptions.Should().Throw<ArgumentOutOfRangeException>()
+            .Which.ParamName.Should().Be("MaximumStandardErrorBytes");
+    }
+
+    [Fact]
+    public void Run_CapturesStandardOutputAndStandardErrorIndependently()
+    {
+        var state = LolcodeScript.Run(
+            """
+            HAI 1.2
+              VISIBLE "stdout"!
+              INVISIBLE "stderr"!
+            KTHXBYE
+            """);
+
+        state.Success.Should().BeTrue();
+        state.StandardOutput.Should().Be("stdout");
+        state.StandardError.Should().Be("stderr");
+    }
+
+    [Fact]
+    public void Run_PreservesRawYarnBytesOnBothStandardStreams()
+    {
+        var state = LolcodeScript.Run(
+            """
+            HAI 1.4
+              CAN HAS STRING?
+              I HAS A first ITZ I IZ STRING'Z AT YR "é" AN YR 0 MKAY
+              I HAS A second ITZ I IZ STRING'Z AT YR "é" AN YR 1 MKAY
+              VISIBLE first!
+              INVISIBLE second!
+            KTHXBYE
+            """);
+
+        state.Success.Should().BeTrue();
+        state.StandardOutputBytes.Should().Equal(0xC3);
+        state.StandardErrorBytes.Should().Equal(0xA9);
+        state.StandardOutput.Should().Be("\uFFFD");
+        state.StandardError.Should().Be("\uFFFD");
+    }
+
+    [Fact]
+    public void Run_RoutesSourceBomToScopedStandardOutput()
+    {
+        var state = LolcodeScript.Run(
+            "\uFEFFHAI 1.2\nVISIBLE \"output\"!\nKTHXBYE");
+
+        state.Success.Should().BeTrue();
+        state.StandardOutputBytes.Should().Equal(0xEF, 0xBB, 0xBF, (byte)'o', (byte)'u', (byte)'t', (byte)'p', (byte)'u', (byte)'t');
+        state.StandardErrorBytes.Should().BeEmpty();
     }
 
     [Fact]
@@ -164,7 +248,7 @@ public sealed class InMemoryExecutionTests
             });
 
         state.Success.Should().BeTrue();
-        state.Output.Should().Be($"HAI, LOLCAT!{Environment.NewLine}");
+        state.StandardOutput.Should().Be($"HAI, LOLCAT!{Environment.NewLine}");
     }
 
     [Fact]
@@ -185,7 +269,8 @@ public sealed class InMemoryExecutionTests
         state.Success.Should().BeFalse();
         state.Executed.Should().BeFalse();
         state.Diagnostics.Should().BeEquivalentTo(diagnostics);
-        state.Output.Should().BeEmpty();
+        state.StandardOutput.Should().BeEmpty();
+        state.StandardError.Should().BeEmpty();
         state.Exception.Should().BeNull();
     }
 
@@ -227,7 +312,7 @@ public sealed class InMemoryExecutionTests
             """);
 
         state.Success.Should().BeTrue();
-        state.Output.Should().Be($"120{Environment.NewLine}");
+        state.StandardOutput.Should().Be($"120{Environment.NewLine}");
     }
 
     [Fact]
@@ -240,7 +325,7 @@ public sealed class InMemoryExecutionTests
             .ToArray();
 
         states.Should().OnlyContain(state => state.Success && ReferenceEquals(state.Script, script));
-        states.Select(state => state.Output)
+        states.Select(state => state.StandardOutput)
             .Should().OnlyContain(output => output == $"HAI FROM MEMORY{Environment.NewLine}");
     }
 
@@ -256,18 +341,102 @@ public sealed class InMemoryExecutionTests
             .ToArray();
 
         states.Should().OnlyContain(state => state.Success);
-        states.Select(state => state.Output)
+        script.NonCollectibleLoadCount.Should().Be(1);
+        states.Select(state => state.StandardOutput)
             .Should().OnlyContain(output => output == $"HAI FROM MEMORY{Environment.NewLine}");
     }
 
     [Fact]
-    public async Task Run_ParallelExecutionsKeepInputAndOutputScoped()
+    public void Run_NonCollectibleLoaderCachesAssembliesPerScript()
+    {
+        var firstScript = LolcodeScript.Create(HelloProgram);
+        var secondScript = LolcodeScript.Create(HelloProgram);
+
+        firstScript.RunCore(options: null, useNonCollectibleAssemblyLoad: true).Success.Should().BeTrue();
+        firstScript.RunCore(options: null, useNonCollectibleAssemblyLoad: true).Success.Should().BeTrue();
+        secondScript.RunCore(options: null, useNonCollectibleAssemblyLoad: true).Success.Should().BeTrue();
+
+        firstScript.NonCollectibleLoadCount.Should().Be(1);
+        secondScript.NonCollectibleLoadCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void Run_EmitsPdbOnlyWhenEnabled()
+    {
+        var withoutDebugInformation = LolcodeScript.Create(HelloProgram);
+        var withDebugInformation = LolcodeScript.Create(HelloProgram, new LolcodeScriptOptions
+        {
+            EmitDebugInformation = true,
+        });
+
+        withoutDebugInformation.Compile().Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
+        withDebugInformation.Compile().Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
+
+        withoutDebugInformation.HasCachedPdb.Should().BeFalse();
+        withDebugInformation.HasCachedPdb.Should().BeTrue();
+        withoutDebugInformation.NonCollectibleLoadCount.Should().Be(0);
+        withDebugInformation.NonCollectibleLoadCount.Should().Be(0);
+
+        withoutDebugInformation.RunCore(options: null, useNonCollectibleAssemblyLoad: true).Success.Should().BeTrue();
+        withDebugInformation.RunCore(options: null, useNonCollectibleAssemblyLoad: true).Success.Should().BeTrue();
+
+        withoutDebugInformation.NonCollectibleLoadCount.Should().Be(1);
+        withDebugInformation.NonCollectibleLoadCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void Emit_ToStreams_UsesStableCompilationIdentity()
+    {
+        var firstCompilation = LolcodeCompilation.Create(SyntaxTree.ParseText(HelloProgram, "first.lol"));
+        var secondCompilation = LolcodeCompilation.Create(SyntaxTree.ParseText(HelloProgram, "second.lol"));
+        using var firstStream = new MemoryStream();
+        using var repeatedStream = new MemoryStream();
+        using var secondStream = new MemoryStream();
+
+        firstCompilation.Emit(firstStream).Success.Should().BeTrue();
+        firstCompilation.Emit(repeatedStream).Success.Should().BeTrue();
+        secondCompilation.Emit(secondStream).Success.Should().BeTrue();
+
+        GetAssemblyName(firstStream.ToArray()).Should().Be(GetAssemblyName(repeatedStream.ToArray()));
+        GetAssemblyName(firstStream.ToArray()).Should().NotBe(GetAssemblyName(secondStream.ToArray()));
+    }
+
+    [Fact]
+    public void CompileEmitAndRun_RespectPreCanceledTokens()
+    {
+        using var cancellationSource = new CancellationTokenSource();
+        cancellationSource.Cancel();
+        var script = LolcodeScript.Create(HelloProgram);
+        var compilation = script.GetCompilation();
+        using var peStream = new MemoryStream();
+
+        Action compile = () => script.Compile(cancellationSource.Token);
+        Action diagnostics = () => compilation.GetDiagnostics(cancellationSource.Token);
+        Action emit = () => compilation.Emit(peStream, cancellationToken: cancellationSource.Token);
+        Action run = () => script.RunCore(
+            options: null,
+            useNonCollectibleAssemblyLoad: true,
+            cancellationToken: cancellationSource.Token);
+        Action staticRun = () => LolcodeScript.Run(HelloProgram, cancellationToken: cancellationSource.Token);
+
+        compile.Should().Throw<OperationCanceledException>();
+        diagnostics.Should().Throw<OperationCanceledException>();
+        emit.Should().Throw<OperationCanceledException>();
+        run.Should().Throw<OperationCanceledException>();
+        staticRun.Should().Throw<OperationCanceledException>();
+        peStream.Length.Should().Be(0);
+        script.NonCollectibleLoadCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Run_ParallelExecutionsKeepInputAndStandardStreamsScoped()
     {
         const string program = """
             HAI 1.2
               I HAS A value
               GIMMEH value
               VISIBLE value
+              INVISIBLE value
             KTHXBYE
             """;
 
@@ -282,7 +451,10 @@ public sealed class InMemoryExecutionTests
         var states = await Task.WhenAll(executions);
 
         states.Should().OnlyContain(state => state.Success);
-        states.Select(state => state.Output)
+        states.Select(state => state.StandardOutput)
+            .Should().BeEquivalentTo(
+                Enumerable.Range(0, 12).Select(index => $"LOLCAT {index}{Environment.NewLine}"));
+        states.Select(state => state.StandardError)
             .Should().BeEquivalentTo(
                 Enumerable.Range(0, 12).Select(index => $"LOLCAT {index}{Environment.NewLine}"));
     }
@@ -641,7 +813,7 @@ public sealed class InMemoryExecutionTests
             using var peStream = File.OpenRead(outputPath);
             var assembly = loadContext.LoadFromStream(peStream);
             using var output = new StringWriter();
-            using var ioScope = LolRuntime.PushIo(new StringReader(string.Empty), output);
+            using var ioScope = LolRuntime.PushIo(new StringReader(string.Empty), output, TextWriter.Null);
 
             assembly.EntryPoint!.Invoke(obj: null, parameters: null);
 
@@ -670,6 +842,14 @@ public sealed class InMemoryExecutionTests
             .Should().NotContain(path =>
                 path.EndsWith(".tmp", StringComparison.Ordinal)
                 || path.EndsWith(".bak", StringComparison.Ordinal));
+    }
+
+    private static string GetAssemblyName(byte[] peBytes)
+    {
+        using var stream = new MemoryStream(peBytes, writable: false);
+        using var peReader = new PEReader(stream);
+        var metadataReader = peReader.GetMetadataReader();
+        return metadataReader.GetString(metadataReader.GetAssemblyDefinition().Name);
     }
 
     private static string CreateTempDirectory()

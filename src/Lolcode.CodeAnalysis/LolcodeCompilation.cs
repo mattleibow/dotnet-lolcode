@@ -45,7 +45,7 @@ public sealed class EmitResult
 /// <summary>
 /// Immutable compilation unit for LOLCODE. Equivalent to Roslyn's CSharpCompilation.
 /// Create with <see cref="Create"/>, inspect with <see cref="GetDiagnostics"/>,
-/// and emit with <see cref="Emit(Stream, Stream?)"/>.
+/// and emit with <see cref="Emit(Stream, Stream?, CancellationToken)"/>.
 /// </summary>
 public sealed class LolcodeCompilation
 {
@@ -53,6 +53,7 @@ public sealed class LolcodeCompilation
     public ImmutableArray<SyntaxTree> SyntaxTrees { get; }
 
     private readonly object _bindingLock = new();
+    private readonly string _inMemoryAssemblyName = $"LolcodeSubmission_{Guid.NewGuid():N}";
     private BindingResult? _bindingResult;
 
     private LolcodeCompilation(ImmutableArray<SyntaxTree> syntaxTrees)
@@ -62,13 +63,19 @@ public sealed class LolcodeCompilation
     public static LolcodeCompilation Create(params SyntaxTree[] syntaxTrees)
         => new(syntaxTrees.ToImmutableArray());
 
-    /// <summary>Get all diagnostics (syntax + semantic).</summary>
-    public ImmutableArray<Diagnostic> GetDiagnostics()
+    /// <summary>Gets all syntax and semantic diagnostics.</summary>
+    /// <param name="cancellationToken">A token checked before and after binding.</param>
+    public ImmutableArray<Diagnostic> GetDiagnostics(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var bindingResult = EnsureBound();
+        cancellationToken.ThrowIfCancellationRequested();
         var builder = ImmutableArray.CreateBuilder<Diagnostic>();
         foreach (var tree in SyntaxTrees)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             builder.AddRange(tree.Diagnostics);
+        }
         builder.AddRange(bindingResult.Diagnostics);
         return builder.ToImmutable();
     }
@@ -295,34 +302,41 @@ public sealed class LolcodeCompilation
     /// <param name="pdbStream">
     /// An optional writable stream that receives portable PDB symbols.
     /// </param>
+    /// <param name="cancellationToken">A token checked at compilation and emission boundaries.</param>
     /// <returns>The result of the emission.</returns>
     /// <remarks>
     /// The caller owns both streams. Their positions are advanced but they are not closed.
     /// Runtime references are resolved from the <c>Lolcode.Runtime</c> assembly already
-    /// referenced by this compiler.
+    /// referenced by this compiler. Cancellation does not interrupt parser or binder internals,
+    /// but is checked before and after binding and throughout code emission.
     /// </remarks>
-    public EmitResult Emit(Stream peStream, Stream? pdbStream = null)
+    public EmitResult Emit(
+        Stream peStream,
+        Stream? pdbStream = null,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateOutputStream(peStream, nameof(peStream));
         if (pdbStream != null)
             ValidateOutputStream(pdbStream, nameof(pdbStream));
         if (ReferenceEquals(peStream, pdbStream))
             throw new ArgumentException("PE and PDB output streams must be different.", nameof(pdbStream));
 
-        var diagnostics = GetDiagnostics();
+        var diagnostics = GetDiagnostics(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         if (diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error))
             return new EmitResult(false, diagnostics, null);
 
-        var assemblyName = $"LolcodeSubmission_{Guid.NewGuid():N}";
         return EmitCore(
             peStream,
             pdbStream,
             typeof(LolRuntime),
-            assemblyName,
+            _inMemoryAssemblyName,
             diagnostics,
             outputPath: null,
             pdbPath: null,
-            pdbFileName: pdbStream == null ? null : $"{assemblyName}.pdb");
+            pdbFileName: pdbStream == null ? null : $"{_inMemoryAssemblyName}.pdb",
+            cancellationToken: cancellationToken);
     }
 
     private EmitResult EmitCore(
@@ -334,9 +348,12 @@ public sealed class LolcodeCompilation
         string? outputPath,
         string? pdbPath,
         string? pdbFileName,
-        bool toleratePdbFailure = false)
+        bool toleratePdbFailure = false,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var bindingResult = EnsureBound();
+        cancellationToken.ThrowIfCancellationRequested();
         var tree = SyntaxTrees[0];
         var generator = new CodeGenerator(
             bindingResult.BoundTree,
@@ -346,13 +363,14 @@ public sealed class LolcodeCompilation
             sourceFilePath: tree.FilePath);
         var pdbEmitted = false;
         if (toleratePdbFailure && pdbStream != null && pdbFileName != null)
-            pdbEmitted = generator.EmitWithOptionalPdb(peStream, pdbStream, pdbFileName);
+            pdbEmitted = generator.EmitWithOptionalPdb(peStream, pdbStream, pdbFileName, cancellationToken);
         else
         {
-            generator.Emit(peStream, pdbStream, pdbFileName);
+            generator.Emit(peStream, pdbStream, pdbFileName, cancellationToken);
             pdbEmitted = pdbStream != null;
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         return new EmitResult(true, diagnostics, outputPath, pdbEmitted ? pdbPath : null);
     }
 
