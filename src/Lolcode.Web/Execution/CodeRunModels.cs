@@ -7,7 +7,8 @@ internal sealed record CodeRunRequest(string Source, string StandardInput);
 internal sealed record CodeRunResult(
     bool Success,
     bool Executed,
-    string Output,
+    string StandardOutput,
+    string StandardError,
     TimeSpan Duration,
     ImmutableArray<CodeDiagnostic> Diagnostics);
 

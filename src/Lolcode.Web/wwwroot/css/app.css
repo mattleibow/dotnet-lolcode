@@ -694,16 +694,49 @@ h1 {
     margin-left: auto;
 }
 
-.terminal-output {
+.terminal-content {
     overflow: auto;
     min-height: 0;
     flex: 1;
+}
+
+.terminal-stream {
+    border-bottom: 1px solid #292a28;
+}
+
+.terminal-stream:last-child {
+    border-bottom: 0;
+}
+
+.terminal-stream-label {
+    display: block;
+    padding: 10px 18px 0;
+    color: #716d67;
+    font: 10px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.terminal-stream.error .terminal-stream-label {
+    color: var(--red);
+}
+
+.terminal-output {
+    min-height: 0;
     margin: 0;
     padding: 18px;
     color: #c6e7cf;
     font: 12px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace;
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+.terminal-stream .terminal-output {
+    padding-top: 10px;
+}
+
+.terminal-stream.error .terminal-output {
+    color: #ffc0bb;
 }
 
 .diagnostics-panel {

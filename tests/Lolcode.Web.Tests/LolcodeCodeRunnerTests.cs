@@ -43,26 +43,38 @@ public sealed class LolcodeCodeRunnerTests
     }
 
     [Fact]
-    public void TruncateOutput_PreservesBoundaryAndMarksOverflow()
+    public void AppendTruncationMarker_MarksOnlyTruncatedStreams()
     {
-        var boundary = new string('X', CodeRunnerLimits.MaxOutputLength);
-        var overflow = string.Concat(boundary, "Y");
-
-        LolcodeCodeRunner.TruncateOutput(boundary).Should().Be(boundary);
-        LolcodeCodeRunner.TruncateOutput(overflow).Should().Be(
-            string.Concat(boundary, Environment.NewLine, "[output truncated]"));
-        LolcodeCodeRunner.TruncateOutput("short", isTruncated: true).Should().Be(
-            string.Concat("short", Environment.NewLine, "[output truncated]"));
+        LolcodeCodeRunner.AppendTruncationMarker(
+                "complete",
+                isTruncated: false,
+                "[standard output truncated]")
+            .Should().Be("complete");
+        LolcodeCodeRunner.AppendTruncationMarker(
+                "partial",
+                isTruncated: true,
+                "[standard output truncated]")
+            .Should().Be(
+                string.Concat("partial", Environment.NewLine, "[standard output truncated]"));
+        LolcodeCodeRunner.AppendTruncationMarker(
+                string.Empty,
+                isTruncated: true,
+                "[standard error truncated]")
+            .Should().Be("[standard error truncated]");
     }
 
-    [Fact]
-    public async Task RunAsync_BoundsCapturedOutputDuringExecution()
+    [Theory]
+    [InlineData(CodeRunnerLimits.MaxStandardStreamBytes, false)]
+    [InlineData(CodeRunnerLimits.MaxStandardStreamBytes + 1, true)]
+    public async Task RunAsync_BoundsCapturedOutputDuringExecution(
+        int outputLength,
+        bool shouldBeTruncated)
     {
         var result = await _runner.RunAsync(
             new CodeRunRequest(
-                """
+                $$"""
                 HAI 1.2
-                  IM IN YR loop UPPIN YR i TIL BOTH SAEM i AN 128001
+                  IM IN YR loop UPPIN YR i TIL BOTH SAEM i AN {{outputLength}}
                     VISIBLE "X"!
                   IM OUTTA YR loop
                 KTHXBYE
@@ -70,11 +82,41 @@ public sealed class LolcodeCodeRunnerTests
                 string.Empty));
 
         result.Success.Should().BeTrue();
-        result.Output.Should().Be(
-            string.Concat(
-                new string('X', CodeRunnerLimits.MaxOutputLength),
+        var expectedOutput = new string('X', CodeRunnerLimits.MaxStandardStreamBytes);
+        if (shouldBeTruncated)
+        {
+            expectedOutput = string.Concat(
+                expectedOutput,
                 Environment.NewLine,
-                "[output truncated]"));
+                "[standard output truncated]");
+        }
+
+        result.StandardOutput.Should().Be(expectedOutput);
+        result.StandardError.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RunAsync_CapturesAndBoundsStandardErrorIndependently()
+    {
+        var result = await _runner.RunAsync(
+            new CodeRunRequest(
+                """
+                HAI 1.2
+                  VISIBLE "stdout"!
+                  IM IN YR loop UPPIN YR i TIL BOTH SAEM i AN 128001
+                    INVISIBLE "E"!
+                  IM OUTTA YR loop
+                KTHXBYE
+                """,
+                string.Empty));
+
+        result.Success.Should().BeTrue();
+        result.StandardOutput.Should().Be("stdout");
+        result.StandardError.Should().Be(
+            string.Concat(
+                new string('E', CodeRunnerLimits.MaxStandardStreamBytes),
+                Environment.NewLine,
+                "[standard error truncated]"));
     }
 
     [Fact]

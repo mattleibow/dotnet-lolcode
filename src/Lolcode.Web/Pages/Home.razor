@@ -87,7 +87,7 @@
                     <div class="terminal-lights" aria-hidden="true">
                         <span></span><span></span><span></span>
                     </div>
-                    <span>program output</span>
+                    <span>program streams</span>
                     @if (_result is not null)
                     {
                         <span class="terminal-meta">
@@ -95,7 +95,36 @@
                         </span>
                     }
                 </div>
-                <pre class="terminal-output" aria-live="polite">@TerminalText</pre>
+                <div class="terminal-content" aria-live="polite">
+                    @if (_result is null)
+                    {
+                        <pre class="terminal-output">$ Select a sample or write a program, then press Run.</pre>
+                    }
+                    else if (string.IsNullOrEmpty(_result.StandardOutput)
+                        && string.IsNullOrEmpty(_result.StandardError))
+                    {
+                        <pre class="terminal-output">@(_result.Success
+                            ? "[program completed without output]"
+                            : "[no program output]")</pre>
+                    }
+                    else
+                    {
+                        @if (!string.IsNullOrEmpty(_result.StandardOutput))
+                        {
+                            <section class="terminal-stream" aria-label="Standard output">
+                                <span class="terminal-stream-label">standard output</span>
+                                <pre class="terminal-output">@_result.StandardOutput</pre>
+                            </section>
+                        }
+                        @if (!string.IsNullOrEmpty(_result.StandardError))
+                        {
+                            <section class="terminal-stream error" aria-label="Standard error">
+                                <span class="terminal-stream-label">standard error</span>
+                                <pre class="terminal-output">@_result.StandardError</pre>
+                            </section>
+                        }
+                    }
+                </div>
             </div>
         </div>
     </section>
@@ -148,8 +177,9 @@
 
     <footer>
         <p>
-            This terminal presents <code>VISIBLE</code> output. The input panel
-            feeds <code>GIMMEH</code>; this is not an OS shell and cannot run
+            This terminal presents <code>VISIBLE</code> standard output and
+            <code>INVISIBLE</code> standard error. The input panel feeds
+            <code>GIMMEH</code>; this is not an OS shell and cannot run
             <code>dotnet</code> commands.
         </p>
         <p>Built with Blazor WebAssembly, .NET 10, and dotnet-lolcode.</p>
@@ -165,12 +195,6 @@
     private bool _isRunning;
 
     private int LineCount => Math.Max(1, _source.Count(character => character == '\n') + 1);
-
-    private string TerminalText => _result is null
-        ? "$ Select a sample or write a program, then press Run."
-        : string.IsNullOrEmpty(_result.Output)
-            ? _result.Success ? "[program completed without output]" : "[no program output]"
-            : _result.Output;
 
     private string DiagnosticHeading
     {

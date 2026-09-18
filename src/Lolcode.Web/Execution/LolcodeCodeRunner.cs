@@ -43,7 +43,8 @@ internal sealed class LolcodeCodeRunner : ICodeRunner
         var state = script.Run(new LolcodeScriptExecutionOptions
         {
             StandardInput = request.StandardInput,
-            MaximumOutputLength = CodeRunnerLimits.MaxOutputLength,
+            MaximumStandardOutputBytes = CodeRunnerLimits.MaxStandardStreamBytes,
+            MaximumStandardErrorBytes = CodeRunnerLimits.MaxStandardStreamBytes,
         });
         var diagnostics = state.Diagnostics
             .Select(ToCodeDiagnostic)
@@ -60,7 +61,14 @@ internal sealed class LolcodeCodeRunner : ICodeRunner
             new CodeRunResult(
                 state.Success,
                 state.Executed,
-                TruncateOutput(state.Output, state.OutputTruncated),
+                AppendTruncationMarker(
+                    state.StandardOutput,
+                    state.StandardOutputTruncated,
+                    "[standard output truncated]"),
+                AppendTruncationMarker(
+                    state.StandardError,
+                    state.StandardErrorTruncated,
+                    "[standard error truncated]"),
                 stopwatch.Elapsed,
                 diagnostics));
     }
@@ -156,24 +164,26 @@ internal sealed class LolcodeCodeRunner : ICodeRunner
         return (0, 0);
     }
 
-    internal static string TruncateOutput(string output, bool isTruncated = false)
+    internal static string AppendTruncationMarker(
+        string content,
+        bool isTruncated,
+        string marker)
     {
-        if (!isTruncated && output.Length <= CodeRunnerLimits.MaxOutputLength)
+        if (!isTruncated)
         {
-            return output;
+            return content;
         }
 
-        var retainedLength = Math.Min(output.Length, CodeRunnerLimits.MaxOutputLength);
-        return string.Concat(
-            output.AsSpan(0, retainedLength),
-            Environment.NewLine,
-            "[output truncated]");
+        return string.IsNullOrEmpty(content)
+            ? marker
+            : string.Concat(content, Environment.NewLine, marker);
     }
 
     private static CodeRunResult ValidationFailure(string message) =>
         new(
             false,
             false,
+            string.Empty,
             string.Empty,
             TimeSpan.Zero,
             [new CodeDiagnostic("INPUT", CodeDiagnosticSeverity.Error, message)]);

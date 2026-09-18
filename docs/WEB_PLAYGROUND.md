@@ -4,8 +4,9 @@
 publishes as static files and requires no application server.
 
 The playground compiles LOLCODE to .NET IL and executes it entirely inside the
-browser. Source, deterministic `GIMMEH` input, `VISIBLE` output, compiler
-diagnostics, and runtime failures never leave the page.
+browser. Source, deterministic `GIMMEH` input, `VISIBLE` standard output,
+`INVISIBLE` standard error, compiler diagnostics, and runtime failures never
+leave the page.
 
 ## Run locally
 
@@ -40,17 +41,19 @@ The deployable site is in `artifacts/lolcode-web/wwwroot`.
   module keeps it vertically synchronized with the source textarea.
 - `Execution/ICodeRunner.cs` is the boundary between the UI and a language
   implementation.
-- `Execution/LolcodeCodeRunner.cs` creates a `LolcodeCompilation` and calls
-  `LolcodeScript.Run`. The scripting API emits a uniquely named PE and portable
-  PDB in memory, loads the assembly, scopes `GIMMEH`/`VISIBLE` I/O, invokes the
-  entry point, and returns structured compiler and runtime state.
-- Compiler diagnostics map directly from `LolcodeScriptResult`. Browser stack
+- `Execution/LolcodeCodeRunner.cs` creates a reusable `LolcodeScript`, obtains
+  its `LolcodeCompilation` for runtime source mapping, and runs it with
+  `LolcodeScriptExecutionOptions`. The scripting API emits a uniquely named PE
+  in memory, loads the assembly, scopes `GIMMEH`/`VISIBLE`/`INVISIBLE` I/O,
+  invokes the entry point, and returns a structured `LolcodeScriptState`.
+- Compiler diagnostics map directly from `LolcodeScriptState`. Browser stack
   frames don't consistently expose source lines for dynamically loaded
   assemblies, so runtime diagnostics fall back to the compilation's portable
   PDB using the failing method's metadata token and IL offset.
-- The terminal panel presents `VISIBLE` output and the adjacent input panel
-  feeds `GIMMEH`. A static browser application cannot provide an OS shell or
-  run the `dotnet` CLI.
+- The terminal panel presents `VISIBLE` standard output and distinctly labeled
+  `INVISIBLE` standard error streams; it doesn't attempt to reconstruct their
+  relative interleaving. The adjacent input panel feeds `GIMMEH`. A static
+  browser application cannot provide an OS shell or run the `dotnet` CLI.
 
 ## Browser execution limitations
 
@@ -66,9 +69,9 @@ isolation:
   isn't supported in browser WebAssembly and isn't used by this runner.
 - The runner is not a process, container, or security boundary. It executes in
   the same WebAssembly runtime as the playground.
-- Source is capped at 100,000 characters, stdin at 32,000 characters, and
-  displayed output is truncated after 128,000 characters. The compiler and
-  executing program can still allocate additional memory.
+- Source is capped at 100,000 characters, stdin at 32,000 characters, and each
+  captured standard stream is truncated after 128,000 UTF-8 bytes. The
+  compiler and executing program can still allocate additional memory.
 - Browser platform restrictions still apply. There is no native process,
   arbitrary filesystem, or general outbound socket access.
 
