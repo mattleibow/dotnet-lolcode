@@ -16,6 +16,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Lolcode.CodeAnalysis\Lolcode.CodeAnalysis.csproj" />
     <ProjectReference Include="..\..\src\Lolcode.Runtime\Lolcode.Runtime.csproj" />
+    <ProjectReference Include="..\ManagedLibraryFixture\ManagedLibraryFixture.csproj" />
+    <ProjectReference Include="..\StringOverrideFixture\StringOverrideFixture.csproj" />
   </ItemGroup>
 
   <ItemGroup>

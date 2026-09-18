@@ -91,6 +91,9 @@ sample shows a normal C# `ProjectReference` consuming the public static
 dotnet run --project samples/project-based/csharp-head-lolcode-library/CSharpHead/CSharpHead.csproj
 ```
 
+The [mixed-language project](project-based/mixed-language/) demonstrates a
+LOLCODE executable importing an ordinary C# class library with `CAN HAS`.
+
 ## Local Development
 
 The `#:sdk Lolcode.NET.Sdk@0.2.0` directive restores the SDK's MSBuild props and
