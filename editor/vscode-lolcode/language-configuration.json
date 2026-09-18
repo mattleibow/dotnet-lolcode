@@ -1,0 +1,36 @@
+{
+  "comments": {
+    "lineComment": "BTW",
+    "blockComment": [
+      "OBTW",
+      "TLDR"
+    ]
+  },
+  "autoClosingPairs": [
+    {
+      "open": "\"",
+      "close": "\"",
+      "notIn": [
+        "string",
+        "comment"
+      ]
+    }
+  ],
+  "surroundingPairs": [
+    [
+      "\"",
+      "\""
+    ]
+  ],
+  "wordPattern": "(?<![A-Za-z0-9_])[A-Za-z][A-Za-z0-9_]*",
+  "folding": {
+    "markers": {
+      "start": "^\\s*(?:HAI\\b|O\\s+RLY\\?|WTF\\?|IM\\s+IN\\s+YR\\b|HOW\\s+IZ\\s+I\\b|O\\s+HAI\\s+IM\\b|OBTW\\b)",
+      "end": "^\\s*(?:KTHXBYE\\b|OIC\\b|IM\\s+OUTTA\\s+YR\\b|IF\\s+U\\s+SAY\\s+SO\\b|KTHX\\b|TLDR\\b)"
+    }
+  },
+  "indentationRules": {
+    "increaseIndentPattern": "^\\s*(?:(?:HAI\\b|O\\s+RLY\\?|WTF\\?|IM\\s+IN\\s+YR\\b|HOW\\s+IZ\\s+I\\b|O\\s+HAI\\s+IM\\b|OBTW\\b)|(?:YA\\s+RLY|NO\\s+WAI|MEBBE|OMG|OMGWTF)\\b).*$",
+    "decreaseIndentPattern": "^\\s*(?:(?:KTHXBYE|OIC|IM\\s+OUTTA\\s+YR|IF\\s+U\\s+SAY\\s+SO|KTHX|TLDR)\\b|(?:YA\\s+RLY|NO\\s+WAI|MEBBE|OMG|OMGWTF)\\b)"
+  }
+}

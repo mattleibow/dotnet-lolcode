@@ -1,0 +1,44 @@
+{
+  "name": "vscode-lolcode",
+  "displayName": "LOLCODE",
+  "description": "Syntax highlighting and editing support for LOLCODE.",
+  "version": "0.1.0",
+  "publisher": "mattleibow",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "lolcode",
+    "syntax highlighting"
+  ],
+  "scripts": {
+    "test": "node --test ./test/validate-extension.cjs"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "lolcode",
+        "aliases": [
+          "LOLCODE",
+          "lolcode"
+        ],
+        "extensions": [
+          ".lol"
+        ],
+        "firstLine": "^#!.*\\bdotnet\\s+run\\s+--file\\b",
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "lolcode",
+        "scopeName": "source.lolcode",
+        "path": "./syntaxes/lolcode.tmLanguage.json"
+      }
+    ]
+  }
+}

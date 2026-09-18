@@ -207,19 +207,19 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 ## Phase 6: VS Code Extension
 > Syntax highlighting, snippets, and build integration for VS Code.
 
-- [ ] Scaffold VS Code extension (`yo code`)
-- [ ] Create TextMate grammar (`lolcode.tmLanguage.json`)
-  - [ ] Keywords (HAI, KTHXBYE, VISIBLE, etc.)
-  - [ ] Type names (NUMBR, NUMBAR, YARN, TROOF, NOOB)
-  - [ ] Comments (BTW, OBTW...TLDR)
-  - [ ] Strings with escape sequences
-  - [ ] Number literals
-  - [ ] Boolean literals (WIN, FAIL)
-  - [ ] Operators and separators
-- [ ] Create `language-configuration.json`
-  - [ ] Comment toggling
+- [x] Add declarative VS Code language extension (`editor/vscode-lolcode`)
+- [x] Create TextMate grammar (`lolcode.tmLanguage.json`)
+  - [x] Keywords (HAI, KTHXBYE, VISIBLE, etc.)
+  - [x] Type names (NUMBR, NUMBAR, YARN, TROOF, NOOB)
+  - [x] Comments (BTW, OBTW...TLDR)
+  - [x] Strings with escape sequences and interpolation
+  - [x] Number literals
+  - [x] Boolean literals (WIN, FAIL)
+  - [x] Operators and separators
+- [x] Create `language-configuration.json`
+  - [x] Comment toggling
   - [ ] Bracket matching (O RLY?/OIC, IM IN YR/IM OUTTA YR, etc.)
-  - [ ] Auto-closing pairs
+  - [x] Auto-closing pairs
 - [ ] Create code snippets
   - [ ] `hai` → full program template
   - [ ] `var` → variable declaration
