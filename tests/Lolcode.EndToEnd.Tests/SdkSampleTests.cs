@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 
 namespace Lolcode.EndToEnd.Tests;
 
@@ -132,6 +134,204 @@ public class SdkSampleTests
 
         var output = stdout.Replace("\r\n", "\n").TrimEnd('\n');
         output.Should().Be("HAI DOTNET, U CAN HAZ 3 CHEEZBURGERZ!");
+    }
+
+    [Theory]
+    [InlineData("InteropSamples.LolcatExports")]
+    [InlineData("Lolcat-Exports")]
+    public void CSharpHeadLolcodeLibrarySample_RejectsInvalidLibraryTypeName(string libraryTypeName)
+    {
+        string projectFile = Path.Combine(
+            RepoRoot,
+            "samples",
+            "project-based",
+            "csharp-head-lolcode-library",
+            "LolcatPhraseLibrary",
+            "LolcatPhraseLibrary.lolproj");
+
+        var (exitCode, stdout, stderr) = RunDotnet(
+            $"build \"{projectFile}\" -p:LolcodeLibraryTypeName={libraryTypeName}",
+            RepoRoot);
+
+        exitCode.Should().NotBe(0);
+        $"{stdout}\n{stderr}".Should().Contain(
+            "LolcodeLibraryTypeName must be a simple, non-keyword CLR/C# identifier without dots.");
+    }
+
+    [Theory]
+    [InlineData("Lolcat-Phrase", "Lolcat_Phrase")]
+    [InlineData("2Cats", "_2Cats")]
+    [InlineData("class", "_class")]
+    [InlineData("\U00010400-cat", "\U00010400_cat")]
+    [InlineData("Lolcat-\U0001F431", "Lolcat__")]
+    public void LolcodeLibrary_DefaultExportTypeName_IsSanitizedFromAssemblyName(
+        string assemblyName,
+        string expectedTypeName)
+    {
+        string projectDirectory = Path.Combine(
+            Path.GetTempPath(),
+            "lolcode-sdk-sample-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(projectDirectory);
+
+        try
+        {
+            string projectFile = CreateDefaultLibraryProject(projectDirectory, assemblyName);
+
+            var (exitCode, stdout, stderr) = RunDotnet(
+                $"build \"{projectFile}\"",
+                projectDirectory);
+
+            exitCode.Should().Be(0, $"dotnet build failed:\n{stderr}\n{stdout}");
+
+            string outputAssembly = Path.Combine(
+                projectDirectory,
+                "obj",
+                "Debug",
+                "net10.0",
+                $"{assemblyName}.dll");
+            AssertAssemblyContainsType(outputAssembly, "InteropSamples", expectedTypeName);
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LolcodeLibrary_ChangingExportTypeName_RebuildsAssembly()
+    {
+        string projectDirectory = Path.Combine(
+            Path.GetTempPath(),
+            "lolcode-sdk-sample-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(projectDirectory);
+
+        try
+        {
+            string assemblyName = "Lolcat-Phrase";
+            string projectFile = CreateDefaultLibraryProject(projectDirectory, assemblyName);
+
+            var (firstExitCode, firstStdOut, firstStdErr) = RunDotnet(
+                $"build \"{projectFile}\"",
+                projectDirectory);
+            firstExitCode.Should().Be(0, $"initial dotnet build failed:\n{firstStdErr}\n{firstStdOut}");
+
+            var (secondExitCode, secondStdOut, secondStdErr) = RunDotnet(
+                $"build \"{projectFile}\" -p:LolcodeLibraryTypeName=ChangedExports",
+                projectDirectory);
+            secondExitCode.Should().Be(0, $"updated dotnet build failed:\n{secondStdErr}\n{secondStdOut}");
+
+            string outputAssembly = Path.Combine(
+                projectDirectory,
+                "obj",
+                "Debug",
+                "net10.0",
+                $"{assemblyName}.dll");
+            AssertAssemblyContainsType(outputAssembly, "InteropSamples", "ChangedExports");
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LolcodeLibrary_ChangingOutputTypeToExecutable_RebuildsAssembly()
+    {
+        string projectDirectory = Path.Combine(
+            Path.GetTempPath(),
+            "lolcode-sdk-sample-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(projectDirectory);
+
+        try
+        {
+            string assemblyName = "Lolcat-Phrase";
+            string projectFile = CreateDefaultLibraryProject(projectDirectory, assemblyName);
+
+            var (libraryExitCode, libraryStdOut, libraryStdErr) = RunDotnet(
+                $"build \"{projectFile}\"",
+                projectDirectory);
+            libraryExitCode.Should().Be(0, $"library build failed:\n{libraryStdErr}\n{libraryStdOut}");
+
+            var (executableExitCode, executableStdOut, executableStdErr) = RunDotnet(
+                $"build \"{projectFile}\" -p:OutputType=Exe",
+                projectDirectory);
+            executableExitCode.Should().Be(
+                0,
+                $"executable build failed:\n{executableStdErr}\n{executableStdOut}");
+
+            string outputAssembly = Path.Combine(
+                projectDirectory,
+                "obj",
+                "Debug",
+                "net10.0",
+                $"{assemblyName}.dll");
+            using var stream = File.OpenRead(outputAssembly);
+            using var peReader = new PEReader(stream);
+            peReader.PEHeaders.CoffHeader.Characteristics.Should().NotHaveFlag(Characteristics.Dll);
+            peReader.PEHeaders.CorHeader!.EntryPointTokenOrRelativeVirtualAddress.Should().NotBe(0);
+            File.Exists(Path.ChangeExtension(outputAssembly, ".runtimeconfig.json")).Should().BeTrue();
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
+    private static string CreateDefaultLibraryProject(string projectDirectory, string assemblyName)
+    {
+        string sdkDirectory = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk");
+        string buildTasksDirectory = Path.Combine(
+            RepoRoot,
+            "src",
+            "Lolcode.Build",
+            "bin",
+            "Debug",
+            "net10.0") + Path.DirectorySeparatorChar;
+        string projectFile = Path.Combine(projectDirectory, "LolcatPhrase.lolproj");
+        File.WriteAllText(
+            projectFile,
+            $$"""
+            <Project>
+              <Import Project="{{Path.Combine(sdkDirectory, "Sdk.props")}}" />
+              <PropertyGroup>
+                <OutputType>Library</OutputType>
+                <TargetFramework>net10.0</TargetFramework>
+                <AssemblyName>{{assemblyName}}</AssemblyName>
+                <RootNamespace>InteropSamples</RootNamespace>
+                <_LolcodeBuildTasksDir>{{buildTasksDirectory}}</_LolcodeBuildTasksDir>
+              </PropertyGroup>
+              <Import Project="{{Path.Combine(sdkDirectory, "Sdk.targets")}}" />
+            </Project>
+            """);
+        File.WriteAllText(
+            Path.Combine(projectDirectory, "Welcome.lol"),
+            """
+            HAI 1.4
+            HOW IZ I WELCOME
+                FOUND YR "HAI"
+            IF U SAY SO
+            KTHXBYE
+            """);
+        return projectFile;
+    }
+
+    private static void AssertAssemblyContainsType(
+        string outputAssembly,
+        string expectedNamespace,
+        string expectedTypeName)
+    {
+        using var stream = File.OpenRead(outputAssembly);
+        using var peReader = new PEReader(stream);
+        MetadataReader metadata = peReader.GetMetadataReader();
+        metadata.TypeDefinitions
+            .Select(metadata.GetTypeDefinition)
+            .Should()
+            .Contain(definition =>
+                metadata.GetString(definition.Namespace) == expectedNamespace &&
+                metadata.GetString(definition.Name) == expectedTypeName);
     }
 
     [Fact]

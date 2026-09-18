@@ -54,12 +54,16 @@ library through a normal `ProjectReference`.
 <PropertyGroup>
   <OutputType>Library</OutputType>
   <TargetFramework>net10.0</TargetFramework>
-  <LolcodeLibraryTypeName>InteropSamples.LolcatExports</LolcodeLibraryTypeName>
+  <RootNamespace>InteropSamples</RootNamespace>
+  <LolcodeLibraryTypeName>LolcatExports</LolcodeLibraryTypeName>
 </PropertyGroup>
 ```
 
-`LolcodeLibraryTypeName` defaults to `$(RootNamespace).LolcodeExports`, or
-`LolcodeExports` when no root namespace is set.
+`LolcodeLibraryTypeName` must be a simple type name (without dots). When it is
+omitted, the SDK derives a valid CLR identifier from `AssemblyName` (for
+example, `Lolcat-Phrase` becomes `Lolcat_Phrase`). The SDK composes the emitted CLR type as
+`$(RootNamespace).$(LolcodeLibraryTypeName)`, or uses the type name without a
+namespace when `RootNamespace` is empty.
 
 ### File-based apps (no project needed)
 
