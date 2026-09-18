@@ -64,9 +64,11 @@ isolation:
   runtime as the app. An infinite loop can freeze the tab. There is no reliable
   timeout because the UI thread cannot interrupt the running method.
 - `Assembly.Load` places every successful compilation into the current runtime.
-  Assemblies can't be unloaded individually in this hosting model. Refresh the
-  page after many runs to reclaim memory. Collectible `AssemblyLoadContext`
-  isn't supported in browser WebAssembly and isn't used by this runner.
+  Assemblies can't be unloaded individually in this hosting model. The
+  playground reuses a script for unchanged source and retains at most 32
+  distinct scripts per page; it asks you to reload before accepting another
+  distinct source. Collectible `AssemblyLoadContext` isn't supported in browser
+  WebAssembly and isn't used by this runner.
 - The runner is not a process, container, or security boundary. It executes in
   the same WebAssembly runtime as the playground.
 - Source is capped at 100,000 characters, stdin at 32,000 characters, and each

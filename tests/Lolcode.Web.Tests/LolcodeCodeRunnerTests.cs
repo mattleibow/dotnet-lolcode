@@ -43,6 +43,35 @@ public sealed class LolcodeCodeRunnerTests
     }
 
     [Fact]
+    public async Task RunAsync_ReusesScriptsAndRequiresReloadAfterCacheLimit()
+    {
+        var firstResult = await _runner.RunAsync(new CodeRunRequest(HelloProgram, string.Empty));
+        firstResult.Success.Should().BeTrue();
+
+        for (var index = 1; index < CodeRunnerLimits.MaxCachedScripts; index++)
+        {
+            var result = await _runner.RunAsync(
+                new CodeRunRequest(
+                    string.Concat(HelloProgram, Environment.NewLine, $"BTW {index}"),
+                    string.Empty));
+
+            result.Success.Should().BeTrue();
+        }
+
+        _runner.CachedScriptCount.Should().Be(CodeRunnerLimits.MaxCachedScripts);
+
+        var cachedResult = await _runner.RunAsync(new CodeRunRequest(HelloProgram, string.Empty));
+        cachedResult.Success.Should().BeTrue();
+        _runner.CachedScriptCount.Should().Be(CodeRunnerLimits.MaxCachedScripts);
+
+        var limitResult = await _runner.RunAsync(
+            new CodeRunRequest(string.Concat(HelloProgram, Environment.NewLine, "BTW next"), string.Empty));
+        limitResult.Executed.Should().BeFalse();
+        limitResult.Diagnostics.Should().ContainSingle()
+            .Which.Message.Should().Contain("Reload the page");
+    }
+
+    [Fact]
     public void AppendTruncationMarker_MarksOnlyTruncatedStreams()
     {
         LolcodeCodeRunner.AppendTruncationMarker(

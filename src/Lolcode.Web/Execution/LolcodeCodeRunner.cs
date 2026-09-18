@@ -11,6 +11,20 @@ namespace Lolcode.Web.Execution;
 internal sealed class LolcodeCodeRunner : ICodeRunner
 {
     private const string SourceFileName = "Program.lol";
+    private readonly object _scriptCacheLock = new();
+    private readonly Dictionary<string, LolcodeScript> _scriptCache =
+        new(StringComparer.Ordinal);
+
+    internal int CachedScriptCount
+    {
+        get
+        {
+            lock (_scriptCacheLock)
+            {
+                return _scriptCache.Count;
+            }
+        }
+    }
 
     public string LanguageName => "LOLCODE 1.2";
 
@@ -36,10 +50,14 @@ internal sealed class LolcodeCodeRunner : ICodeRunner
 
         cancellationToken.ThrowIfCancellationRequested();
         var stopwatch = Stopwatch.StartNew();
-        var script = LolcodeScript.Create(request.Source, new LolcodeScriptOptions
+        if (!TryGetScript(request.Source, out var script))
         {
-            FilePath = SourceFileName,
-        });
+            return Task.FromResult(
+                ValidationFailure(
+                    $"Run limit reached. Reload the page to run more than "
+                    + $"{CodeRunnerLimits.MaxCachedScripts} different programs."));
+        }
+
         var state = script.Run(new LolcodeScriptExecutionOptions
         {
             StandardInput = request.StandardInput,
@@ -71,6 +89,30 @@ internal sealed class LolcodeCodeRunner : ICodeRunner
                     "[standard error truncated]"),
                 stopwatch.Elapsed,
                 diagnostics));
+    }
+
+    private bool TryGetScript(string source, out LolcodeScript script)
+    {
+        lock (_scriptCacheLock)
+        {
+            if (_scriptCache.TryGetValue(source, out script!))
+            {
+                return true;
+            }
+
+            if (_scriptCache.Count >= CodeRunnerLimits.MaxCachedScripts)
+            {
+                script = null!;
+                return false;
+            }
+
+            script = LolcodeScript.Create(source, new LolcodeScriptOptions
+            {
+                FilePath = SourceFileName,
+            });
+            _scriptCache.Add(source, script);
+            return true;
+        }
     }
 
     private static CodeDiagnostic ToCodeDiagnostic(Diagnostic diagnostic) =>
