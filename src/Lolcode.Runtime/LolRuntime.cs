@@ -61,6 +61,7 @@ internal static class YarnByteSink
 public static class LolRuntime
 {
     private sealed record YarnLiteral(string Value);
+    private static readonly AsyncLocal<IoContext?> CurrentIo = new();
 
     // ==================== Namespaces and BUKKITs ====================
 
@@ -1096,6 +1097,29 @@ public static class LolRuntime
     // ==================== I/O ====================
 
     /// <summary>
+    /// Overrides the input, standard output, and standard error used by LOLCODE I/O within the current asynchronous context.
+    /// </summary>
+    /// <param name="input">The reader used by <c>GIMMEH</c>.</param>
+    /// <param name="standardOutput">The writer used by <c>VISIBLE</c>.</param>
+    /// <param name="standardError">The writer used by <c>INVISIBLE</c> and system-command standard error.</param>
+    /// <returns>A scope that restores the previous I/O when disposed.</returns>
+    /// <remarks>
+    /// Scopes may be nested and must be disposed in reverse order. When no scope is active,
+    /// LOLCODE programs use <see cref="Console.In"/>, <see cref="Console.Out"/>, and <see cref="Console.Error"/>.
+    /// </remarks>
+    public static IDisposable PushIo(TextReader input, TextWriter standardOutput, TextWriter standardError)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(standardOutput);
+        ArgumentNullException.ThrowIfNull(standardError);
+
+        var previous = CurrentIo.Value;
+        var current = new IoContext(input, standardOutput, standardError);
+        CurrentIo.Value = current;
+        return new IoScope(previous, current);
+    }
+
+    /// <summary>
     /// VISIBLE: print arguments concatenated as YARN.
     /// </summary>
     public static void Print(object?[] args, bool suppressNewline) =>
@@ -1106,7 +1130,9 @@ public static class LolRuntime
     /// </summary>
     public static void Print(object?[] args, bool suppressNewline, bool standardError)
     {
-        TextWriter writer = standardError ? Console.Error : Console.Out;
+        TextWriter writer = standardError
+            ? CurrentIo.Value?.StandardError ?? Console.Error
+            : CurrentIo.Value?.StandardOutput ?? Console.Out;
         if (args.Any(static arg => arg is LolByteYarn))
         {
             byte[] bytes = GetYarnBytes(ConcatenateYarns(args));
@@ -1159,7 +1185,10 @@ public static class LolRuntime
             byte[] outputBytes = output.GetAwaiter().GetResult();
             byte[] errorBytes = error.GetAwaiter().GetResult();
             if (errorBytes.Length > 0)
-                YarnByteSink.Write(Console.Error, errorBytes, suppressNewline: true);
+                YarnByteSink.Write(
+                    CurrentIo.Value?.StandardError ?? Console.Error,
+                    errorBytes,
+                    suppressNewline: true);
             return new LolByteYarn(outputBytes);
         }
         catch (LolRuntimeException)
@@ -1196,11 +1225,34 @@ public static class LolRuntime
     /// </summary>
     public static string ReadLine()
     {
-        return Console.ReadLine() ?? "";
+        var input = CurrentIo.Value?.Input ?? Console.In;
+        return input.ReadLine() ?? "";
+    }
+
+    private sealed record IoContext(
+        TextReader Input,
+        TextWriter StandardOutput,
+        TextWriter StandardError);
+
+    private sealed class IoScope(IoContext? previous, IoContext current) : IDisposable
+    {
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+            if (!ReferenceEquals(CurrentIo.Value, current))
+                throw new InvalidOperationException("LOLCODE I/O scopes must be disposed in reverse order.");
+
+            CurrentIo.Value = previous;
+            _disposed = true;
+        }
     }
 
     /// <summary>Writes the UTF-8 byte-order mark preserved from source.</summary>
-    public static void WriteByteOrderMark() => Console.Write('\uFEFF');
+    public static void WriteByteOrderMark() =>
+        (CurrentIo.Value?.StandardOutput ?? Console.Out).Write('\uFEFF');
 }
 
 /// <summary>
