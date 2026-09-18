@@ -272,7 +272,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [x] Create release workflow (tag-triggered: pack → push NuGet → GitHub Release)
 - [x] Tag-based versioning (`v0.1.0` → NuGet version `0.1.0`)
 - [x] Centralized `Version` in `Directory.Build.props` with `IsPackable` controls
-- [x] 3 publishable NuGet packages: `Lolcode.NET.Sdk`, `Lolcode.Runtime`, `Lolcode.NET.Templates`
+- [x] 4 publishable NuGet packages: `Lolcode.NET.Sdk`, `Lolcode.CodeAnalysis`, `Lolcode.Runtime`, `Lolcode.NET.Templates`
 - [x] All 16 file-based samples verified working end-to-end
 - [x] Restructured tests: 2 projects, 19 E2E category classes, 289 total tests
 - [x] File-based sample catalog under basics/, programs/, and games/, plus one dedicated project-based sample

@@ -80,4 +80,12 @@ release, create the `mattleibow` Marketplace publisher and configure a trusted
 publishing policy for this repository's release workflow. The workflow uses
 GitHub Actions OIDC instead of a long-lived Marketplace token. NuGet publishing
 also uses OIDC; configure the NuGet trusted-publishing policy and set the
-`NUGET_USER` repository secret to the NuGet.org profile name.
+`NUGET_USER` repository secret to the NuGet.org profile name. Scope the NuGet
+policy to these package IDs:
+
+```text
+Lolcode.NET.Sdk
+Lolcode.CodeAnalysis
+Lolcode.Runtime
+Lolcode.NET.Templates
+```

@@ -105,8 +105,8 @@ jobs:
           echo "📦 Packages:"
           ls -la artifacts/*.nupkg
           COUNT=$(ls artifacts/*.nupkg | wc -l)
-          [ "$COUNT" -eq 3 ] || { echo "❌ Expected 3 packages, got $COUNT"; exit 1; }
-          echo "✅ Pack produced 3 packages"
+          [ "$COUNT" -eq 4 ] || { echo "❌ Expected 4 packages, got $COUNT"; exit 1; }
+          echo "✅ Pack produced 4 packages"
 
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v4
@@ -189,3 +189,31 @@ jobs:
           OUTPUT=$(dotnet run --file hello.lol)
           [ "$OUTPUT" = "OH HAI!" ] || { echo "❌ Unexpected file-based output: $OUTPUT"; exit 1; }
           echo "✅ File-based template builds and runs"
+
+          # Public code-analysis package restores and exposes the documented API.
+          mkdir api-consumer && cd api-consumer
+          cat > ApiConsumer.csproj << EOF
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net10.0</TargetFramework>
+            </PropertyGroup>
+            <ItemGroup>
+              <PackageReference Include="Lolcode.CodeAnalysis" Version="$VERSION" />
+            </ItemGroup>
+          </Project>
+          EOF
+          cat > Program.cs << 'EOF'
+          using Lolcode.CodeAnalysis;
+          using Lolcode.CodeAnalysis.Syntax;
+
+          var tree = SyntaxTree.ParseText("HAI 1.2\nVISIBLE \"OH HAI!\"\nKTHXBYE");
+          var compilation = LolcodeCompilation.Create(tree);
+          if (!compilation.GetDiagnostics().IsEmpty)
+              throw new InvalidOperationException("Expected valid LOLCODE source.");
+
+          Console.WriteLine("Code analysis package works.");
+          EOF
+          OUTPUT=$(dotnet run)
+          [ "$OUTPUT" = "Code analysis package works." ] || { echo "❌ Unexpected code-analysis output: $OUTPUT"; exit 1; }
+          echo "✅ Code-analysis package restores and runs"

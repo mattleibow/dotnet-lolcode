@@ -2,10 +2,21 @@
 
   <PropertyGroup>
     <RootNamespace>Lolcode.CodeAnalysis</RootNamespace>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>Lolcode.CodeAnalysis</PackageId>
+    <PackageDescription>Roslyn-inspired parsing, diagnostics, binding, and IL emission APIs for LOLCODE programs targeting .NET.</PackageDescription>
+    <PackageTags>lolcode;compiler;code-analysis;parser;roslyn</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/mattleibow/dotnet-lolcode</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Lolcode.CodeAnalysis.Tests" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>
