@@ -240,7 +240,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [x] Auto-reference `Lolcode.Runtime.dll` in output
 - [x] Handle design-time builds (`SkipCompilerExecution` property)
 - [x] Support `<Project Sdk="Lolcode.NET.Sdk">` in `.lolproj` files
-- [x] Create `dotnet new lolcode` template (`src/Lolcode.NET.Templates/`)
+- [x] Create `dotnet new` templates for projects (`lolconsole`), source files (`lol`), and file-based apps (`lolcode`) (`src/Lolcode.NET.Templates/`)
 - [x] Create dedicated SDK sample project (`samples/project-based/hello-world/`)
 - [x] Source-built compiler override for local development (`samples/Directory.Build.props`)
 - [x] Test: `dotnet build` compiles `.lol` → `.dll`

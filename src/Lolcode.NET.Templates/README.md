@@ -1,6 +1,6 @@
 # 🐱 Lolcode.NET.Templates
 
-Project templates for creating **LOLCODE** .NET applications with `dotnet new`.
+Project and file templates for creating **LOLCODE** .NET applications with `dotnet new`.
 
 ## Installation
 
@@ -13,7 +13,7 @@ dotnet new install Lolcode.NET.Templates
 ### Create a new LOLCODE console app
 
 ```bash
-dotnet new lolcode -n MyApp
+dotnet new lolconsole -n MyApp
 cd MyApp
 dotnet run
 ```
@@ -118,7 +118,31 @@ KTHXBYE
 
 | Template | Short Name | Description |
 |----------|-----------|-------------|
-| LOLCODE Console App | `lolcode` | Console application with `HAI`/`KTHXBYE` scaffold |
+| LOLCODE Console App | `lolconsole` | Console project with a `.lolproj` and plain `Program.lol` |
+| LOLCODE Source File | `lol` | Plain `.lol` source file for an existing `.lolproj` project |
+| LOLCODE File-Based App | `lolcode` | Runnable `.lol` script with a shebang and `#:sdk` directive |
+
+### Add a source file to a project
+
+Run this from a `.lolproj` project directory:
+
+```bash
+dotnet new lol -n Greeter
+```
+
+It creates `Greeter.lol` without file-based-app directives.
+
+### Create a file-based app
+
+```bash
+mkdir hello-lolcode
+cd hello-lolcode
+dotnet new lolcode -n hello
+dotnet run --file hello.lol
+```
+
+This creates `hello.lol` with the `dotnet run --file` shebang and the LOLCODE SDK
+directive. Do not add this template's output to a `.lolproj` project.
 
 ## Requirements
 

@@ -20,6 +20,41 @@ test("contributes the LOLCODE language and grammar", () => {
     scopeName: "source.lolcode",
     path: "./syntaxes/lolcode.tmLanguage.json",
   }]);
+  assert.equal(manifest.main, "./extension.js");
+  assert.deepEqual(manifest.activationEvents, ["onCommand:lolcode.installTemplates"]);
+  assert.deepEqual(manifest.contributes.snippets, [{
+    language: "lolcode",
+    path: "./snippets/lolcode.code-snippets",
+  }]);
+  assert.deepEqual(manifest.contributes.commands, [{
+    command: "lolcode.installTemplates",
+    title: "LOLCODE: Install .NET Templates",
+  }]);
+});
+
+test("snippets provide common LOLCODE authoring forms", () => {
+  const snippets = readJson("snippets/lolcode.code-snippets");
+
+  for (const name of [
+    "LOLCODE program",
+    "Variable declaration",
+    "Visible output",
+    "Input",
+    "Conditional",
+    "Loop",
+    "Function",
+    "Function call",
+    "Switch",
+  ])
+    assert.ok(snippets[name], `missing ${name} snippet`);
+});
+
+test("template commands invoke the .NET CLI and report failures", () => {
+  const extension = readFileSync(join(root, "extension.js"), "utf8");
+
+  assert.match(extension, /"lolcode\.installTemplates"/);
+  assert.match(extension, /\["new", "install", "Lolcode\.NET\.Templates"\]/);
+  assert.match(extension, /showErrorMessage/);
 });
 
 test("configures LOLCODE comments and conservative editor pairs", () => {

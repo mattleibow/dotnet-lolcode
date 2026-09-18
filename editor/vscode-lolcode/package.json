@@ -4,6 +4,7 @@
   "description": "Syntax highlighting and editing support for LOLCODE.",
   "version": "0.1.0",
   "publisher": "mattleibow",
+  "main": "./extension.js",
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
@@ -18,6 +19,9 @@
   "scripts": {
     "test": "node --test ./test/validate-extension.cjs"
   },
+  "activationEvents": [
+    "onCommand:lolcode.installTemplates"
+  ],
   "contributes": {
     "languages": [
       {
@@ -39,6 +43,25 @@
         "scopeName": "source.lolcode",
         "path": "./syntaxes/lolcode.tmLanguage.json"
       }
-    ]
+    ],
+    "snippets": [
+      {
+        "language": "lolcode",
+        "path": "./snippets/lolcode.code-snippets"
+      }
+    ],
+    "commands": [
+      {
+        "command": "lolcode.installTemplates",
+        "title": "LOLCODE: Install .NET Templates"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "lolcode.installTemplates"
+        }
+      ]
+    }
   }
 }

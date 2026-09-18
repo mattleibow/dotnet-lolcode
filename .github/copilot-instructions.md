@@ -78,7 +78,7 @@ The compiler API mirrors Roslyn's structure:
 dotnet run --file hello.lol     # Requires #:sdk Lolcode.NET.Sdk@0.2.0 at top
 
 # Project-based
-dotnet new lolcode -n MyApp     # Create .lolproj project
+dotnet new lolconsole -n MyApp  # Create .lolproj project
 dotnet build                    # Compile .lol → .dll
 dotnet run                      # Compile and execute
 ```

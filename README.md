@@ -76,7 +76,7 @@ dotnet run --file hello.lol
 
 ```bash
 # Create a new LOLCODE project
-dotnet new lolcode -n MyApp
+dotnet new lolconsole -n MyApp
 cd MyApp
 
 # Build and run
@@ -120,7 +120,7 @@ dotnet watch    # Recompile on .lol file changes
 Create a new project from template:
 ```bash
 dotnet new install Lolcode.NET.Templates
-dotnet new lolcode -n MyApp
+dotnet new lolconsole -n MyApp
 cd MyApp && dotnet run
 ```
 

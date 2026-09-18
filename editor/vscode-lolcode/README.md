@@ -1,8 +1,8 @@
 # LOLCODE for Visual Studio Code
 
-This declarative extension adds syntax highlighting and basic editing configuration
-for `.lol` files. It has no extension-host runtime, commands, snippets, debugger,
-or language-server integration.
+This extension adds syntax highlighting, basic editing configuration, authoring
+snippets, and a command to install the LOLCODE .NET templates. It does not provide
+a debugger or language-server integration.
 
 ## Install for development
 
@@ -17,6 +17,16 @@ code --install-extension vscode-lolcode-0.1.0.vsix
 
 Reload VS Code after installing. The extension recognizes `.lol` files and
 file-based .NET LOLCODE scripts whose first line is a `dotnet run --file` shebang.
+
+## Templates and snippets
+
+Run **LOLCODE: Install .NET Templates** from the Command Palette to install the
+`Lolcode.NET.Templates` package through `dotnet new install`. This requires the
+.NET SDK and network access to the package source.
+
+The extension supplies snippets for programs (`hai`), variables (`var`), output
+(`visible`), input (`gimmeh`), conditionals (`if`), loops (`loop`), functions
+(`func`), calls (`call`), and switches (`switch`).
 
 ## Development
 
