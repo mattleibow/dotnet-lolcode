@@ -18,7 +18,3 @@ public static class ManagedTestPackage
 
     public static decimal Decimal(decimal value) => value;
 }
-
-public static class OtherStatic
-{
-}

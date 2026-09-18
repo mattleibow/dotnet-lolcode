@@ -111,6 +111,59 @@ namespace Lolcode.CodeAnalysis.Tests
             LolRuntime.Invoke(scope, ["STRING"], ["LEN"], ["HAI"]).Should().Be(3);
         }
 
+        [Fact]
+        public void ManagedLibraryPath_AcceptsSimpleAssemblyNamesWithinBaseDirectory()
+        {
+            LolRuntime.TryGetManagedLibraryPath("Managed.Text-Package", out string path)
+                .Should().BeTrue();
+
+            Path.GetFileName(path).Should().Be("Managed.Text-Package.dll");
+            Path.GetDirectoryName(path).Should().Be(
+                Path.TrimEndingDirectorySeparator(
+                    Path.GetFullPath(AppContext.BaseDirectory)));
+        }
+
+        [Fact]
+        public void ManagedLibraryPath_RejectsDynamicPathFormsWithoutLoadingOutsideAssembly()
+        {
+            string assemblyPath = typeof(LoaderFixtures.ManagedTestPackage).Assembly.Location;
+            string externalName = $"outside-{Guid.NewGuid():N}";
+            string externalPath = Path.Combine(
+                Path.GetDirectoryName(
+                    Path.TrimEndingDirectorySeparator(
+                        Path.GetFullPath(AppContext.BaseDirectory)))!,
+                $"{externalName}.dll");
+            File.Copy(assemblyPath, externalPath);
+
+            try
+            {
+                string[] names =
+                [
+                    string.Empty,
+                    ".",
+                    "..",
+                    $"../{externalName}",
+                    $"..\\{externalName}",
+                    Path.GetFullPath(externalPath),
+                    $"C:\\{externalName}",
+                ];
+                foreach (string name in names)
+                {
+                    LolRuntime.TryGetManagedLibraryPath(name, out _).Should().BeFalse();
+
+                    var scope = LolRuntime.CreateScope();
+                    LolRuntime.LoadLibrary(scope, name);
+                    FluentActions.Invoking(() => LolRuntime.GetValue(scope, [name]))
+                        .Should().Throw<LolRuntimeException>()
+                        .WithMessage("*does not exist*");
+                }
+            }
+            finally
+            {
+                File.Delete(externalPath);
+            }
+        }
+
         [Theory]
         [InlineData(nameof(LoaderFixtures.Unsupported.Generic))]
         [InlineData(nameof(LoaderFixtures.Unsupported.Ref))]
