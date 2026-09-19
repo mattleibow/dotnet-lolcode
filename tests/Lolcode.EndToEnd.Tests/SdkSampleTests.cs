@@ -425,6 +425,64 @@ public class SdkSampleTests
     }
 
     [Fact]
+    public void ProjectNameEndingInLol_StillGlobsMultipleSources()
+    {
+        string projectDirectory = CreateSdkTestDirectory($"lol-project-name-{Guid.NewGuid():N}");
+
+        try
+        {
+            string sdkDirectory = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk");
+            string buildTasksDirectory = Path.Combine(
+                RepoRoot,
+                "src",
+                "Lolcode.Build",
+                "bin",
+                "Debug",
+                "net10.0") + Path.DirectorySeparatorChar;
+            string projectFile = Path.Combine(projectDirectory, "Example.lol.lolproj");
+            File.WriteAllText(
+                projectFile,
+                $$"""
+                <Project>
+                  <Import Project="{{Path.Combine(sdkDirectory, "Sdk.props")}}" />
+                  <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net10.0</TargetFramework>
+                    <LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>
+                    <_LolcodeBuildTasksDir>{{buildTasksDirectory}}</_LolcodeBuildTasksDir>
+                  </PropertyGroup>
+                  <Import Project="{{Path.Combine(sdkDirectory, "Sdk.targets")}}" />
+                </Project>
+                """);
+            File.WriteAllText(
+                Path.Combine(projectDirectory, "First.lol"),
+                """
+                HAI 1.4
+                VISIBLE "FIRST"
+                KTHXBYE
+                """);
+            File.WriteAllText(
+                Path.Combine(projectDirectory, "Second.lol"),
+                """
+                HAI 1.4
+                VISIBLE "SECOND"
+                KTHXBYE
+                """);
+
+            var (exitCode, stdout, stderr) = RunDotnet(
+                $"run --project \"{projectFile}\"",
+                projectDirectory);
+
+            exitCode.Should().Be(0, $"dotnet run failed:\n{stderr}\n{stdout}");
+            stdout.Replace("\r\n", "\n").TrimEnd('\n').Should().Be("FIRST\nSECOND");
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Sdk_RebuildsWhenOnlyANonFirstLolSourceChanges()
     {
         string projectDirectory = Path.Combine(

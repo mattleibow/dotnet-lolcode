@@ -35,7 +35,7 @@
   <ItemGroup>
     <Compile Include="**/*.lol"
              Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
-             Condition="'$([System.IO.Path]::GetExtension($(MSBuildProjectName)))' != '.lol'" />
+             Condition="'$(FileBasedProgram)' != 'true'" />
   </ItemGroup>
 
   <!--
