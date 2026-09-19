@@ -87,12 +87,57 @@ public class LibraryRuntimeTests
             Invoke(scope, "STDIO", "DIAF", readOnly).Should().Be(true);
 
             Invoke(scope, "STDIO", "CLOSE", readOnly);
-            Invoke(scope, "STDIO", "AGEIN", readOnly).Should().BeNull();
+            FluentActions.Invoking(() => Invoke(scope, "STDIO", "AGEIN", readOnly))
+                .Should().Throw<LolRuntimeException>()
+                .WithMessage("*closed BLOB*");
             Invoke(scope, "STDIO", "DIAF", readOnly).Should().Be(true);
 
             FluentActions.Invoking(() => Invoke(scope, "STDIO", "LUK", "not a BLOB", 1))
                 .Should().Throw<LolRuntimeException>()
                 .WithMessage("*file BLOB*");
+        }
+        finally
+        {
+            LolRuntime.DisposeScope(scope);
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Stdio_CoercionFailuresSurfaceWithoutSettingDiaf_WhileIoFailuresSetIt()
+    {
+        var scope = CreateScope();
+        LolRuntime.LoadLibrary(scope, "STDIO");
+        string path = Path.Combine(AppContext.BaseDirectory, $"coercion-{Guid.NewGuid():N}.dat");
+        try
+        {
+            object? writable = Invoke(scope, "STDIO", "OPEN", path, "w");
+            object[] invalidValues =
+            [
+                new LolObject(scope),
+                new LolFunction(0, static (_, _, _, _) => null, []),
+                new TestBlob(),
+            ];
+
+            foreach (object value in invalidValues)
+            {
+                FluentActions.Invoking(() => Invoke(scope, "STDIO", "SCRIBBEL", writable, value))
+                    .Should().Throw<LolRuntimeException>()
+                    .WithMessage("*YARN*");
+                Invoke(scope, "STDIO", "DIAF", writable).Should().Be(false);
+            }
+
+            object? readOnly = Invoke(scope, "STDIO", "OPEN", path, "r");
+            Invoke(scope, "STDIO", "SCRIBBEL", readOnly, "NOPE").Should().BeNull();
+            Invoke(scope, "STDIO", "DIAF", readOnly).Should().Be(true);
+
+            Invoke(scope, "STDIO", "CLOSE", writable);
+            FluentActions.Invoking(() => Invoke(scope, "STDIO", "LUK", writable, 1))
+                .Should().Throw<LolRuntimeException>()
+                .WithMessage("*closed BLOB*");
+            FluentActions.Invoking(() => Invoke(scope, "STDIO", "AGEIN", writable))
+                .Should().Throw<LolRuntimeException>()
+                .WithMessage("*closed BLOB*");
         }
         finally
         {
@@ -337,6 +382,48 @@ public class LibraryRuntimeTests
     }
 
     [Fact]
+    public async Task Socks_TransferredAliasSurvivesOriginalCloseAndScopeDisposal()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+
+        var originalScope = CreateScope();
+        var aliasScope = CreateScope();
+        LolRuntime.LoadLibrary(originalScope, "SOCKS");
+        aliasScope.Values["SOCKS"] = LolRuntime.GetValue(originalScope, ["SOCKS"]);
+        try
+        {
+            object? original = Invoke(originalScope, "SOCKS", "BIND", "127.0.0.1", 0);
+            Task<Socket> acceptTask = listener.AcceptSocketAsync();
+            object? alias = Invoke(aliasScope, "SOCKS", "KONN", original, "127.0.0.1", port);
+            using Socket peer = await acceptTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+            GetTrackedResourceCount(originalScope).Should().Be(1);
+            GetTrackedResourceCount(aliasScope).Should().Be(1);
+            Invoke(originalScope, "SOCKS", "CLOSE", original).Should().BeSameAs(original);
+            GetTrackedResourceCount(originalScope).Should().Be(0);
+            LolRuntime.DisposeScope(originalScope);
+
+            Invoke(aliasScope, "SOCKS", "PUT", alias, alias, "HAI").Should().Be(3);
+            var bytes = new byte[3];
+            int received = await peer.ReceiveAsync(bytes).WaitAsync(TimeSpan.FromSeconds(5));
+            bytes[..received].Should().Equal((byte)'H', (byte)'A', (byte)'I');
+
+            Invoke(aliasScope, "SOCKS", "CLOSE", alias).Should().BeSameAs(alias);
+            GetTrackedResourceCount(aliasScope).Should().Be(0);
+            FluentActions.Invoking(() => Invoke(aliasScope, "SOCKS", "PUT", alias, alias, "KTHX"))
+                .Should().Throw<LolRuntimeException>()
+                .WithMessage("*closed BLOB*");
+        }
+        finally
+        {
+            LolRuntime.DisposeScope(originalScope);
+            LolRuntime.DisposeScope(aliasScope);
+        }
+    }
+
+    [Fact]
     public void UnknownLibrary_IsIgnored()
     {
         var scope = CreateScope();
@@ -393,6 +480,119 @@ public class LibraryRuntimeTests
             LolRuntime.DisposeScope(scope);
             File.Delete(firstPath);
             File.Delete(secondPath);
+        }
+    }
+
+    [Fact]
+    public void ClosedBlobsAreNeverTrackedIncludingRepeatedSocketClose()
+    {
+        var scope = CreateScope();
+        var context = new LolcodeLibraryContext(scope.Resources);
+        var closed = new TestBlob();
+        closed.Dispose();
+        context.RegisterResource(closed).Should().BeSameAs(closed);
+        GetTrackedResourceCount(scope).Should().Be(0);
+
+        LolRuntime.LoadLibrary(scope, "SOCKS");
+        object? socket = Invoke(scope, "SOCKS", "BIND", "127.0.0.1", 0);
+        GetTrackedResourceCount(scope).Should().Be(1);
+        Invoke(scope, "SOCKS", "CLOSE", socket);
+        Invoke(scope, "SOCKS", "CLOSE", socket);
+        GetTrackedResourceCount(scope).Should().Be(0);
+        LolRuntime.DisposeScope(scope);
+    }
+
+    [Fact]
+    public void ClosedResultsFromRegisteredProvidersAreNotAdopted()
+    {
+        var scope = LolRuntime.CreateScope();
+        string assemblyName = typeof(ClosedBlobProvider).Assembly.GetName().Name!;
+        string typeName = typeof(ClosedBlobProvider).FullName!;
+        LolRuntime.ConfigureLibraries(scope, [$"CLOSED|{assemblyName}|{typeName}|false|1"]);
+        LolRuntime.LoadLibrary(scope, "CLOSED");
+
+        object? result = Invoke(scope, "CLOSED", "CLOSED");
+
+        result.Should().BeOfType<ClosedProviderBlob>().Which.IsClosed.Should().BeTrue();
+        GetTrackedResourceCount(scope).Should().Be(0);
+    }
+
+    [Fact]
+    public void RegisteredLibraryResourcesBelongToTheirInvocationScope()
+    {
+        var importingScope = CreateScope();
+        var callingScope = CreateScope();
+        string path = Path.Combine(AppContext.BaseDirectory, $"escaped-stdio-{Guid.NewGuid():N}.dat");
+        LolRuntime.LoadLibrary(importingScope, "STDIO");
+        callingScope.Values["STDIO"] = LolRuntime.GetValue(importingScope, ["STDIO"]);
+        try
+        {
+            object? file = Invoke(callingScope, "STDIO", "OPEN", path, "w");
+            GetTrackedResourceCount(importingScope).Should().Be(0);
+            GetTrackedResourceCount(callingScope).Should().Be(1);
+
+            LolRuntime.DisposeScope(importingScope);
+            ((LolBlob)file!).IsClosed.Should().BeFalse();
+            LolRuntime.DisposeScope(callingScope);
+            ((LolBlob)file).IsClosed.Should().BeTrue();
+        }
+        finally
+        {
+            LolRuntime.DisposeScope(importingScope);
+            LolRuntime.DisposeScope(callingScope);
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void EscapedRegisteredLibraryAllocatesForCallerAfterImporterDisposal()
+    {
+        var importingScope = CreateScope();
+        LolRuntime.LoadLibrary(importingScope, "STDIO");
+        object? stdio = LolRuntime.GetValue(importingScope, ["STDIO"]);
+        LolRuntime.DisposeScope(importingScope);
+
+        var callingScope = CreateScope();
+        string path = Path.Combine(AppContext.BaseDirectory, $"post-disposal-stdio-{Guid.NewGuid():N}.dat");
+        callingScope.Values["STDIO"] = stdio;
+        try
+        {
+            object? file = Invoke(callingScope, "STDIO", "OPEN", path, "w");
+
+            ((LolBlob)file!).IsClosed.Should().BeFalse();
+            GetTrackedResourceCount(callingScope).Should().Be(1);
+        }
+        finally
+        {
+            LolRuntime.DisposeScope(callingScope);
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void StdlibRandomStateIsSharedPerImportAndIsolatedAcrossImports()
+    {
+        var firstImport = CreateScope();
+        var caller = CreateScope();
+        var secondImport = CreateScope();
+        LolRuntime.LoadLibrary(firstImport, "STDLIB");
+        LolRuntime.LoadLibrary(secondImport, "STDLIB");
+        caller.Values["STDLIB"] = LolRuntime.GetValue(firstImport, ["STDLIB"]);
+        try
+        {
+            Invoke(firstImport, "STDLIB", "MIX", 1234);
+            int firstValue = (int)Invoke(caller, "STDLIB", "BLOW", 1000000)!;
+            int nextValue = (int)Invoke(firstImport, "STDLIB", "BLOW", 1000000)!;
+
+            Invoke(secondImport, "STDLIB", "MIX", 1234);
+            Invoke(secondImport, "STDLIB", "BLOW", 1000000).Should().Be(firstValue);
+            Invoke(secondImport, "STDLIB", "BLOW", 1000000).Should().Be(nextValue);
+        }
+        finally
+        {
+            LolRuntime.DisposeScope(firstImport);
+            LolRuntime.DisposeScope(caller);
+            LolRuntime.DisposeScope(secondImport);
         }
     }
 
@@ -471,6 +671,23 @@ public class LibraryRuntimeTests
     }
 
     private sealed class TestBlob : LolBlob
+    {
+        protected override void DisposeCore()
+        {
+        }
+    }
+
+    public static class ClosedBlobProvider
+    {
+        public static object CLOSED()
+        {
+            var blob = new ClosedProviderBlob();
+            blob.Dispose();
+            return blob;
+        }
+    }
+
+    public sealed class ClosedProviderBlob : LolBlob
     {
         protected override void DisposeCore()
         {

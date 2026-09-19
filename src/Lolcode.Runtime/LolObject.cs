@@ -33,10 +33,22 @@ public sealed class LolcodeLibraryAttribute : Attribute;
 /// </summary>
 public sealed class LolcodeLibraryContext
 {
+    private readonly LolcodeLibraryState _state;
     private readonly LolResourceTracker _resources;
-    private readonly Dictionary<Type, object> _state = [];
 
-    internal LolcodeLibraryContext(LolResourceTracker resources) => _resources = resources;
+    internal LolcodeLibraryContext(LolResourceTracker resources)
+        : this(new LolcodeLibraryState(), resources)
+    {
+    }
+
+    private LolcodeLibraryContext(LolcodeLibraryState state, LolResourceTracker resources)
+    {
+        _state = state;
+        _resources = resources;
+    }
+
+    internal LolcodeLibraryContext ForInvocation(LolResourceTracker resources) =>
+        new(_state, resources);
 
     /// <summary>Registers an opaque BLOB handle for automatic scope cleanup.</summary>
     public T RegisterResource<T>(T resource) where T : LolBlob => _resources.Register(resource);
@@ -45,12 +57,25 @@ public sealed class LolcodeLibraryContext
     public T GetOrCreateState<T>(Func<T> factory) where T : class
     {
         ArgumentNullException.ThrowIfNull(factory);
-        if (_state.TryGetValue(typeof(T), out object? existing))
-            return (T)existing;
+        return _state.GetOrCreate(factory);
+    }
+}
 
-        T created = factory();
-        _state.Add(typeof(T), created);
-        return created;
+internal sealed class LolcodeLibraryState
+{
+    private readonly Dictionary<Type, object> _values = [];
+
+    internal T GetOrCreate<T>(Func<T> factory) where T : class
+    {
+        lock (_values)
+        {
+            if (_values.TryGetValue(typeof(T), out object? existing))
+                return (T)existing;
+
+            T created = factory();
+            _values.Add(typeof(T), created);
+            return created;
+        }
     }
 }
 
@@ -148,6 +173,8 @@ internal sealed class LolResourceTracker
     {
         lock (_gate)
         {
+            if (resource.IsClosed)
+                return resource;
             if (resource.IsTrackedBy(this))
                 return resource;
             if (resource.IsTracked)
@@ -157,7 +184,8 @@ internal sealed class LolResourceTracker
                 resource.Dispose();
                 throw new ObjectDisposedException(nameof(LolScope));
             }
-            resource.AttachTracker(this);
+            if (!resource.TryAttachTracker(this))
+                return resource;
             _resources.Add(resource);
         }
         return resource;
@@ -226,10 +254,17 @@ public abstract class LolBlob : IDisposable
             throw new LolRuntimeException($"Cannot {operation} a closed BLOB handle");
     }
 
-    internal void AttachTracker(LolResourceTracker tracker)
+    internal bool TryAttachTracker(LolResourceTracker tracker)
     {
+        if (IsClosed)
+            return false;
         if (Interlocked.CompareExchange(ref _tracker, tracker, null) is not null)
             throw new InvalidOperationException("BLOB handle is already tracked.");
+        if (!IsClosed)
+            return true;
+
+        Interlocked.CompareExchange(ref _tracker, null, tracker);
+        return false;
     }
 
     internal bool IsTracked => Volatile.Read(ref _tracker) is not null;

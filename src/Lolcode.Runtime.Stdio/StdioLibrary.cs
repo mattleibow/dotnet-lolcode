@@ -69,7 +69,7 @@ internal static class StdioLibrary
             int read = blob.GetStream("read").Read(data);
             return read == 0 ? string.Empty : CreateYarn(data[..read]);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ObjectDisposedException or LolRuntimeException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ObjectDisposedException)
         {
             blob.HasError = true;
             return string.Empty;
@@ -79,16 +79,16 @@ internal static class StdioLibrary
     public static void SCRIBBEL(object file, object data)
     {
         FileBlob blob = RequireFile(file);
+        byte[] bytes = LolRuntime.GetExplicitYarnBytes(data);
         try
         {
             Stream stream = blob.GetStream("write");
             if (blob.AppendWrites)
                 stream.Seek(0, SeekOrigin.End);
-            byte[] bytes = LolRuntime.GetExplicitYarnBytes(data);
             stream.Write(bytes);
             stream.Flush();
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ObjectDisposedException or LolRuntimeException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ObjectDisposedException)
         {
             blob.HasError = true;
         }
@@ -102,7 +102,7 @@ internal static class StdioLibrary
             blob.GetStream("rewind").Seek(0, SeekOrigin.Begin);
             blob.HasError = false;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ObjectDisposedException or LolRuntimeException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ObjectDisposedException)
         {
             blob.HasError = true;
         }

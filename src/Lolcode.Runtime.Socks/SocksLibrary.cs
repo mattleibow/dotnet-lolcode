@@ -6,15 +6,40 @@ namespace Lolcode.Runtime.Socks;
 
 internal sealed class SocketLease(Socket socket) : IDisposable
 {
+    private readonly object _gate = new();
     private Socket? _socket = socket;
+    private int _references = 1;
 
-    internal Socket GetSocket(string operation) =>
-        Volatile.Read(ref _socket)
-        ?? throw new LolRuntimeException($"Cannot {operation} a closed socket BLOB handle");
+    internal Socket GetSocket(string operation)
+    {
+        lock (_gate)
+        {
+            return _socket
+                ?? throw new LolRuntimeException($"Cannot {operation} a closed socket BLOB handle");
+        }
+    }
+
+    internal SocketLease Acquire()
+    {
+        lock (_gate)
+        {
+            if (_socket is null)
+                throw new LolRuntimeException("Cannot share a closed socket BLOB handle");
+            checked { _references++; }
+            return this;
+        }
+    }
 
     public void Dispose()
     {
-        Socket? socket = Interlocked.Exchange(ref _socket, null);
+        Socket? socket = null;
+        lock (_gate)
+        {
+            if (_references == 0 || --_references != 0)
+                return;
+            socket = _socket;
+            _socket = null;
+        }
         if (socket is not null)
             socket.Dispose();
     }
@@ -95,7 +120,7 @@ internal static class SocksLibrary
         try
         {
             localBlob.GetSocket("connect").Connect(new IPEndPoint(ResolveAddress(addressText), port));
-            return context.RegisterResource(new SocketBlob(localBlob.Lease, false));
+            return context.RegisterResource(new SocketBlob(localBlob.Lease?.Acquire(), false));
         }
         catch (Exception ex) when (ex is SocketException or ArgumentException or ObjectDisposedException)
         {

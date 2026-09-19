@@ -238,7 +238,7 @@ public static class LolRuntime
     private static LolObject CreateManagedLibrary(LolScope scope, Type type, bool allowContext)
     {
         var library = new LolObject(scope, scope.Caller);
-        LolcodeLibraryContext? ownerContext = allowContext
+        LolcodeLibraryContext? importContext = allowContext
             ? new LolcodeLibraryContext(scope.Resources)
             : null;
         MethodInfo[] methods = type.GetMethods(
@@ -266,12 +266,17 @@ public static class LolRuntime
                 .ToArray();
             library.Values[method.Name] = new LolFunction(
                 parameters.Length,
-                (_, _, arguments, _) => InvokeManagedMethod(
-                    method,
-                    allParameters,
-                    arguments,
-                    ownerContext,
-                    usesContext ? ownerContext : null),
+                (caller, _, arguments, _) =>
+                {
+                    LolcodeLibraryContext? invocationContext =
+                        importContext?.ForInvocation(caller.Resources);
+                    return InvokeManagedMethod(
+                        method,
+                        allParameters,
+                        arguments,
+                        invocationContext,
+                        usesContext ? invocationContext : null);
+                },
                 resolvers);
         }
 
