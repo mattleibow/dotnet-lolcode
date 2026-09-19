@@ -278,8 +278,9 @@ public class SdkSampleTests
     [InlineData("Lolcat-Phrase", "Lolcat_Phrase")]
     [InlineData("2Cats", "_2Cats")]
     [InlineData("class", "_class")]
-    [InlineData("\U00010400-cat", "\U00010400_cat")]
+    [InlineData("\U00010400-cat", "__cat")]
     [InlineData("Lolcat-\U0001F431", "Lolcat__")]
+    [InlineData("A\u200CB", "A_B")]
     public void LolcodeLibrary_DefaultExportTypeName_IsSanitizedFromAssemblyName(
         string assemblyName,
         string expectedTypeName)
@@ -307,6 +308,33 @@ public class SdkSampleTests
                 "net10.0",
                 $"{assemblyName}.dll");
             AssertAssemblyContainsType(outputAssembly, "InteropSamples", expectedTypeName);
+
+            string consumerProject = Path.Combine(projectDirectory, "Consumer.csproj");
+            File.WriteAllText(
+                consumerProject,
+                $$"""
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net10.0</TargetFramework>
+                  </PropertyGroup>
+                  <ItemGroup>
+                    <ProjectReference Include="{{projectFile}}" />
+                  </ItemGroup>
+                </Project>
+                """);
+            File.WriteAllText(
+                Path.Combine(projectDirectory, "Program.cs"),
+                $"using System;{Environment.NewLine}{Environment.NewLine}"
+                + $"Console.WriteLine(InteropSamples.{expectedTypeName}.WELCOME());");
+
+            var (consumerExitCode, consumerStdOut, consumerStdErr) = RunDotnet(
+                $"run --project \"{consumerProject}\"",
+                projectDirectory);
+            consumerExitCode.Should().Be(
+                0,
+                $"C# consumer build failed:\n{consumerStdErr}\n{consumerStdOut}");
+            consumerStdOut.Trim().Should().Be("HAI");
         }
         finally
         {

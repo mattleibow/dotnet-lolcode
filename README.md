@@ -124,12 +124,14 @@ A `.lolproj` can compile multiple complete LOLCODE files into one assembly.
 Each file still needs its own `HAI <version>` and `KTHXBYE`; this is compiler
 project composition, not new source syntax. Files share top-level functions and
 variables. In 1.2, direct function calls are statically bound and may target
-declarations in any project file. In the 1.3/1.4 declaration and function-value
-model, runtime availability still follows MSBuild `Compile` order: keep
-declaration files before callers when initialization or replacement matters.
-Top-level statements and variable declarations always follow `Compile` order.
-Keep initialization-sensitive files explicitly ordered with `Compile` items, and
-use one `HAI` language version for the whole project. Generated class-library
+declarations in any project file. In multi-file projects, direct top-level
+functions are installed before other top-level initialization for every
+supported language version, so their file order does not matter. Dynamic/SRS
+function declarations, variables, imports, and other top-level side effects
+still follow MSBuild `Compile` order. Single-file 1.3/1.4 programs retain their
+textual declaration behavior. Keep initialization-sensitive non-function files
+explicitly ordered with `Compile` items, and use one `HAI` language version for
+the whole project. Generated class-library
 wrappers evaluate only supported import and declaration forms; they do not run
 arbitrary top-level executable statements.
 

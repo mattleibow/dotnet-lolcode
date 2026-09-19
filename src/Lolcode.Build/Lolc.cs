@@ -241,21 +241,22 @@ public sealed class MakeValidClrIdentifier : Microsoft.Build.Utilities.Task
     }
 
     private static bool IsIdentifierStart(Rune rune) =>
-        rune.Value == '_' || Rune.GetUnicodeCategory(rune) is
+        rune.Value <= char.MaxValue &&
+        (rune.Value == '_' || Rune.GetUnicodeCategory(rune) is
             UnicodeCategory.UppercaseLetter or
             UnicodeCategory.LowercaseLetter or
             UnicodeCategory.TitlecaseLetter or
             UnicodeCategory.ModifierLetter or
             UnicodeCategory.OtherLetter or
-            UnicodeCategory.LetterNumber;
+            UnicodeCategory.LetterNumber);
 
     private static bool IsIdentifierPart(Rune rune) =>
-        IsIdentifierStart(rune) || Rune.GetUnicodeCategory(rune) is
+        rune.Value <= char.MaxValue &&
+        (IsIdentifierStart(rune) || Rune.GetUnicodeCategory(rune) is
             UnicodeCategory.DecimalDigitNumber or
             UnicodeCategory.ConnectorPunctuation or
             UnicodeCategory.NonSpacingMark or
-            UnicodeCategory.SpacingCombiningMark or
-            UnicodeCategory.Format;
+            UnicodeCategory.SpacingCombiningMark);
 }
 
 /// <summary>

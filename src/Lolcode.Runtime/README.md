@@ -67,13 +67,14 @@ Dynamic managed libraries are not supported with trimming or NativeAOT.
 ## Multiple source files
 
 A compilation can contain multiple complete `.lol` files. The compiler discovers
-top-level declarations across the complete source set so 1.2 direct function
-calls are statically bound regardless of file order. Runtime availability
-remains ordered: for the 1.3/1.4 declaration and function-value model, values
-become available when their top-level declarations execute in `Compile` order.
-Keep declaration files before callers when initialization or replacement
-matters. Library wrapper initialization runs only supported import and
-declaration forms; it does not run arbitrary top-level executable statements.
+top-level declarations across the complete source set. In a multi-file project,
+direct top-level functions are installed before other top-level initialization,
+so their file order does not matter even though 1.3/1.4 calls still resolve the
+current replaceable function value at runtime. Dynamic/SRS declarations,
+variables, imports, and other initialization remain ordered. Single-file
+1.3/1.4 programs retain textual declaration behavior. Library wrapper
+initialization runs only supported import and declaration forms; it does not run
+arbitrary top-level executable statements.
 
 ## Requirements
 
