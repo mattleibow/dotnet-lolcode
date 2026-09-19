@@ -1,0 +1,13 @@
+<Project>
+  <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.props" />
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>GalaxyPersistence</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Galaxy.Collections\Galaxy.Collections.lolproj" />
+    <ProjectReference Include="..\Galaxy.Engine\Galaxy.Engine.lolproj" />
+  </ItemGroup>
+  <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.targets" />
+</Project>

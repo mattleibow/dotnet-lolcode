@@ -1,0 +1,9 @@
+<Project>
+  <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.props" />
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>GalaxyCollections</AssemblyName>
+  </PropertyGroup>
+  <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.targets" />
+</Project>
