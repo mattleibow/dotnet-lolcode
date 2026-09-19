@@ -753,8 +753,8 @@ public class SdkSampleTests
     [Fact]
     public void Sdk_DefaultProviderPackageReferencesPreserveProjectVersionUpdates()
     {
-        const string packageVersion = "1.2.3";
-        const string providerVersion = "2.3.4";
+        const string packageVersion = "2.3.4";
+        const string providerVersion = "1.2.3";
         string projectDirectory = CreateSdkTestDirectory("default-provider-version-update");
 
         try
@@ -1029,6 +1029,15 @@ public class SdkSampleTests
         string sdkDirectory = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk");
         string projectFile = Path.Combine(projectDirectory, projectName);
         File.WriteAllText(
+            Path.Combine(projectDirectory, "Directory.Build.props"),
+            $$"""
+            <Project>
+              <PropertyGroup>
+                <LolcodeRuntimePackageVersion>{{packageVersion}}</LolcodeRuntimePackageVersion>
+              </PropertyGroup>
+            </Project>
+            """);
+        File.WriteAllText(
             projectFile,
             $$"""
             <Project>
@@ -1036,7 +1045,6 @@ public class SdkSampleTests
               <PropertyGroup>
                 <TargetFramework>net10.0</TargetFramework>
                 <RestoreSources>{{packageFeed}}</RestoreSources>
-                <LolcodeRuntimePackageVersion>{{packageVersion}}</LolcodeRuntimePackageVersion>
               </PropertyGroup>
             {{projectBody}}
               <Target Name="WritePackageReferences"

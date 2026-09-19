@@ -23,10 +23,6 @@
           Condition="'%(PackageReference.LolcodeDefaultProvider)' != 'true' and ('%(PackageReference.Identity)' == 'Lolcode.Runtime.String' or '%(PackageReference.Identity)' == 'Lolcode.Runtime.Stdlib' or '%(PackageReference.Identity)' == 'Lolcode.Runtime.Stdio' or '%(PackageReference.Identity)' == 'Lolcode.Runtime.Socks')" />
       <PackageReference Remove="@(_LolcodeExplicitProviderPackageReference)" />
       <PackageReference Include="@(_LolcodeExplicitProviderPackageReference)" />
-      <PackageReference Update="@(PackageReference)"
-          Condition="'%(PackageReference.LolcodeDefaultProvider)' == 'true' and '%(PackageReference.Version)' == '%(PackageReference.LolcodeDefaultProviderVersion)' and '$(LolcodeRuntimePackageVersion)' != '$(_LolcodeDefaultRuntimePackageVersion)'">
-        <Version>$(LolcodeRuntimePackageVersion)</Version>
-      </PackageReference>
       <PackageReference Remove="@(PackageReference)"
           Condition="'%(PackageReference.LolcodeDefaultProvider)' == 'true' and ('$(LolcodeUseDefaultLibraries)' != 'true' or '$(LolcodeUseSourceLibraries)' == 'true')" />
     </ItemGroup>
