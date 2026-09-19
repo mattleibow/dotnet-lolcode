@@ -225,10 +225,11 @@ footer {
 
 @media (max-width: 760px) {
   .destinations {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .destination {
+    min-width: 0;
     min-height: 25rem;
   }
 
