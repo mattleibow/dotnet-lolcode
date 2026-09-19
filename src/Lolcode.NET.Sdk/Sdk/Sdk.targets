@@ -91,6 +91,7 @@
           OutputType="$(OutputType)"
           AssemblyName="$(AssemblyName)"
           LolcodeLibraryTypeName="$(_LolcodeLibraryFullTypeName)"
+          LolcodeLibraries="@(LolcodeLibrary)"
           SkipCompilerExecution="$(SkipCompilerExecution)" />
 
   </Target>

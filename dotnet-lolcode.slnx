@@ -5,6 +5,10 @@
     <Project Path="src/Lolcode.NET.Sdk/Lolcode.NET.Sdk.csproj" />
     <Project Path="src/Lolcode.NET.Templates/Lolcode.NET.Templates.csproj" />
     <Project Path="src/Lolcode.Runtime/Lolcode.Runtime.csproj" />
+    <Project Path="src/Lolcode.Runtime.Socks/Lolcode.Runtime.Socks.csproj" />
+    <Project Path="src/Lolcode.Runtime.Stdio/Lolcode.Runtime.Stdio.csproj" />
+    <Project Path="src/Lolcode.Runtime.Stdlib/Lolcode.Runtime.Stdlib.csproj" />
+    <Project Path="src/Lolcode.Runtime.String/Lolcode.Runtime.String.csproj" />
     <Project Path="src/Lolcode.Web/Lolcode.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">

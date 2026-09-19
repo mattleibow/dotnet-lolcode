@@ -94,6 +94,10 @@ dotnet run --project samples/project-based/csharp-head-lolcode-library/CSharpHea
 The [mixed-language project](project-based/mixed-language/) demonstrates a
 LOLCODE executable importing an ordinary C# class library with `CAN HAS`.
 
+The [LOLCODE head with a LOLCODE library](project-based/lolcode-head-lolcode-library/)
+sample imports a generated LOLCODE class library by assembly name. Its generated
+CLR export type is deliberately namespaced differently from that assembly name.
+
 ## Local Development
 
 The `#:sdk Lolcode.NET.Sdk@0.2.0` directive restores the SDK's MSBuild props and

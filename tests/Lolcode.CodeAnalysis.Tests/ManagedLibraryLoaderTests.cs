@@ -41,6 +41,31 @@ namespace Lolcode.CodeAnalysis.Tests
                 .Should().BeNull();
         }
 
+        [Fact]
+        public void ASingleMarkedGeneratedExport_IsSelectedRegardlessOfAssemblyOrTypeName()
+        {
+            LolRuntime.SelectManagedLibraryType(
+                    [typeof(MarkedExports), typeof(LoaderFixtures.Ordinary.TextTools)],
+                    "UnrelatedAssemblyName")
+                .Should().Be(typeof(MarkedExports));
+
+            LolRuntime.SelectManagedLibraryType(
+                    [typeof(MarkedExports), typeof(SecondMarkedExports)],
+                    "UnrelatedAssemblyName")
+                .Should().BeNull();
+        }
+
+        [Fact]
+        public void ContextInjection_IsLimitedToOneFirstRegisteredParameter()
+        {
+            MethodInfo first = typeof(ContextFixtures).GetMethod(nameof(ContextFixtures.First))!;
+            MethodInfo second = typeof(ContextFixtures).GetMethod(nameof(ContextFixtures.Second))!;
+
+            LolRuntime.IsSupportedManagedMethod(first).Should().BeFalse();
+            LolRuntime.IsSupportedManagedMethod(first, allowContext: true).Should().BeTrue();
+            LolRuntime.IsSupportedManagedMethod(second, allowContext: true).Should().BeFalse();
+        }
+
         [Theory]
         [InlineData("3", typeof(int), 3)]
         [InlineData(3, typeof(string), "3")]
@@ -106,6 +131,8 @@ namespace Lolcode.CodeAnalysis.Tests
         public void BuiltInLibrary_TakesPrecedenceOverSameNamedManagedAssembly()
         {
             var scope = LolRuntime.CreateScope();
+            LolRuntime.ConfigureLibraries(scope,
+                ["STRING|Lolcode.Runtime.String|Lolcode.Runtime.String.StringLibrary|true|1"]);
             LolRuntime.LoadLibrary(scope, "STRING");
 
             LolRuntime.Invoke(scope, ["STRING"], ["LEN"], ["HAI"]).Should().Be(3);
@@ -157,6 +184,7 @@ namespace Lolcode.CodeAnalysis.Tests
                         .Should().Throw<LolRuntimeException>()
                         .WithMessage("*does not exist*");
                 }
+
             }
             finally
             {
@@ -175,6 +203,19 @@ namespace Lolcode.CodeAnalysis.Tests
             LolRuntime.IsSupportedManagedMethod(method).Should().BeFalse();
         }
     }
+}
+
+[LolcodeLibrary]
+public static class MarkedExports;
+
+[LolcodeLibrary]
+public static class SecondMarkedExports;
+
+public static class ContextFixtures
+{
+    public static int First(LolcodeLibraryContext context, int value) => value;
+
+    public static int Second(int value, LolcodeLibraryContext context) => value;
 }
 
 namespace LoaderFixtures.Ordinary

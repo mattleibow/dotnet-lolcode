@@ -1,0 +1,5 @@
+<Project>
+  <ItemGroup>
+    <LolcodeLibrary Include="STDLIB|Lolcode.Runtime.Stdlib|Lolcode.Runtime.Stdlib.StdlibLibrary|true|1" />
+  </ItemGroup>
+</Project>

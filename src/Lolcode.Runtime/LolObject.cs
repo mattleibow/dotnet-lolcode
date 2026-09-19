@@ -8,6 +8,7 @@ public class LolScope
     internal LolScope? Parent { get; }
     internal LolObject? Caller { get; }
     internal LolResourceTracker Resources { get; }
+    internal LolcodeLibraryRegistry Libraries { get; }
 
     /// <summary>Gets or sets the implicit IT value for this scope.</summary>
     public object? It { get; set; }
@@ -19,7 +20,94 @@ public class LolScope
         Parent = parent;
         Caller = caller;
         Resources = parent?.Resources ?? caller?.Resources ?? new LolResourceTracker();
+        Libraries = parent?.Libraries ?? caller?.Libraries ?? new LolcodeLibraryRegistry();
     }
+}
+
+/// <summary>Marks the generated public export type of a LOLCODE class library.</summary>
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+public sealed class LolcodeLibraryAttribute : Attribute;
+
+/// <summary>
+/// Provides a registered LOLCODE library with scope-bound capabilities.
+/// </summary>
+public sealed class LolcodeLibraryContext
+{
+    private readonly LolResourceTracker _resources;
+    private readonly Dictionary<Type, object> _state = [];
+
+    internal LolcodeLibraryContext(LolResourceTracker resources) => _resources = resources;
+
+    /// <summary>Registers an opaque BLOB handle for automatic scope cleanup.</summary>
+    public T RegisterResource<T>(T resource) where T : LolBlob => _resources.Register(resource);
+
+    /// <summary>Gets or creates mutable state that is isolated to this library import.</summary>
+    public T GetOrCreateState<T>(Func<T> factory) where T : class
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        if (_state.TryGetValue(typeof(T), out object? existing))
+            return (T)existing;
+
+        T created = factory();
+        _state.Add(typeof(T), created);
+        return created;
+    }
+}
+
+internal sealed record LolcodeLibraryDescriptor(
+        string LolName,
+        string AssemblyName,
+        string ExportTypeName,
+        bool IsReserved,
+        int ContractVersion)
+    {
+        internal const int CurrentContractVersion = 1;
+
+        internal static bool TryParse(string value, out LolcodeLibraryDescriptor? descriptor)
+        {
+            string[] fields = value.Split('|');
+            if (fields.Length == 5 &&
+                !fields.Take(3).Any(string.IsNullOrWhiteSpace) &&
+                bool.TryParse(fields[3], out bool reserved) &&
+                int.TryParse(fields[4], out int version))
+            {
+                descriptor = new(fields[0], fields[1], fields[2], reserved, version);
+                return true;
+            }
+
+            descriptor = null;
+            return false;
+        }
+    }
+
+internal sealed class LolcodeLibraryRegistry
+    {
+        private readonly Dictionary<string, LolcodeLibraryDescriptor> _descriptors =
+            new(StringComparer.Ordinal);
+
+        internal void Configure(IEnumerable<string> descriptors)
+        {
+            foreach (string encoded in descriptors)
+            {
+                if (!LolcodeLibraryDescriptor.TryParse(encoded, out LolcodeLibraryDescriptor? descriptor))
+                    throw new LolRuntimeException($"Invalid LOLCODE library descriptor: {encoded}");
+                LolcodeLibraryDescriptor parsed = descriptor
+                        ?? throw new LolRuntimeException($"Invalid LOLCODE library descriptor: {encoded}");
+                if (parsed.ContractVersion != LolcodeLibraryDescriptor.CurrentContractVersion)
+                {
+                        throw new LolRuntimeException(
+                        $"Unsupported LOLCODE library contract version: {parsed.ContractVersion}");
+                }
+                if (!_descriptors.TryAdd(parsed.LolName, parsed))
+                {
+                        throw new LolRuntimeException(
+                            $"Ambiguous LOLCODE library descriptor: {parsed.LolName}");
+                }
+            }
+        }
+
+        internal bool TryGet(string name, out LolcodeLibraryDescriptor descriptor) =>
+            _descriptors.TryGetValue(name, out descriptor!);
 }
 
 /// <summary>Represents a LOLCODE BUKKIT and its prototype chain.</summary>
@@ -103,7 +191,8 @@ public abstract class LolBlob : IDisposable
     /// <summary>Releases the managed operating-system resource.</summary>
     protected abstract void DisposeCore();
 
-    internal void ThrowIfClosed(string operation)
+    /// <summary>Throws when a provider attempts an operation on a closed handle.</summary>
+    protected void ThrowIfClosed(string operation)
     {
         if (IsClosed)
             throw new LolRuntimeException($"Cannot {operation} a closed BLOB handle");

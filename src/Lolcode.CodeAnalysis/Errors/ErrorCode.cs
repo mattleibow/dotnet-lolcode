@@ -60,7 +60,6 @@ public enum ErrorCode
     LOL2009,
     /// <summary>Function already declared.</summary>
     LOL2010,
-
     // --- Internal (LOL9xxx) ---
 
     /// <summary>Internal compiler error.</summary>

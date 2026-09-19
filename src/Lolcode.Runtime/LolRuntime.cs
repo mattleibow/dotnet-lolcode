@@ -62,6 +62,14 @@ public static class LolRuntime
 {
     private sealed record YarnLiteral(string Value);
     private static readonly AsyncLocal<IoContext?> CurrentIo = new();
+    private static readonly IReadOnlyDictionary<string, LolcodeLibraryDescriptor> OfficialDescriptors =
+        new Dictionary<string, LolcodeLibraryDescriptor>(StringComparer.Ordinal)
+        {
+            ["STRING"] = new("STRING", "Lolcode.Runtime.String", "Lolcode.Runtime.String.StringLibrary", true, 1),
+            ["STDLIB"] = new("STDLIB", "Lolcode.Runtime.Stdlib", "Lolcode.Runtime.Stdlib.StdlibLibrary", true, 1),
+            ["STDIO"] = new("STDIO", "Lolcode.Runtime.Stdio", "Lolcode.Runtime.Stdio.StdioLibrary", true, 1),
+            ["SOCKS"] = new("SOCKS", "Lolcode.Runtime.Socks", "Lolcode.Runtime.Socks.SocksLibrary", true, 1),
+        };
 
     // ==================== Namespaces and BUKKITs ====================
 
@@ -72,17 +80,54 @@ public static class LolRuntime
     public static void DisposeScope(LolScope scope) => scope.Resources.Dispose();
 
     /// <summary>
-    /// Loads a named built-in or local managed library into the current scope.
-    /// Built-ins take precedence. Unknown names and duplicate imports are ignored.
+    /// Adds package-supplied library descriptors to a scope before it imports libraries.
+    /// </summary>
+    public static void ConfigureLibraries(LolScope scope, string[] descriptors) =>
+        scope.Libraries.Configure(descriptors);
+
+    /// <summary>
+    /// Loads a named registered or local managed library into the current scope.
+    /// Registered libraries take precedence. Unknown names and duplicate imports are ignored.
     /// </summary>
     public static void LoadLibrary(LolScope scope, string name)
     {
         if (scope.Values.ContainsKey(name))
             return;
-        LolObject? library = LolLibraries.Create(scope, name);
+        LolObject? library = LoadRegisteredLibrary(scope, name);
         library ??= LoadManagedLibrary(scope, name);
         if (library is not null)
             scope.Values[name] = library;
+    }
+
+    private static LolObject? LoadRegisteredLibrary(LolScope scope, string name)
+    {
+        if (!scope.Libraries.TryGet(name, out LolcodeLibraryDescriptor descriptor) &&
+            !OfficialDescriptors.TryGetValue(name, out descriptor!))
+        {
+            return null;
+        }
+
+        try
+        {
+            Assembly assembly = Assembly.Load(new AssemblyName(descriptor.AssemblyName));
+            Type? type = assembly.GetType(descriptor.ExportTypeName, throwOnError: false);
+            if (type is null)
+            {
+                throw new LolRuntimeException(
+                    $"Registered LOLCODE library '{name}' does not contain '{descriptor.ExportTypeName}'.");
+            }
+            return CreateManagedLibrary(scope, type, allowContext: true);
+        }
+        catch (LolRuntimeException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (
+            ex is FileNotFoundException or FileLoadException or BadImageFormatException or
+            TypeLoadException or ArgumentException)
+        {
+            throw new LolRuntimeException($"Unable to load registered LOLCODE library '{name}': {ex.Message}");
+        }
     }
 
     private static LolObject? LoadManagedLibrary(LolScope scope, string name)
@@ -118,20 +163,31 @@ public static class LolRuntime
         if (type is null)
             return null;
 
+        return CreateManagedLibrary(scope, type, allowContext: false);
+    }
+
+    private static LolObject CreateManagedLibrary(LolScope scope, Type type, bool allowContext)
+    {
         var library = new LolObject(scope, scope.Caller);
+        LolcodeLibraryContext? context = allowContext
+            ? new LolcodeLibraryContext(scope.Resources)
+            : null;
         MethodInfo[] methods = type.GetMethods(
                 BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
             .Where(static method => !method.IsSpecialName)
             .GroupBy(static method => method.Name, StringComparer.Ordinal)
             .Where(static group => group.Take(2).Count() == 1)
             .Select(static group => group.Single())
-            .Where(IsSupportedManagedMethod)
+            .Where(method => IsSupportedManagedMethod(method, allowContext))
             .OrderBy(static method => method.Name, StringComparer.Ordinal)
             .ToArray();
 
         foreach (MethodInfo method in methods)
         {
-            ParameterInfo[] parameters = method.GetParameters();
+            ParameterInfo[] allParameters = method.GetParameters();
+            bool usesContext = allowContext && allParameters.FirstOrDefault()?.ParameterType ==
+                typeof(LolcodeLibraryContext);
+            ParameterInfo[] parameters = usesContext ? allParameters[1..] : allParameters;
             string[] parameterNames = parameters
                 .Select((parameter, index) => parameter.Name ?? $"arg{index}")
                 .ToArray();
@@ -141,7 +197,11 @@ public static class LolRuntime
                 .ToArray();
             library.Values[method.Name] = new LolFunction(
                 parameters.Length,
-                (_, _, arguments, _) => InvokeManagedMethod(method, parameters, arguments),
+                (_, _, arguments, _) => InvokeManagedMethod(
+                    method,
+                    allParameters,
+                    arguments,
+                    usesContext ? context : null),
                 resolvers);
         }
 
@@ -197,6 +257,15 @@ public static class LolRuntime
             .OrderBy(static candidate => candidate.FullName, StringComparer.Ordinal)
             .ToArray();
 
+        Type[] marked = candidates
+            .Where(static candidate => candidate.IsDefined(typeof(LolcodeLibraryAttribute), inherit: false))
+            .Take(2)
+            .ToArray();
+        if (marked.Length == 1)
+            return marked[0];
+        if (marked.Length > 1)
+            return null;
+
         if (candidates.Length == 1)
             return candidates[0];
 
@@ -207,7 +276,7 @@ public static class LolRuntime
         return matchingTypes.Length == 1 ? matchingTypes[0] : null;
     }
 
-    internal static bool IsSupportedManagedMethod(MethodInfo method)
+    internal static bool IsSupportedManagedMethod(MethodInfo method, bool allowContext = false)
     {
         if (method.IsGenericMethodDefinition || method.ContainsGenericParameters ||
             method.ReturnType.IsByRef || method.ReturnType.IsPointer || method.ReturnType.IsByRefLike ||
@@ -216,7 +285,14 @@ public static class LolRuntime
             return false;
         }
 
-        return method.GetParameters().All(parameter =>
+        ParameterInfo[] parameters = method.GetParameters();
+        bool hasContext = parameters.FirstOrDefault()?.ParameterType == typeof(LolcodeLibraryContext);
+        if (hasContext && !allowContext)
+            return false;
+        if (parameters.Skip(hasContext ? 1 : 0).Any(parameter => parameter.ParameterType == typeof(LolcodeLibraryContext)))
+            return false;
+
+        return parameters.Skip(hasContext ? 1 : 0).All(parameter =>
             !parameter.IsOut &&
             !parameter.ParameterType.IsByRef &&
             !parameter.ParameterType.IsPointer &&
@@ -254,15 +330,22 @@ public static class LolRuntime
     internal static object? InvokeManagedMethod(
         MethodInfo method,
         ParameterInfo[] parameters,
-        object?[] arguments)
+        object?[] arguments,
+        LolcodeLibraryContext? context = null)
     {
         try
         {
-            var convertedArguments = new object?[arguments.Length];
+            int parameterOffset = context is null ? 0 : 1;
+            if (parameters.Length != arguments.Length + parameterOffset)
+                throw new LolRuntimeException("Managed library parameter count does not match LOLCODE call.");
+
+            var convertedArguments = new object?[parameters.Length];
+            if (context is not null)
+                convertedArguments[0] = context;
             for (int index = 0; index < arguments.Length; index++)
             {
-                convertedArguments[index] =
-                    ConvertManagedArgument(arguments[index], parameters[index].ParameterType);
+                convertedArguments[index + parameterOffset] =
+                    ConvertManagedArgument(arguments[index], parameters[index + parameterOffset].ParameterType);
             }
 
             return method.Invoke(null, convertedArguments);
@@ -797,14 +880,21 @@ public static class LolRuntime
     /// <summary>Creates a source YARN whose Unicode escapes resolve when the value is used.</summary>
     public static object CreateYarnLiteral(string value) => new YarnLiteral(value);
 
-    internal static object CreateByteYarn(byte value) => new LolByteYarn([value]);
+    /// <summary>Creates a YARN that preserves its original UTF-8 byte representation.</summary>
+    public static object CreateByteYarn(byte value) => new LolByteYarn([value]);
 
-    internal static byte[] GetYarnBytes(object? value) =>
+    /// <summary>Creates a YARN that preserves the supplied UTF-8 byte representation.</summary>
+    public static object CreateByteYarn(byte[] bytes) =>
+        new LolByteYarn((byte[])bytes.Clone());
+
+    /// <summary>Gets a YARN's UTF-8 bytes without normalizing byte-preserving YARN values.</summary>
+    public static byte[] GetYarnBytes(object? value) =>
         value is LolByteYarn yarn
             ? yarn.Bytes
             : Encoding.UTF8.GetBytes(CastToYarn(value));
 
-    internal static byte[] GetExplicitYarnBytes(object? value) =>
+    /// <summary>Gets the UTF-8 bytes of a value after explicit YARN coercion.</summary>
+    public static byte[] GetExplicitYarnBytes(object? value) =>
         value is null
             ? []
             : value is LolByteYarn yarn

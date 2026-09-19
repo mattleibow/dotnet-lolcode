@@ -100,6 +100,9 @@ public class SdkSampleTests
     {
         return Directory
             .EnumerateFiles(Path.Combine(RepoRoot, "samples"), "*.lolproj", SearchOption.AllDirectories)
+            .Where(project => !File.ReadAllText(project).Contains(
+                "<OutputType>Library</OutputType>",
+                StringComparison.Ordinal))
             .Order()
             .Select(project => new object[] { Path.GetRelativePath(RepoRoot, project) });
     }
@@ -131,6 +134,14 @@ public class SdkSampleTests
             "HAI HAI HAI\n11");
     }
 
+    [Fact]
+    public void LolcodeHead_CallsMarkedLolcodeLibrary()
+    {
+        AssertProjectOutput(
+            "samples/project-based/lolcode-head-lolcode-library/LolcodeHead/LolcodeHead.lolproj",
+            "HAI FROM LOLCODE LIBRARY!");
+    }
+
     private static void AssertProjectOutput(string projectFile, string expectedOutput)
     {
         var (exitCode, stdout, stderr) = RunDotnet(
@@ -159,7 +170,7 @@ public class SdkSampleTests
         exitCode.Should().Be(0, $"dotnet run --project failed:\n{stderr}");
 
         var output = stdout.Replace("\r\n", "\n").TrimEnd('\n');
-        output.Should().Be("HAI DOTNET, U CAN HAZ 3 CHEEZBURGERZ!");
+        output.Should().Be("HAI DOTNET, U CAN HAZ 3 CHEEZBURGERZ!\n4\nHAI FROM A LIBRARY SCOPE!");
     }
 
     [Theory]
@@ -327,6 +338,7 @@ public class SdkSampleTests
                 <TargetFramework>net10.0</TargetFramework>
                 <AssemblyName>{{assemblyName}}</AssemblyName>
                 <RootNamespace>InteropSamples</RootNamespace>
+                <LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>
                 <_LolcodeBuildTasksDir>{{buildTasksDirectory}}</_LolcodeBuildTasksDir>
               </PropertyGroup>
               <Import Project="{{Path.Combine(sdkDirectory, "Sdk.targets")}}" />

@@ -134,20 +134,25 @@ public sealed class LolcodeCompilation
     /// The fully qualified CLR type name for a library export container. When omitted,
     /// libraries use <c>LolcodeExports</c>; executables always use <c>Program</c>.
     /// </param>
+    /// <param name="libraryDescriptors">
+    /// Encoded package-provided library descriptors embedded into executable output.
+    /// </param>
     /// <returns>The result of the emission.</returns>
     public EmitResult Emit(
         string outputPath,
         string runtimeAssemblyPath,
         IEnumerable<string>? referenceAssemblyPaths,
         string outputType = "Exe",
-        string? libraryTypeName = null)
+        string? libraryTypeName = null,
+        IEnumerable<string>? libraryDescriptors = null)
         => Emit(
             outputPath,
             runtimeAssemblyPath,
             PhysicalPathEmitFileSystem.Instance,
             referenceAssemblyPaths: referenceAssemblyPaths,
             outputType: outputType,
-            libraryTypeName: libraryTypeName);
+            libraryTypeName: libraryTypeName,
+            libraryDescriptors: libraryDescriptors);
 
     internal EmitResult Emit(
         string outputPath,
@@ -156,7 +161,8 @@ public sealed class LolcodeCompilation
         Func<Stream>? pdbStreamFactory = null,
         IEnumerable<string>? referenceAssemblyPaths = null,
         string outputType = "Exe",
-        string? libraryTypeName = null)
+        string? libraryTypeName = null,
+        IEnumerable<string>? libraryDescriptors = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(runtimeAssemblyPath);
@@ -194,7 +200,8 @@ public sealed class LolcodeCompilation
                 toleratePdbFailure: true,
                 referenceAssemblyPaths: referenceAssemblyPaths,
                 isLibrary: isLibrary,
-                libraryTypeName: libraryTypeName);
+                libraryTypeName: libraryTypeName,
+                libraryDescriptors: libraryDescriptors);
 
             var outputDirectory = Path.GetDirectoryName(dllPath);
             if (!string.IsNullOrEmpty(outputDirectory))
@@ -235,7 +242,8 @@ public sealed class LolcodeCompilation
                             dllPath,
                             referenceAssemblyPaths,
                             isLibrary,
-                            libraryTypeName);
+                            libraryTypeName,
+                            libraryDescriptors);
                     }
                 }
 
@@ -262,7 +270,8 @@ public sealed class LolcodeCompilation
                         dllPath,
                         referenceAssemblyPaths,
                         isLibrary,
-                        libraryTypeName);
+                        libraryTypeName,
+                        libraryDescriptors);
                     var fallbackPath = StageStream(fileSystem, peStream, dllPath);
                     stagedPaths.Add(fallbackPath);
                     return fallbackPath;
@@ -349,7 +358,8 @@ public sealed class LolcodeCompilation
         string dllPath,
         IEnumerable<string>? referenceAssemblyPaths,
         bool isLibrary,
-        string? libraryTypeName)
+        string? libraryTypeName,
+        IEnumerable<string>? libraryDescriptors)
     {
         peStream.SetLength(0);
         peStream.Position = 0;
@@ -364,7 +374,8 @@ public sealed class LolcodeCompilation
             pdbFileName: null,
             referenceAssemblyPaths: referenceAssemblyPaths,
             isLibrary: isLibrary,
-            libraryTypeName: libraryTypeName);
+            libraryTypeName: libraryTypeName,
+            libraryDescriptors: libraryDescriptors);
     }
 
     /// <summary>
@@ -424,7 +435,8 @@ public sealed class LolcodeCompilation
         CancellationToken cancellationToken = default,
         IEnumerable<string>? referenceAssemblyPaths = null,
         bool isLibrary = false,
-        string? libraryTypeName = null)
+        string? libraryTypeName = null,
+        IEnumerable<string>? libraryDescriptors = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var bindingResult = EnsureBound();
@@ -438,7 +450,8 @@ public sealed class LolcodeCompilation
             sourceText: tree.Text,
             sourceFilePath: tree.FilePath,
             isLibrary: isLibrary,
-            libraryTypeName: libraryTypeName);
+            libraryTypeName: libraryTypeName,
+            libraryDescriptors: libraryDescriptors);
         var pdbEmitted = false;
         if (toleratePdbFailure && pdbStream != null && pdbFileName != null)
             pdbEmitted = generator.EmitWithOptionalPdb(peStream, pdbStream, pdbFileName, cancellationToken);
