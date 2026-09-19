@@ -4,7 +4,7 @@ This document describes **only the differences** between the archived [LOLCODE 1
 
 > *The 1.3 spec was never finalized. It is a community draft of proposals. Some sections contain internal inconsistencies or typos, which are noted below.*
 
-Compiler support and implementation considerations are recorded separately in the non-normative [Implementation Profile](LANGUAGE_IMPLEMENTATION.md).
+Compiler support and implementation considerations are recorded separately in the non-normative [Implementation Profile](implementation-profile.md).
 
 ---
 
@@ -431,4 +431,4 @@ The 1.3 spec is an unfinished draft with several issues to be aware of:
 
 ## Non-delta Material
 
-Compiler support, complexity estimates, and possible implementation strategies are intentionally excluded from this delta. See the non-normative [Implementation Profile](LANGUAGE_IMPLEMENTATION.md).
+Compiler support, complexity estimates, and possible implementation strategies are intentionally excluded from this delta. See the non-normative [Implementation Profile](implementation-profile.md).

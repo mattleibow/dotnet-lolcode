@@ -11,6 +11,7 @@
     <Project Path="tests/CustomProviderFixture/CustomProviderFixture.csproj" />
     <Project Path="tests/Lolcode.CodeAnalysis.Tests/Lolcode.CodeAnalysis.Tests.csproj" />
     <Project Path="tests/Lolcode.EndToEnd.Tests/Lolcode.EndToEnd.Tests.csproj" />
+    <Project Path="tests/Lolcode.Docs.Tests/Lolcode.Docs.Tests.csproj" />
     <Project Path="tests/Lolcode.Web.Tests/Lolcode.Web.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">

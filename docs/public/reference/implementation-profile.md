@@ -2,9 +2,9 @@
 
 This document is the non-normative companion to the language documents:
 
-- [LOLCODE 1.2 Stable Profile](LANGUAGE_SPEC.md)
-- [LOLCODE 1.2 to 1.3 Draft Changes](LANGUAGE_SPEC_1.3_CHANGES.md)
-- [LOLCODE 1.4 Reference-Implementation Changes](LANGUAGE_SPEC_1.4_CHANGES.md)
+- [LOLCODE 1.2 Stable Profile](language-spec.md)
+- [LOLCODE 1.2 to 1.3 Draft Changes](language-spec-1.3-changes.md)
+- [LOLCODE 1.4 Reference-Implementation Changes](language-spec-1.4-changes.md)
 
 The language documents define or report language behavior. This profile records what
 `dotnet-lolcode` implements, how values map to .NET, and which reference-interpreter

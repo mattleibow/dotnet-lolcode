@@ -1,0 +1,10 @@
+- name: Learning path
+  href: index.md
+- name: Foundations
+  href: foundations.md
+- name: Values and decisions
+  href: values-and-decisions.md
+- name: Repetition and text
+  href: repetition-and-text.md
+- name: Functions and an application
+  href: functions-and-app.md

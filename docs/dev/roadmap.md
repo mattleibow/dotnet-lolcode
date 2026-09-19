@@ -106,7 +106,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
   - [x] Type inference from literals and expressions
   - [x] Implicit type coercion rules (NOOB → TROOF only; YARN in math → parse as NUMBR/NUMBAR)
   - [x] NOOB restriction enforcement (error on implicit cast except TROOF; warn when statically provable)
-  - [x] `IT` variable management per scope (see DESIGN.md §IT Variable Semantics)
+  - [x] `IT` variable management per scope (see compiler-architecture.md §IT Variable Semantics)
   - [x] Implicit `IT` return from functions (when no FOUND YR)
   - [x] No automatic casting in equality comparisons (BOTH SAEM, DIFFRINT)
   - [x] Boolean operators auto-cast operands to TROOF
@@ -115,7 +115,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
   - [x] NUMBAR → YARN truncation to 2 decimal places (casting rule)
   - [x] `WTF?` validation: OMG values must be literals (no expressions, no interpolated strings)
   - [x] `WTF?` validation: each OMG literal must be unique within the switch
-  - [x] `GTFO` context tracking: control-flow stack for loop/switch/function (see DESIGN.md §GTFO Context Sensitivity)
+  - [x] `GTFO` context tracking: control-flow stack for loop/switch/function (see compiler-architecture.md §GTFO Context Sensitivity)
   - [x] Loop iteration variable scoping (temporary, local to the loop)
   - [x] Loop operation validation: UPPIN, NERFIN, or valid unary function name
   - [x] Defer tentative `TYPE` runtime values; keep type words syntactic

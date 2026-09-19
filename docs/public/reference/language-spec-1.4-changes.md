@@ -4,7 +4,7 @@ This document describes observable language changes present in Justin Meza's [`l
 
 > **No archived 1.4 specification is known to this repository.** The local archive and `lolcode-spec` repository stop at the unfinished 1.3 draft. Every rule below is therefore identified from the pinned interpreter source and executable behavior.
 
-Compiler support and .NET-specific guidance are kept in the non-normative [Implementation Profile](LANGUAGE_IMPLEMENTATION.md).
+Compiler support and .NET-specific guidance are kept in the non-normative [Implementation Profile](implementation-profile.md).
 
 ---
 

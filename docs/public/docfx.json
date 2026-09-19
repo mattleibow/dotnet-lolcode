@@ -1,0 +1,70 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/v2.80.1/schemas/docfx.schema.json",
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "../../src/Lolcode.CodeAnalysis",
+          "files": [
+            "Lolcode.CodeAnalysis.csproj"
+          ]
+        }
+      ],
+      "dest": "_api"
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [
+          "index.md",
+          "toc.yml",
+          "**.md",
+          "**/toc.yml"
+        ]
+      },
+      {
+        "src": "_api",
+        "files": [
+          "**.yml"
+        ],
+        "dest": "api"
+      }
+    ],
+    "resource": [
+      {
+        "files": [
+          "assets/**"
+        ]
+      },
+      {
+        "src": "../..",
+        "files": [
+          "samples/**.lol",
+          "src/Lolcode.CodeAnalysis/**.cs"
+        ]
+      }
+    ],
+    "output": "../_site/docs",
+    "template": [
+      "default",
+      "modern",
+      "templates/lolcode"
+    ],
+    "globalMetadata": {
+      "_appName": "dotnet-lolcode",
+      "_appTitle": "dotnet-lolcode docs",
+      "_appFooter": "<span>Built for curious programmers. <strong>:3</strong></span>",
+      "_enableSearch": true,
+      "_disableContribution": false,
+      "_disableBreadcrumb": false,
+      "_gitContribute": {
+        "repo": "https://github.com/mattleibow/dotnet-lolcode",
+        "branch": "main"
+      },
+      "_appLogoPath": "assets/logo.svg",
+      "_appLogoUrl": "index.html",
+      "_appFaviconPath": "assets/favicon.svg"
+    }
+  }
+}

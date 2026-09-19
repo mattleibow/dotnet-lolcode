@@ -1,0 +1,16 @@
+- name: Language and reference
+  href: index.md
+- name: What is LOLCODE?
+  href: what-is-lolcode.md
+- name: Version story
+  href: versions.md
+- name: Language tour
+  href: tour.md
+- name: Syntax and reference hub
+  href: reference.md
+- name: Implementation profile
+  href: implementation.md
+- name: Diagnostics
+  href: diagnostics.md
+- name: Sample gallery
+  href: samples.md
