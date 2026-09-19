@@ -27,18 +27,18 @@
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
-  <Target Name="StampProviderPackageVersion" BeforeTargets="GenerateNuspec">
+  <Target Name="StampProviderPackageVersion" BeforeTargets="_GetPackageFiles">
+    <MakeDir Directories="$(IntermediateOutputPath)Sdk" />
     <WriteLinesToFile
-      File="Sdk\Sdk.props"
+      File="$(IntermediateOutputPath)Sdk\Sdk.props"
       Lines="$([System.IO.File]::ReadAllText('Sdk\Sdk.props').Replace('LolcodeProviderPackageVersion','$(Version)'))"
       Overwrite="true" />
-  </Target>
-
-  <Target Name="RestoreProviderPackageVersion" AfterTargets="Pack">
-    <WriteLinesToFile
-      File="Sdk\Sdk.props"
-      Lines="$([System.IO.File]::ReadAllText('Sdk\Sdk.props').Replace('$(Version)','LolcodeProviderPackageVersion'))"
-      Overwrite="true" />
+    <ItemGroup>
+      <Content Update="Sdk/Sdk.props" Pack="false" />
+      <Content Include="$(IntermediateOutputPath)Sdk/Sdk.props"
+               Pack="true"
+               PackagePath="Sdk\" />
+    </ItemGroup>
   </Target>
 
   <!-- MSBuild task and compiler (build-time tool dependencies) -->

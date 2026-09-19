@@ -79,8 +79,25 @@ public static class LolRuntime
     /// </summary>
     public static object? TransferPublicLibraryResult(LolScope scope, object? value)
     {
-        if (value is LolBlob blob)
-            scope.Resources.Detach(blob);
+        var visitedObjects = new HashSet<LolObject>(ReferenceEqualityComparer.Instance);
+
+        void Transfer(object? candidate)
+        {
+            switch (candidate)
+            {
+                case LolBlob blob:
+                    scope.Resources.Detach(blob);
+                    break;
+                case LolObject obj when visitedObjects.Add(obj):
+                    Transfer(obj.It);
+                    foreach (object? member in obj.Values.Values)
+                        Transfer(member);
+                    Transfer(obj.Prototype);
+                    break;
+            }
+        }
+
+        Transfer(value);
         return value;
     }
 
