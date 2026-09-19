@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Lolcode.Runtime.Socks</RootNamespace>
+    <IsPackable>true</IsPackable>
+    <PackageId>Lolcode.Runtime.Socks</PackageId>
+    <Description>Official SOCKS library provider for LOLCODE.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Lolcode.Runtime\Lolcode.Runtime.csproj" />
+    <None Include="buildTransitive\Lolcode.Runtime.Socks.props" Pack="true" PackagePath="buildTransitive\" />
+  </ItemGroup>
+</Project>

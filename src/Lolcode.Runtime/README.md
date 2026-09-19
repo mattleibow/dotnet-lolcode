@@ -37,6 +37,35 @@ KTHXBYE
 dotnet run    # The runtime is automatically available
 ```
 
+## Library providers
+
+`Lolcode.Runtime` remains the shared value, scope, BUKKIT, invocation, resource,
+and managed-library loading runtime. Official `CAN HAS` libraries are supplied
+by independently distributable packages: `Lolcode.Runtime.String`,
+`Lolcode.Runtime.Stdlib`, `Lolcode.Runtime.Stdio`, and `Lolcode.Runtime.Socks`.
+The SDK references these packages by default and their `buildTransitive`
+descriptors register the appropriate provider. Set
+`<LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>` to opt out and
+reference individual providers instead.
+
+Registered providers use the same typed managed invocation path as ordinary
+managed assemblies. They may receive a first, exact `LolcodeLibraryContext`
+parameter for scope-bound BLOB cleanup or per-import state; no mutable global
+runtime context is used. Ordinary plugins cannot receive that parameter.
+
+## Publishing
+
+Framework-dependent publishing copies the registered provider assemblies with
+the final host, including when that host reaches a LOLCODE class library through
+a normal C# `ProjectReference`. `PublishSingleFile` produces an executable
+bundle rather than a merged DLL; on current .NET SDKs it is self-contained.
+Registered official providers are bundled and load through the default runtime
+context. Deliberately external plugins must remain adjacent to the host.
+
+Dynamic managed libraries are not supported with trimming or NativeAOT. The
+current compiler also compiles one `.lol` source file per output; multi-file
+LOLCODE compilation remains deferred.
+
 ## Requirements
 
 - .NET 10

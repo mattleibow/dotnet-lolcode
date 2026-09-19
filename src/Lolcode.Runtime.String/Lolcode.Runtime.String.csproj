@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Lolcode.Runtime.String</RootNamespace>
+    <IsPackable>true</IsPackable>
+    <PackageId>Lolcode.Runtime.String</PackageId>
+    <Description>Official STRING library provider for LOLCODE.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Lolcode.Runtime\Lolcode.Runtime.csproj" />
+    <None Include="buildTransitive\Lolcode.Runtime.String.props" Pack="true" PackagePath="buildTransitive\" />
+  </ItemGroup>
+</Project>

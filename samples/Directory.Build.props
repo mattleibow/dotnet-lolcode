@@ -12,5 +12,17 @@
 
   <PropertyGroup Condition="'$(_LolcodeUseLocalBuildTasks)' == 'true'">
     <_LolcodeBuildTasksDir>$(_LolcodeLocalBuildTasksDir)</_LolcodeBuildTasksDir>
+    <LolcodeUseSourceLibraries>true</LolcodeUseSourceLibraries>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(_LolcodeUseLocalBuildTasks)' == 'true' and '$(LolcodeUseDefaultLibraries)' != 'false'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Lolcode.Runtime.String\Lolcode.Runtime.String.csproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Lolcode.Runtime.Stdlib\Lolcode.Runtime.Stdlib.csproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Lolcode.Runtime.Stdio\Lolcode.Runtime.Stdio.csproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Lolcode.Runtime.Socks\Lolcode.Runtime.Socks.csproj" />
+    <LolcodeLibrary Include="STRING|Lolcode.Runtime.String|Lolcode.Runtime.String.StringLibrary|true|1" />
+    <LolcodeLibrary Include="STDLIB|Lolcode.Runtime.Stdlib|Lolcode.Runtime.Stdlib.StdlibLibrary|true|1" />
+    <LolcodeLibrary Include="STDIO|Lolcode.Runtime.Stdio|Lolcode.Runtime.Stdio.StdioLibrary|true|1" />
+    <LolcodeLibrary Include="SOCKS|Lolcode.Runtime.Socks|Lolcode.Runtime.Socks.SocksLibrary|true|1" />
+  </ItemGroup>
 </Project>

@@ -10,14 +10,30 @@
   <!-- Setting Language=LOLCODE means it won't find Microsoft.LOLCODE.targets, which is fine -->
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 
+  <!-- This runs after the project body has set opt-out or version properties,
+       but before NuGet collects PackageReference restore inputs. -->
+  <Target Name="_AddDefaultLolcodeLibraryPackages"
+          BeforeTargets="CollectPackageReferences"
+          Condition="'$(LolcodeUseDefaultLibraries)' == 'true' and '$(LolcodeUseSourceLibraries)' != 'true'">
+    <ItemGroup>
+      <PackageReference Include="Lolcode.Runtime.String" Version="$(LolcodeRuntimePackageVersion)" IsImplicitlyDefined="true" />
+      <PackageReference Include="Lolcode.Runtime.Stdlib" Version="$(LolcodeRuntimePackageVersion)" IsImplicitlyDefined="true" />
+      <PackageReference Include="Lolcode.Runtime.Stdio" Version="$(LolcodeRuntimePackageVersion)" IsImplicitlyDefined="true" />
+      <PackageReference Include="Lolcode.Runtime.Socks" Version="$(LolcodeRuntimePackageVersion)" IsImplicitlyDefined="true" />
+    </ItemGroup>
+  </Target>
+
   <!-- Resolve the compiler task assembly location -->
   <PropertyGroup>
     <_LolcodeBuildTasksDir Condition=" '$(_LolcodeBuildTasksDir)' == '' ">$(MSBuildThisFileDirectory)..\tools\net10.0\</_LolcodeBuildTasksDir>
     <LolcodeRuntimeAssemblyPath Condition=" '$(LolcodeRuntimeAssemblyPath)' == '' ">$(_LolcodeBuildTasksDir)Lolcode.Runtime.dll</LolcodeRuntimeAssemblyPath>
+    <_LolcodeCompilerOptionsFile>$(IntermediateOutputPath)Lolcode.CompilerOptions.cache</_LolcodeCompilerOptionsFile>
   </PropertyGroup>
 
   <!-- Register the compiler task -->
   <UsingTask TaskName="Lolcode.Build.Lolc"
+             AssemblyFile="$(_LolcodeBuildTasksDir)Lolcode.Build.dll" />
+  <UsingTask TaskName="Lolcode.Build.MakeValidClrIdentifier"
              AssemblyFile="$(_LolcodeBuildTasksDir)Lolcode.Build.dll" />
 
   <!-- Add Lolcode.Runtime as a reference so it appears in deps.json and gets copied -->
@@ -34,6 +50,39 @@
   -->
   <Target Name="CreateManifestResourceNames" />
 
+  <Target Name="_PrepareLolcodeLibraryTypeName"
+          BeforeTargets="CoreCompile">
+    <MakeValidClrIdentifier Condition="'$(OutputType)' == 'Library' and '$(LolcodeLibraryTypeName)' == ''"
+                            Input="$(AssemblyName)">
+      <Output TaskParameter="Identifier" PropertyName="LolcodeLibraryTypeName" />
+    </MakeValidClrIdentifier>
+
+    <MakeValidClrIdentifier Condition="'$(OutputType)' == 'Library'"
+                            Input="$(LolcodeLibraryTypeName)">
+      <Output TaskParameter="Identifier" PropertyName="_LolcodeValidatedLibraryTypeName" />
+    </MakeValidClrIdentifier>
+
+    <Error Condition="'$(OutputType)' == 'Library' and '$(_LolcodeValidatedLibraryTypeName)' != '$(LolcodeLibraryTypeName)'"
+           Text="LolcodeLibraryTypeName must be a simple, non-keyword CLR/C# identifier without dots. Set RootNamespace to the desired namespace." />
+
+    <PropertyGroup Condition="'$(OutputType)' == 'Library'">
+      <_LolcodeLibraryFullTypeName
+          Condition="'$(RootNamespace)' != ''">$(RootNamespace).$(LolcodeLibraryTypeName)</_LolcodeLibraryFullTypeName>
+      <_LolcodeLibraryFullTypeName
+          Condition="'$(_LolcodeLibraryFullTypeName)' == ''">$(LolcodeLibraryTypeName)</_LolcodeLibraryFullTypeName>
+    </PropertyGroup>
+
+    <PropertyGroup>
+      <_LolcodeLibraryDescriptorStamp>@(LolcodeLibrary, ';')</_LolcodeLibraryDescriptorStamp>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(IntermediateOutputPath)" />
+    <WriteLinesToFile File="$(_LolcodeCompilerOptionsFile)"
+                      Lines="OutputType=$(OutputType);AssemblyName=$(AssemblyName);RootNamespace=$(RootNamespace);LolcodeLibraryTypeName=$(LolcodeLibraryTypeName);LolcodeLibraryFullTypeName=$(_LolcodeLibraryFullTypeName);LolcodeLibraries=$(_LolcodeLibraryDescriptorStamp)"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true" />
+  </Target>
+
   <!--
     Override CoreCompile — this is the target called by the .NET SDK to compile source code.
     We replace the default C# Csc task with our Lolc task.
@@ -44,7 +93,7 @@
   <Target Name="CoreCompile"
           Condition=" '@(Compile)' != '' "
           DependsOnTargets="$(CoreCompileDependsOn)"
-          Inputs="@(Compile);@(ReferencePathWithRefAssemblies);$(MSBuildAllProjects)"
+          Inputs="@(Compile);@(ReferencePathWithRefAssemblies);$(MSBuildAllProjects);$(_LolcodeCompilerOptionsFile)"
           Outputs="@(IntermediateAssembly)">
 
     <!-- Filter out any non-.lol files (e.g., auto-generated .cs files from file-based apps) -->
@@ -58,6 +107,8 @@
           RuntimeAssemblyPath="$(LolcodeRuntimeAssemblyPath)"
           OutputType="$(OutputType)"
           AssemblyName="$(AssemblyName)"
+          LolcodeLibraryTypeName="$(_LolcodeLibraryFullTypeName)"
+          LolcodeLibraries="@(LolcodeLibrary)"
           SkipCompilerExecution="$(SkipCompilerExecution)" />
 
   </Target>
