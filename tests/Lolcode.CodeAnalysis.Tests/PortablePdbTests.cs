@@ -296,6 +296,10 @@ KTHXBYE
             .Should().Contain(point =>
                 point.StartLine == 2 &&
                 point.DocumentName.EndsWith("First.lol", StringComparison.Ordinal));
+        GetSequencePointLines(pdbReader, FindMethod(peReader, "Main"))
+            .Should().Contain(point =>
+                point.StartLine == 2 &&
+                point.DocumentName.EndsWith("Second.lol", StringComparison.Ordinal));
         GetSequencePointLines(pdbReader, FindMethod(peReader, "OTHER"))
             .Should().Contain(point =>
                 point.StartLine == 2 &&

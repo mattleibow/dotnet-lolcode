@@ -9,8 +9,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="**/*.lol" />
-    <Compile Include="01-Formatting.lol" />
-    <Compile Include="02-StateApi.lol" />
+    <Compile Include="Welcome.lol" />
+    <Compile Include="Greeting.lol" />
   </ItemGroup>
   <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.targets" />
 </Project>

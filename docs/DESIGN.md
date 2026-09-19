@@ -125,13 +125,17 @@ with its own `HAI <version>` header and `KTHXBYE` footer. `LolcodeCompilation`
 binds its ordered `SyntaxTrees` into one top-level namespace and emits one
 assembly (and, for libraries, one export type).
 
-The binder first collects top-level function declarations from every tree, so
-1.2 direct calls can target a function declared in another file regardless of
-relative `Compile` order. The 1.3/1.4 declaration and function-value model
-still requires the declaration to execute before callers that depend on runtime
-availability. Top-level statements are emitted in `SyntaxTrees`/MSBuild
-`@(Compile)` order, so variables become accessible after declaration and
-initialization side effects follow that order. Library wrapper initialization
+For multi-file projects, direct top-level `HOW IZ I <name>` declarations are
+installed before normal top-level initialization, in deterministic
+`SyntaxTrees`/MSBuild `@(Compile)` order. This makes declarations file-order
+independent in every supported language version while preserving 1.3/1.4
+first-class function replacement: calls still resolve the current runtime slot.
+Single-file compilation retains lci-compatible textual declaration behavior.
+All other top-level work—including variables, imports, executable statements,
+and side effects—remains ordered by `@(Compile)`, so variables are available
+only after their declaration is processed. This is analogous to declaration
+order for C#/VB methods versus ordered F# values: dotnet-lolcode hoists direct
+function declarations only, never general values. Library wrapper initialization
 evaluates only supported import and declaration forms, never arbitrary
 top-level executable statements. All source units in a compilation must use the
 same `HAI` version; a mismatching later file produces `LOL2011`.

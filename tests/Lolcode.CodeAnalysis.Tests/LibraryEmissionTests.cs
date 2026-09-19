@@ -254,7 +254,7 @@ public class LibraryEmissionTests
     }
 
     [Fact]
-    public void LibraryEmission_InitializesRuntimeFunctionValuesInCompileOrder()
+    public void LibraryEmission_HoistsRuntimeFunctionValuesBeforeWrapperInitialization()
     {
         string outputPath = Path.Combine(
             AppContext.BaseDirectory,
@@ -265,21 +265,21 @@ public class LibraryEmissionTests
                 SyntaxTree.ParseText(
                     """
                     HAI 1.4
-                    HOW IZ I GREETING
-                        FOUND YR "HAI"
-                    IF U SAY SO
-                    KTHXBYE
-                    """,
-                    "Greeting.lol"),
-                SyntaxTree.ParseText(
-                    """
-                    HAI 1.4
                     HOW IZ I WELCOME
                         FOUND YR I IZ GREETING MKAY
                     IF U SAY SO
                     KTHXBYE
                     """,
-                    "Welcome.lol"));
+                    "Welcome.lol"),
+                SyntaxTree.ParseText(
+                    """
+                    HAI 1.4
+                    HOW IZ I GREETING
+                        FOUND YR "HAI"
+                    IF U SAY SO
+                    KTHXBYE
+                    """,
+                    "Greeting.lol"));
 
             var result = compilation.Emit(
                 outputPath,

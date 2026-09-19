@@ -98,13 +98,12 @@ The [LOLCODE head with a LOLCODE library](project-based/lolcode-head-lolcode-lib
 sample imports a generated LOLCODE class library by assembly name. Its generated
 CLR export type is deliberately namespaced differently from that assembly name.
 Its library intentionally uses two complete `.lol` compilation units: the
-formatting helper is declared first, and the state/API file uses that helper
-after it has been declared. The project lists `Compile` items explicitly
-(`01-Formatting.lol`, then `02-StateApi.lol`) to document the required
-declaration-before-use initialization order for its 1.4 function values. Every
-file must have its own `HAI`/`KTHXBYE`, and all files must use one language
-version. In contrast, 1.2 direct calls are statically bound across project files
-regardless of their order.
+state/API file calls `GREETING` before the later `Greeting.lol` declaration
+file. The explicit `Compile` order (`Welcome.lol`, then `Greeting.lol`) proves
+that direct top-level functions in a multi-file project are declaration-order
+independent, including for 1.4 function values. Variables, imports, and other
+top-level side effects remain in that explicit order. Every file must have its
+own `HAI`/`KTHXBYE`, and all files must use one language version.
 
 ## Local Development
 

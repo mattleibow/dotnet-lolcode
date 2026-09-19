@@ -31,6 +31,7 @@ internal sealed class CodeGenerator
     private readonly string? _libraryTypeName;
     private readonly IReadOnlyList<string> _libraryDescriptors;
     private readonly IReadOnlyList<SyntaxTree> _syntaxTrees;
+    private readonly bool _hoistTopLevelFunctions;
     private readonly IReadOnlyDictionary<SyntaxNode, SyntaxTree> _syntaxTreeOwners;
     private readonly Dictionary<string, ISymbolDocumentWriter> _documents =
         new(StringComparer.Ordinal);
@@ -144,6 +145,7 @@ internal sealed class CodeGenerator
         _runtimeAssemblyPath = runtimeAssemblyPath;
         _referenceAssemblyPaths = referenceAssemblyPaths?.ToArray() ?? [];
         _syntaxTrees = syntaxTrees ?? [];
+        _hoistTopLevelFunctions = _syntaxTrees.Count > 1;
         _syntaxTreeOwners = syntaxTreeOwners ?? new Dictionary<SyntaxNode, SyntaxTree>();
         _isLibrary = isLibrary;
         _libraryTypeName = libraryTypeName;
@@ -328,11 +330,9 @@ internal sealed class CodeGenerator
             _il.Emit(OpCodes.Stloc, mainIt);
 
             _il.BeginExceptionBlock();
-            foreach (var statement in _boundTree.Statements)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                EmitStatement(statement);
-            }
+            EmitTopLevelInitializer(
+                static _ => true,
+                cancellationToken);
             _il.BeginFinallyBlock();
             _il.Emit(OpCodes.Ldloc, _scopeLocal);
             _il.Emit(OpCodes.Call, _disposeScopeMethod);
@@ -568,15 +568,11 @@ internal sealed class CodeGenerator
         if (!_isLibrary)
             return;
 
-        foreach (var declaration in _boundTree.Statements.OfType<BoundFunctionDeclaration>())
+        foreach (var declaration in _boundTree.Statements
+            .OfType<BoundFunctionDeclaration>()
+            .Where(IsDirectTopLevelFunctionDeclaration))
         {
-            if (declaration.Scope?.DirectName != "I" ||
-                declaration.Scope.Slot is not null ||
-                declaration.Identifier?.DirectName is not { } name ||
-                declaration.Identifier.Slot is not null)
-            {
-                continue;
-            }
+            string name = declaration.Identifier!.DirectName!;
 
             MethodBuilder wrapper = _typeBuilder.DefineMethod(
                 name,
@@ -687,20 +683,48 @@ internal sealed class CodeGenerator
 
     private void EmitLibraryInitializer()
     {
-        foreach (BoundStatement statement in _boundTree.Statements)
+        EmitTopLevelInitializer(IsLibraryInitializationStatement);
+    }
+
+    private void EmitTopLevelInitializer(
+        Func<BoundStatement, bool> include,
+        CancellationToken cancellationToken = default)
+    {
+        if (_hoistTopLevelFunctions)
         {
-            switch (statement)
+            foreach (BoundStatement statement in _boundTree.Statements)
             {
-                case BoundImportStatement:
-                case BoundVariableDeclaration:
-                case BoundScopedDeclaration:
-                case BoundObjectDefinition:
-                case BoundFunctionDeclaration:
+                cancellationToken.ThrowIfCancellationRequested();
+                if (include(statement) && IsDirectTopLevelFunctionDeclaration(statement))
                     EmitStatement(statement);
-                    break;
             }
         }
+
+        foreach (BoundStatement statement in _boundTree.Statements)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (include(statement) &&
+                !(_hoistTopLevelFunctions && IsDirectTopLevelFunctionDeclaration(statement)))
+                EmitStatement(statement);
+        }
     }
+
+    private static bool IsLibraryInitializationStatement(BoundStatement statement) =>
+        statement is
+            BoundImportStatement or
+            BoundVariableDeclaration or
+            BoundScopedDeclaration or
+            BoundObjectDefinition or
+            BoundFunctionDeclaration;
+
+    private static bool IsDirectTopLevelFunctionDeclaration(BoundStatement statement) =>
+        statement is BoundFunctionDeclaration
+        {
+            Scope.DirectName: "I",
+            Scope.Slot: null,
+            Identifier.DirectName: not null,
+            Identifier.Slot: null,
+        };
 
     private static IEnumerable<BoundFunctionDeclaration> EnumerateFunctions(BoundBlockStatement block)
     {

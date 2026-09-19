@@ -42,7 +42,7 @@ public sealed class MultiFileCompilationTests
     [Theory]
     [InlineData("1.3")]
     [InlineData("1.4")]
-    public void CrossFileRuntimeFunctionCalls_FollowTopLevelExecutionOrder(string version)
+    public void CrossFileRuntimeFunctionCalls_AreHoistedBeforeTopLevelExecution(string version)
     {
         var caller = Tree(
             $$"""
@@ -63,15 +63,14 @@ public sealed class MultiFileCompilationTests
 
         Execute(LolcodeCompilation.Create(callee, caller))
             .Should().Be($"HAI FROM ANOTHER FILE{Environment.NewLine}");
-        Action callerBeforeCallee = () => Execute(LolcodeCompilation.Create(caller, callee));
-        callerBeforeCallee.Should().Throw<TargetInvocationException>()
-            .Which.InnerException.Should().BeOfType<LolRuntimeException>();
+        Execute(LolcodeCompilation.Create(caller, callee))
+            .Should().Be($"HAI FROM ANOTHER FILE{Environment.NewLine}");
     }
 
     [Theory]
     [InlineData("1.3")]
     [InlineData("1.4")]
-    public void CrossFileRuntimeFunctionValues_AreInitializedBeforeTheyCanBeCalled(string version)
+    public void CrossFileRuntimeFunctionValues_AreHoistedBeforeTheyCanBeReferenced(string version)
     {
         var declaration = Tree(
             $$"""
@@ -93,9 +92,152 @@ public sealed class MultiFileCompilationTests
 
         Execute(LolcodeCompilation.Create(declaration, initializationAndCall))
             .Should().Be($"INITIALIZED{Environment.NewLine}");
-        Action callerBeforeDeclaration = () =>
-            Execute(LolcodeCompilation.Create(initializationAndCall, declaration));
-        callerBeforeDeclaration.Should().Throw<TargetInvocationException>()
+        Execute(LolcodeCompilation.Create(initializationAndCall, declaration))
+            .Should().Be($"INITIALIZED{Environment.NewLine}");
+    }
+
+    [Theory]
+    [InlineData("1.3")]
+    [InlineData("1.4")]
+    public void SingleFileRuntimeFunctionCalls_KeepTextualDeclarationOrder(string version)
+    {
+        var compilation = LolcodeCompilation.Create(Tree(
+            $$"""
+            HAI {{version}}
+            VISIBLE I IZ GREETING MKAY
+            HOW IZ I GREETING
+                FOUND YR "TOO LATE"
+            IF U SAY SO
+            KTHXBYE
+            """,
+            "SingleFile.lol"));
+
+        Action callBeforeDeclaration = () => Execute(compilation);
+        callBeforeDeclaration.Should().Throw<TargetInvocationException>()
+            .Which.InnerException.Should().BeOfType<LolRuntimeException>();
+    }
+
+    [Theory]
+    [InlineData("1.3")]
+    [InlineData("1.4")]
+    public void CrossFileRuntimeFunctionReplacement_IsNotResetAtOriginalDeclarationPosition(string version)
+    {
+        var replacement = Tree(
+            $$"""
+            HAI {{version}}
+            HOW IZ I REPLACEMENT YR value
+                FOUND YR SMOOSH "REPLACED " AN value MKAY
+            IF U SAY SO
+            GREETING R REPLACEMENT
+            VISIBLE I IZ GREETING YR "VALUE" MKAY
+            KTHXBYE
+            """,
+            "Replacement.lol");
+        var declaration = Tree(
+            $$"""
+            HAI {{version}}
+            HOW IZ I GREETING
+                FOUND YR "ORIGINAL"
+            IF U SAY SO
+            KTHXBYE
+            """,
+            "Declaration.lol");
+
+        Execute(LolcodeCompilation.Create(replacement, declaration))
+            .Should().Be($"REPLACED VALUE{Environment.NewLine}");
+    }
+
+    [Theory]
+    [InlineData("1.3")]
+    [InlineData("1.4")]
+    public void CrossFileRuntimeFunctions_SupportMutualRecursion(string version)
+    {
+        var first = Tree(
+            $$"""
+            HAI {{version}}
+            HOW IZ I FIRST YR value
+                FOUND YR I IZ SECOND YR value MKAY
+            IF U SAY SO
+            VISIBLE I IZ FIRST YR 1 MKAY
+            KTHXBYE
+            """,
+            "First.lol");
+        var second = Tree(
+            $$"""
+            HAI {{version}}
+            HOW IZ I SECOND YR value
+                BOTH SAEM value AN 0
+                O RLY?
+                    YA RLY
+                        FOUND YR "DONE"
+                    NO WAI
+                        FOUND YR I IZ FIRST YR DIFF OF value AN 1 MKAY
+                OIC
+            IF U SAY SO
+            KTHXBYE
+            """,
+            "Second.lol");
+
+        Execute(LolcodeCompilation.Create(first, second))
+            .Should().Be($"DONE{Environment.NewLine}");
+    }
+
+    [Theory]
+    [InlineData("1.3")]
+    [InlineData("1.4")]
+    public void CrossFileDynamicFunctionDeclarations_KeepTextualOrder(string version)
+    {
+        var caller = Tree(
+            $$"""
+            HAI {{version}}
+            I HAS A functionName ITZ "GREETING"
+            VISIBLE I IZ SRS functionName MKAY
+            KTHXBYE
+            """,
+            "Caller.lol");
+        var declaration = Tree(
+            $$"""
+            HAI {{version}}
+            HOW IZ I SRS functionName
+                FOUND YR "TOO LATE"
+            IF U SAY SO
+            KTHXBYE
+            """,
+            "DynamicDeclaration.lol");
+
+        Action callBeforeDynamicDeclaration = () =>
+            Execute(LolcodeCompilation.Create(caller, declaration));
+        callBeforeDynamicDeclaration.Should().Throw<TargetInvocationException>()
+            .Which.InnerException.Should().BeOfType<LolRuntimeException>();
+    }
+
+    [Theory]
+    [InlineData("1.3")]
+    [InlineData("1.4")]
+    public void CrossFileObjectMethods_KeepTextualOrderAndObjectScope(string version)
+    {
+        var caller = Tree(
+            $$"""
+            HAI {{version}}
+            VISIBLE I IZ box'Z GREETING MKAY
+            KTHXBYE
+            """,
+            "Caller.lol");
+        var objectDeclaration = Tree(
+            $$"""
+            HAI {{version}}
+            O HAI IM box
+                HOW IZ I GREETING
+                    FOUND YR "TOO LATE"
+                IF U SAY SO
+            KTHX
+            KTHXBYE
+            """,
+            "Object.lol");
+
+        Action callBeforeObjectInitialization = () =>
+            Execute(LolcodeCompilation.Create(caller, objectDeclaration));
+        callBeforeObjectInitialization.Should().Throw<TargetInvocationException>()
             .Which.InnerException.Should().BeOfType<LolRuntimeException>();
     }
 
