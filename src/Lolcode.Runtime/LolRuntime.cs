@@ -63,13 +63,7 @@ public static class LolRuntime
     private sealed record YarnLiteral(string Value);
     private static readonly AsyncLocal<IoContext?> CurrentIo = new();
     private static readonly IReadOnlyDictionary<string, LolcodeLibraryDescriptor> OfficialDescriptors =
-        new Dictionary<string, LolcodeLibraryDescriptor>(StringComparer.Ordinal)
-        {
-            ["STRING"] = new("STRING", "Lolcode.Runtime.String", "Lolcode.Runtime.String.StringLibrary", true, 1),
-            ["STDLIB"] = new("STDLIB", "Lolcode.Runtime.Stdlib", "Lolcode.Runtime.Stdlib.StdlibLibrary", true, 1),
-            ["STDIO"] = new("STDIO", "Lolcode.Runtime.Stdio", "Lolcode.Runtime.Stdio.StdioLibrary", true, 1),
-            ["SOCKS"] = new("SOCKS", "Lolcode.Runtime.Socks", "Lolcode.Runtime.Socks.SocksLibrary", true, 1),
-        };
+        LolcodeLibraryDescriptor.Official;
 
     // ==================== Namespaces and BUKKITs ====================
 
@@ -78,6 +72,17 @@ public static class LolRuntime
 
     /// <summary>Closes all managed BLOB handles created by a program scope.</summary>
     public static void DisposeScope(LolScope scope) => scope.Resources.Dispose();
+
+    /// <summary>
+    /// Transfers a BLOB returned through a public library wrapper to the managed caller.
+    /// The caller owns and must dispose the returned handle.
+    /// </summary>
+    public static object? TransferPublicLibraryResult(LolScope scope, object? value)
+    {
+        if (value is LolBlob blob)
+            scope.Resources.Detach(blob);
+        return value;
+    }
 
     /// <summary>
     /// Adds package-supplied library descriptors to a scope before it imports libraries.
@@ -163,7 +168,35 @@ public static class LolRuntime
         if (type is null)
             return null;
 
+        if (type.IsDefined(typeof(LolcodeLibraryAttribute), inherit: false))
+            return CreateGeneratedLolcodeLibrary(scope, type);
+
         return CreateManagedLibrary(scope, type, allowContext: false);
+    }
+
+    private static LolObject CreateGeneratedLolcodeLibrary(LolScope scope, Type type)
+    {
+        MethodInfo? factory = type.GetMethod(
+            "__CreateLolcodeLibrary",
+            BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly,
+            binder: null,
+            [typeof(LolScope)],
+            modifiers: null);
+        if (factory?.ReturnType != typeof(LolObject))
+        {
+            throw new LolRuntimeException(
+                $"Generated LOLCODE library '{type.FullName}' does not expose a valid module factory.");
+        }
+
+        try
+        {
+            return (LolObject)(factory.Invoke(null, [scope])
+                ?? throw new LolRuntimeException($"Generated LOLCODE library '{type.FullName}' returned no module."));
+        }
+        catch (TargetInvocationException ex)
+        {
+            throw new LolRuntimeException(ex.InnerException?.Message ?? ex.Message);
+        }
     }
 
     private static LolObject CreateManagedLibrary(LolScope scope, Type type, bool allowContext)
@@ -348,7 +381,10 @@ public static class LolRuntime
                     ConvertManagedArgument(arguments[index], parameters[index + parameterOffset].ParameterType);
             }
 
-            return method.Invoke(null, convertedArguments);
+            object? result = method.Invoke(null, convertedArguments);
+            if (context is not null && result is LolBlob blob)
+                context.RegisterResource(blob);
+            return result;
         }
         catch (TargetInvocationException ex)
         {
@@ -362,6 +398,10 @@ public static class LolRuntime
 
     /// <summary>Creates a lexical child of an existing namespace.</summary>
     public static LolScope CreateChildScope(LolScope parent) => new(parent, parent.Caller);
+
+    /// <summary>Creates a module BUKKIT whose resources are owned by the importing scope.</summary>
+    public static LolObject CreateLibraryObject(LolScope importingScope) =>
+        new(importingScope, importingScope.Caller);
 
     /// <summary>Creates a function invocation namespace.</summary>
     [System.Diagnostics.DebuggerStepThrough]

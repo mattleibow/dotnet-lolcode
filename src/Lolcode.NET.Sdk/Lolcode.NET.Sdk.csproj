@@ -27,6 +27,20 @@
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <Target Name="StampProviderPackageVersion" BeforeTargets="GenerateNuspec">
+    <WriteLinesToFile
+      File="Sdk\Sdk.props"
+      Lines="$([System.IO.File]::ReadAllText('Sdk\Sdk.props').Replace('LolcodeProviderPackageVersion','$(Version)'))"
+      Overwrite="true" />
+  </Target>
+
+  <Target Name="RestoreProviderPackageVersion" AfterTargets="Pack">
+    <WriteLinesToFile
+      File="Sdk\Sdk.props"
+      Lines="$([System.IO.File]::ReadAllText('Sdk\Sdk.props').Replace('$(Version)','LolcodeProviderPackageVersion'))"
+      Overwrite="true" />
+  </Target>
+
   <!-- MSBuild task and compiler (build-time tool dependencies) -->
   <ItemGroup>
     <Content Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Build.dll" PackagePath="tools\net10.0\" />

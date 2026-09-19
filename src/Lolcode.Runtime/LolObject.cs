@@ -62,6 +62,14 @@ internal sealed record LolcodeLibraryDescriptor(
         int ContractVersion)
     {
         internal const int CurrentContractVersion = 1;
+        internal static readonly IReadOnlyDictionary<string, LolcodeLibraryDescriptor> Official =
+            new Dictionary<string, LolcodeLibraryDescriptor>(StringComparer.Ordinal)
+            {
+                ["STRING"] = new("STRING", "Lolcode.Runtime.String", "Lolcode.Runtime.String.StringLibrary", true, CurrentContractVersion),
+                ["STDLIB"] = new("STDLIB", "Lolcode.Runtime.Stdlib", "Lolcode.Runtime.Stdlib.StdlibLibrary", true, CurrentContractVersion),
+                ["STDIO"] = new("STDIO", "Lolcode.Runtime.Stdio", "Lolcode.Runtime.Stdio.StdioLibrary", true, CurrentContractVersion),
+                ["SOCKS"] = new("SOCKS", "Lolcode.Runtime.Socks", "Lolcode.Runtime.Socks.SocksLibrary", true, CurrentContractVersion),
+            };
 
         internal static bool TryParse(string value, out LolcodeLibraryDescriptor? descriptor)
         {
@@ -98,11 +106,20 @@ internal sealed class LolcodeLibraryRegistry
                         throw new LolRuntimeException(
                         $"Unsupported LOLCODE library contract version: {parsed.ContractVersion}");
                 }
-                if (!_descriptors.TryAdd(parsed.LolName, parsed))
+                if (LolcodeLibraryDescriptor.Official.TryGetValue(parsed.LolName, out var official) &&
+                    parsed != official)
                 {
+                    throw new LolRuntimeException(
+                        $"Reserved LOLCODE library descriptor does not match the official '{parsed.LolName}' contract.");
+                }
+                if (_descriptors.TryGetValue(parsed.LolName, out var existing))
+                {
+                        if (existing == parsed)
+                            continue;
                         throw new LolRuntimeException(
                             $"Ambiguous LOLCODE library descriptor: {parsed.LolName}");
                 }
+                _descriptors.Add(parsed.LolName, parsed);
             }
         }
 
@@ -131,6 +148,10 @@ internal sealed class LolResourceTracker
     {
         lock (_gate)
         {
+            if (resource.IsTrackedBy(this))
+                return resource;
+            if (resource.IsTracked)
+                throw new InvalidOperationException("BLOB handle is owned by a different LOLCODE scope.");
             if (_disposed)
             {
                 resource.Dispose();
@@ -146,6 +167,13 @@ internal sealed class LolResourceTracker
     {
         lock (_gate)
             _resources.Remove(resource);
+    }
+
+    internal void Detach(LolBlob resource)
+    {
+        lock (_gate)
+            _resources.Remove(resource);
+        resource.DetachTracker(this);
     }
 
     internal void Dispose()
@@ -203,6 +231,14 @@ public abstract class LolBlob : IDisposable
         if (Interlocked.CompareExchange(ref _tracker, tracker, null) is not null)
             throw new InvalidOperationException("BLOB handle is already tracked.");
     }
+
+    internal bool IsTracked => Volatile.Read(ref _tracker) is not null;
+
+    internal bool IsTrackedBy(LolResourceTracker tracker) =>
+        ReferenceEquals(Volatile.Read(ref _tracker), tracker);
+
+    internal void DetachTracker(LolResourceTracker tracker) =>
+        Interlocked.CompareExchange(ref _tracker, null, tracker);
 }
 
 /// <summary>Incrementally resolves an identifier path in evaluation order.</summary>

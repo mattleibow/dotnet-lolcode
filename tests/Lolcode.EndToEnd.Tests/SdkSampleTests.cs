@@ -139,7 +139,7 @@ public class SdkSampleTests
     {
         AssertProjectOutput(
             "samples/project-based/lolcode-head-lolcode-library/LolcodeHead/LolcodeHead.lolproj",
-            "HAI FROM LOLCODE LIBRARY!");
+            "HAI FROM LOLCODE LIBRARY!\n1\n2");
     }
 
     private static void AssertProjectOutput(string projectFile, string expectedOutput)

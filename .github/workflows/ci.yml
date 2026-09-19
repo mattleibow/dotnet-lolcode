@@ -130,9 +130,22 @@ jobs:
         run: |
           echo "📦 Packages:"
           ls -la artifacts/*.nupkg
-          COUNT=$(ls artifacts/*.nupkg | wc -l)
-          [ "$COUNT" -eq 4 ] || { echo "❌ Expected 4 packages, got $COUNT"; exit 1; }
-          echo "✅ Pack produced 4 packages"
+          expected=(
+            Lolcode.CodeAnalysis
+            Lolcode.Runtime
+            Lolcode.Runtime.String
+            Lolcode.Runtime.Stdlib
+            Lolcode.Runtime.Stdio
+            Lolcode.Runtime.Socks
+            Lolcode.NET.Sdk
+            Lolcode.NET.Templates
+          )
+          actual=$(find artifacts -maxdepth 1 -name '*.nupkg' -printf '%f\n' | sed -E 's/\.[0-9][^ ]*\.nupkg$//' | sort)
+          expected_sorted=$(printf '%s\n' "${expected[@]}" | sort)
+          [ "$actual" = "$expected_sorted" ] || {
+            echo "❌ Unexpected package IDs"; printf 'Actual:\n%s\nExpected:\n%s\n' "$actual" "$expected_sorted"; exit 1;
+          }
+          echo "✅ Pack produced the expected 8 packages"
 
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v4

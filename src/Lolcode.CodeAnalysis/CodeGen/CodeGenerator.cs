@@ -76,6 +76,7 @@ internal sealed class CodeGenerator
     private MethodInfo _configureLibrariesMethod = null!;
     private MethodInfo _executeSystemCommandMethod = null!;
     private MethodInfo _disposeScopeMethod = null!;
+    private MethodInfo _transferPublicLibraryResultMethod = null!;
     private MethodInfo _writeByteOrderMarkMethod = null!;
     private MethodInfo _createYarnLiteralMethod = null!;
     private MethodInfo _interpolateYarnMethod = null!;
@@ -103,6 +104,7 @@ internal sealed class CodeGenerator
     private MethodInfo _explicitCastMethod = null!;
     private MethodInfo _createScopeMethod = null!;
     private MethodInfo _createChildScopeMethod = null!;
+    private MethodInfo _createLibraryObjectMethod = null!;
     private MethodInfo _createInvocationScopeMethod = null!;
     private MethodInfo _createObjectMethod = null!;
     private MethodInfo _invokeResolvedMethod = null!;
@@ -288,6 +290,7 @@ internal sealed class CodeGenerator
         }
 
         EmitPublicFunctionWrappers();
+        EmitGeneratedLibraryFactory();
 
         if (mainMethod is not null)
         {
@@ -443,6 +446,10 @@ internal sealed class CodeGenerator
             [_scopeType, _stringType.MakeArrayType()]);
         _executeSystemCommandMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ExecuteSystemCommandValue));
         _disposeScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.DisposeScope));
+        _transferPublicLibraryResultMethod = GetRequiredRuntimeMethod(
+            runtimeType,
+            nameof(LolRuntime.TransferPublicLibraryResult),
+            [_scopeType, _systemObjectType]);
         _writeByteOrderMarkMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.WriteByteOrderMark));
         _createYarnLiteralMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CreateYarnLiteral));
         _interpolateYarnMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.InterpolateYarnValue));
@@ -470,6 +477,10 @@ internal sealed class CodeGenerator
         _explicitCastMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ExplicitCast));
         _createScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CreateScope));
         _createChildScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CreateChildScope));
+        _createLibraryObjectMethod = GetRequiredRuntimeMethod(
+            runtimeType,
+            nameof(LolRuntime.CreateLibraryObject),
+            [_scopeType]);
         _createInvocationScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CreateInvocationScope));
         _createObjectMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CreateObject));
         _invokeResolvedMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.InvokeResolved));
@@ -590,6 +601,10 @@ internal sealed class CodeGenerator
             _il.Emit(OpCodes.Ldloc, parameterSlots);
             _il.Emit(OpCodes.Call, _functionMethods[declaration]);
             _il.Emit(OpCodes.Stloc, result);
+            _il.Emit(OpCodes.Ldloc, scope);
+            _il.Emit(OpCodes.Ldloc, result);
+            _il.Emit(OpCodes.Call, _transferPublicLibraryResultMethod);
+            _il.Emit(OpCodes.Stloc, result);
 
             _il.BeginFinallyBlock();
             _il.Emit(OpCodes.Ldloc, scope);
@@ -600,9 +615,37 @@ internal sealed class CodeGenerator
         }
     }
 
+    private void EmitGeneratedLibraryFactory()
+    {
+        if (!_isLibrary)
+            return;
+
+        MethodBuilder factory = _typeBuilder.DefineMethod(
+            "__CreateLolcodeLibrary",
+            MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig,
+            _objectType,
+            [_scopeType]);
+        _il = factory.GetILGenerator();
+        var module = _il.DeclareLocal(_objectType);
+        _il.Emit(OpCodes.Ldarg_0);
+        _il.Emit(OpCodes.Call, _createLibraryObjectMethod);
+        _il.Emit(OpCodes.Stloc, module);
+
+        _scopeLocal = module;
+        _locals.Clear();
+        EmitLibraryConfiguration();
+        var moduleIt = _il.DeclareLocal(_systemObjectType);
+        _locals["IT"] = moduleIt;
+        _il.Emit(OpCodes.Ldnull);
+        _il.Emit(OpCodes.Stloc, moduleIt);
+        EmitLibraryInitializer();
+
+        _il.Emit(OpCodes.Ldloc, module);
+        _il.Emit(OpCodes.Ret);
+    }
+
     private void EmitLibraryInitializer()
     {
-        _locals.Clear();
         foreach (BoundStatement statement in _boundTree.Statements)
         {
             switch (statement)
