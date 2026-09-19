@@ -1,7 +1,0 @@
-HAI 1.4
-
-CAN HAS GalaxyEngine?
-
-I IZ GalaxyEngine'Z HEADLESS MKAY
-
-KTHXBYE

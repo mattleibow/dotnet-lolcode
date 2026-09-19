@@ -1,13 +1,11 @@
 <Solution>
   <Folder Name="/samples/" />
   <Folder Name="/samples/can-has-galaxy/">
-    <Project Path="samples/project-based/can-has-galaxy/Galaxy.Collections/Galaxy.Collections.lolproj" Type="C#" />
-    <Project Path="samples/project-based/can-has-galaxy/Galaxy.World/Galaxy.World.lolproj" Type="C#" />
-    <Project Path="samples/project-based/can-has-galaxy/Galaxy.Story/Galaxy.Story.lolproj" Type="C#" />
-    <Project Path="samples/project-based/can-has-galaxy/Galaxy.Engine/Galaxy.Engine.lolproj" Type="C#" />
-    <Project Path="samples/project-based/can-has-galaxy/Galaxy.Persistence/Galaxy.Persistence.lolproj" Type="C#" />
-    <Project Path="samples/project-based/can-has-galaxy/Galaxy.Game/Galaxy.Game.lolproj" Type="C#" />
-    <Project Path="samples/project-based/can-has-galaxy/Galaxy.Simulation/Galaxy.Simulation.lolproj" Type="C#" />
+    <Project Path="samples/project-based/can-has-galaxy/Lolcode.GameEngine/Lolcode.GameEngine.lolproj" Type="C#" />
+    <Project Path="samples/project-based/can-has-galaxy/Lolcode.TerminalUi/Lolcode.TerminalUi.lolproj" Type="C#" />
+    <Project Path="samples/project-based/can-has-galaxy/CanHasGalaxy/CanHasGalaxy.lolproj" Type="C#" />
+    <Project Path="samples/project-based/can-has-galaxy/CanHasGalaxy.Cli/CanHasGalaxy.Cli.lolproj" Type="C#" />
+    <Project Path="samples/project-based/can-has-galaxy/Kitteh.Catacombs/Kitteh.Catacombs.lolproj" Type="C#" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Lolcode.Build/Lolcode.Build.csproj" />
@@ -22,6 +20,7 @@
     <Project Path="tests/Lolcode.CodeAnalysis.Tests/Lolcode.CodeAnalysis.Tests.csproj" />
     <Project Path="tests/Lolcode.EndToEnd.Tests/Lolcode.EndToEnd.Tests.csproj" />
     <Project Path="tests/Lolcode.Web.Tests/Lolcode.Web.Tests.csproj" />
+    <Project Path="tests/CanHasGalaxy.Tests/CanHasGalaxy.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
   </Folder>

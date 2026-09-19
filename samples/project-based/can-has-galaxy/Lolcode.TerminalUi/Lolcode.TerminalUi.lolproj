@@ -3,12 +3,14 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>net10.0</TargetFramework>
-    <AssemblyName>GalaxyEngine</AssemblyName>
+    <AssemblyName>TerminalUi</AssemblyName>
+    <RootNamespace>TerminalUi</RootNamespace>
+    <LolcodeLibraryTypeName>UiExports</LolcodeLibraryTypeName>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Galaxy.Collections\Galaxy.Collections.lolproj" />
-    <ProjectReference Include="..\Galaxy.World\Galaxy.World.lolproj" />
-    <ProjectReference Include="..\Galaxy.Story\Galaxy.Story.lolproj" />
+    <Compile Remove="**/*.lol" />
+    <Compile Include="01-Text.lol" />
+    <Compile Include="02-Widgets.lol" />
   </ItemGroup>
   <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.targets" />
 </Project>

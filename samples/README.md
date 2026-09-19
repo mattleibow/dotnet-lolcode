@@ -110,14 +110,13 @@ in that explicit order. Every file must have its own `HAI`/`KTHXBYE`, and all
 files must use one language version.
 
 The [CAN HAS GALAXY?](project-based/can-has-galaxy/) sample is a pure-LOLCODE
-multi-project space-trading roguelike. It composes Collections, World, Story,
-Engine, and Persistence class libraries through LOLCODE `ProjectReference` and
-`CAN HAS` imports; it includes an EOF-safe interactive game and a deterministic
-headless simulation:
+multi-file space-trading roguelike built on reusable GameEngine and TerminalUi
+libraries. Its compact companion game, Kitteh Catacombs, proves that the same
+dynamic command router and line-oriented widgets work outside Galaxy:
 
 ```bash
-dotnet run --project samples/project-based/can-has-galaxy/Galaxy.Game
-dotnet run --project samples/project-based/can-has-galaxy/Galaxy.Simulation
+dotnet run --project samples/project-based/can-has-galaxy/CanHasGalaxy.Cli
+dotnet run --project samples/project-based/can-has-galaxy/Kitteh.Catacombs
 ```
 
 ## Local Development
