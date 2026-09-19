@@ -153,6 +153,45 @@ public class LibraryEmissionTests
     }
 
     [Fact]
+    public void LibraryEmission_ExportsFunctionsDeclaredInMultipleSourceFiles()
+    {
+        string outputPath = Path.Combine(AppContext.BaseDirectory, $"multifile-library-{Guid.NewGuid():N}.dll");
+        try
+        {
+            var compilation = LolcodeCompilation.Create(
+                SyntaxTree.ParseText(
+                    "HAI 1.4\nHOW IZ I FIRST\nFOUND YR 1\nIF U SAY SO\nKTHXBYE",
+                    "First.lol"),
+                SyntaxTree.ParseText(
+                    "HAI 1.4\nHOW IZ I SECOND\nFOUND YR 2\nIF U SAY SO\nKTHXBYE",
+                    "Second.lol"));
+
+            var result = compilation.Emit(
+                outputPath,
+                typeof(LolRuntime).Assembly.Location,
+                outputType: "Library");
+
+            result.Success.Should().BeTrue(string.Join("\n", result.Diagnostics));
+            using var stream = File.OpenRead(outputPath);
+            using var peReader = new PEReader(stream);
+            MetadataReader metadata = peReader.GetMetadataReader();
+            TypeDefinitionHandle exports = metadata.TypeDefinitions.Single(handle =>
+                metadata.GetString(metadata.GetTypeDefinition(handle).Name) == "LolcodeExports");
+            metadata.GetTypeDefinition(exports)
+                .GetMethods()
+                .Select(metadata.GetMethodDefinition)
+                .Where(method => method.Attributes.HasFlag(MethodAttributes.Public))
+                .Select(method => metadata.GetString(method.Name))
+                .Should().Contain(["FIRST", "SECOND"]);
+        }
+        finally
+        {
+            File.Delete(outputPath);
+            File.Delete(Path.ChangeExtension(outputPath, ".pdb"));
+        }
+    }
+
+    [Fact]
     public void LibraryEmission_RemovesExistingRuntimeConfigAsPartOfArtifactCommit()
     {
         string outputDirectory = Path.Combine(

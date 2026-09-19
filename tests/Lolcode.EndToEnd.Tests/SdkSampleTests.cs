@@ -305,7 +305,7 @@ public class SdkSampleTests
             string projectFile = CreateDefaultLibraryProject(projectDirectory, assemblyName);
 
             var (firstExitCode, firstStdOut, firstStdErr) = RunDotnet(
-                $"build \"{projectFile}\"",
+                $"build \"{projectFile}\" --disable-build-servers -p:BuildInParallel=false",
                 projectDirectory);
             firstExitCode.Should().Be(0, $"initial dotnet build failed:\n{firstStdErr}\n{firstStdOut}");
 
@@ -365,6 +365,71 @@ public class SdkSampleTests
             peReader.PEHeaders.CoffHeader.Characteristics.Should().NotHaveFlag(Characteristics.Dll);
             peReader.PEHeaders.CorHeader!.EntryPointTokenOrRelativeVirtualAddress.Should().NotBe(0);
             File.Exists(Path.ChangeExtension(outputAssembly, ".runtimeconfig.json")).Should().BeTrue();
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Sdk_RebuildsWhenOnlyANonFirstLolSourceChanges()
+    {
+        string projectDirectory = Path.Combine(
+            Path.GetTempPath(),
+            "lolcode-sdk-multifile-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(projectDirectory);
+
+        try
+        {
+            string sdkDirectory = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk");
+            string buildTasksDirectory = Path.Combine(
+                RepoRoot,
+                "src",
+                "Lolcode.Build",
+                "bin",
+                "Debug",
+                "net10.0") + Path.DirectorySeparatorChar;
+            string projectFile = Path.Combine(projectDirectory, "MultiFile.lolproj");
+            File.WriteAllText(
+                projectFile,
+                $$"""
+                <Project>
+                  <Import Project="{{Path.Combine(sdkDirectory, "Sdk.props")}}" />
+                  <PropertyGroup>
+                    <TargetFramework>net10.0</TargetFramework>
+                    <AssemblyName>MultiFile</AssemblyName>
+                    <LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>
+                    <_LolcodeBuildTasksDir>{{buildTasksDirectory}}</_LolcodeBuildTasksDir>
+                  </PropertyGroup>
+                  <ItemGroup>
+                    <Compile Remove="**/*.lol" />
+                    <Compile Include="01-First.lol" />
+                    <Compile Include="02-Second.lol" />
+                  </ItemGroup>
+                  <Import Project="{{Path.Combine(sdkDirectory, "Sdk.targets")}}" />
+                </Project>
+                """);
+            File.WriteAllText(
+                Path.Combine(projectDirectory, "01-First.lol"),
+                "HAI 1.2\nVISIBLE \"FIRST\"\nKTHXBYE");
+            string secondSource = Path.Combine(projectDirectory, "02-Second.lol");
+            File.WriteAllText(secondSource, "HAI 1.2\nVISIBLE \"SECOND\"\nKTHXBYE");
+
+            var (firstExitCode, firstStdOut, firstStdErr) = RunDotnet(
+                $"build \"{projectFile}\"",
+                projectDirectory);
+            firstExitCode.Should().Be(0, $"initial dotnet build failed:\n{firstStdErr}\n{firstStdOut}");
+
+            File.AppendAllText(secondSource, "\nBTW changed non-first source");
+            var (secondExitCode, secondStdOut, secondStdErr) = RunDotnet(
+                $"build \"{projectFile}\" --no-restore --verbosity normal --disable-build-servers -p:BuildInParallel=false",
+                projectDirectory);
+            secondExitCode.Should().Be(0, $"incremental dotnet build failed:\n{secondStdErr}\n{secondStdOut}");
+            secondStdOut.Should().Contain(
+                "Lolc: Compiling 2 source file(s)",
+                "CoreCompile inputs must include every Compile item.");
         }
         finally
         {

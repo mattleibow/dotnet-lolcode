@@ -151,6 +151,12 @@ public static class DiagnosticDescriptors
         "Function '{0}' has already been declared.",
         "Binder");
 
+    /// <summary>All source files in one compilation must have the same HAI version.</summary>
+    public static readonly DiagnosticDescriptor MismatchedLanguageVersion = new(
+        "LOL2011", "Mismatched language version",
+        "This source file uses LOLCODE {1}, but the compilation uses LOLCODE {0}.",
+        "Binder");
+
     // --- Internal ---
 
     /// <summary>Internal compiler error.</summary>

@@ -143,6 +143,17 @@ internal sealed class DiagnosticBag : IEnumerable<Diagnostic>
     public void ReportOmgRequiresLiteral(TextLocation location)
         => Report(DiagnosticDescriptors.OmgRequiresLiteral, location);
 
+    /// <summary>Reports an incompatible HAI language version in a source file.</summary>
+    public void ReportMismatchedLanguageVersion(
+        TextLocation location,
+        string expectedVersion,
+        string actualVersion)
+        => Report(
+            DiagnosticDescriptors.MismatchedLanguageVersion,
+            location,
+            expectedVersion,
+            actualVersion);
+
     /// <inheritdoc/>
     public IEnumerator<Diagnostic> GetEnumerator() => _diagnostics.GetEnumerator();
 

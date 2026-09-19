@@ -113,6 +113,18 @@ All LOLCODE programs must be opened with the command `HAI`. `HAI` must then be f
 
 A LOLCODE file is closed by the keyword `KTHXBYE` which closes the `HAI` code-block.
 
+## .NET project compilation units
+
+The .NET compiler may compile several `.lol` files into one project assembly.
+This is a project feature, not additional LOLCODE syntax: every participating
+file must independently contain `HAI <version>` and `KTHXBYE`. Their top-level
+names share one project namespace. Top-level functions are declared across all
+files before any file body is bound, so cross-file calls do not depend on file
+order. Top-level declarations and executable statements otherwise run in the
+project's `Compile` order, so a top-level variable is available only after the
+file that declares it has been processed. All files in one compilation must use
+the same `HAI` version.
+
 ```lolcode
 HAI 1.2
   BTW your code here

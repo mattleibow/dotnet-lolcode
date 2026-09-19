@@ -48,7 +48,7 @@ public sealed class SyntaxTree
 
     /// <summary>Parse source code string into a syntax tree.</summary>
     public static SyntaxTree ParseText(string text, string? filePath = null) =>
-        ParseText(SourceText.From(text), filePath);
+        ParseText(SourceText.From(text, filePath ?? ""), filePath);
 
     /// <summary>Load and parse a source file.</summary>
     public static SyntaxTree Load(string path) =>

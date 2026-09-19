@@ -265,6 +265,43 @@ KTHXBYE
             .Should().OnlyContain(d => d.EndsWith(expectedDocSuffix, StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Pdb_ContainsAllSourceDocuments_AndMapsSequencePointsToTheirOwningFiles()
+    {
+        string firstPath = Path.Combine(_tempDir, "First.lol");
+        string secondPath = Path.Combine(_tempDir, "Second.lol");
+        File.WriteAllText(firstPath, "HAI 1.2\nVISIBLE \"FIRST\"\nKTHXBYE");
+        File.WriteAllText(
+            secondPath,
+            "HAI 1.2\nHOW IZ I OTHER\n  FOUND YR \"SECOND\"\nIF U SAY SO\nKTHXBYE");
+        string outputPath = Path.Combine(_tempDir, $"multifile_{Guid.NewGuid():N}.dll");
+
+        var result = LolcodeCompilation.Create(
+                SyntaxTree.Load(firstPath),
+                SyntaxTree.Load(secondPath))
+            .Emit(outputPath, _runtimeDll);
+        result.Success.Should().BeTrue(string.Join("\n", result.Diagnostics));
+        result.PdbPath.Should().NotBeNull();
+
+        using var readers = PeAndPdb.Open(result.OutputPath!, result.PdbPath!);
+        MetadataReader peReader = readers.PeMetadataReader;
+        MetadataReader pdbReader = readers.PdbMetadataReader;
+        var documents = pdbReader.Documents
+            .Select(handle => GetDocumentName(pdbReader, handle))
+            .ToArray();
+        documents.Should().Contain(path => path.EndsWith("First.lol", StringComparison.Ordinal));
+        documents.Should().Contain(path => path.EndsWith("Second.lol", StringComparison.Ordinal));
+
+        GetSequencePointLines(pdbReader, FindMethod(peReader, "Main"))
+            .Should().Contain(point =>
+                point.StartLine == 2 &&
+                point.DocumentName.EndsWith("First.lol", StringComparison.Ordinal));
+        GetSequencePointLines(pdbReader, FindMethod(peReader, "OTHER"))
+            .Should().Contain(point =>
+                point.StartLine == 2 &&
+                point.DocumentName.EndsWith("Second.lol", StringComparison.Ordinal));
+    }
+
     // (4) A test that verifies local variable names per method
     [Fact]
     public void Pdb_ContainsExpectedLocals_ForMainAndAdd()

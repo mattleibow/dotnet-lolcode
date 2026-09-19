@@ -118,6 +118,16 @@ dotnet publish  # Publish for deployment
 dotnet watch    # Recompile on .lol file changes
 ```
 
+### Multiple `.lol` files
+
+A `.lolproj` can compile multiple complete LOLCODE files into one assembly.
+Each file still needs its own `HAI <version>` and `KTHXBYE`; this is compiler
+project composition, not new source syntax. Files share top-level functions and
+variables. Functions may call declarations in any project file, while top-level
+statements and variable declarations follow MSBuild `Compile` order. Keep
+initialization-sensitive files explicitly ordered with `Compile` items, and use
+one `HAI` language version for the whole project.
+
 Create a new project from template:
 ```bash
 dotnet new install Lolcode.NET.Templates

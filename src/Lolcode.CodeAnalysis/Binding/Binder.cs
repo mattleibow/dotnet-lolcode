@@ -14,10 +14,12 @@ namespace Lolcode.CodeAnalysis.Binding;
 internal sealed class Binder
 {
     private readonly DiagnosticBag _diagnostics = new();
-    private readonly SourceText _text;
+    private readonly Dictionary<SyntaxNode, SyntaxTree> _syntaxTrees = [];
+    private SourceText _text;
     private BoundScope _scope;
     private readonly Stack<ControlFlowContext> _contextStack = new();
     private bool _runtimeIdentifiers;
+    private SyntaxTree? _currentTree;
 
     /// <summary>
     /// Gets the diagnostics produced during binding.
@@ -40,6 +42,69 @@ internal sealed class Binder
     {
         _runtimeIdentifiers = compilationUnit.Program.VersionToken?.Text is "1.3" or "1.4";
         return BindBlock(compilationUnit.Program.Statements);
+    }
+
+    /// <summary>
+    /// Binds all compilation units into one compilation-wide top-level scope.
+    /// Top-level functions are declared before any body is bound so calls can cross
+    /// source-file boundaries independently of source-file order.
+    /// </summary>
+    public BinderResult BindCompilationUnits(ImmutableArray<SyntaxTree> syntaxTrees)
+    {
+        if (syntaxTrees.IsEmpty)
+            return new BinderResult(
+                new BoundBlockStatement([]),
+                _diagnostics.ToImmutableArray(),
+                _syntaxTrees.ToImmutableDictionary());
+
+        _scope = new BoundScope();
+        string? compilationVersion = syntaxTrees[0].Root.Program.VersionToken?.Text;
+        _runtimeIdentifiers = compilationVersion is "1.3" or "1.4";
+
+        foreach (SyntaxTree tree in syntaxTrees)
+        {
+            SetCurrentTree(tree);
+            CollectFunctions(tree.Root.Program.Statements);
+        }
+
+        var statements = ImmutableArray.CreateBuilder<BoundStatement>();
+        for (int index = 0; index < syntaxTrees.Length; index++)
+        {
+            SyntaxTree tree = syntaxTrees[index];
+            SetCurrentTree(tree);
+            if (index > 0 &&
+                !string.Equals(
+                    tree.Root.Program.VersionToken?.Text,
+                    compilationVersion,
+                    StringComparison.Ordinal))
+            {
+                SyntaxToken token = tree.Root.Program.VersionToken
+                    ?? tree.Root.Program.HaiKeyword;
+                var location = TextLocation.FromSpan(_text, token.Span);
+                _diagnostics.ReportMismatchedLanguageVersion(
+                    location,
+                    compilationVersion ?? "<missing>",
+                    tree.Root.Program.VersionToken?.Text ?? "<missing>");
+            }
+
+            foreach (StatementSyntax statement in tree.Root.Program.Statements)
+            {
+                var bound = BindStatement(statement);
+                if (bound is not null)
+                    statements.Add(bound);
+            }
+        }
+
+        return new BinderResult(
+            new BoundBlockStatement(statements.ToImmutable()),
+            _diagnostics.ToImmutableArray(),
+            _syntaxTrees.ToImmutableDictionary());
+    }
+
+    private void SetCurrentTree(SyntaxTree tree)
+    {
+        _currentTree = tree;
+        _text = tree.Text;
     }
 
     private void CollectFunctions(ImmutableArray<StatementSyntax> statements)
@@ -94,6 +159,9 @@ internal sealed class Binder
 
     private BoundStatement? BindStatement(StatementSyntax statement)
     {
+        if (_currentTree is not null)
+            _syntaxTrees[statement] = _currentTree;
+
         return statement switch
         {
             VariableDeclarationSyntax s => BindVariableDeclaration(s),
@@ -116,6 +184,14 @@ internal sealed class Binder
             _ => null,
         };
     }
+
+    /// <summary>
+    /// The immutable result of binding a LOLCODE compilation.
+    /// </summary>
+    internal sealed record BinderResult(
+        BoundBlockStatement BoundTree,
+        ImmutableArray<Diagnostic> Diagnostics,
+        ImmutableDictionary<SyntaxNode, SyntaxTree> SyntaxTrees);
 
     private BoundScopedDeclaration BindScopedDeclaration(ScopedDeclarationSyntax syntax)
     {

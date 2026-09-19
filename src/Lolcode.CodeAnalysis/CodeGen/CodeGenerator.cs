@@ -30,9 +30,10 @@ internal sealed class CodeGenerator
     private readonly bool _isLibrary;
     private readonly string? _libraryTypeName;
     private readonly IReadOnlyList<string> _libraryDescriptors;
-    private readonly Text.SourceText? _sourceText;
-    private readonly string? _sourceFilePath;
-    private ISymbolDocumentWriter? _document;
+    private readonly IReadOnlyList<SyntaxTree> _syntaxTrees;
+    private readonly IReadOnlyDictionary<SyntaxNode, SyntaxTree> _syntaxTreeOwners;
+    private readonly Dictionary<string, ISymbolDocumentWriter> _documents =
+        new(StringComparer.Ordinal);
 
     private TypeBuilder _typeBuilder = null!;
     private ILGenerator _il = null!;
@@ -132,8 +133,8 @@ internal sealed class CodeGenerator
         string assemblyName,
         string runtimeAssemblyPath,
         IEnumerable<string>? referenceAssemblyPaths = null,
-        Text.SourceText? sourceText = null,
-        string? sourceFilePath = null,
+        IReadOnlyList<SyntaxTree>? syntaxTrees = null,
+        IReadOnlyDictionary<SyntaxNode, SyntaxTree>? syntaxTreeOwners = null,
         bool isLibrary = false,
         string? libraryTypeName = null,
         IEnumerable<string>? libraryDescriptors = null)
@@ -142,8 +143,8 @@ internal sealed class CodeGenerator
         _assemblyName = assemblyName;
         _runtimeAssemblyPath = runtimeAssemblyPath;
         _referenceAssemblyPaths = referenceAssemblyPaths?.ToArray() ?? [];
-        _sourceText = sourceText;
-        _sourceFilePath = sourceFilePath;
+        _syntaxTrees = syntaxTrees ?? [];
+        _syntaxTreeOwners = syntaxTreeOwners ?? new Dictionary<SyntaxNode, SyntaxTree>();
         _isLibrary = isLibrary;
         _libraryTypeName = libraryTypeName;
         _libraryDescriptors = libraryDescriptors?.ToArray() ?? [];
@@ -209,13 +210,23 @@ internal sealed class CodeGenerator
 
         var moduleBuilder = assemblyBuilder.DefineDynamicModule(_assemblyName);
 
-        // PDB: define document for source file
-        if (_sourceText != null && !string.IsNullOrEmpty(_sourceFilePath))
+        var lolcodeLanguageGuid = new Guid("4C4F4C43-4F44-4500-0000-000000000001");
+        foreach (SyntaxTree syntaxTree in _syntaxTrees)
         {
-            var lolcodeLanguageGuid = new Guid("4C4F4C43-4F44-4500-0000-000000000001");
-            _document = moduleBuilder.DefineDocument(
-                Path.GetFullPath(_sourceFilePath), lolcodeLanguageGuid,
-                SymLanguageVendor.Microsoft, SymDocumentType.Text);
+            if (string.IsNullOrEmpty(syntaxTree.FilePath))
+                continue;
+
+            string documentPath = Path.GetFullPath(syntaxTree.FilePath);
+            if (!_documents.ContainsKey(documentPath))
+            {
+                _documents.Add(
+                    documentPath,
+                    moduleBuilder.DefineDocument(
+                        documentPath,
+                        lolcodeLanguageGuid,
+                        SymLanguageVendor.Microsoft,
+                        SymDocumentType.Text));
+            }
         }
 
         _typeBuilder = moduleBuilder.DefineType(
@@ -299,7 +310,8 @@ internal sealed class CodeGenerator
 
             _il.BeginScope();
 
-            if (_sourceText is { Length: > 0 } && _sourceText[0] == '\uFEFF')
+            if (_syntaxTrees.FirstOrDefault()?.Text is { Length: > 0 } firstSourceText &&
+                firstSourceText[0] == '\uFEFF')
                 _il.Emit(OpCodes.Call, _writeByteOrderMarkMethod);
 
             _scopeLocal = _il.DeclareLocal(_scopeType);
@@ -796,17 +808,17 @@ internal sealed class CodeGenerator
                 break;
             case BoundIfStatement s:
                 if (s.Syntax is IfStatementSyntax ifSyntax)
-                    EmitSequencePointForToken(ifSyntax.ORlyKeyword);
+                    EmitSequencePointForToken(ifSyntax.ORlyKeyword, ifSyntax);
                 EmitIf(s);
                 break;
             case BoundSwitchStatement s:
                 if (s.Syntax is SwitchStatementSyntax switchSyntax)
-                    EmitSequencePointForToken(switchSyntax.WtfKeyword);
+                    EmitSequencePointForToken(switchSyntax.WtfKeyword, switchSyntax);
                 EmitSwitch(s);
                 break;
             case BoundLoopStatement s:
                 if (s.Syntax is LoopStatementSyntax loopSyntax)
-                    EmitSequencePointForToken(loopSyntax.ImInKeyword);
+                    EmitSequencePointForToken(loopSyntax.ImInKeyword, loopSyntax);
                 EmitLoop(s);
                 break;
             case BoundGtfoStatement s:
@@ -1710,22 +1722,30 @@ internal sealed class CodeGenerator
 
     private void EmitSequencePoint(BoundNode node)
     {
-        if (_document == null || _sourceText == null) return;
         if (node.Syntax is null || node.Syntax.Span.Length == 0) return;
-        EmitSequencePointForSpan(node.Syntax.Span);
+        EmitSequencePointForSpan(node.Syntax.Span, node.Syntax);
     }
 
-    private void EmitSequencePointForToken(SyntaxToken token)
+    private void EmitSequencePointForToken(SyntaxToken token, SyntaxNode containingSyntax)
     {
-        if (_document == null || _sourceText == null) return;
         if (token.Span.Length == 0) return;
-        EmitSequencePointForSpan(token.Span);
+        EmitSequencePointForSpan(token.Span, containingSyntax);
     }
 
-    private void EmitSequencePointForSpan(TextSpan span)
+    private void EmitSequencePointForSpan(TextSpan span, SyntaxNode owningSyntax)
     {
-        var loc = TextLocation.FromSpan(_sourceText!, span);
-        _il.MarkSequencePoint(_document!,
+        if (!_syntaxTreeOwners.TryGetValue(owningSyntax, out SyntaxTree? syntaxTree) ||
+            string.IsNullOrEmpty(syntaxTree.FilePath))
+        {
+            return;
+        }
+
+        string documentPath = Path.GetFullPath(syntaxTree.FilePath);
+        if (!_documents.TryGetValue(documentPath, out ISymbolDocumentWriter? document))
+            return;
+
+        var loc = TextLocation.FromSpan(syntaxTree.Text, span);
+        _il.MarkSequencePoint(document,
             loc.StartLine + 1,       // 0-based → 1-based
             loc.StartCharacter + 1,  // 0-based → 1-based
             loc.EndLine + 1,         // 0-based → 1-based
@@ -1734,7 +1754,7 @@ internal sealed class CodeGenerator
 
     private void SetLocalSymInfo(LocalBuilder local, string name)
     {
-        if (_document != null)
+        if (_documents.Count > 0)
             local.SetLocalSymInfo(name);
     }
 

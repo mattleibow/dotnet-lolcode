@@ -180,7 +180,7 @@ public sealed class LolcodeCompilation
                 : Path.ChangeExtension(outputPath, ".dll");
             var assemblyName = Path.GetFileNameWithoutExtension(dllPath);
             bool isLibrary = string.Equals(outputType, "Library", StringComparison.OrdinalIgnoreCase);
-            var emitPdb = !string.IsNullOrEmpty(SyntaxTrees[0].FilePath);
+            var emitPdb = SyntaxTrees.Any(tree => !string.IsNullOrEmpty(tree.FilePath));
             var pdbPath = Path.ChangeExtension(dllPath, ".pdb");
             var runtimeConfigPath = Path.ChangeExtension(dllPath, ".runtimeconfig.json");
 
@@ -505,14 +505,13 @@ public sealed class LolcodeCompilation
         cancellationToken.ThrowIfCancellationRequested();
         var bindingResult = EnsureBound();
         cancellationToken.ThrowIfCancellationRequested();
-        var tree = SyntaxTrees[0];
         var generator = new CodeGenerator(
             bindingResult.BoundTree,
             assemblyName,
             runtimeAssemblyPath,
             referenceAssemblyPaths,
-            sourceText: tree.Text,
-            sourceFilePath: tree.FilePath,
+            SyntaxTrees,
+            bindingResult.SyntaxTrees,
             isLibrary: isLibrary,
             libraryTypeName: libraryTypeName,
             libraryDescriptors: libraryDescriptors);
@@ -871,19 +870,23 @@ public sealed class LolcodeCompilation
             if (_bindingResult is not null)
                 return _bindingResult;
 
-            // LOLCODE is single-file, so use first tree
-            var tree = SyntaxTrees[0];
-            var binder = new Binder(tree.Text);
-            var boundTree = binder.BindCompilationUnit(tree.Root);
-            var diagnostics = binder.Diagnostics.ToImmutableArray();
+            var binder = new Binder(
+                SyntaxTrees.IsEmpty ? Text.SourceText.From("") : SyntaxTrees[0].Text);
+            var binding = binder.BindCompilationUnits(SyntaxTrees);
 
             // Lower the bound tree (simplify for code generation)
-            _bindingResult = new BindingResult(Lowerer.Lower(boundTree), diagnostics);
+            _bindingResult = new BindingResult(
+                Lowerer.Lower(binding.BoundTree),
+                binding.Diagnostics,
+                binding.SyntaxTrees);
             return _bindingResult;
         }
     }
 
-    private sealed record BindingResult(BoundBlockStatement BoundTree, ImmutableArray<Diagnostic> Diagnostics);
+    private sealed record BindingResult(
+        BoundBlockStatement BoundTree,
+        ImmutableArray<Diagnostic> Diagnostics,
+        ImmutableDictionary<SyntaxNode, SyntaxTree> SyntaxTrees);
 }
 
 internal interface IPathEmitFileSystem

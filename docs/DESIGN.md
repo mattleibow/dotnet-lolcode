@@ -117,6 +117,26 @@ Source Text (.lol)
   EmitResult (Success, Diagnostics)
 ```
 
+### Multi-file project compilations
+
+Multi-file support is a compiler/project feature; it does not add LOLCODE source
+syntax. Every `.lol` source in a project is still a complete compilation unit
+with its own `HAI <version>` header and `KTHXBYE` footer. `LolcodeCompilation`
+binds its ordered `SyntaxTrees` into one top-level namespace and emits one
+assembly (and, for libraries, one export type).
+
+The binder first collects top-level function declarations from every tree, so a
+function can call a function declared in another file regardless of their
+relative `Compile` order. It then binds and emits top-level statements in
+`SyntaxTrees`/MSBuild `@(Compile)` order. Consequently, top-level variables
+remain accessible only after their declaration in that order, and initialization
+side effects follow that order. All source units in a compilation must use the
+same `HAI` version; a mismatching later file produces `LOL2011`.
+
+Portable PDB emission preserves this ownership: one document is emitted for
+each source path, and statement and function sequence points use the document
+for the tree that owns their syntax.
+
 ## Component Details
 
 ### 1. Lexer (Tokenizer)

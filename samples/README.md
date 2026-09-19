@@ -97,6 +97,12 @@ LOLCODE executable importing an ordinary C# class library with `CAN HAS`.
 The [LOLCODE head with a LOLCODE library](project-based/lolcode-head-lolcode-library/)
 sample imports a generated LOLCODE class library by assembly name. Its generated
 CLR export type is deliberately namespaced differently from that assembly name.
+Its library intentionally uses two complete `.lol` compilation units: the
+formatting API calls a helper declared in the other file. The project lists
+`Compile` items explicitly (`01-State.lol`, then `02-Formatting.lol`) to
+document the top-level initialization order. Every file must have its own
+`HAI`/`KTHXBYE`, all files must use one language version, and top-level functions
+are available across the project regardless of that order.
 
 ## Local Development
 

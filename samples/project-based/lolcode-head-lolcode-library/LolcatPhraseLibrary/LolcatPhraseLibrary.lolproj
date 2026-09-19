@@ -7,5 +7,10 @@
     <RootNamespace>InteropSamples</RootNamespace>
     <LolcodeLibraryTypeName>LolcatExports</LolcodeLibraryTypeName>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="**/*.lol" />
+    <Compile Include="01-State.lol" />
+    <Compile Include="02-Formatting.lol" />
+  </ItemGroup>
   <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.targets" />
 </Project>
