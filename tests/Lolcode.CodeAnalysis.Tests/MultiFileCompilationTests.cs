@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.Loader;
 using Lolcode.CodeAnalysis.Syntax;
+using Lolcode.CodeAnalysis.Text;
 using Lolcode.Runtime;
 
 namespace Lolcode.CodeAnalysis.Tests;
@@ -114,6 +115,135 @@ public sealed class MultiFileCompilationTests
 
         diagnostics.Select(d => d.Location.FileName)
             .Should().BeEquivalentTo(["BrokenOne.lol", "BrokenTwo.lol"]);
+    }
+
+    [Fact]
+    public void SourceTextConstruction_PreservesEffectiveFileNamesInSyntaxAndBinderDiagnostics()
+    {
+        string loadPath = Path.Combine(
+            AppContext.BaseDirectory,
+            $"source-text-{Guid.NewGuid():N}.lol");
+        File.WriteAllText(loadPath, "HAI 1.2\nVISIBLE missing\nKTHXBYE");
+
+        try
+        {
+            var syntaxTree = SyntaxTree.ParseText(
+                SourceText.From("HAI 1.2\nVISIBLE\nKTHXBYE", "Ignored.lol"),
+                "SyntaxSourceText.lol");
+            syntaxTree.FilePath.Should().Be("SyntaxSourceText.lol");
+            syntaxTree.Text.FileName.Should().Be("SyntaxSourceText.lol");
+            syntaxTree.Diagnostics.Should().ContainSingle(d => d.Id == "LOL1006")
+                .Which.Location.FileName.Should().Be("SyntaxSourceText.lol");
+
+            var compilation = LolcodeCompilation.Create(
+                SyntaxTree.ParseText("HAI 1.2\nVISIBLE missing\nKTHXBYE", "String.lol"),
+                SyntaxTree.ParseText(SourceText.From(
+                    "HAI 1.2\nVISIBLE missing\nKTHXBYE",
+                    "SourceText.lol")),
+                SyntaxTree.Load(loadPath));
+
+            compilation.GetDiagnostics()
+                .Where(d => d.Id == "LOL2001")
+                .Select(d => d.Location.FileName)
+                .Should()
+                .BeEquivalentTo(["String.lol", "SourceText.lol", loadPath]);
+        }
+        finally
+        {
+            File.Delete(loadPath);
+        }
+    }
+
+    [Fact]
+    public void SourceTextConstruction_PreservesEffectiveFileNamesInVersionDiagnostics()
+    {
+        string loadPath = Path.Combine(
+            AppContext.BaseDirectory,
+            $"version-source-text-{Guid.NewGuid():N}.lol");
+        File.WriteAllText(loadPath, "HAI 1.3\nKTHXBYE");
+
+        try
+        {
+            var diagnostics = LolcodeCompilation.Create(
+                    SyntaxTree.ParseText("HAI 1.2\nKTHXBYE", "String.lol"),
+                    SyntaxTree.ParseText(SourceText.From(
+                        "HAI 1.4\nKTHXBYE",
+                        "SourceText.lol")),
+                    SyntaxTree.Load(loadPath))
+                .GetDiagnostics()
+                .Where(d => d.Id == "LOL2011")
+                .ToArray();
+
+            diagnostics.Select(d => d.Location.FileName)
+                .Should().BeEquivalentTo(["SourceText.lol", loadPath]);
+        }
+        finally
+        {
+            File.Delete(loadPath);
+        }
+    }
+
+    [Fact]
+    public void DuplicateFunctions_KeepTheirOwnParametersWhileCallsUseTheWinner()
+    {
+        const string source = """
+            HAI 1.2
+            HOW IZ I SAME YR winner
+                FOUND YR winner
+            IF U SAY SO
+            HOW IZ I SAME
+                FOUND YR 0
+            IF U SAY SO
+            VISIBLE I IZ SAME MKAY
+            KTHXBYE
+            """;
+
+        var diagnostics = LolcodeCompilation.Create(Tree(source, "DuplicateFunction.lol"))
+            .GetDiagnostics();
+
+        diagnostics.Should().ContainSingle(d => d.Id == "LOL2010")
+            .Which.Location.FileName.Should().Be("DuplicateFunction.lol");
+        diagnostics.Should().ContainSingle(d => d.Id == "LOL2004")
+            .Which.Message.Should().Contain("expects 1 argument(s) but got 0");
+    }
+
+    [Fact]
+    public void CrossFileDuplicateFunctions_KeepWinnerArityAndLocations()
+    {
+        var diagnostics = LolcodeCompilation.Create(
+                Tree(
+                    "HAI 1.2\nHOW IZ I SAME YR winner\nFOUND YR winner\nIF U SAY SO\nKTHXBYE",
+                    "Winner.lol"),
+                Tree(
+                    "HAI 1.2\nHOW IZ I SAME\nFOUND YR 0\nIF U SAY SO\nVISIBLE I IZ SAME MKAY\nKTHXBYE",
+                    "Duplicate.lol"))
+            .GetDiagnostics();
+
+        diagnostics.Should().ContainSingle(d => d.Id == "LOL2010")
+            .Which.Location.FileName.Should().Be("Duplicate.lol");
+        diagnostics.Should().ContainSingle(d => d.Id == "LOL2004")
+            .Which.Location.FileName.Should().Be("Duplicate.lol");
+    }
+
+    [Fact]
+    public void DuplicateFunctionParameters_ReportTheDuplicateParameterWithoutThrowing()
+    {
+        var diagnostics = LolcodeCompilation.Create(Tree(
+                """
+                HAI 1.2
+                HOW IZ I SAME YR repeated AN YR repeated
+                    FOUND YR repeated
+                IF U SAY SO
+                VISIBLE I IZ SAME YR 1 MKAY
+                KTHXBYE
+                """,
+                "DuplicateParameter.lol"))
+            .GetDiagnostics();
+
+        diagnostics.Should().ContainSingle(d => d.Id == "LOL2002")
+            .Which.Location.FileName.Should().Be("DuplicateParameter.lol");
+        diagnostics.Should().ContainSingle(d => d.Id == "LOL2004")
+            .Which.Message.Should().Contain("expects 2 argument(s) but got 1");
     }
 
     [Fact]

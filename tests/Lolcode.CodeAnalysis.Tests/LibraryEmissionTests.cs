@@ -9,6 +9,68 @@ namespace Lolcode.CodeAnalysis.Tests;
 /// <summary>Tests CLR class library emission and the public LOLCODE function ABI.</summary>
 public class LibraryEmissionTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LibraryEmission_MultipleParameterlessWrappersInitializeObjectsIndependently(bool emitPdb)
+    {
+        string assemblyName = $"library-wrappers-{Guid.NewGuid():N}";
+        string outputPath = Path.Combine(AppContext.BaseDirectory, $"{assemblyName}.dll");
+        string? sourcePath = emitPdb ? "LibraryWrappers.lol" : null;
+        try
+        {
+            var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(
+                """
+                HAI 1.3
+                O HAI IM state
+                    I HAS A value ITZ 42
+                KTHX
+                HOW IZ I FIRST
+                    FOUND YR "FIRST"
+                IF U SAY SO
+                HOW IZ I SECOND
+                    FOUND YR "SECOND"
+                IF U SAY SO
+                KTHXBYE
+                """,
+                sourcePath));
+
+            var result = compilation.Emit(
+                outputPath,
+                typeof(LolRuntime).Assembly.Location,
+                outputType: "Library");
+
+            result.Success.Should().BeTrue(string.Join(Environment.NewLine, result.Diagnostics));
+            (result.PdbPath is not null).Should().Be(emitPdb);
+
+            var loadContext = new System.Runtime.Loader.AssemblyLoadContext(
+                $"LibraryWrappers_{Guid.NewGuid():N}",
+                isCollectible: true);
+            loadContext.Resolving += (_, assemblyName) =>
+                AssemblyName.ReferenceMatchesDefinition(
+                    assemblyName,
+                    typeof(LolRuntime).Assembly.GetName())
+                    ? typeof(LolRuntime).Assembly
+                    : null;
+            try
+            {
+                var assembly = loadContext.LoadFromAssemblyPath(outputPath);
+                Type exports = assembly.GetType("LolcodeExports")!;
+                exports.GetMethod("FIRST")!.Invoke(null, null).Should().Be("FIRST");
+                exports.GetMethod("SECOND")!.Invoke(null, null).Should().Be("SECOND");
+            }
+            finally
+            {
+                loadContext.Unload();
+            }
+        }
+        finally
+        {
+            File.Delete(outputPath);
+            File.Delete(Path.ChangeExtension(outputPath, ".pdb"));
+        }
+    }
+
     [Fact]
     public void LibraryEmission_HasLibraryHeaderNoEntryPointAndPublicObjectAbi()
     {

@@ -25,7 +25,8 @@ internal sealed class CodeGenerator
 {
     private readonly BoundBlockStatement _boundTree;
     private readonly string _assemblyName;
-    private readonly string _runtimeAssemblyPath;
+    private readonly string? _runtimeAssemblyPath;
+    private readonly byte[]? _runtimeAssemblyImage;
     private readonly IReadOnlyList<string> _referenceAssemblyPaths;
     private readonly bool _isLibrary;
     private readonly string? _libraryTypeName;
@@ -131,7 +132,8 @@ internal sealed class CodeGenerator
     public CodeGenerator(
         BoundBlockStatement boundTree,
         string assemblyName,
-        string runtimeAssemblyPath,
+        string? runtimeAssemblyPath,
+        byte[]? runtimeAssemblyImage = null,
         IEnumerable<string>? referenceAssemblyPaths = null,
         IReadOnlyList<SyntaxTree>? syntaxTrees = null,
         IReadOnlyDictionary<SyntaxNode, SyntaxTree>? syntaxTreeOwners = null,
@@ -142,6 +144,7 @@ internal sealed class CodeGenerator
         _boundTree = boundTree;
         _assemblyName = assemblyName;
         _runtimeAssemblyPath = runtimeAssemblyPath;
+        _runtimeAssemblyImage = runtimeAssemblyImage;
         _referenceAssemblyPaths = referenceAssemblyPaths?.ToArray() ?? [];
         _syntaxTrees = syntaxTrees ?? [];
         _syntaxTreeOwners = syntaxTreeOwners ?? new Dictionary<SyntaxNode, SyntaxTree>();
@@ -181,7 +184,11 @@ internal sealed class CodeGenerator
     {
         cancellationToken.ThrowIfCancellationRequested();
         using var metadataLoadContext = CreateMetadataLoadContext();
-        var runtimeAssembly = metadataLoadContext.LoadFromAssemblyPath(_runtimeAssemblyPath);
+        var runtimeAssembly = _runtimeAssemblyImage is null
+            ? metadataLoadContext.LoadFromAssemblyPath(
+                _runtimeAssemblyPath
+                ?? throw new InvalidOperationException("No Lolcode.Runtime assembly source was supplied."))
+            : metadataLoadContext.LoadFromByteArray(_runtimeAssemblyImage);
         var coreAssembly = metadataLoadContext.CoreAssembly
             ?? throw new InvalidOperationException("Could not resolve the target core assembly.");
         _systemObjectType = GetCoreType(coreAssembly, "System.Object");
@@ -415,6 +422,8 @@ internal sealed class CodeGenerator
             : Directory.EnumerateFiles(RuntimeEnvironment.GetRuntimeDirectory(), "*.dll");
         var resolverPaths = referencePaths
             .Append(_runtimeAssemblyPath)
+            .Where(static path => !string.IsNullOrEmpty(path))
+            .Select(static path => path!)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
@@ -574,6 +583,12 @@ internal sealed class CodeGenerator
                 _systemObjectType,
                 Enumerable.Repeat(_systemObjectType, declaration.Function.Parameters.Length).ToArray());
             _il = wrapper.GetILGenerator();
+            _locals.Clear();
+            _loopBreakTargets.Clear();
+            _switchBreakTargets.Clear();
+            _exceptionDepth = 0;
+            _functionReturnValue = null;
+            _il.BeginScope();
             var rootScope = _il.DeclareLocal(_scopeType);
             var module = _il.DeclareLocal(_objectType);
             var arguments = _il.DeclareLocal(_systemObjectType.MakeArrayType());
@@ -586,6 +601,11 @@ internal sealed class CodeGenerator
             _il.Emit(OpCodes.Call, _createLibraryObjectMethod);
             _il.Emit(OpCodes.Stloc, module);
             _scopeLocal = module;
+            var wrapperIt = _il.DeclareLocal(_systemObjectType);
+            _locals["IT"] = wrapperIt;
+            SetLocalSymInfo(wrapperIt, "IT");
+            _il.Emit(OpCodes.Ldnull);
+            _il.Emit(OpCodes.Stloc, wrapperIt);
             _il.BeginExceptionBlock();
             EmitLibraryConfiguration();
             EmitLibraryInitializer();
@@ -630,6 +650,7 @@ internal sealed class CodeGenerator
             _il.Emit(OpCodes.Call, _disposeScopeMethod);
             _il.EndExceptionBlock();
             _il.Emit(OpCodes.Ldloc, result);
+            _il.EndScope();
             _il.Emit(OpCodes.Ret);
         }
     }

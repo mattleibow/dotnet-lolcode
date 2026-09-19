@@ -58,6 +58,64 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
+    public void Emit_ToStreams_WorksWhenCompilerAndRuntimeAreLoadedFromBytes()
+    {
+        byte[] compilerImage = File.ReadAllBytes(typeof(LolcodeCompilation).Assembly.Location);
+        byte[] runtimeImage = File.ReadAllBytes(typeof(LolRuntime).Assembly.Location);
+        var loadContext = new AssemblyLoadContext(
+            $"InMemoryCompiler_{Guid.NewGuid():N}",
+            isCollectible: true);
+        Assembly runtimeAssembly;
+
+        try
+        {
+            using (var runtimeStream = new MemoryStream(runtimeImage, writable: false))
+                runtimeAssembly = loadContext.LoadFromStream(runtimeStream);
+            loadContext.Resolving += (_, assemblyName) =>
+                AssemblyName.ReferenceMatchesDefinition(assemblyName, runtimeAssembly.GetName())
+                    ? runtimeAssembly
+                    : null;
+
+            Assembly compilerAssembly;
+            using (var compilerStream = new MemoryStream(compilerImage, writable: false))
+                compilerAssembly = loadContext.LoadFromStream(compilerStream);
+
+            compilerAssembly.Location.Should().BeEmpty();
+            runtimeAssembly.Location.Should().BeEmpty();
+
+            Type syntaxTreeType = compilerAssembly.GetType(
+                "Lolcode.CodeAnalysis.Syntax.SyntaxTree",
+                throwOnError: true)!;
+            object syntaxTree = syntaxTreeType.GetMethod(
+                "ParseText",
+                [typeof(string), typeof(string)])!
+                .Invoke(null, [HelloProgram, "memory.lol"])!;
+            Array trees = Array.CreateInstance(syntaxTreeType, 1);
+            trees.SetValue(syntaxTree, 0);
+
+            Type compilationType = compilerAssembly.GetType(
+                "Lolcode.CodeAnalysis.LolcodeCompilation",
+                throwOnError: true)!;
+            object compilation = compilationType.GetMethod("Create")!
+                .Invoke(null, [trees])!;
+            using var peStream = new MemoryStream();
+            using var pdbStream = new MemoryStream();
+            object result = compilationType.GetMethod(
+                "Emit",
+                [typeof(Stream), typeof(Stream), typeof(CancellationToken)])!
+                .Invoke(compilation, [peStream, pdbStream, CancellationToken.None])!;
+
+            result.GetType().GetProperty("Success")!.GetValue(result).Should().Be(true);
+            peStream.Length.Should().BeGreaterThan(0);
+            pdbStream.Length.Should().BeGreaterThan(0);
+        }
+        finally
+        {
+            loadContext.Unload();
+        }
+    }
+
+    [Fact]
     public void Run_CreatesNoFiles()
     {
         var tempDirectory = CreateTempDirectory();

@@ -31,8 +31,16 @@ public sealed class SyntaxTree
     }
 
     /// <summary>Parse source text into a syntax tree.</summary>
+    /// <param name="text">The source text to parse.</param>
+    /// <param name="filePath">
+    /// The source path used for diagnostics and symbols, or the source text's file name when omitted.
+    /// </param>
     public static SyntaxTree ParseText(SourceText text, string? filePath = null)
     {
+        ArgumentNullException.ThrowIfNull(text);
+        string effectiveFilePath = filePath ?? text.FileName;
+        if (!string.Equals(text.FileName, effectiveFilePath, StringComparison.Ordinal))
+            text = SourceText.From(text.ToString(), effectiveFilePath);
         var lexer = new Lexer(text);
         var tokens = lexer.Tokenize();
 
@@ -43,14 +51,14 @@ public sealed class SyntaxTree
             .Concat(parser.Diagnostics)
             .ToImmutableArray();
 
-        return new SyntaxTree(text, root, diagnostics, filePath);
+        return new SyntaxTree(text, root, diagnostics, effectiveFilePath);
     }
 
     /// <summary>Parse source code string into a syntax tree.</summary>
     public static SyntaxTree ParseText(string text, string? filePath = null) =>
         ParseText(SourceText.From(text, filePath ?? ""), filePath);
 
-    /// <summary>Load and parse a source file.</summary>
+    /// <summary>Load and parse a source file, preserving its path on the source text and syntax tree.</summary>
     public static SyntaxTree Load(string path) =>
-        ParseText(SourceText.From(File.ReadAllText(path)), path);
+        ParseText(SourceText.From(File.ReadAllText(path), path), path);
 }

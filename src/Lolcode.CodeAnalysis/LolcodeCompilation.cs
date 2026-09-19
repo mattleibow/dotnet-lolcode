@@ -55,6 +55,8 @@ public sealed class LolcodeCompilation
     private readonly object _bindingLock = new();
     private readonly string _inMemoryAssemblyName = $"LolcodeSubmission_{Guid.NewGuid():N}";
     private BindingResult? _bindingResult;
+    private const string EmbeddedRuntimeAssemblyResourceName =
+        "Lolcode.CodeAnalysis.Embedded.Lolcode.Runtime.dll";
 
     private LolcodeCompilation(ImmutableArray<SyntaxTree> syntaxTrees)
         => SyntaxTrees = syntaxTrees;
@@ -454,7 +456,8 @@ public sealed class LolcodeCompilation
     /// <remarks>
     /// The caller owns both streams. Their positions are advanced but they are not closed.
     /// Runtime references are resolved from the <c>Lolcode.Runtime</c> assembly already
-    /// referenced by this compiler. Cancellation does not interrupt parser or binder internals,
+    /// referenced by this compiler, including when that assembly has no file location.
+    /// Cancellation does not interrupt parser or binder internals,
     /// but is checked before and after binding and throughout code emission.
     /// </remarks>
     public EmitResult Emit(
@@ -474,22 +477,29 @@ public sealed class LolcodeCompilation
         if (diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error))
             return new EmitResult(false, diagnostics, null);
 
+        System.Reflection.Assembly runtimeAssembly = typeof(LolRuntime).Assembly;
+        string? runtimeAssemblyPath = runtimeAssembly.Location;
+        byte[]? runtimeAssemblyImage = string.IsNullOrEmpty(runtimeAssemblyPath)
+            ? ReadEmbeddedRuntimeAssembly()
+            : null;
+
         return EmitCore(
             peStream,
             pdbStream,
-            typeof(LolRuntime).Assembly.Location,
+            runtimeAssemblyPath,
             _inMemoryAssemblyName,
             diagnostics,
             outputPath: null,
             pdbPath: null,
             pdbFileName: pdbStream == null ? null : $"{_inMemoryAssemblyName}.pdb",
-            cancellationToken: cancellationToken);
+            cancellationToken: cancellationToken,
+            runtimeAssemblyImage: runtimeAssemblyImage);
     }
 
     private EmitResult EmitCore(
         Stream peStream,
         Stream? pdbStream,
-        string runtimeAssemblyPath,
+        string? runtimeAssemblyPath,
         string assemblyName,
         ImmutableArray<Diagnostic> diagnostics,
         string? outputPath,
@@ -500,7 +510,8 @@ public sealed class LolcodeCompilation
         IEnumerable<string>? referenceAssemblyPaths = null,
         bool isLibrary = false,
         string? libraryTypeName = null,
-        IEnumerable<string>? libraryDescriptors = null)
+        IEnumerable<string>? libraryDescriptors = null,
+        byte[]? runtimeAssemblyImage = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var bindingResult = EnsureBound();
@@ -509,6 +520,7 @@ public sealed class LolcodeCompilation
             bindingResult.BoundTree,
             assemblyName,
             runtimeAssemblyPath,
+            runtimeAssemblyImage,
             referenceAssemblyPaths,
             SyntaxTrees,
             bindingResult.SyntaxTrees,
@@ -526,6 +538,17 @@ public sealed class LolcodeCompilation
 
         cancellationToken.ThrowIfCancellationRequested();
         return new EmitResult(true, diagnostics, outputPath, pdbEmitted ? pdbPath : null);
+    }
+
+    private static byte[] ReadEmbeddedRuntimeAssembly()
+    {
+        using Stream stream = typeof(LolcodeCompilation).Assembly.GetManifestResourceStream(
+            EmbeddedRuntimeAssemblyResourceName)
+            ?? throw new InvalidOperationException(
+                "The compiler could not locate its embedded Lolcode.Runtime assembly.");
+        using var image = new MemoryStream();
+        stream.CopyTo(image);
+        return image.ToArray();
     }
 
     private static void ValidateOutputStream(Stream stream, string parameterName)

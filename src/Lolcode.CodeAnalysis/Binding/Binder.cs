@@ -15,6 +15,8 @@ internal sealed class Binder
 {
     private readonly DiagnosticBag _diagnostics = new();
     private readonly Dictionary<SyntaxNode, SyntaxTree> _syntaxTrees = [];
+    private readonly Dictionary<FunctionDeclarationSyntax, FunctionSymbol> _functionSymbols =
+        new(ReferenceEqualityComparer.Instance);
     private SourceText _text;
     private BoundScope _scope;
     private readonly Stack<ControlFlowContext> _contextStack = new();
@@ -113,17 +115,13 @@ internal sealed class Binder
         {
             if (statement is FunctionDeclarationSyntax funcDecl)
             {
+                FunctionSymbol function = GetOrCreateFunctionSymbol(funcDecl);
                 if (funcDecl.Scope.DirectToken?.Text != "I" ||
                     funcDecl.Identifier.DirectToken is null ||
                     funcDecl.Identifier.Slot is not null)
                     continue;
 
                 string name = funcDecl.Identifier.DirectToken.Text;
-                var parameters = funcDecl.Parameters.Select((p, i) =>
-                    new ParameterSymbol(p.DirectToken?.Text ?? $"arg{i}", i)).ToImmutableArray();
-
-                var function = new FunctionSymbol(name, parameters);
-
                 if (!_scope.TryDeclareFunction(function))
                 {
                     var location = TextLocation.FromSpan(_text, funcDecl.NameToken.Span);
@@ -131,6 +129,19 @@ internal sealed class Binder
                 }
             }
         }
+    }
+
+    private FunctionSymbol GetOrCreateFunctionSymbol(FunctionDeclarationSyntax syntax)
+    {
+        if (_functionSymbols.TryGetValue(syntax, out FunctionSymbol? function))
+            return function;
+
+        string name = syntax.NameToken.Text;
+        var parameters = syntax.Parameters.Select((parameter, index) =>
+            new ParameterSymbol(parameter.DirectToken?.Text ?? $"arg{index}", index)).ToImmutableArray();
+        function = new FunctionSymbol(name, parameters);
+        _functionSymbols.Add(syntax, function);
+        return function;
     }
 
     private BoundBlockStatement BindBlock(ImmutableArray<StatementSyntax> statements)
@@ -446,15 +457,7 @@ internal sealed class Binder
 
     private BoundFunctionDeclaration BindFunctionDeclaration(FunctionDeclarationSyntax syntax)
     {
-        string name = syntax.NameToken.Text;
-
-        if (!_scope.TryLookupLocalFunction(name, out var function))
-        {
-            // Should have been collected in first pass; create a placeholder
-            var parameters = syntax.Parameters.Select((p, i) =>
-                new ParameterSymbol(p.DirectToken?.Text ?? $"arg{i}", i)).ToImmutableArray();
-            function = new FunctionSymbol(name, parameters);
-        }
+        FunctionSymbol function = GetOrCreateFunctionSymbol(syntax);
 
         // Create a new scope for the function (chained to global for function visibility)
         var outerScope = _scope;
