@@ -72,9 +72,13 @@
           Condition="'$(_LolcodeLibraryFullTypeName)' == ''">$(LolcodeLibraryTypeName)</_LolcodeLibraryFullTypeName>
     </PropertyGroup>
 
+    <PropertyGroup>
+      <_LolcodeLibraryDescriptorStamp>@(LolcodeLibrary, ';')</_LolcodeLibraryDescriptorStamp>
+    </PropertyGroup>
+
     <MakeDir Directories="$(IntermediateOutputPath)" />
     <WriteLinesToFile File="$(_LolcodeCompilerOptionsFile)"
-                      Lines="OutputType=$(OutputType);AssemblyName=$(AssemblyName);RootNamespace=$(RootNamespace);LolcodeLibraryTypeName=$(LolcodeLibraryTypeName);LolcodeLibraryFullTypeName=$(_LolcodeLibraryFullTypeName);LolcodeLibraries=@(LolcodeLibrary, ';')"
+                      Lines="OutputType=$(OutputType);AssemblyName=$(AssemblyName);RootNamespace=$(RootNamespace);LolcodeLibraryTypeName=$(LolcodeLibraryTypeName);LolcodeLibraryFullTypeName=$(_LolcodeLibraryFullTypeName);LolcodeLibraries=$(_LolcodeLibraryDescriptorStamp)"
                       Overwrite="true"
                       WriteOnlyWhenDifferent="true" />
   </Target>
