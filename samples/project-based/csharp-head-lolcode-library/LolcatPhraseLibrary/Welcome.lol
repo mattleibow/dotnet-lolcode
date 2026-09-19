@@ -12,7 +12,7 @@ HOW IZ I MEOWLEN
 IF U SAY SO
 
 HOW IZ I GREETING
-    FOUND YR libraryGreeting
+    FOUND YR ME'Z libraryGreeting
 IF U SAY SO
 
 KTHXBYE

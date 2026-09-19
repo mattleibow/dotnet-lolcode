@@ -562,14 +562,18 @@ internal sealed class CodeGenerator
                 _systemObjectType,
                 Enumerable.Repeat(_systemObjectType, declaration.Function.Parameters.Length).ToArray());
             _il = wrapper.GetILGenerator();
-            var scope = _il.DeclareLocal(_scopeType);
-            _scopeLocal = scope;
+            var rootScope = _il.DeclareLocal(_scopeType);
+            var module = _il.DeclareLocal(_objectType);
             var arguments = _il.DeclareLocal(_systemObjectType.MakeArrayType());
             var parameterSlots = _il.DeclareLocal(_resolvedSlotType.MakeArrayType());
             var result = _il.DeclareLocal(_systemObjectType);
 
             _il.Emit(OpCodes.Call, _createScopeMethod);
-            _il.Emit(OpCodes.Stloc, scope);
+            _il.Emit(OpCodes.Stloc, rootScope);
+            _il.Emit(OpCodes.Ldloc, rootScope);
+            _il.Emit(OpCodes.Call, _createLibraryObjectMethod);
+            _il.Emit(OpCodes.Stloc, module);
+            _scopeLocal = module;
             _il.BeginExceptionBlock();
             EmitLibraryConfiguration();
             EmitLibraryInitializer();
@@ -593,24 +597,24 @@ internal sealed class CodeGenerator
             {
                 _il.Emit(OpCodes.Ldloc, parameterSlots);
                 _il.Emit(OpCodes.Ldc_I4, index);
-                _il.Emit(OpCodes.Ldloc, scope);
+                _il.Emit(OpCodes.Ldloc, rootScope);
                 _il.Emit(OpCodes.Call, resolvers[index]);
                 _il.Emit(OpCodes.Stelem_Ref);
             }
 
-            _il.Emit(OpCodes.Ldloc, scope);
-            _il.Emit(OpCodes.Ldnull);
+            _il.Emit(OpCodes.Ldloc, rootScope);
+            _il.Emit(OpCodes.Ldloc, module);
             _il.Emit(OpCodes.Ldloc, arguments);
             _il.Emit(OpCodes.Ldloc, parameterSlots);
             _il.Emit(OpCodes.Call, _functionMethods[declaration]);
             _il.Emit(OpCodes.Stloc, result);
-            _il.Emit(OpCodes.Ldloc, scope);
+            _il.Emit(OpCodes.Ldloc, rootScope);
             _il.Emit(OpCodes.Ldloc, result);
             _il.Emit(OpCodes.Call, _transferPublicLibraryResultMethod);
             _il.Emit(OpCodes.Stloc, result);
 
             _il.BeginFinallyBlock();
-            _il.Emit(OpCodes.Ldloc, scope);
+            _il.Emit(OpCodes.Ldloc, rootScope);
             _il.Emit(OpCodes.Call, _disposeScopeMethod);
             _il.EndExceptionBlock();
             _il.Emit(OpCodes.Ldloc, result);

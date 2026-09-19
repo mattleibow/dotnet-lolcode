@@ -353,23 +353,32 @@ public sealed class LolcodeCompilation
             return [];
 
         var artifacts = new List<StagedProviderArtifact>();
-        foreach (string source in Directory.EnumerateFiles(runtimeDirectory, "Lolcode.Runtime.*.dll"))
+        try
         {
-            if (string.Equals(
-                    source,
-                    runtimeAssemblyPath,
-                    StringComparison.OrdinalIgnoreCase))
+            foreach (string source in Directory.EnumerateFiles(runtimeDirectory, "Lolcode.Runtime.*.dll"))
             {
-                continue;
+                if (string.Equals(
+                        source,
+                        runtimeAssemblyPath,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                string destination = Path.Combine(outputDirectory, Path.GetFileName(source));
+                if (!string.Equals(source, destination, StringComparison.OrdinalIgnoreCase))
+                {
+                    using var provider = File.OpenRead(source);
+                    artifacts.Add(new StagedProviderArtifact(
+                        destination,
+                        StageStream(fileSystem, provider, destination)));
+                }
             }
-            string destination = Path.Combine(outputDirectory, Path.GetFileName(source));
-            if (!string.Equals(source, destination, StringComparison.OrdinalIgnoreCase))
-            {
-                using var provider = File.OpenRead(source);
-                artifacts.Add(new StagedProviderArtifact(
-                    destination,
-                    StageStream(fileSystem, provider, destination)));
-            }
+        }
+        catch (Exception ex) when (IsPathEmissionFailure(ex))
+        {
+            foreach (StagedProviderArtifact artifact in artifacts)
+                DeleteIfExists(fileSystem, artifact.StagedPath);
+            throw;
         }
 
         return artifacts;

@@ -202,7 +202,7 @@ public static class LolRuntime
     private static LolObject CreateManagedLibrary(LolScope scope, Type type, bool allowContext)
     {
         var library = new LolObject(scope, scope.Caller);
-        LolcodeLibraryContext? context = allowContext
+        LolcodeLibraryContext? ownerContext = allowContext
             ? new LolcodeLibraryContext(scope.Resources)
             : null;
         MethodInfo[] methods = type.GetMethods(
@@ -234,7 +234,8 @@ public static class LolRuntime
                     method,
                     allParameters,
                     arguments,
-                    usesContext ? context : null),
+                    ownerContext,
+                    usesContext ? ownerContext : null),
                 resolvers);
         }
 
@@ -364,17 +365,18 @@ public static class LolRuntime
         MethodInfo method,
         ParameterInfo[] parameters,
         object?[] arguments,
-        LolcodeLibraryContext? context = null)
+        LolcodeLibraryContext? ownerContext = null,
+        LolcodeLibraryContext? injectedContext = null)
     {
         try
         {
-            int parameterOffset = context is null ? 0 : 1;
+            int parameterOffset = injectedContext is null ? 0 : 1;
             if (parameters.Length != arguments.Length + parameterOffset)
                 throw new LolRuntimeException("Managed library parameter count does not match LOLCODE call.");
 
             var convertedArguments = new object?[parameters.Length];
-            if (context is not null)
-                convertedArguments[0] = context;
+            if (injectedContext is not null)
+                convertedArguments[0] = injectedContext;
             for (int index = 0; index < arguments.Length; index++)
             {
                 convertedArguments[index + parameterOffset] =
@@ -382,8 +384,8 @@ public static class LolRuntime
             }
 
             object? result = method.Invoke(null, convertedArguments);
-            if (context is not null && result is LolBlob blob)
-                context.RegisterResource(blob);
+            if (ownerContext is not null && result is LolBlob blob)
+                ownerContext.RegisterResource(blob);
             return result;
         }
         catch (TargetInvocationException ex)
