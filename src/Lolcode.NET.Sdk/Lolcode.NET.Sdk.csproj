@@ -21,7 +21,7 @@
     <NoWarn>$(NoWarn);NU5100;NU5128</NoWarn>
     <_LolcodePackedProviderVersion Condition="'$(PackageVersion)' != ''">$(PackageVersion)</_LolcodePackedProviderVersion>
     <_LolcodePackedProviderVersion Condition="'$(_LolcodePackedProviderVersion)' == ''">$(Version)</_LolcodePackedProviderVersion>
-    <_LolcodeStampedSdkProps>$(IntermediateOutputPath)Sdk\$(_LolcodePackedProviderVersion)\Sdk.props</_LolcodeStampedSdkProps>
+    <_LolcodeStampedSdkProps>$(BaseIntermediateOutputPath)Sdk\$(_LolcodePackedProviderVersion)\Sdk.props</_LolcodeStampedSdkProps>
   </PropertyGroup>
 
   <!-- SDK entry points (Sdk/Sdk.props + Sdk/Sdk.targets) -->
@@ -32,7 +32,7 @@
   </ItemGroup>
 
   <Target Name="StampProviderPackageVersion" BeforeTargets="_GetPackageFiles">
-    <MakeDir Directories="$(IntermediateOutputPath)Sdk\$(_LolcodePackedProviderVersion)" />
+    <MakeDir Directories="$(BaseIntermediateOutputPath)Sdk\$(_LolcodePackedProviderVersion)" />
     <WriteLinesToFile
       File="$(_LolcodeStampedSdkProps)"
       Lines="$([System.IO.File]::ReadAllText('Sdk\Sdk.props').Replace('LolcodeProviderPackageVersion','$(_LolcodePackedProviderVersion)'))"
