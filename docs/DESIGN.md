@@ -125,12 +125,15 @@ with its own `HAI <version>` header and `KTHXBYE` footer. `LolcodeCompilation`
 binds its ordered `SyntaxTrees` into one top-level namespace and emits one
 assembly (and, for libraries, one export type).
 
-The binder first collects top-level function declarations from every tree, so a
-function can call a function declared in another file regardless of their
-relative `Compile` order. It then binds and emits top-level statements in
-`SyntaxTrees`/MSBuild `@(Compile)` order. Consequently, top-level variables
-remain accessible only after their declaration in that order, and initialization
-side effects follow that order. All source units in a compilation must use the
+The binder first collects top-level function declarations from every tree, so
+1.2 direct calls can target a function declared in another file regardless of
+relative `Compile` order. The 1.3/1.4 declaration and function-value model
+still requires the declaration to execute before callers that depend on runtime
+availability. Top-level statements are emitted in `SyntaxTrees`/MSBuild
+`@(Compile)` order, so variables become accessible after declaration and
+initialization side effects follow that order. Library wrapper initialization
+evaluates only supported import and declaration forms, never arbitrary
+top-level executable statements. All source units in a compilation must use the
 same `HAI` version; a mismatching later file produces `LOL2011`.
 
 Portable PDB emission preserves this ownership: one document is emitted for

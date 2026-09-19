@@ -98,11 +98,13 @@ The [LOLCODE head with a LOLCODE library](project-based/lolcode-head-lolcode-lib
 sample imports a generated LOLCODE class library by assembly name. Its generated
 CLR export type is deliberately namespaced differently from that assembly name.
 Its library intentionally uses two complete `.lol` compilation units: the
-formatting API calls a helper declared in the other file. The project lists
-`Compile` items explicitly (`01-State.lol`, then `02-Formatting.lol`) to
-document the top-level initialization order. Every file must have its own
-`HAI`/`KTHXBYE`, all files must use one language version, and top-level functions
-are available across the project regardless of that order.
+formatting helper is declared first, and the state/API file uses that helper
+after it has been declared. The project lists `Compile` items explicitly
+(`01-Formatting.lol`, then `02-StateApi.lol`) to document the required
+declaration-before-use initialization order for its 1.4 function values. Every
+file must have its own `HAI`/`KTHXBYE`, and all files must use one language
+version. In contrast, 1.2 direct calls are statically bound across project files
+regardless of their order.
 
 ## Local Development
 

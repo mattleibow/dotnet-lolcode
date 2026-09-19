@@ -68,12 +68,12 @@ Dynamic managed libraries are not supported with trimming or NativeAOT.
 
 A compilation can contain multiple complete `.lol` files. The compiler discovers
 top-level declarations across the complete source set so 1.2 direct function
-calls can bind regardless of file order. Runtime availability remains ordered:
-for the 1.3/1.4 declaration and function-value model, values become available
-when their top-level declarations execute in `Compile` order. Keep declaration
-files before callers when initialization or replacement matters. Library wrapper
-initialization runs supported import and declaration forms only; it does not run
-arbitrary top-level executable statements.
+calls are statically bound regardless of file order. Runtime availability
+remains ordered: for the 1.3/1.4 declaration and function-value model, values
+become available when their top-level declarations execute in `Compile` order.
+Keep declaration files before callers when initialization or replacement
+matters. Library wrapper initialization runs only supported import and
+declaration forms; it does not run arbitrary top-level executable statements.
 
 ## Requirements
 

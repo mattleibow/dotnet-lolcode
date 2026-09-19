@@ -61,11 +61,19 @@ library through a normal `ProjectReference`.
 
 `LolcodeLibraryTypeName` must be a simple type name (without dots). When it is
 omitted, the SDK derives a valid CLR identifier from `AssemblyName` (for
-example, `Lolcat-Phrase` becomes `Lolcat_Phrase`). The SDK composes the emitted CLR type as
-`$(RootNamespace).$(LolcodeLibraryTypeName)`, or uses the type name without a
-namespace when `RootNamespace` is empty. Every namespace segment is normalized
-to a CLR identifier; this also makes the default namespace derived from a
-hyphenated or leading-digit assembly name safe for C# consumers.
+example, `Lolcat-Phrase` becomes `Lolcat_Phrase`). The SDK composes the emitted
+CLR type as `$(RootNamespace).$(LolcodeLibraryTypeName)`. Set `RootNamespace`
+explicitly to an empty value (including with `-p:RootNamespace=`) to emit the
+type in the global namespace. Otherwise, the .NET SDK default derived from
+`AssemblyName` is used. Every namespace segment is normalized to a CLR
+identifier, making a hyphenated or leading-digit default safe for C# consumers.
+
+For multi-file projects, 1.2 direct function calls are statically bound across
+files regardless of `Compile` order. The 1.3/1.4 declaration and function-value
+model instead requires declarations to execute before callers that depend on
+their runtime availability. A class-library wrapper initializer evaluates only
+supported import and declaration forms, never arbitrary top-level executable
+statements.
 
 ### File-based apps (no project needed)
 

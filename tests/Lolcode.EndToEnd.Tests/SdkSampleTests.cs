@@ -605,6 +605,82 @@ public class SdkSampleTests
         }
     }
 
+    [Theory]
+    [InlineData("RootlessDefault", null, false)]
+    [InlineData("RootlessSpecified", "Exports", true)]
+    public void LolcodeLibrary_UsesExplicitEmptyRootNamespaceConsumableFromCSharp(
+        string assemblyName,
+        string? libraryTypeName,
+        bool useCommandLineRootNamespace)
+    {
+        string projectDirectory = CreateSdkTestDirectory($"rootless-{assemblyName}");
+        string expectedTypeName = libraryTypeName ?? assemblyName;
+
+        try
+        {
+            string libraryProject = WriteMultiFileLibraryProject(
+                projectDirectory,
+                ["Exports.lol"],
+                assemblyName,
+                rootNamespace: useCommandLineRootNamespace ? null : string.Empty,
+                libraryTypeName: libraryTypeName);
+            File.WriteAllText(Path.Combine(projectDirectory, "Exports.lol"), CreateLibraryFunction("FIRST"));
+
+            if (useCommandLineRootNamespace)
+            {
+                var (libraryExitCode, libraryStdout, libraryStderr) = RunDotnet(
+                    $"build \"{libraryProject}\" -p:RootNamespace=",
+                    projectDirectory);
+                libraryExitCode.Should().Be(
+                    0,
+                    $"rootless command-line LOLCODE library build failed:\n{libraryStderr}\n{libraryStdout}");
+            }
+            else
+            {
+                AssertBuildSucceeds(libraryProject, projectDirectory, "rootless LOLCODE library build");
+            }
+            string outputAssembly = GetSdkTestOutputAssembly(projectDirectory, assemblyName);
+            AssertAssemblyContainsType(outputAssembly, string.Empty, expectedTypeName);
+
+            string consumerProject = Path.Combine(projectDirectory, "Consumer.csproj");
+            File.WriteAllText(
+                consumerProject,
+                $$"""
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net10.0</TargetFramework>
+                  </PropertyGroup>
+                  <ItemGroup>
+                    <ProjectReference Include="{{libraryProject}}" />
+                  </ItemGroup>
+                </Project>
+                """);
+            File.WriteAllText(
+                Path.Combine(projectDirectory, "Program.cs"),
+                $"Console.WriteLine({expectedTypeName}.FIRST());");
+
+            string rootNamespaceArgument = useCommandLineRootNamespace
+                ? " -p:RootNamespace="
+                : string.Empty;
+            var (consumerBuildExitCode, consumerBuildStdout, consumerBuildStderr) = RunDotnet(
+                $"build \"{consumerProject}\" --no-restore{rootNamespaceArgument}",
+                projectDirectory);
+            consumerBuildExitCode.Should().Be(
+                0,
+                $"rootless C# consumer build failed:\n{consumerBuildStderr}\n{consumerBuildStdout}");
+            var (exitCode, stdout, stderr) = RunDotnet(
+                $"run --project \"{consumerProject}\" --no-build",
+                projectDirectory);
+            exitCode.Should().Be(0, $"rootless C# consumer run failed:\n{stderr}\n{stdout}");
+            stdout.Trim().Should().Be("FIRST");
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
     [Fact]
     public void Sdk_DefaultProviderPackageReferencesSupportProjectBodyCustomization()
     {
@@ -674,6 +750,144 @@ public class SdkSampleTests
         }
     }
 
+    [Fact]
+    public void Sdk_DefaultProviderPackageReferencesPreserveProjectVersionUpdates()
+    {
+        const string packageVersion = "1.2.3";
+        const string providerVersion = "2.3.4";
+        string projectDirectory = CreateSdkTestDirectory("default-provider-version-update");
+
+        try
+        {
+            string packageFeed = CreateProviderPackageFeed(projectDirectory, packageVersion);
+            CreateProviderPackageFeed(projectDirectory, providerVersion);
+            string projectFile = WriteDefaultProviderProject(
+                projectDirectory,
+                "ProviderVersionUpdate.lolproj",
+                packageFeed,
+                packageVersion,
+                $$"""
+                <ItemGroup>
+                  <PackageReference Update="Lolcode.Runtime.String">
+                    <Version>{{providerVersion}}</Version>
+                    <PrivateAssets>all</PrivateAssets>
+                  </PackageReference>
+                </ItemGroup>
+                """);
+
+            var (itemExitCode, itemStdOut, itemStdErr) = RunDotnet(
+                $"msbuild \"{projectFile}\" -t:WritePackageReferences",
+                projectDirectory);
+            itemExitCode.Should().Be(0, $"package-reference inspection failed:\n{itemStdErr}\n{itemStdOut}");
+
+            string[] references = File.ReadAllLines(Path.Combine(projectDirectory, "package-references.txt"));
+            references.Single(reference => reference.StartsWith("Lolcode.Runtime.String|", StringComparison.Ordinal))
+                .Should().Contain($"|{providerVersion}|all|true");
+            references.Single(reference => reference.StartsWith("Lolcode.Runtime.Stdlib|", StringComparison.Ordinal))
+                .Should().Contain($"|{packageVersion}||true");
+
+            var (restoreExitCode, restoreStdOut, restoreStdErr) = RunDotnet(
+                $"restore \"{projectFile}\" --force-evaluate -p:TreatWarningsAsErrors=true",
+                projectDirectory);
+            restoreExitCode.Should().Be(0, $"restore with warnings as errors failed:\n{restoreStdErr}\n{restoreStdOut}");
+            $"{restoreStdOut}\n{restoreStdErr}".Should().NotContain("NU1504");
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Sdk_ProjectReferenceRunsWhenBuildOutputsAreRedirected()
+    {
+        string projectDirectory = CreateSdkTestDirectory("redirected-project-reference");
+
+        try
+        {
+            string libraryDirectory = Path.Combine(projectDirectory, "Library");
+            string consumerDirectory = Path.Combine(projectDirectory, "Consumer");
+            Directory.CreateDirectory(libraryDirectory);
+            Directory.CreateDirectory(consumerDirectory);
+
+            string libraryProject = WriteMultiFileLibraryProject(
+                libraryDirectory,
+                ["Exports.lol"],
+                assemblyName: "RedirectedLibrary",
+                rootNamespace: string.Empty,
+                additionalProperties:
+                    "    <BaseOutputPath>$(MSBuildProjectDirectory)/published/</BaseOutputPath>" +
+                    Environment.NewLine);
+            File.WriteAllText(
+                Path.Combine(libraryDirectory, "Exports.lol"),
+                CreateLibraryFunction("HELLO"));
+
+            string sdkDirectory = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk");
+            string buildTasksDirectory = Path.Combine(
+                RepoRoot,
+                "src",
+                "Lolcode.Build",
+                "bin",
+                "Debug",
+                "net10.0") + Path.DirectorySeparatorChar;
+            string consumerProject = Path.Combine(consumerDirectory, "Consumer.lolproj");
+            File.WriteAllText(
+                consumerProject,
+                $$"""
+                <Project>
+                  <Import Project="{{Path.Combine(sdkDirectory, "Sdk.props")}}" />
+                  <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net10.0</TargetFramework>
+                    <AssemblyName>RedirectedConsumer</AssemblyName>
+                    <BaseOutputPath>$(MSBuildProjectDirectory)/published/</BaseOutputPath>
+                    <LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>
+                    <_LolcodeBuildTasksDir>{{buildTasksDirectory}}</_LolcodeBuildTasksDir>
+                  </PropertyGroup>
+                  <ItemGroup>
+                    <ProjectReference Include="{{libraryProject}}" />
+                  </ItemGroup>
+                  <Import Project="{{Path.Combine(sdkDirectory, "Sdk.targets")}}" />
+                </Project>
+                """);
+            File.WriteAllText(
+                Path.Combine(consumerDirectory, "Program.lol"),
+                """
+                HAI 1.4
+                CAN HAS RedirectedLibrary?
+                VISIBLE I IZ RedirectedLibrary'Z HELLO MKAY
+                KTHXBYE
+                """);
+
+            var (buildExitCode, buildStdout, buildStderr) = RunDotnet(
+                $"build \"{consumerProject}\"",
+                consumerDirectory);
+            buildExitCode.Should().Be(
+                0,
+                $"redirected ProjectReference build failed:\n{buildStderr}\n{buildStdout}");
+
+            string outputDirectory = Path.Combine(consumerDirectory, "published", "Debug", "net10.0");
+            File.Exists(Path.Combine(outputDirectory, "RedirectedConsumer.dll")).Should().BeTrue();
+            File.Exists(Path.Combine(outputDirectory, "RedirectedLibrary.dll")).Should().BeTrue();
+            File.Exists(Path.Combine(
+                libraryDirectory,
+                "bin",
+                "Debug",
+                "net10.0",
+                "RedirectedLibrary.dll")).Should().BeFalse();
+
+            var (runExitCode, runStdout, runStderr) = RunDotnet(
+                $"run --project \"{consumerProject}\" --no-build",
+                consumerDirectory);
+            runExitCode.Should().Be(0, $"redirected ProjectReference run failed:\n{runStderr}\n{runStdout}");
+            runStdout.Trim().Should().Be("HELLO");
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
     private static string CreateSdkTestDirectory(string name)
     {
         string projectDirectory = Path.Combine(
@@ -691,7 +905,9 @@ public class SdkSampleTests
         IEnumerable<string>? sourceFiles = null,
         string assemblyName = "MultiFile",
         string? rootNamespace = "Incremental",
-        bool useExplicitCompileItems = true)
+        bool useExplicitCompileItems = true,
+        string? libraryTypeName = null,
+        string? additionalProperties = null)
     {
         string sdkDirectory = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk");
         string buildTasksDirectory = Path.Combine(
@@ -705,6 +921,10 @@ public class SdkSampleTests
         string rootNamespaceProperty = rootNamespace is null
             ? ""
             : $"    <RootNamespace>{rootNamespace}</RootNamespace>{Environment.NewLine}";
+        string libraryTypeNameProperty = libraryTypeName is null
+            ? ""
+            : $"    <LolcodeLibraryTypeName>{libraryTypeName}</LolcodeLibraryTypeName>{Environment.NewLine}";
+        additionalProperties ??= string.Empty;
         string compileItemGroup = useExplicitCompileItems
             ? "  <ItemGroup>" + Environment.NewLine +
               "    <Compile Remove=\"**/*.lol\" />" + Environment.NewLine +
@@ -723,7 +943,7 @@ public class SdkSampleTests
                 <OutputType>Library</OutputType>
                 <TargetFramework>net10.0</TargetFramework>
                 <AssemblyName>{{assemblyName}}</AssemblyName>
-            {{rootNamespaceProperty}}    <LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>
+            {{rootNamespaceProperty}}{{libraryTypeNameProperty}}{{additionalProperties}}    <LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>
                 <_LolcodeBuildTasksDir>{{buildTasksDirectory}}</_LolcodeBuildTasksDir>
               </PropertyGroup>
             {{compileItemGroup}}

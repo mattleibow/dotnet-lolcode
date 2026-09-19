@@ -24,7 +24,7 @@
       <PackageReference Remove="@(_LolcodeExplicitProviderPackageReference)" />
       <PackageReference Include="@(_LolcodeExplicitProviderPackageReference)" />
       <PackageReference Update="@(PackageReference)"
-          Condition="'%(PackageReference.LolcodeDefaultProvider)' == 'true' and '$(LolcodeRuntimePackageVersion)' != '$(_LolcodeDefaultRuntimePackageVersion)'">
+          Condition="'%(PackageReference.LolcodeDefaultProvider)' == 'true' and '%(PackageReference.Version)' == '%(PackageReference.LolcodeDefaultProviderVersion)' and '$(LolcodeRuntimePackageVersion)' != '$(_LolcodeDefaultRuntimePackageVersion)'">
         <Version>$(LolcodeRuntimePackageVersion)</Version>
       </PackageReference>
       <PackageReference Remove="@(PackageReference)"
@@ -77,7 +77,6 @@
     <!-- Normalize each explicit or derived namespace component independently. -->
     <PropertyGroup Condition="'$(OutputType)' == 'Library'">
       <_LolcodeEffectiveRootNamespace Condition="'$(RootNamespace)' != ''">$(RootNamespace)</_LolcodeEffectiveRootNamespace>
-      <_LolcodeEffectiveRootNamespace Condition="'$(_LolcodeEffectiveRootNamespace)' == ''">$(AssemblyName)</_LolcodeEffectiveRootNamespace>
     </PropertyGroup>
 
     <ItemGroup Condition="'$(OutputType)' == 'Library' and '$(_LolcodeEffectiveRootNamespace)' != ''">

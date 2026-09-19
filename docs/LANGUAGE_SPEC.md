@@ -119,14 +119,16 @@ The .NET compiler may compile several `.lol` files into one project assembly.
 This is a project feature, not additional LOLCODE syntax: every participating
 file must independently contain `HAI <version>` and `KTHXBYE`. Their top-level
 names share one project namespace. Top-level functions are declared across all
-files before any file body is bound, so 1.2 direct cross-file calls do not
-depend on file order. In the 1.3/1.4 declaration and function-value model,
-runtime availability still follows top-level execution in the project's
-`Compile` order: callers must follow the declarations they use when
-initialization or replacement matters. Top-level declarations and executable
-statements otherwise run in that order, so a top-level variable is available
-only after the file that declares it has been processed. All files in one
-compilation must use the same `HAI` version.
+files before any file body is bound, so 1.2 direct cross-file calls are
+statically bound and do not depend on file order. In the 1.3/1.4 declaration
+and function-value model, runtime availability still follows top-level execution
+in the project's `Compile` order: callers must follow the declarations they use
+when initialization or replacement matters. Top-level declarations and
+executable statements otherwise run in that order, so a top-level variable is
+available only after the file that declares it has been processed. Generated
+class-library wrappers evaluate only supported import and declaration forms, not
+arbitrary top-level executable statements. All files in one compilation must
+use the same `HAI` version.
 
 ```lolcode
 HAI 1.2
