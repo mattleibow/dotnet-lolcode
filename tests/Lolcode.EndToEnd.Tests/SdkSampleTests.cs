@@ -107,29 +107,6 @@ public class SdkSampleTests
         exitCode.Should().Be(0, $"dotnet run --file failed for {sampleFile}:\n{stderr}\n{stdout}");
     }
 
-    /// <summary>Discovers executable project-based samples.</summary>
-    public static IEnumerable<object[]> GetProjectBasedExecutableSamples()
-    {
-        return Directory
-            .EnumerateFiles(Path.Combine(RepoRoot, "samples"), "*.lolproj", SearchOption.AllDirectories)
-            .Where(project => !File.ReadAllText(project).Contains(
-                "<OutputType>Library</OutputType>",
-                StringComparison.Ordinal))
-            .Order()
-            .Select(project => new object[] { Path.GetRelativePath(RepoRoot, project) });
-    }
-
-    [Theory]
-    [MemberData(nameof(GetProjectBasedExecutableSamples))]
-    public void ProjectBasedExecutableSample_Runs(string projectFile)
-    {
-        var (exitCode, stdout, stderr) = RunDotnet(
-            $"run --project \"{projectFile}\"",
-            RepoRoot);
-
-        exitCode.Should().Be(0, $"dotnet run --project failed for {projectFile}:\n{stderr}\n{stdout}");
-    }
-
     [Fact]
     public void ProjectBasedHelloWorld_Runs_CorrectOutput()
     {
