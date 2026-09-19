@@ -14,7 +14,7 @@ DocFX 2.80.1 is pinned in `.config/dotnet-tools.json`. From the repository
 root, build the complete Pages artifact:
 
 ```bash
-scripts/build-pages.sh
+docs/build-pages.sh
 ```
 
 The complete Pages payload is generated under `docs/_site/`: the chooser is at
@@ -23,19 +23,19 @@ under `docs/_site/playground/`. Run the browser smoke tests and capture desktop
 and mobile screenshots with:
 
 ```bash
-scripts/test-pages.sh
+docs/test-pages.sh
 ```
 
 The tests select an available localhost port and host the site beneath
 `/dotnet-lolcode/`, matching the GitHub Pages path base. Select a specific port
-with `scripts/test-pages.sh docs/_site 8090`.
+with `docs/test-pages.sh docs/_site 8090`.
 
 Every pull request that changes the site publishes a downloadable
 `dotnet-lolcode-pages` workflow artifact. Download it, run the same Playwright
 checks, and keep a local preview server open with:
 
 ```bash
-scripts/preview-pages-pr.sh <pull-request-number>
+docs/preview-pages-pr.sh <pull-request-number>
 ```
 
 The script prints its selected preview URL. Pass a second argument to use a

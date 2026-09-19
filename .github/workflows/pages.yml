@@ -12,7 +12,6 @@ on:
       - '.config/dotnet-tools.json'
       - 'Directory.Build.props'
       - '.github/workflows/pages.yml'
-      - 'scripts/**'
       - 'tests/Lolcode.Docs.Tests/**'
   pull_request:
     paths:
@@ -24,7 +23,6 @@ on:
       - '.config/dotnet-tools.json'
       - 'Directory.Build.props'
       - '.github/workflows/pages.yml'
-      - 'scripts/**'
       - 'tests/Lolcode.Docs.Tests/**'
   workflow_dispatch:
 
@@ -57,10 +55,10 @@ jobs:
         run: dotnet tool restore
 
       - name: Build documentation and playground
-        run: scripts/build-pages.sh
+        run: docs/build-pages.sh
 
       - name: Test complete website
-        run: scripts/test-pages.sh
+        run: docs/test-pages.sh
 
       - name: Upload Playwright screenshots
         if: always() && hashFiles('artifacts/playwright/**') != ''

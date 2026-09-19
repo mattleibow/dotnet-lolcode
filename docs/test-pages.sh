@@ -12,7 +12,7 @@ if [[ -z "$port" ]]; then
 fi
 
 if [[ ! -f "$site/index.html" ]]; then
-  printf 'Pages artifact not found at %s. Run scripts/build-pages.sh first.\n' "$site" >&2
+  printf 'Pages artifact not found at %s. Run docs/build-pages.sh first.\n' "$site" >&2
   exit 1
 fi
 
