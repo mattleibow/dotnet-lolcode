@@ -39,6 +39,13 @@ public sealed class PagesSmokeTests : IAsyncLifetime
             ColorScheme = ColorScheme.Dark,
         });
         var page = await context.NewPageAsync();
+        var browserErrors = new List<string>();
+        page.PageError += (_, error) => browserErrors.Add(error);
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+                browserErrors.Add(message.Text);
+        };
 
         await page.GotoAsync(_baseUrl);
         await ExpectVisible(page.GetByRole(AriaRole.Heading, new() { Name = "HAI. WHAT DO YOU WANT TO MAKE?" }));
@@ -60,6 +67,17 @@ public sealed class PagesSmokeTests : IAsyncLifetime
         await page.GotoAsync(new Uri(new Uri(_baseUrl), "docs/api/Lolcode.html").ToString());
         (await page.TitleAsync()).Should().Contain("Lolcode");
         await ExpectVisible(page.Locator("main"));
+        await AssertNoHorizontalOverflow(page);
+
+        await page.GotoAsync(new Uri(new Uri(_baseUrl), "docs/reference/language-spec.html").ToString());
+        await page.WaitForFunctionAsync("() => window.docfx?.ready === true");
+        await Screenshot(page, "reference-desktop.png");
+        browserErrors.Should().BeEmpty();
+        await ExpectVisible(page.Locator(".toc-offcanvas"));
+        (await page.Locator("#toc a").CountAsync()).Should().BeGreaterThan(0);
+        await ExpectVisible(page.Locator("#toc a").First);
+        await ExpectVisible(page.Locator(".affix"));
+        await ExpectVisible(page.Locator("#affix a").First);
         await AssertNoHorizontalOverflow(page);
 
         await page.GotoAsync(new Uri(new Uri(_baseUrl), "playground/").ToString());

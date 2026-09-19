@@ -8,7 +8,11 @@
   href: tour.md
 - name: Syntax and reference hub
   href: reference.md
+- name: Language specification
+  href: ../reference/language-spec.md
 - name: Implementation profile
+  href: ../reference/implementation-profile.md
+- name: Implementation guide
   href: implementation.md
 - name: Diagnostics
   href: diagnostics.md

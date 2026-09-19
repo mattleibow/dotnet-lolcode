@@ -6,46 +6,6 @@ Compiler support, .NET mappings, and implementation-specific limitations are kep
 
 > *The goal of this specification is to act as a baseline for all following LOLCODE specifications. As such, some traditionally expected language features may appear "incomplete." This is most likely deliberate, as it will be easier to add to the language than to change and introduce further incompatibilities.*
 
-## Table of Contents
-
-- [Formatting](#formatting)
-  - [Whitespace](#whitespace)
-  - [Comments](#comments)
-  - [File Creation](#file-creation)
-- [Variables](#variables)
-  - [Scope](#scope)
-  - [Naming](#naming)
-  - [Declaration and Assignment](#declaration-and-assignment)
-- [Types](#types)
-  - [Untyped (NOOB)](#untyped-noob)
-  - [Booleans (TROOF)](#booleans-troof)
-  - [Numerical Types (NUMBR, NUMBAR)](#numerical-types-numbr-numbar)
-  - [Strings (YARN)](#strings-yarn)
-  - [Arrays](#arrays)
-  - [Tentative Types (TYPE)](#tentative-types-type)
-- [Operators](#operators)
-  - [Calling Syntax and Precedence](#calling-syntax-and-precedence)
-  - [Math](#math)
-  - [Boolean](#boolean)
-  - [Comparison](#comparison)
-  - [Concatenation](#concatenation)
-  - [Casting](#casting)
-- [Input/Output](#inputoutput)
-- [Statements](#statements)
-  - [Expression Statements](#expression-statements)
-  - [Assignment Statements](#assignment-statements)
-- [Flow Control](#flow-control)
-  - [If-Then](#if-then)
-  - [Case (WTF?)](#case-wtf)
-  - [Loops](#loops)
-- [Functions](#functions)
-  - [Definition](#definition)
-  - [Returning](#returning)
-  - [Calling](#calling)
-- [Syntax Reference](#syntax-reference)
-
----
-
 ## Formatting
 
 ### Whitespace

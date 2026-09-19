@@ -37,6 +37,49 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
 .sidetoc, .sideaffix { border-color: var(--lol-border); }
 .sidetoc .toc .nav > li > a, .sideaffix .bs-docs-sidenav > li > a { color: var(--lol-muted); }
 .sidetoc .toc .nav > li > a:hover, .sidetoc .toc .nav > li.active > a, .sideaffix .bs-docs-sidenav > li.active > a { color: var(--lol-amber); border-color: var(--lol-amber); background: transparent; }
+
+@media (min-width: 768px) {
+  body:not([data-search])[data-layout=""] > main,
+  body:not([data-search])[data-layout="conceptual"] > main { max-width: 96rem; }
+  body:not([data-search])[data-layout=""] > main > .toc-offcanvas,
+  body:not([data-search])[data-layout="conceptual"] > main > .toc-offcanvas {
+    flex: 0 0 15rem;
+    max-width: 15rem;
+    padding-right: 1.25rem;
+    border-right: 1px solid var(--lol-border);
+  }
+  body:not([data-search])[data-layout=""] > main > .content,
+  body:not([data-search])[data-layout="conceptual"] > main > .content { margin-inline: 2.5rem; }
+  .toc-offcanvas .toc a {
+    display: block;
+    padding: .34rem .55rem;
+    color: var(--lol-muted);
+    border-radius: .35rem;
+    text-decoration: none;
+  }
+  .toc-offcanvas .toc a:hover,
+  .toc-offcanvas .toc li.active > a {
+    color: var(--lol-ink);
+    background: var(--lol-panel);
+  }
+  .toc-offcanvas .toc li.active > a { box-shadow: inset 2px 0 0 var(--lol-amber); }
+}
+
+@media (min-width: 1280px) {
+  body:not([data-search])[data-layout=""] > main > .affix,
+  body:not([data-search])[data-layout="conceptual"] > main > .affix {
+    display: block;
+    flex: 0 0 13rem;
+    width: 13rem;
+    padding-left: 1.25rem;
+    border-left: 1px solid var(--lol-border);
+  }
+  .affix h5 { color: var(--lol-amber); font-weight: 800; letter-spacing: .08em; }
+  .affix a { color: var(--lol-muted); }
+  .affix a:hover,
+  .affix a.active { color: var(--lol-amber-bright); }
+}
+
 h1, h2, h3, h4 { color: var(--lol-ink); font-weight: 750; letter-spacing: -.02em; }
 h1 { border-bottom: 2px solid var(--lol-amber); padding-bottom: .45rem; }
 h2 { margin-top: 2.5rem; }

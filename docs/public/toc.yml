@@ -1,18 +1,16 @@
-- name: Site home
-  href: https://mattleibow.github.io/dotnet-lolcode/
 - name: Trail Map
   href: index.md
-- name: Start here
+- name: Get started
   href: getting-started/index.md
-- name: Learn LOLCODE
+- name: Learn
   href: learn/index.md
 - name: Tutorials
   href: tutorials/index.md
-- name: Language and reference
+- name: Language
   href: language/index.md
-- name: Build a compiler
+- name: Compiler
   href: compiler-course/index.md
-- name: API reference
+- name: API
   href: api/index.md
 - name: Playground
   href: https://mattleibow.github.io/dotnet-lolcode/playground/
