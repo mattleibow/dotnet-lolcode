@@ -10,11 +10,12 @@ The documentation tree has two explicit audiences:
 
 ## Build the public site
 
-DocFX 2.80.1 is pinned in `.config/dotnet-tools.json`. From the repository
-root, build the complete Pages artifact:
+DocFX 2.80.1 and dotnet-serve 1.10.194 are pinned in
+`.config/dotnet-tools.json`. From the repository root, build the complete Pages
+artifact:
 
-```bash
-docs/build-pages.sh
+```powershell
+./docs/build-pages.ps1
 ```
 
 The complete Pages payload is generated under `docs/_site/`: the chooser is at
@@ -22,23 +23,23 @@ the root, the DocFX site is under `docs/_site/docs/`, and the playground is
 under `docs/_site/playground/`. Run the browser smoke tests and capture desktop
 and mobile screenshots with:
 
-```bash
-docs/test-pages.sh
+```powershell
+./docs/test-pages.ps1
 ```
 
-The tests select an available localhost port and host the site beneath
-`/dotnet-lolcode/`, matching the GitHub Pages path base. Select a specific port
-with `docs/test-pages.sh docs/_site 8090`.
+The tests use dotnet-serve to select an available localhost port and host the
+site beneath `/dotnet-lolcode/`, matching the GitHub Pages path base. Select a
+specific port with `./docs/test-pages.ps1 -Site docs/_site -Port 8090`.
 
 Every pull request that changes the site publishes a downloadable
 `dotnet-lolcode-pages` workflow artifact. Download it, run the same Playwright
 checks, and keep a local preview server open with:
 
-```bash
-docs/preview-pages-pr.sh <pull-request-number>
+```powershell
+./docs/preview-pages-pr.ps1 -PullRequestNumber <pull-request-number>
 ```
 
-The script prints its selected preview URL. Pass a second argument to use a
+The script prints its selected preview URL. Pass `-Port <port>` to use a
 specific port.
 
 ## Authoring map

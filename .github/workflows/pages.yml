@@ -51,14 +51,13 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
 
-      - name: Restore DocFX
-        run: dotnet tool restore
-
       - name: Build documentation and playground
-        run: docs/build-pages.sh
+        shell: pwsh
+        run: ./docs/build-pages.ps1
 
       - name: Test complete website
-        run: docs/test-pages.sh
+        shell: pwsh
+        run: ./docs/test-pages.ps1
 
       - name: Upload Playwright screenshots
         if: always() && hashFiles('artifacts/playwright/**') != ''
