@@ -444,12 +444,14 @@ public static class LolRuntime
 
     /// <summary>Creates a module BUKKIT whose resources are owned by the importing scope.</summary>
     public static LolObject CreateLibraryObject(LolScope importingScope) =>
-        new(importingScope, importingScope.Caller);
+        new(importingScope, importingScope.Caller) { IsLibraryModule = true };
 
     /// <summary>Creates a function invocation namespace.</summary>
     [System.Diagnostics.DebuggerStepThrough]
     public static LolScope CreateInvocationScope(LolScope caller, LolObject? receiver) =>
-        new(receiver ?? caller, receiver ?? caller.Caller);
+        new(
+            receiver is { IsLibraryModule: true } ? receiver : caller,
+            receiver ?? caller.Caller);
 
     /// <summary>Creates a BUKKIT with an optional prototype and copied mixins.</summary>
     public static LolObject CreateObject(LolScope scope, object? parent, object?[] mixins)
