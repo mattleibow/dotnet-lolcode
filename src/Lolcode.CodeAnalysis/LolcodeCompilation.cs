@@ -376,8 +376,22 @@ public sealed class LolcodeCompilation
         }
         catch (Exception ex) when (IsPathEmissionFailure(ex))
         {
+            var failures = new List<Exception> { ex };
             foreach (StagedProviderArtifact artifact in artifacts)
-                DeleteIfExists(fileSystem, artifact.StagedPath);
+            {
+                try
+                {
+                    DeleteIfExists(fileSystem, artifact.StagedPath);
+                }
+                catch (Exception cleanupException) when (IsPathEmissionFailure(cleanupException))
+                {
+                    failures.Add(cleanupException);
+                }
+            }
+
+            if (failures.Count > 1)
+                throw new AggregateException(failures);
+
             throw;
         }
 
