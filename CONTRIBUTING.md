@@ -23,11 +23,29 @@ dotnet build
 dotnet test
 
 # Run a sample (project-based)
-cd samples/basics/hello-world && dotnet run
+dotnet run --project samples/project-based/hello-world/hello-world.lolproj
 
 # Run a sample (file-based)
-dotnet run --file samples/file-based/hello.lol
+dotnet run --file samples/basics/hello-world/hello.lol
 ```
+
+### Documentation
+
+The DocFX site is part of the repository and must remain buildable:
+
+```bash
+dotnet tool restore
+dotnet tool run docfx docs/public/docfx.json
+dotnet tool run docfx serve docs/_site
+```
+
+Add shipped content beneath `docs/public/` and update the appropriate nested
+`toc.yml`. Keep `docs/public/reference/language-spec.md` and
+`docs/public/reference/implementation-profile.md` authoritative rather than
+copying their rules into overview pages. Repository-only design or planning
+material belongs in `docs/dev/`. Check links and the warm dark/light theme
+before submitting changes. Details for the template layer and local preview
+are in [`docs/README.md`](docs/README.md).
 
 ## How to Contribute
 
@@ -106,7 +124,8 @@ The `samples/Directory.Build.props` overrides the compiler tools path to point a
 | `externals/lci/` | Pinned upstream `lci/future` source and conformance fixtures |
 | `tests/` | All test projects |
 | `samples/` | Example LOLCODE programs (basics, programs, games) |
-| `docs/` | Design and specification documents |
+| `docs/public/` | Pages landing, DocFX site, language reference, and compiler course |
+| `docs/dev/` | Repository architecture, roadmap, maintainer notes, and historical engineering packets |
 
 ## License
 

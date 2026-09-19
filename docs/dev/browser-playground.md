@@ -10,14 +10,14 @@ leave the page.
 
 ## Run locally
 
-The app uses `/dotnet-lolcode/` as its base path to match the GitHub Pages
+The app uses `/dotnet-lolcode/playground/` as its base path to match the GitHub Pages
 repository URL. The launch profile supplies the matching local path base:
 
 ```bash
 dotnet watch --project src/Lolcode.Web/Lolcode.Web.csproj
 ```
 
-Open `http://localhost:5138/dotnet-lolcode/` if the browser doesn't open
+Open `http://localhost:5138/dotnet-lolcode/playground/` if the browser doesn't open
 automatically.
 
 To produce the same static output used by deployment:
@@ -82,15 +82,20 @@ after repeated compilations.
 
 ## GitHub Pages deployment
 
-`.github/workflows/pages.yml` publishes `src/Lolcode.Web` on pushes to `main`
-that affect the playground or its workflow. It:
+`.github/workflows/pages.yml` builds one GitHub Pages artifact with a root
+chooser, the DocFX site beneath `/docs/`, and `src/Lolcode.Web` beneath
+`/playground/`. It runs on pushes to `main` that affect documentation, samples,
+the playground, compiler, runtime, tooling, or the workflow. It:
 
-1. Uses .NET 10 to publish the standalone app.
-2. verifies the `/dotnet-lolcode/` base path;
-3. copies `index.html` to `404.html` so GitHub Pages can boot the Blazor router
-   for direct SPA routes;
-4. uploads `wwwroot`, including `.nojekyll`; and
-5. deploys through GitHub's Pages environment with `pages: write` and
+1. Restores the repository-pinned DocFX tool and builds the documentation site
+   into `docs/_site/docs/`.
+2. Uses .NET 10 to publish the standalone app.
+3. verifies the `/dotnet-lolcode/playground/` base path;
+4. copies the static landing files to the artifact root and the published app
+   into `docs/_site/playground/`;
+5. verifies that the chooser, docs, and playground entry points all exist;
+6. uploads the combined `_site` artifact, including `.nojekyll`; and
+7. deploys through GitHub's Pages environment with `pages: write` and
    `id-token: write`.
 
 Repository administrators must select **GitHub Actions** under

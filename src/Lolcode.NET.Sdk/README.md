@@ -111,7 +111,7 @@ The SDK package contains:
 ## Links
 
 - [GitHub Repository](https://github.com/mattleibow/dotnet-lolcode)
-- [Language Specification](https://github.com/mattleibow/dotnet-lolcode/blob/main/docs/LANGUAGE_SPEC.md)
+- [Language Specification](https://github.com/mattleibow/dotnet-lolcode/blob/main/docs/public/reference/language-spec.md)
 - [Sample Programs](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples)
 
 ## License

@@ -133,6 +133,10 @@ h1 {
     letter-spacing: -0.055em;
 }
 
+h1:focus {
+    outline: none;
+}
+
 .hero-copy {
     max-width: 720px;
     margin: 0;

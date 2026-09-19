@@ -2,7 +2,7 @@
 
 This document defines the normative LOLCODE 1.2 stable profile used by this project. Its primary source is the archived [LOLCODE 1.2 Final Draft](archive/lolcode-spec-v1.2.md) dated 12 July 2007. Where that draft is incomplete, this document either preserves the ambiguity or records behavior verified against Justin Meza's `lci` reference interpreter.
 
-Compiler support, .NET mappings, and implementation-specific limitations are kept in the non-normative [Implementation Profile](LANGUAGE_IMPLEMENTATION.md).
+Compiler support, .NET mappings, and implementation-specific limitations are kept in the non-normative [Implementation Profile](implementation-profile.md).
 
 > *The goal of this specification is to act as a baseline for all following LOLCODE specifications. As such, some traditionally expected language features may appear "incomplete." This is most likely deliberate, as it will be easier to add to the language than to change and introduce further incompatibilities.*
 
@@ -222,7 +222,7 @@ VISIBLE "OH HAI :{name}!"         BTW prints: OH HAI CEILING CAT!
 
 ### Arrays
 
-The archived Final Draft discusses arrays and dictionaries as under-specified while also reserving `BUKKIT` for future expansion. The stable 1.2 profile therefore defines no array or dictionary value. The unfinished [1.3 draft changes](LANGUAGE_SPEC_1.3_CHANGES.md) record the later BUKKIT proposal.
+The archived Final Draft discusses arrays and dictionaries as under-specified while also reserving `BUKKIT` for future expansion. The stable 1.2 profile therefore defines no array or dictionary value. The unfinished [1.3 draft changes](language-spec-1.3-changes.md) record the later BUKKIT proposal.
 
 ### Tentative Types (TYPE)
 

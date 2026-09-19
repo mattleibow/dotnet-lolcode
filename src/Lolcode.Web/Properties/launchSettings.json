@@ -5,9 +5,9 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "launchUrl": "dotnet-lolcode",
+      "launchUrl": "dotnet-lolcode/playground",
       "applicationUrl": "http://localhost:5138",
-      "commandLineArgs": "--pathbase=/dotnet-lolcode",
+      "commandLineArgs": "--pathbase=/dotnet-lolcode/playground",
       "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}"
     }
   }

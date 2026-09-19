@@ -1,0 +1,8 @@
+- name: Tutorials
+  href: index.md
+- name: FizzBuzz
+  href: fizzbuzz.md
+- name: Calculator
+  href: calculator.md
+- name: Adventure game
+  href: adventure.md
