@@ -28,14 +28,19 @@
   </ItemGroup>
 
   <Target Name="StampProviderPackageVersion" BeforeTargets="_GetPackageFiles">
-    <MakeDir Directories="$(IntermediateOutputPath)Sdk" />
+    <PropertyGroup>
+      <_LolcodePackedProviderVersion Condition="'$(PackageVersion)' != ''">$(PackageVersion)</_LolcodePackedProviderVersion>
+      <_LolcodePackedProviderVersion Condition="'$(_LolcodePackedProviderVersion)' == ''">$(Version)</_LolcodePackedProviderVersion>
+      <_LolcodeStampedSdkProps>$(IntermediateOutputPath)Sdk\$(_LolcodePackedProviderVersion)\Sdk.props</_LolcodeStampedSdkProps>
+    </PropertyGroup>
+    <MakeDir Directories="$(IntermediateOutputPath)Sdk\$(_LolcodePackedProviderVersion)" />
     <WriteLinesToFile
-      File="$(IntermediateOutputPath)Sdk\Sdk.props"
-      Lines="$([System.IO.File]::ReadAllText('Sdk\Sdk.props').Replace('LolcodeProviderPackageVersion','$(Version)'))"
+      File="$(_LolcodeStampedSdkProps)"
+      Lines="$([System.IO.File]::ReadAllText('Sdk\Sdk.props').Replace('LolcodeProviderPackageVersion','$(_LolcodePackedProviderVersion)'))"
       Overwrite="true" />
     <ItemGroup>
       <Content Update="Sdk/Sdk.props" Pack="false" />
-      <Content Include="$(IntermediateOutputPath)Sdk/Sdk.props"
+      <Content Include="$(_LolcodeStampedSdkProps)"
                Pack="true"
                PackagePath="Sdk\" />
     </ItemGroup>

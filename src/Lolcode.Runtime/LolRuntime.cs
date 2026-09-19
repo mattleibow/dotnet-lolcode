@@ -79,25 +79,44 @@ public static class LolRuntime
     /// </summary>
     public static object? TransferPublicLibraryResult(LolScope scope, object? value)
     {
-        var visitedObjects = new HashSet<LolObject>(ReferenceEqualityComparer.Instance);
+        var visitedScopes = new HashSet<LolScope>(ReferenceEqualityComparer.Instance);
 
-        void Transfer(object? candidate)
+        void TransferValue(object? candidate)
         {
             switch (candidate)
             {
                 case LolBlob blob:
                     scope.Resources.Detach(blob);
                     break;
-                case LolObject obj when visitedObjects.Add(obj):
-                    Transfer(obj.It);
-                    foreach (object? member in obj.Values.Values)
-                        Transfer(member);
-                    Transfer(obj.Prototype);
+                case LolObject obj:
+                    TransferScope(obj);
                     break;
             }
         }
 
-        Transfer(value);
+        void TransferScope(LolScope candidate)
+        {
+            if (!visitedScopes.Add(candidate))
+                return;
+
+            TransferValue(candidate.It);
+            foreach (object? member in candidate.Values.Values)
+                TransferValue(member);
+
+            // Follow only the lexical chain reachable through the returned BUKKIT's
+            // prototype lookup, not unrelated caller/receiver state.
+            if (candidate is LolObject obj)
+            {
+                if (obj.Prototype is not null)
+                    TransferScope(obj.Prototype);
+            }
+            else if (candidate.Parent is not null)
+            {
+                TransferScope(candidate.Parent);
+            }
+        }
+
+        TransferValue(value);
         return value;
     }
 

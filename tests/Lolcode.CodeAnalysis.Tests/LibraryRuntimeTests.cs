@@ -402,8 +402,9 @@ public class LibraryRuntimeTests
         var scope = LolRuntime.CreateScope();
         var context = new LolcodeLibraryContext(scope.Resources);
         var blob = context.RegisterResource(new TestBlob());
-        var root = new LolObject();
+        var root = new LolObject(scope);
         var nested = new LolObject(root);
+        scope.Values["prototypeBlob"] = blob;
         root.Values["direct"] = blob;
         root.Values["nested"] = nested;
         nested.Values["duplicate"] = blob;

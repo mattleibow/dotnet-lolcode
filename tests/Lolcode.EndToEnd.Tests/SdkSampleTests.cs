@@ -167,12 +167,13 @@ public class SdkSampleTests
     private static void AssertPackedProviderVersion(
         string sdkProject,
         string outputRoot,
-        string version)
+        string version,
+        string versionProperty)
     {
         string packageDirectory = Path.Combine(outputRoot, version);
         Directory.CreateDirectory(packageDirectory);
         var (exitCode, stdout, stderr) = RunDotnet(
-            $"pack \"{sdkProject}\" --configuration Debug --no-build -p:Version={version} -o \"{packageDirectory}\"",
+            $"pack \"{sdkProject}\" --configuration Debug --no-build -p:{versionProperty}={version} -o \"{packageDirectory}\"",
             RepoRoot);
         exitCode.Should().Be(0, $"dotnet pack failed:\n{stderr}\n{stdout}");
 
@@ -217,8 +218,8 @@ public class SdkSampleTests
 
         try
         {
-            AssertPackedProviderVersion(sdkProject, outputRoot, "0.3.0-pack-a");
-            AssertPackedProviderVersion(sdkProject, outputRoot, "0.3.0-pack-b");
+            AssertPackedProviderVersion(sdkProject, outputRoot, "0.3.0-pack-a", "Version");
+            AssertPackedProviderVersion(sdkProject, outputRoot, "0.3.0-pack-b", "PackageVersion");
             File.ReadAllText(template).Should().Be(original);
         }
         finally
