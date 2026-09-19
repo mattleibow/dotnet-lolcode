@@ -107,7 +107,9 @@ try {
         throw 'GitHub CLI (gh) is required to download a pull request artifact.'
     }
 
-    # Locate the successful Pages workflow for the pull request's current head commit.
+    # Locate a successful Pages workflow for the pull request's current head commit.
+    # This includes manual dispatches, which are useful when a retargeted PR does not
+    # automatically enqueue a pull_request workflow from its new base branch.
     & dotnet tool restore
     Assert-LastExitCode -Command 'dotnet tool restore'
 
@@ -119,7 +121,7 @@ try {
     Assert-LastExitCode -Command 'gh pr view'
 
     $runArguments = @(
-        'run', 'list', '--workflow', 'pages.yml', '--commit', $headSha, '--event', 'pull_request',
+        'run', 'list', '--workflow', 'pages.yml', '--commit', $headSha,
         '--status', 'completed', '--limit', '20', '--json', 'databaseId,conclusion',
         '--jq', '[.[] | select(.conclusion == "success")][0].databaseId'
     )
