@@ -46,6 +46,11 @@ public sealed class PagesSmokeTests : IAsyncLifetime
             if (message.Type == "error")
                 browserErrors.Add(message.Text);
         };
+        page.Response += (_, response) =>
+        {
+            if (response.Status >= 400)
+                browserErrors.Add($"HTTP {response.Status}: {response.Url}");
+        };
 
         await page.GotoAsync(_baseUrl);
         await ExpectVisible(page.GetByRole(AriaRole.Heading, new() { Name = "HAI. WHAT DO YOU WANT TO MAKE?" }));
@@ -55,19 +60,45 @@ public sealed class PagesSmokeTests : IAsyncLifetime
         await Screenshot(page, "landing-desktop.png");
 
         await page.GotoAsync(new Uri(new Uri(_baseUrl), "docs/").ToString());
-        await ExpectVisible(page.GetByRole(AriaRole.Heading, new() { Name = "The Trail Map :3" }));
+        await ExpectVisible(page.GetByRole(AriaRole.Heading, new() { Name = "dotnet-lolcode :3" }));
         var documentationBrand = page.Locator(".navbar-brand");
         await ExpectVisible(documentationBrand);
         (await documentationBrand.InnerTextAsync()).Trim().Should().Be("dotnet-lolcode");
         await ExpectVisible(documentationBrand.Locator("img"));
-        (await page.TitleAsync()).Should().Contain("Trail Map");
+        (await page.TitleAsync()).Should().Contain("dotnet-lolcode documentation");
+        var primaryLinks = page.Locator(".navbar .navbar-nav > li > a");
+        await ExpectVisible(primaryLinks.First);
+        (await primaryLinks.AllInnerTextsAsync()).Select(static text => text.Trim())
+            .Should().Equal("Learn", "Language", ".NET projects", "Compiler", "API");
+        (await primaryLinks.CountAsync()).Should().Be(5);
+        (await primaryLinks.Last.GetAttributeAsync("href")).Should()
+            .EndWith("api/Lolcode.CodeAnalysis.html");
+        await ExpectVisible(page.Locator(".trail-grid .trail-card").First);
+        await ExpectVisible(page.Locator(".task-card-grid > a").First);
         await AssertNoHorizontalOverflow(page);
         await Screenshot(page, "docs-desktop.png");
 
-        await page.GotoAsync(new Uri(new Uri(_baseUrl), "docs/api/Lolcode.html").ToString());
-        (await page.TitleAsync()).Should().Contain("Lolcode");
+        await page.GotoAsync(new Uri(new Uri(_baseUrl), "docs/api/Lolcode.CodeAnalysis.html").ToString());
+        (await page.TitleAsync()).Should().Contain("Lolcode.CodeAnalysis");
         await ExpectVisible(page.Locator("main"));
         await AssertNoHorizontalOverflow(page);
+
+        var redirectPage = await context.NewPageAsync();
+        await redirectPage.GotoAsync(new Uri(new Uri(_baseUrl), "docs/api/index.html").ToString());
+        await redirectPage.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        redirectPage.Url.Should().EndWith("/docs/api/Lolcode.CodeAnalysis.html");
+        await redirectPage.CloseAsync();
+
+        await page.GotoAsync(new Uri(new Uri(_baseUrl), "docs/projects/multiple-files.html").ToString());
+        await ExpectVisible(page.GetByRole(AriaRole.Heading, new() { Name = "Multiple source files" }));
+        await page.WaitForFunctionAsync("() => window.docfx?.ready === true");
+        await ExpectVisible(page.Locator("#toc a", new() { HasText = "Multiple source files" }));
+        await page.GotoAsync(new Uri(new Uri(_baseUrl), "docs/projects/providers.html").ToString());
+        await ExpectVisible(page.GetByRole(AriaRole.Heading, new() { Name = "Runtime providers" }));
+        await page.GotoAsync(new Uri(new Uri(_baseUrl), "docs/language/versions.html").ToString());
+        await ExpectVisible(page.GetByRole(AriaRole.Heading, new() { Name = "Versions and support" }));
+        await page.WaitForFunctionAsync("() => window.docfx?.ready === true");
+        await ExpectVisible(page.Locator("#toc a", new() { HasText = "Versions and support" }));
 
         await page.GotoAsync(new Uri(new Uri(_baseUrl), "docs/reference/language-spec.html").ToString());
         await page.WaitForFunctionAsync("() => window.docfx?.ready === true");

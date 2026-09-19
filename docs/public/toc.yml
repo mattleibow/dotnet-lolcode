@@ -1,16 +1,37 @@
-- name: Trail Map
-  href: index.md
-- name: Get started
-  href: getting-started/index.md
 - name: Learn
   href: learn/index.md
-- name: Tutorials
-  href: tutorials/index.md
+  items:
+    - name: Get started
+      href: getting-started/index.md
+    - name: Fundamentals
+      href: learn/foundations.md
+    - name: Tutorials
+      href: tutorials/index.md
+    - name: Samples
+      href: language/samples.md
 - name: Language
   href: language/index.md
+  items:
+    - name: Language reference
+      href: language/reference.md
+    - name: Versions and support
+      href: language/versions.md
+- name: .NET projects
+  href: projects/index.md
+  items:
+    - name: Multiple files
+      href: projects/multiple-files.md
+    - name: Class libraries
+      href: projects/class-libraries.md
+    - name: Managed imports
+      href: projects/managed-imports.md
+    - name: Providers
+      href: projects/providers.md
+    - name: SDK reference
+      href: projects/sdk-reference.md
+    - name: Publishing
+      href: projects/publishing.md
 - name: Compiler
   href: compiler-course/index.md
 - name: API
-  href: api/index.md
-- name: Playground
-  href: https://mattleibow.github.io/dotnet-lolcode/playground/
+  uid: Lolcode.CodeAnalysis

@@ -2,10 +2,16 @@
   href: index.md
 - name: What is LOLCODE?
   href: what-is-lolcode.md
-- name: Version story
+- name: Versions and support
   href: versions.md
 - name: Language tour
   href: tour.md
+- name: Objects and dynamic names
+  href: objects-and-dynamic-names.md
+- name: Libraries and CAN HAS
+  href: libraries.md
+- name: Runtime extensions
+  href: runtime-extensions.md
 - name: Syntax and reference hub
   href: reference.md
 - name: Language specification

@@ -1,0 +1,14 @@
+- name: .NET projects
+  href: index.md
+- name: Multiple source files
+  href: multiple-files.md
+- name: Class libraries
+  href: class-libraries.md
+- name: Managed imports
+  href: managed-imports.md
+- name: Runtime providers
+  href: providers.md
+- name: SDK reference
+  href: sdk-reference.md
+- name: Publishing
+  href: publishing.md

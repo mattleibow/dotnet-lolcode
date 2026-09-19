@@ -13,12 +13,19 @@ check casts and control flow, and produce the typed structures in
 `BoundTree/BoundNodes.cs`. This means the generator never needs to rediscover
 what an identifier means.
 
-`Lowering/Lowerer.cs` rewrites bound constructs into simpler blocks, labels,
-gotos, and statements. Lowering keeps the source-level bound tree readable
-while giving IL emission a deliberately small set of cases. `GTFO` is decided
+`Lowering/Lowerer.cs` is currently an identity/tree-rewrite scaffold. It keeps
+the phase boundary available for future transformations, but does not yet turn
+structured control flow into labels and gotos. `CodeGenerator` directly emits
+the structured bound nodes and the necessary IL branches. `GTFO` is decided
 with its context during semantic work, not guessed while writing opcodes.
 
+For 1.3 and 1.4 features, binding preserves identifier paths for the runtime:
+SRS segments are evaluated as YARN names, and BUKKIT slots, functions, and
+variables share dynamic scope-aware bindings. Static checks still catch names
+that can be known at compile time; runtime lookup is used only where a program
+asks for a runtime name.
+
 **Checkpoint:** Trace an undefined variable from Binder reporting through
-`LolcodeCompilation.GetDiagnostics`. Then find a lowered loop and identify
-which source-level convenience it eliminates. Consult [diagnostics](../language/diagnostics.md)
+`LolcodeCompilation.GetDiagnostics`. Then follow a loop from its bound node
+into `CodeGenerator` and identify the emitted branch points. Consult [diagnostics](../language/diagnostics.md)
 for the learner-facing result.

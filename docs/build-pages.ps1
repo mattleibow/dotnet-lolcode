@@ -77,7 +77,7 @@ try {
         'main.css',
         '404.html',
         'docs/index.html',
-        'docs/api/Lolcode.html',
+        'docs/api/Lolcode.CodeAnalysis.html',
         'playground/_framework/blazor.webassembly.js'
     )
 

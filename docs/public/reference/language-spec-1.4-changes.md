@@ -1,5 +1,8 @@
 # LOLCODE 1.4 Reference-Implementation Changes
 
+<span class="badge badge-reference">1.4 reference behavior</span>
+<span class="badge badge-supported">Supported except BRAINZ</span>
+
 This document describes observable language changes present in Justin Meza's [`lci` interpreter `future` branch](https://github.com/justinmeza/lci/tree/future), pinned for this review at commit [`9377c404c79a122a4698d98118eef44310c751be`](https://github.com/justinmeza/lci/commit/9377c404c79a122a4698d98118eef44310c751be) (23 February 2026). It is a behavioral delta from the archived [LOLCODE 1.3 Draft](archive/lolcode-spec-v1.3.md), not a community-ratified specification.
 
 > **No archived 1.4 specification is known to this repository.** The local archive and `lolcode-spec` repository stop at the unfinished 1.3 draft. Every rule below is therefore identified from the pinned interpreter source and executable behavior.

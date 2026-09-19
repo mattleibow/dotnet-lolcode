@@ -98,14 +98,25 @@ table td, table th { border-color: var(--lol-border) !important; }
 .trail-hero h1 { font-size: clamp(2.5rem, 7vw, 5.5rem); line-height: .98; border: 0; margin: 0; }
 .brand-inline { color: var(--lol-amber); font-family: ui-monospace, monospace; white-space: nowrap; }
 .trail-lede { font-size: 1.2rem; max-width: 45rem; color: var(--lol-muted); }
-.trail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 2rem 0; }
+.trail-grid, .task-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 2rem 0; }
 .trail-card { background: var(--lol-panel); border: 1px solid var(--lol-border); border-radius: .7rem; color: var(--lol-ink); display: block; padding: 1.35rem; text-decoration: none; transition: transform .16s ease, border-color .16s ease; }
 .trail-card:hover { border-color: var(--lol-amber); color: var(--lol-ink); transform: translateY(-3px); }
 .trail-card strong { display: block; color: var(--lol-amber); font-size: 1.15rem; }
 .trail-card p { color: var(--lol-muted); margin: .5rem 0 0; }
+.task-card, .task-card-grid > .xref { background: linear-gradient(135deg, var(--lol-panel), var(--lol-panel-raised)); border: 1px solid var(--lol-border); border-radius: .7rem; color: var(--lol-ink); display: block; min-width: 0; padding: 1.25rem; text-decoration: none; transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease; }
+.task-card:hover, .task-card-grid > .xref:hover { border-color: var(--lol-amber); box-shadow: 0 .55rem 1.4rem rgb(0 0 0 / .16); color: var(--lol-ink); transform: translateY(-2px); }
+.task-card strong, .task-card-grid > .xref strong { color: var(--lol-amber); display: block; font-size: 1.1rem; margin-bottom: .5rem; }
+.task-card p, .task-card-grid > .xref p { color: var(--lol-muted); margin: .65rem 0 0; }
+.badge { background: rgb(132 189 232 / .16); border: 1px solid rgb(132 189 232 / .48); border-radius: 999px; color: var(--lol-ink); display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .04em; line-height: 1.35; margin: 0 .28rem .35rem 0; padding: .12rem .5rem; text-transform: uppercase; vertical-align: middle; }
+.badge-core, .badge-supported { background: rgb(133 209 144 / .15); border-color: rgb(133 209 144 / .52); }
+.badge-draft { background: rgb(245 189 60 / .14); border-color: rgb(245 189 60 / .58); }
+.badge-reference { background: rgb(239 137 128 / .14); border-color: rgb(239 137 128 / .55); }
+.badge-dotnet { background: rgb(132 189 232 / .16); border-color: rgb(132 189 232 / .58); }
+.badge-play { background: rgb(245 189 60 / .14); border-color: rgb(245 189 60 / .58); }
 .trail-shelf { background: #211d18; border: 1px dashed #756345; border-radius: .7rem; padding: 1.25rem; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
-@media (max-width: 768px) { .trail-grid { grid-template-columns: 1fr; } .trail-hero { padding-top: 1.5rem; } }
+@media (max-width: 900px) { .trail-grid, .task-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 768px) { .trail-grid, .task-card-grid { grid-template-columns: 1fr; } .trail-hero { padding-top: 1.5rem; } }
 @media (prefers-color-scheme: light) {
   :root { --lol-bg: #f8f1e3; --lol-panel: #fffaf0; --lol-panel-raised: #eee2ce; --lol-ink: #292117; --lol-muted: #635846; --lol-border: #c6b698; --lol-amber: #a96500; --lol-amber-bright: #875000; --lol-focus: #563300; }
   html { color-scheme: light; } pre { background: #29251f !important; color: #fff6e2; } code { background: #efe4d1; color: #6e4200; } .trail-shelf { background: #f5ead8; }

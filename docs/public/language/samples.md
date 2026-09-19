@@ -2,16 +2,29 @@
 
 The repository samples are runnable documentation. Each file-based sample has
 a `#:sdk` directive and can be launched with `dotnet run --file <path>` after a
-source build.
+source build. The complete source index is available in the
+[repository](https://github.com/mattleibow/dotnet-lolcode/blob/main/samples/README.md).
 
-| Goal | Sample |
+## File-based apps
+
+| Area | Samples |
 | --- | --- |
-| First output, variables, math, casts, control flow | [hello world](../../../samples/basics/hello-world/hello.lol) |
-| FizzBuzz, recursion, calculator, file I/O | [FizzBuzz](../../../samples/programs/fizzbuzz/fizzbuzz.lol) |
-| Guessing, adventure, arena, chess, tic-tac-toe | [adventure](../../../samples/games/adventure-game/adventure.lol) |
-| Traditional SDK project | [Program.lol](../../../samples/project-based/hello-world/Program.lol) |
+| Basics | [hello world](../../../samples/basics/hello-world/hello.lol), [variables](../../../samples/basics/variables/variables.lol), [math](../../../samples/basics/math/math.lol), [conditionals](../../../samples/basics/conditionals/conditionals.lol), [loops](../../../samples/basics/loops/loops.lol), [functions](../../../samples/basics/functions/functions.lol), [string operations](../../../samples/basics/string-ops/strings.lol), [casting](../../../samples/basics/casting/casting.lol), [switch](../../../samples/basics/switch/switch.lol), [comments](../../../samples/basics/comments/comments.lol) |
+| Programs | [FizzBuzz](../../../samples/programs/fizzbuzz/fizzbuzz.lol), [fibonacci](../../../samples/programs/fibonacci/fibonacci.lol), [recursion](../../../samples/programs/recursion/recursion.lol), [string calculator](../../../samples/programs/string-calculator/calculator.lol), [file I/O](../../../samples/programs/file-io/file-io.lol), [stack](../../../samples/programs/stack/stack.lol), [truth machine](../../../samples/programs/truth-machine/truth-machine.lol) |
+| Games | [guessing game](../../../samples/games/guessing-game/guess.lol), [adventure](../../../samples/games/adventure-game/adventure.lol), [arena](../../../samples/games/arena-game/Game.lol), [chess](../../../samples/games/chess/chess.lol), [tic-tac-toe](../../../samples/games/tic-tac-toe/tic-tac-toe.lol) |
 
-`file-io`, `stack`, and `truth-machine` use behavior associated with the pinned
-future reference. See [versions](versions.md) before using those as a 1.2-only
-lesson. The samples README records provenance for community adaptations and
-their compatibility notes.
+`file-io`, `stack`, and `truth-machine` exercise pinned future-reference
+behavior. See [versions](versions.md) before using them as a 1.2-only lesson.
+
+## Project scenarios
+
+| Scenario | What it demonstrates |
+| --- | --- |
+| [Hello world](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples/project-based/hello-world) | Published `Lolcode.NET.Sdk/0.2.0` project workflow |
+| [C# head / LOLCODE library](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples/project-based/csharp-head-lolcode-library) | C# calling generated public static LOLCODE exports |
+| [LOLCODE head / C# library](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples/project-based/mixed-language) | `CAN HAS` importing an ordinary managed assembly |
+| [LOLCODE head / LOLCODE library](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples/project-based/lolcode-head-lolcode-library) | Generated-library import and explicit `Compile` order: `02-Formatting.lol`, then `01-State.lol` |
+
+The last three scenarios document source-checkout development behavior. They
+must not be read as a claim that the published `0.2.0` SDK already ships every
+interop or provider feature.

@@ -1,9 +1,9 @@
 # API reference
 
-The generated [.NET API reference](api/index.md) is built from
-`src/Lolcode.CodeAnalysis/Lolcode.CodeAnalysis.csproj`. It documents the public
-surface, including `SyntaxTree`, `LolcodeCompilation`, diagnostics, symbols,
-text spans, and the scripting API.
+The generated [.NET API reference](xref:Lolcode.CodeAnalysis) is built from
+the public compiler, runtime, provider, and MSBuild projects. It documents the
+compiler surface, including `SyntaxTree`, `LolcodeCompilation`, diagnostics,
+symbols, text spans, and the scripting API.
 
 For an API-first path, parse with `SyntaxTree.ParseText`, create a compilation
 with `LolcodeCompilation.Create`, inspect `GetDiagnostics`, then call `Emit`.

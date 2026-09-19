@@ -28,7 +28,10 @@ stale grammar comments, or README-only claims are language rules.
 `dotnet-lolcode` implements the 1.2 stable profile plus the pinned `lci/future`
 1.3 object/indirect-identifier behavior and implemented 1.4 behavior. It requires
 and retains one token after `HAI`, matching pinned `lci`; `HAI 1.3` and `HAI 1.4`
-enable runtime name resolution where static resolution is not possible.
+enable runtime name resolution where static resolution is not possible. Header
+tokens are not a strict promise of every historical feature associated with a
+version; every tree in a multi-file compilation must instead be a complete
+`HAI`/`KTHXBYE` unit with the same header token.
 
 | Area | Support | Notes |
 |---|---:|---|
@@ -40,6 +43,35 @@ enable runtime name resolution where static resolution is not possible.
 | BUKKIT | Yes | Runtime namespaces with prototype lookup, methods, `ME`, alternate definitions, and mixin copying |
 | SRS and 1.3 object features | Yes | Runtime-resolved variable, function, object, parameter, and slot identifiers |
 | 1.4 libraries, `INVISIBLE`, `I DUZ`, and `HAS AN` | Yes | Matches the pinned implementation; README-only BRAINZ remains unsupported |
+
+## Compilation, Interop, and Availability Profile
+
+One compilation can contain multiple syntax trees. Function declarations are
+available across trees regardless of item order, but top-level statements,
+variables, and 1.3/1.4 runtime-function initialization execute in syntax-tree
+order. The SDK passes its `Compile` items in that order, so explicit item lists
+are the way to control initialization. All trees must be complete units with
+one matching `HAI` header.
+
+`OutputType=Library` emits a public static CLR export container marked
+`LolcodeLibraryAttribute`; its namespace and name derive from
+`RootNamespace` and `LolcodeLibraryTypeName`. A C# consumer calls its public
+function wrappers. A LOLCODE program can import the generated assembly with
+`CAN HAS`; a generated marked type is selected independently of its assembly
+or CLR type name.
+
+An ordinary managed import is restricted to an application-base-directory
+simple assembly name and a selected public non-nested static class. It exports
+unique method names with `object`, `string`, `int`, `double`, `bool`, or
+`void` signatures; generic, `ref`/`out`, decimal, and overloaded methods are
+not slots. This compiler also supports the four registered provider
+descriptors, with registered providers taking precedence over local assemblies.
+
+The source checkout identifies itself as `0.3.0-local`; simple file-based and
+hello-world examples reference the published `Lolcode.NET.Sdk/0.2.0`.
+Provider, generated-library, and managed-import behavior is documented as
+development availability unless a released package specifically carries it.
+This availability fact is distinct from language provenance and support.
 
 ## .NET Value Representation
 
@@ -162,6 +194,14 @@ handle is also registered with the program's shared resource tracker and closed
 from a generated `finally` block when `Main` exits. This replaces lci's raw
 pointers and undefined double-close/use-after-close behavior without changing
 successful library calls.
+
+Each `CAN HAS` import owns a `LolcodeLibraryContext`: mutable provider state is
+shared by calls through that import and isolated from a separate import. The
+context registers BLOB resources with the enclosing scope tracker. Generated
+public library wrappers detach returned BLOBs, transferring ownership to the
+managed caller. Descriptors contain a name, assembly, export type, reservation
+flag, and contract version; malformed, ambiguous, incompatible, or replacement
+official descriptors are rejected.
 
 - `STDIO` maps the six C modes to `FileStream`, shares open files sufficiently
   for lci's repeated-open fixture, encodes ordinary YARNs as UTF-8, and preserves

@@ -28,7 +28,8 @@ value. Explore the complete
 
 > [!TIP]
 > `VISIBLE` accepts several values and joins their display forms. It normally
-> ends the line; `VISIBLE "prompt: " !` intentionally does not.
+> ends the line; `VISIBLE "prompt:: " !` writes a literal colon and intentionally
+> does not end the line.
 
 **Checkpoint:** Print your name and a favorite number, then update the number
 and print it again. Next, learn how values can drive a decision.

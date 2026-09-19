@@ -1,5 +1,8 @@
 # LOLCODE 1.3 Changes Specification
 
+<span class="badge badge-draft">1.3 draft provenance</span>
+<span class="badge badge-supported">Implemented choices documented separately</span>
+
 This document describes **only the differences** between the archived [LOLCODE 1.2 Final Draft](archive/lolcode-spec-v1.2.md) and archived [LOLCODE 1.3 Draft](archive/lolcode-spec-v1.3.md). It preserves contradictions and incomplete proposals rather than silently turning them into settled language rules.
 
 > *The 1.3 spec was never finalized. It is a community draft of proposals. Some sections contain internal inconsistencies or typos, which are noted below.*

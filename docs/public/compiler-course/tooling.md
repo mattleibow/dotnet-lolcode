@@ -17,7 +17,14 @@ The compiler becomes practical through ordinary .NET integration:
 - `samples/Directory.Build.props` makes source-tree file-based samples use the
   built compiler, while `#:sdk` enables `dotnet run --file`.
 
+The task parses every selected `.lol` file into one compilation, passes MSBuild
+reference paths and provider descriptors to emission, and honors `OutputType`
+for executables or public CLR library wrappers. `Sdk.targets` exposes
+incremental inputs and `SkipCompilerExecution` for design-time builds. For
+provider package choices, explicit compile order, source-checkout behavior, and
+deployment files, see [.NET projects](../projects/index.md).
+
 **Checkpoint:** Run the project sample, then run
 `dotnet run --file samples/basics/hello-world/hello.lol`. Compare this with the
 [getting-started workflows](../getting-started/index.md). For API consumers, see
-the [generated API reference](../api/index.md).
+the [generated API reference](xref:Lolcode.CodeAnalysis).
