@@ -14,6 +14,8 @@ namespace Lolcode.EndToEnd.Tests;
 public class SdkSampleTests
 {
     private static readonly string RepoRoot = FindRepoRoot();
+    private static readonly string Configuration =
+        new DirectoryInfo(AppContext.BaseDirectory).Parent!.Name;
 
     private static string FindRepoRoot()
     {
@@ -181,9 +183,19 @@ public class SdkSampleTests
     [MemberData(nameof(GetProjectBasedExecutableSamples))]
     public void ProjectBasedExecutableSample_Runs(string projectFile)
     {
+        string command = $"run --project \"{projectFile}\"";
+        if (projectFile.Replace('\\', '/').Contains(
+                "can-has-galaxy/Galaxy.",
+                StringComparison.Ordinal))
+        {
+            string projectName = Path.GetFileNameWithoutExtension(projectFile);
+            command = $"\"{GetGalaxyAssemblyPath(projectName)}\"";
+        }
+
         var (exitCode, stdout, stderr) = RunDotnet(
-            $"run --project \"{projectFile}\"",
-            RepoRoot);
+            command,
+            RepoRoot,
+            string.Empty);
 
         exitCode.Should().Be(0, $"dotnet run --project failed for {projectFile}:\n{stderr}\n{stdout}");
     }
@@ -212,12 +224,102 @@ public class SdkSampleTests
             "HAI FROM LOLCODE LIBRARY!\n1\n2");
     }
 
+    [Fact]
+    public void CanHasGalaxySimulation_RunsDeterministicScenario()
+    {
+        AssertCommandOutput(
+            $"\"{GetGalaxyAssemblyPath("Galaxy.Simulation")}\"",
+            """
+            CAN HAS GALAXY? SIMULATION v1
+            CAPTAIN BOT | T0 | S0 | C6 | F6 | H9 | ORE 0
+            SECTOR 1: NEBULA OF LASER POINTERZ | QUIET STARS. TEH RADIO PURRZ.
+            MINED 1 ORE. HOLD IZ 1
+            SOLD ORE FOR 3 CREDITZ.
+            SECTOR 3: VOID OF UNSENT EMAIL | QUIET STARS. TEH RADIO PURRZ.
+            WON TEH DOGFIGHT. HULL -2, BOUNTY +3.
+            MISSION COMPLETE: TEH GALAXY REMEMBERS UR NAME.
+            CAPTAIN BOT | T4 | S3 | C12 | F4 | H7 | ORE 0
+            """);
+    }
+
+    [Fact]
+    public void CanHasGalaxyGame_RunsScriptedSaveLoadSession()
+    {
+        string projectFile = Path.Combine(
+            "samples",
+            "project-based",
+            "can-has-galaxy",
+            "Galaxy.Game",
+            "Galaxy.Game.lolproj");
+        string assemblyPath = GetGalaxyAssemblyPath("Galaxy.Game");
+        string workingDirectory = Path.Combine(
+            Path.GetTempPath(),
+            "can-has-galaxy-tests",
+            Guid.NewGuid().ToString("N"));
+        string saveFile = Path.Combine(workingDirectory, "can-has-galaxy.save");
+        Directory.CreateDirectory(workingDirectory);
+
+        try
+        {
+            File.Exists(assemblyPath).Should().BeTrue(
+                $"the test project references {projectFile} as a build dependency");
+            var (exitCode, stdout, stderr) = RunDotnet(
+                $"\"{assemblyPath}\"",
+                workingDirectory,
+                "STATUS\nTRAVEL1\nMINE\nSAVE\nFIGHT\nSTATUS\nLOAD\nFIGHT\nSTATUS\nQUIT\n");
+
+            exitCode.Should().Be(0, $"Galaxy game failed:\n{stderr}\n{stdout}");
+            stdout.Should().Contain("=== CAN HAS GALAXY? ===");
+            stdout.Should().Contain("SECTOR 1: NEBULA OF LASER POINTERZ");
+            stdout.Should().Contain("MINED 1 ORE. HOLD IZ 1");
+            stdout.Should().Contain("SAVE OK: can-has-galaxy.save");
+            stdout.Should().Contain("LOAD OK.");
+            stdout.Split(
+                    "CAPTAIN CAPTAIN | T3 | S1 | C9 | F5 | H8 | ORE 1",
+                    StringSplitOptions.None)
+                .Should().HaveCount(3, "the same deterministic post-save action should produce the same state before and after loading");
+            stdout.Should().Contain("KTHXBAI, CAPTAIN.");
+            File.ReadAllText(saveFile).Should().StartWith("CHG2\n1\n6\n5\n9\n1\n0\n2\n7\n0\n");
+
+            File.WriteAllText(
+                saveFile,
+                "BAD2\n99\n999\n99\n99\n999\n7\n-1\n7\n8\n");
+            var (invalidExitCode, invalidStdout, invalidStderr) = RunDotnet(
+                $"\"{assemblyPath}\"",
+                workingDirectory,
+                "LOAD\nQUIT\n");
+            invalidExitCode.Should().Be(
+                0,
+                $"Galaxy invalid-save scenario failed:\n{invalidStderr}\n{invalidStdout}");
+            invalidStdout.Should().Contain("NO VALID SAVE.");
+        }
+        finally
+        {
+            Directory.Delete(workingDirectory, recursive: true);
+        }
+    }
+
+    private static string GetGalaxyAssemblyPath(string projectName) =>
+        Path.Combine(
+            RepoRoot,
+            "samples",
+            "project-based",
+            "can-has-galaxy",
+            projectName,
+            "bin",
+            Configuration,
+            "net10.0",
+            $"{projectName}.dll");
+
     private static void AssertProjectOutput(string projectFile, string expectedOutput)
+        => AssertCommandOutput($"run --project \"{projectFile}\"", expectedOutput);
+
+    private static void AssertCommandOutput(string command, string expectedOutput)
     {
         var (exitCode, stdout, stderr) = RunDotnet(
-            $"run --project \"{projectFile}\"",
+            command,
             RepoRoot);
-        exitCode.Should().Be(0, $"dotnet run --project failed for {projectFile}:\n{stderr}\n{stdout}");
+        exitCode.Should().Be(0, $"dotnet command failed ({command}):\n{stderr}\n{stdout}");
         var output = stdout.Replace("\r\n", "\n").TrimEnd('\n');
         output.Should().Be(expectedOutput);
     }

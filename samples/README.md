@@ -109,6 +109,17 @@ function values. Variables, imports, and other top-level side effects remain
 in that explicit order. Every file must have its own `HAI`/`KTHXBYE`, and all
 files must use one language version.
 
+The [CAN HAS GALAXY?](project-based/can-has-galaxy/) sample is a pure-LOLCODE
+multi-project space-trading roguelike. It composes Collections, World, Story,
+Engine, and Persistence class libraries through LOLCODE `ProjectReference` and
+`CAN HAS` imports; it includes an EOF-safe interactive game and a deterministic
+headless simulation:
+
+```bash
+dotnet run --project samples/project-based/can-has-galaxy/Galaxy.Game
+dotnet run --project samples/project-based/can-has-galaxy/Galaxy.Simulation
+```
+
 ## Local Development
 
 The `#:sdk Lolcode.NET.Sdk@0.2.0` directive restores the SDK's MSBuild props and
