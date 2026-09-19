@@ -1,5 +1,29 @@
-# Copyright (c) 2026 Matthew Leibowitz
-# Licensed under the MIT License. See LICENSE in the project root for license information.
+#!/usr/bin/env pwsh
+
+<#
+.SYNOPSIS
+Hosts and tests a complete dotnet-lolcode Pages artifact.
+
+.DESCRIPTION
+Uses the pinned dotnet-serve tool to host the site beneath /dotnet-lolcode/, then runs the desktop and mobile
+Playwright tests and writes screenshots under artifacts/playwright.
+
+.PARAMETER Site
+The Pages artifact directory to host. Defaults to docs/_site.
+
+.PARAMETER Port
+The localhost port to use. The default value of 0 selects an available port automatically.
+
+.EXAMPLE
+./docs/test-pages.ps1
+
+Tests the artifact in docs/_site on an available port.
+
+.EXAMPLE
+./docs/test-pages.ps1 -Site docs/_site -Port 8090
+
+Tests a specific artifact directory on port 8090.
+#>
 
 [CmdletBinding()]
 param(

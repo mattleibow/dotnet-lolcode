@@ -1,5 +1,18 @@
-# Copyright (c) 2026 Matthew Leibowitz
-# Licensed under the MIT License. See LICENSE in the project root for license information.
+#!/usr/bin/env pwsh
+
+<#
+.SYNOPSIS
+Builds the complete dotnet-lolcode GitHub Pages artifact.
+
+.DESCRIPTION
+Restores the pinned .NET tools, builds the DocFX documentation and Blazor playground, and assembles the root
+chooser, documentation, and playground under docs/_site.
+
+.EXAMPLE
+./docs/build-pages.ps1
+
+Builds the complete website from the repository root.
+#>
 
 [CmdletBinding()]
 param()

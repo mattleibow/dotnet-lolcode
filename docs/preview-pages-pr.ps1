@@ -1,5 +1,30 @@
-# Copyright (c) 2026 Matthew Leibowitz
-# Licensed under the MIT License. See LICENSE in the project root for license information.
+#!/usr/bin/env pwsh
+
+<#
+.SYNOPSIS
+Downloads, tests, and hosts the GitHub Pages artifact from a pull request.
+
+.DESCRIPTION
+Finds the successful Pages workflow for the pull request's current head commit, downloads the
+dotnet-lolcode-pages artifact, validates it with Playwright, and leaves it running beneath /dotnet-lolcode/
+until Ctrl+C is pressed.
+
+.PARAMETER PullRequestNumber
+The pull request number whose Pages artifact should be downloaded.
+
+.PARAMETER Port
+The localhost port to use. The default value of 0 selects an available port automatically.
+
+.EXAMPLE
+./docs/preview-pages-pr.ps1 -PullRequestNumber 15
+
+Downloads and tests the artifact for pull request 15, then hosts it on an available port.
+
+.EXAMPLE
+./docs/preview-pages-pr.ps1 -PullRequestNumber 15 -Port 8090
+
+Downloads and tests the artifact for pull request 15, then hosts it on port 8090.
+#>
 
 [CmdletBinding()]
 param(
