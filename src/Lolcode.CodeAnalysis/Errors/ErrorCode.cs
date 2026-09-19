@@ -60,9 +60,10 @@ public enum ErrorCode
     LOL2009,
     /// <summary>Function already declared.</summary>
     LOL2010,
-
     // --- Internal (LOL9xxx) ---
 
     /// <summary>Internal compiler error.</summary>
     LOL9001,
+    /// <summary>An obsolete output artifact could not be removed.</summary>
+    LOL9002,
 }

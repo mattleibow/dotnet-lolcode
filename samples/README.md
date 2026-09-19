@@ -82,25 +82,20 @@ Traditional `.lolproj` applications remain supported:
 dotnet run --project samples/project-based/hello-world/hello-world.lolproj
 ```
 
-The [mixed-language projects](project-based/mixed-language/) demonstrate all
-three interop directions: a C# executable calling a LOLCODE class library, a
-LOLCODE executable importing a C# class library, and a LOLCODE executable
-importing a LOLCODE class library. A library assembly/import name (for example
-`LolcatPhraseLibrary`) is distinct from its fully qualified CLR export type
-(for example `InteropSamples.LolcatExports`).
-Generated LOLCODE libraries mark that top-level public static export container
-with parameterless `[LolcodeLibrary]`; it neither creates CLR global methods
-nor hides the CLR type from other .NET languages or reflection. Configure the
-type with `LolcodeLibraryTypeName`; its default is
-`$(RootNamespace).LolcodeExports` when `RootNamespace` is set, otherwise
-`LolcodeExports`. Ordinary C# libraries need no LOLCODE reference or attribute:
-a sole namespaced top-level public static type can expose methods using
-`object`, `string`, `int`, `double`, and `bool`. Nested types are not imported.
+The [C# head with a LOLCODE library](project-based/csharp-head-lolcode-library/)
+sample shows a normal C# `ProjectReference` consuming the public static
+`InteropSamples.LolcatExports` API emitted by a LOLCODE class library:
 
-The SDK accepts and globs multiple `.lol` files, but compiler binding currently
-uses only the first syntax tree. Multi-file LOLCODE projects are therefore not
-yet supported correctly. Future multi-file binding will merge files into one
-compilation-level export type, not one type per filename.
+```bash
+dotnet run --project samples/project-based/csharp-head-lolcode-library/CSharpHead/CSharpHead.csproj
+```
+
+The [mixed-language project](project-based/mixed-language/) demonstrates a
+LOLCODE executable importing an ordinary C# class library with `CAN HAS`.
+
+The [LOLCODE head with a LOLCODE library](project-based/lolcode-head-lolcode-library/)
+sample imports a generated LOLCODE class library by assembly name. Its generated
+CLR export type is deliberately namespaced differently from that assembly name.
 
 ## Local Development
 

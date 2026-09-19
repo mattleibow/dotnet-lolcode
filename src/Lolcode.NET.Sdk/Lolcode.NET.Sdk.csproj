@@ -19,21 +19,33 @@
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <NoWarn>$(NoWarn);NU5100;NU5128</NoWarn>
+    <_LolcodePackedProviderVersion Condition="'$(PackageVersion)' != ''">$(PackageVersion)</_LolcodePackedProviderVersion>
+    <_LolcodePackedProviderVersion Condition="'$(_LolcodePackedProviderVersion)' == ''">$(Version)</_LolcodePackedProviderVersion>
+    <_LolcodeStampedSdkProps>$(BaseIntermediateOutputPath)Sdk\$(_LolcodePackedProviderVersion)\Sdk.props</_LolcodeStampedSdkProps>
   </PropertyGroup>
 
   <!-- SDK entry points (Sdk/Sdk.props + Sdk/Sdk.targets) -->
   <ItemGroup>
-    <Content Include="Sdk\**" PackagePath="Sdk\" />
+    <Content Include="Sdk\Sdk.targets" PackagePath="Sdk\Sdk.targets" />
+    <None Include="$(_LolcodeStampedSdkProps)" Pack="true" PackagePath="Sdk\Sdk.props" />
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <Target Name="StampProviderPackageVersion" BeforeTargets="_GetPackageFiles">
+    <MakeDir Directories="$(BaseIntermediateOutputPath)Sdk\$(_LolcodePackedProviderVersion)" />
+    <WriteLinesToFile
+      File="$(_LolcodeStampedSdkProps)"
+      Lines="$([System.IO.File]::ReadAllText('Sdk\Sdk.props').Replace('LolcodeProviderPackageVersion','$(_LolcodePackedProviderVersion)'))"
+      Overwrite="true" />
+  </Target>
+
   <!-- MSBuild task and compiler (build-time tool dependencies) -->
   <ItemGroup>
-    <Content Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Build.dll" PackagePath="tools\net10.0\" />
-    <Content Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Build.deps.json" PackagePath="tools\net10.0\" />
-    <Content Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.CodeAnalysis.dll" PackagePath="tools\net10.0\" />
-    <Content Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Runtime.dll" PackagePath="tools\net10.0\" />
-    <Content Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\System.Reflection.MetadataLoadContext.dll" PackagePath="tools\net10.0\" />
+    <TfmSpecificPackageFile Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Build.dll" PackagePath="tools/net10.0/Lolcode.Build.dll" />
+    <TfmSpecificPackageFile Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Build.deps.json" PackagePath="tools/net10.0/Lolcode.Build.deps.json" />
+    <TfmSpecificPackageFile Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.CodeAnalysis.dll" PackagePath="tools/net10.0/Lolcode.CodeAnalysis.dll" />
+    <TfmSpecificPackageFile Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Runtime.dll" PackagePath="tools/net10.0/Lolcode.Runtime.dll" />
+    <TfmSpecificPackageFile Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\System.Reflection.MetadataLoadContext.dll" PackagePath="tools/net10.0/System.Reflection.MetadataLoadContext.dll" />
   </ItemGroup>
 
   <!-- Ensure dependencies are built first -->

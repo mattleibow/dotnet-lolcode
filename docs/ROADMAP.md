@@ -207,19 +207,19 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 ## Phase 6: VS Code Extension
 > Syntax highlighting, snippets, and build integration for VS Code.
 
-- [ ] Scaffold VS Code extension (`yo code`)
-- [ ] Create TextMate grammar (`lolcode.tmLanguage.json`)
-  - [ ] Keywords (HAI, KTHXBYE, VISIBLE, etc.)
-  - [ ] Type names (NUMBR, NUMBAR, YARN, TROOF, NOOB)
-  - [ ] Comments (BTW, OBTW...TLDR)
-  - [ ] Strings with escape sequences
-  - [ ] Number literals
-  - [ ] Boolean literals (WIN, FAIL)
-  - [ ] Operators and separators
-- [ ] Create `language-configuration.json`
-  - [ ] Comment toggling
+- [x] Add declarative VS Code language extension (`editor/vscode-lolcode`)
+- [x] Create TextMate grammar (`lolcode.tmLanguage.json`)
+  - [x] Keywords (HAI, KTHXBYE, VISIBLE, etc.)
+  - [x] Type names (NUMBR, NUMBAR, YARN, TROOF, NOOB)
+  - [x] Comments (BTW, OBTW...TLDR)
+  - [x] Strings with escape sequences and interpolation
+  - [x] Number literals
+  - [x] Boolean literals (WIN, FAIL)
+  - [x] Operators and separators
+- [x] Create `language-configuration.json`
+  - [x] Comment toggling
   - [ ] Bracket matching (O RLY?/OIC, IM IN YR/IM OUTTA YR, etc.)
-  - [ ] Auto-closing pairs
+  - [x] Auto-closing pairs
 - [ ] Create code snippets
   - [ ] `hai` → full program template
   - [ ] `var` → variable declaration
@@ -240,7 +240,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [x] Auto-reference `Lolcode.Runtime.dll` in output
 - [x] Handle design-time builds (`SkipCompilerExecution` property)
 - [x] Support `<Project Sdk="Lolcode.NET.Sdk">` in `.lolproj` files
-- [x] Create `dotnet new lolcode` template (`src/Lolcode.NET.Templates/`)
+- [x] Create `dotnet new` templates for projects (`lolconsole`), source files (`lol`), and file-based apps (`lolcode`) (`src/Lolcode.NET.Templates/`)
 - [x] Create dedicated SDK sample project (`samples/project-based/hello-world/`)
 - [x] Source-built compiler override for local development (`samples/Directory.Build.props`)
 - [x] Test: `dotnet build` compiles `.lol` → `.dll`
@@ -272,7 +272,7 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [x] Create release workflow (tag-triggered: pack → push NuGet → GitHub Release)
 - [x] Tag-based versioning (`v0.1.0` → NuGet version `0.1.0`)
 - [x] Centralized `Version` in `Directory.Build.props` with `IsPackable` controls
-- [x] 3 publishable NuGet packages: `Lolcode.NET.Sdk`, `Lolcode.Runtime`, `Lolcode.NET.Templates`
+- [x] 4 publishable NuGet packages: `Lolcode.NET.Sdk`, `Lolcode.CodeAnalysis`, `Lolcode.Runtime`, `Lolcode.NET.Templates`
 - [x] All 16 file-based samples verified working end-to-end
 - [x] Restructured tests: 2 projects, 19 E2E category classes, 289 total tests
 - [x] File-based sample catalog under basics/, programs/, and games/, plus one dedicated project-based sample

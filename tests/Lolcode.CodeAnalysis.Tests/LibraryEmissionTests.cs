@@ -6,65 +6,108 @@ using Lolcode.Runtime;
 
 namespace Lolcode.CodeAnalysis.Tests;
 
-/// <summary>Tests CLR library emission and its public LOLCODE function ABI.</summary>
+/// <summary>Tests CLR class library emission and the public LOLCODE function ABI.</summary>
 public class LibraryEmissionTests
 {
     [Fact]
-    public void LibraryEmission_HasNoEntryPointOrRuntimeConfig_AndExposesTopLevelFunction()
+    public void LibraryEmission_HasLibraryHeaderNoEntryPointAndPublicObjectAbi()
     {
         string assemblyName = $"library-{Guid.NewGuid():N}";
         string outputPath = Path.Combine(AppContext.BaseDirectory, $"{assemblyName}.dll");
         string runtimeConfigPath = Path.ChangeExtension(outputPath, ".runtimeconfig.json");
         try
         {
-            var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText("""
+            var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(
+                """
                 HAI 1.4
-                HOW IZ I ADD YR left AN YR right
-                    FOUND YR SUM OF left AN right
+                HOW IZ I WELCOME YR name AN YR cheezburgerz
+                    FOUND YR SMOOSH "HAI " AN name AN ", U CAN HAZ " AN cheezburgerz AN " CHEEZBURGERZ!" MKAY
                 IF U SAY SO
                 KTHXBYE
-                """));
+                """,
+                "Welcome.lol"));
 
-            var result = compilation.Emit(outputPath, typeof(LolRuntime).Assembly.Location, "Library");
+            var result = compilation.Emit(
+                outputPath,
+                typeof(LolRuntime).Assembly.Location,
+                outputType: "Library");
 
             result.Success.Should().BeTrue();
+            result.PdbPath.Should().Be(Path.ChangeExtension(outputPath, ".pdb"));
             File.Exists(runtimeConfigPath).Should().BeFalse();
 
-            using var stream = File.OpenRead(outputPath);
-            using var peReader = new PEReader(stream);
-            peReader.PEHeaders.CorHeader!.EntryPointTokenOrRelativeVirtualAddress.Should().Be(0);
-            peReader.PEHeaders.CoffHeader.Characteristics.Should().HaveFlag(Characteristics.Dll);
+            using (var stream = File.OpenRead(outputPath))
+            using (var peReader = new PEReader(stream))
+            {
+                peReader.PEHeaders.CorHeader!.EntryPointTokenOrRelativeVirtualAddress.Should().Be(0);
+                peReader.PEHeaders.CoffHeader.Characteristics.Should().HaveFlag(Characteristics.Dll);
 
-            MetadataReader metadata = peReader.GetMetadataReader();
-            TypeDefinitionHandle exportsHandle = metadata.TypeDefinitions.Single(handle =>
-                metadata.GetString(metadata.GetTypeDefinition(handle).Name) == "LolcodeExports");
-            bool hasPublicAdd = metadata.GetTypeDefinition(exportsHandle)
-                .GetMethods()
-                .Select(metadata.GetMethodDefinition)
-                .Any(method => metadata.GetString(method.Name) == "ADD" &&
+                MetadataReader metadata = peReader.GetMetadataReader();
+                TypeDefinitionHandle exportsHandle = metadata.TypeDefinitions.Single(handle =>
+                {
+                    TypeDefinition definition = metadata.GetTypeDefinition(handle);
+                    return metadata.GetString(definition.Name) == "LolcodeExports" &&
+                        metadata.GetString(definition.Namespace) == string.Empty;
+                });
+                MethodDefinition[] welcomeMethods = metadata.GetTypeDefinition(exportsHandle)
+                    .GetMethods()
+                    .Select(metadata.GetMethodDefinition)
+                    .Where(method => metadata.GetString(method.Name) == "WELCOME")
+                    .ToArray();
+
+                welcomeMethods.Should().ContainSingle(method =>
                     method.Attributes.HasFlag(MethodAttributes.Public) &&
                     method.Attributes.HasFlag(MethodAttributes.Static));
-            hasPublicAdd.Should().BeTrue();
+                welcomeMethods.Should().ContainSingle(method =>
+                    method.Attributes.HasFlag(MethodAttributes.Private) &&
+                    method.Attributes.HasFlag(MethodAttributes.Static));
 
-            Type emittedExports = Assembly.LoadFrom(outputPath).GetType("LolcodeExports")!;
-            CustomAttributeData libraryAttribute = emittedExports.CustomAttributes.Single(attribute =>
-                attribute.AttributeType == typeof(LolcodeLibraryAttribute));
-            libraryAttribute.ConstructorArguments.Should().BeEmpty();
+                MethodDefinition wrapper = welcomeMethods.Single(method =>
+                    method.Attributes.HasFlag(MethodAttributes.Public) &&
+                    method.Attributes.HasFlag(MethodAttributes.Static));
+                metadata.GetBlobBytes(wrapper.Signature)
+                    .Should()
+                    .Equal(0x00, 0x02, 0x1C, 0x1C, 0x1C);
+
+                using (var pdbStream = File.OpenRead(result.PdbPath!))
+                using (var pdbProvider = MetadataReaderProvider.FromPortablePdbStream(pdbStream))
+                {
+                    MethodDefinitionHandle privateImplementation = metadata.GetTypeDefinition(exportsHandle)
+                        .GetMethods()
+                        .Single(handle =>
+                        {
+                            MethodDefinition method = metadata.GetMethodDefinition(handle);
+                            return metadata.GetString(method.Name) == "WELCOME" &&
+                                method.Attributes.HasFlag(MethodAttributes.Private);
+                        });
+                    pdbProvider.GetMetadataReader()
+                        .GetMethodDebugInformation(privateImplementation)
+                        .SequencePointsBlob
+                        .IsNil
+                        .Should()
+                        .BeFalse();
+                }
+            }
         }
         finally
         {
             File.Delete(outputPath);
+            File.Delete(Path.ChangeExtension(outputPath, ".pdb"));
             File.Delete(runtimeConfigPath);
+            File.Exists(outputPath).Should().BeFalse();
+            File.Exists(Path.ChangeExtension(outputPath, ".pdb")).Should().BeFalse();
+            File.Exists(runtimeConfigPath).Should().BeFalse();
         }
     }
 
     [Fact]
-    public void LibraryEmission_UsesTargetFrameworkCoreAssembly()
+    public void LibraryEmission_UsesSuppliedTargetFrameworkReferenceAssemblies()
     {
         string outputPath = Path.Combine(AppContext.BaseDirectory, $"library-{Guid.NewGuid():N}.dll");
         try
         {
-            var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText("""
+            var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(
+                """
                 HAI 1.4
                 HOW IZ I ADD YR left AN YR right
                     FOUND YR SUM OF left AN right
@@ -86,25 +129,76 @@ public class LibraryEmissionTests
             MetadataReader metadata = peReader.GetMetadataReader();
             metadata.TypeDefinitions
                 .Select(metadata.GetTypeDefinition)
-                .Select(definition => metadata.GetString(definition.Namespace) + "." +
-                    metadata.GetString(definition.Name))
-                .Should().Contain("InteropSamples.TargetExports");
-            var references = metadata.AssemblyReferences
-                .Select(handle => metadata.GetAssemblyReference(handle))
-                .Select(reference => new
-                {
-                    Name = metadata.GetString(reference.Name),
-                    reference.Version,
-                })
-                .ToArray();
-
-            references.Should().Contain(reference =>
-                reference.Name == "System.Runtime" && reference.Version.Major == 10);
-            references.Should().NotContain(reference => reference.Name == "System.Private.CoreLib");
+                .Should()
+                .Contain(definition =>
+                    metadata.GetString(definition.Namespace) == "InteropSamples" &&
+                    metadata.GetString(definition.Name) == "TargetExports");
+            metadata.AssemblyReferences
+                .Select(metadata.GetAssemblyReference)
+                .Should()
+                .Contain(reference =>
+                    metadata.GetString(reference.Name) == "System.Runtime" &&
+                    reference.Version.Major == 10);
+            metadata.AssemblyReferences
+                .Select(metadata.GetAssemblyReference)
+                .Select(reference => metadata.GetString(reference.Name))
+                .Should()
+                .NotContain("System.Private.CoreLib");
         }
         finally
         {
             File.Delete(outputPath);
+            File.Delete(Path.ChangeExtension(outputPath, ".pdb"));
+        }
+    }
+
+    [Fact]
+    public void LibraryEmission_RemovesExistingRuntimeConfigAsPartOfArtifactCommit()
+    {
+        string outputDirectory = Path.Combine(
+            Path.GetTempPath(),
+            "lolcode-library-emission-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(outputDirectory);
+
+        try
+        {
+            string outputPath = Path.Combine(outputDirectory, "library.dll");
+            string pdbPath = Path.ChangeExtension(outputPath, ".pdb");
+            string runtimeConfigPath = Path.ChangeExtension(outputPath, ".runtimeconfig.json");
+            File.WriteAllText(outputPath, "old dll");
+            File.WriteAllText(pdbPath, "old pdb");
+            File.WriteAllText(runtimeConfigPath, "old runtimeconfig");
+
+            var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(
+                """
+                HAI 1.4
+                HOW IZ I WELCOME
+                    FOUND YR "HAI"
+                IF U SAY SO
+                KTHXBYE
+                """,
+                Path.Combine(outputDirectory, "Welcome.lol")));
+            var fileSystem = new RuntimeConfigDeletionFailureFileSystem(runtimeConfigPath);
+
+            var result = compilation.Emit(
+                outputPath,
+                typeof(LolRuntime).Assembly.Location,
+                fileSystem,
+                outputType: "Library");
+
+            result.Success.Should().BeTrue();
+            File.Exists(outputPath).Should().BeTrue();
+            File.Exists(pdbPath).Should().BeTrue();
+            File.Exists(runtimeConfigPath).Should().BeFalse();
+            Directory.EnumerateFiles(outputDirectory)
+                .Should()
+                .NotContain(path => path.EndsWith(".tmp", StringComparison.Ordinal)
+                    || path.EndsWith(".bak", StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(outputDirectory, recursive: true);
         }
     }
 
@@ -123,10 +217,29 @@ public class LibraryEmissionTests
         string referencePackRoot = Path.Combine(dotnetRoot, "packs", "Microsoft.NETCore.App.Ref");
         string referencePack = Directory.EnumerateDirectories(referencePackRoot, "10.*")
             .OrderByDescending(path => path, StringComparer.Ordinal)
-            .FirstOrDefault()
-            ?? throw new InvalidOperationException("Could not locate a .NET 10 reference pack.");
-        string referenceDirectory = Path.Combine(referencePack, "ref", "net10.0");
+            .First();
+        return Directory.EnumerateFiles(Path.Combine(referencePack, "ref", "net10.0"), "*.dll");
+    }
 
-        return Directory.EnumerateFiles(referenceDirectory, "*.dll");
+    private sealed class RuntimeConfigDeletionFailureFileSystem(string runtimeConfigPath)
+        : IPathEmitFileSystem
+    {
+        public bool FileExists(string path) => File.Exists(path);
+
+        public void CreateDirectory(string path) => Directory.CreateDirectory(path);
+
+        public Stream CreateNewFile(string path)
+            => new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+
+        public void MoveFile(string sourcePath, string destinationPath, bool overwrite)
+            => File.Move(sourcePath, destinationPath, overwrite);
+
+        public void DeleteFile(string path)
+        {
+            if (path == runtimeConfigPath)
+                throw new IOException("Injected runtimeconfig deletion failure.");
+
+            File.Delete(path);
+        }
     }
 }

@@ -23,7 +23,8 @@
     <!-- Disable auto-generated C# files (GlobalUsings.g.cs, AssemblyAttributes.cs) -->
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <ImplicitUsings>disable</ImplicitUsings>
-
+    <LolcodeUseDefaultLibraries Condition="'$(LolcodeUseDefaultLibraries)' == ''">true</LolcodeUseDefaultLibraries>
+    <LolcodeRuntimePackageVersion Condition="'$(LolcodeRuntimePackageVersion)' == ''">LolcodeProviderPackageVersion</LolcodeRuntimePackageVersion>
   </PropertyGroup>
 
   <!-- Disable default C# compile globbing, then add LOLCODE glob -->

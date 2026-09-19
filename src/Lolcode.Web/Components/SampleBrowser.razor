@@ -1,0 +1,218 @@
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<button class="button secondary sample-browser-trigger"
+        @ref="_trigger"
+        @onclick="OpenAsync">
+    Browse samples
+</button>
+
+<dialog class="sample-dialog"
+        @ref="_dialog"
+        aria-labelledby="sample-dialog-title"
+        aria-describedby="sample-dialog-description">
+    <div class="sample-dialog-shell">
+        <header class="sample-dialog-header">
+            <div>
+                <h2 id="sample-dialog-title">Browse samples</h2>
+                <p id="sample-dialog-description">
+                    Preview a program before replacing the current editor contents.
+                </p>
+            </div>
+            <button class="dialog-close"
+                    type="button"
+                    aria-label="Close sample browser"
+                    @onclick="CloseAsync">
+                <svg aria-hidden="true" viewBox="0 0 16 16">
+                    <path d="M3 3l10 10M13 3L3 13"></path>
+                </svg>
+            </button>
+        </header>
+
+        <div class="sample-dialog-content">
+            <aside class="sample-navigation" aria-label="Sample navigation">
+                <label class="sample-search">
+                    <span>Find a sample</span>
+                    <input @ref="_search"
+                           type="search"
+                           value="@_query"
+                           @oninput="HandleSearch"
+                           autocomplete="off"
+                           placeholder="Search names or categories" />
+                </label>
+
+                <div class="sample-count" aria-live="polite">
+                    @FilteredSamples.Length sample@(FilteredSamples.Length == 1 ? string.Empty : "s")
+                </div>
+
+                <div class="sample-list-container" @ref="_sampleList">
+                    @if (FilteredSamples.IsDefaultOrEmpty)
+                    {
+                        <div class="sample-empty">
+                            <strong>No matching samples</strong>
+                            <span>Try a name such as FizzBuzz or a category such as Diagnostics.</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="sample-list"
+                             role="listbox"
+                             aria-label="Available samples">
+                            @foreach (var sample in FilteredSamples)
+                            {
+                                <button class="@(sample.Id == _previewSampleId ? "sample-option selected" : "sample-option")"
+                                        type="button"
+                                        role="option"
+                                        aria-selected="@(sample.Id == _previewSampleId ? "true" : "false")"
+                                        @onclick="() => Preview(sample)">
+                                    <span class="sample-option-category">@sample.Category</span>
+                                    <strong>@sample.Name</strong>
+                                    <span>@sample.Description</span>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            </aside>
+
+            <section class="sample-preview" aria-live="polite">
+                @if (PreviewSample is null)
+                {
+                    <div class="sample-preview-empty">
+                        <strong>Choose a sample to preview</strong>
+                        <span>The editor will not change until you open a sample.</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="sample-preview-heading">
+                        <div>
+                            <span class="panel-kicker">@PreviewSample.Category</span>
+                            <h3>@PreviewSample.Name</h3>
+                            <p>@PreviewSample.Description</p>
+                        </div>
+                        <div class="sample-metadata">
+                            <span>@PreviewSample.LineCount lines</span>
+                            <span>@(string.IsNullOrEmpty(PreviewSample.StandardInput) ? "No input" : "Includes input")</span>
+                        </div>
+                    </div>
+
+                    <pre class="sample-preview-code" tabindex="0"><code>@PreviewSample.Source</code></pre>
+                }
+
+                <footer class="sample-dialog-actions">
+                    <button class="button ghost" type="button" @onclick="CloseAsync">Cancel</button>
+                    <button class="button primary"
+                            type="button"
+                            disabled="@(PreviewSample is null)"
+                            @onclick="ApplyAsync">
+                        Open in editor
+                    </button>
+                </footer>
+            </section>
+        </div>
+    </div>
+</dialog>
+
+@code {
+    private ElementReference _trigger;
+    private ElementReference _dialog;
+    private ElementReference _search;
+    private ElementReference _sampleList;
+    private IJSObjectReference? _module;
+    private string _query = string.Empty;
+    private string? _previewSampleId;
+    private bool _openRequested;
+
+    [Parameter, EditorRequired]
+    public string CurrentSampleId { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> SampleSelected { get; set; }
+
+    private ImmutableArray<PlaygroundSample> FilteredSamples =>
+        PlaygroundSamples.Filter(_query);
+
+    private PlaygroundSample? PreviewSample =>
+        PlaygroundSamples.All.FirstOrDefault(sample => sample.Id == _previewSampleId);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _module = await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/sampleBrowser.js");
+            await _module.InvokeVoidAsync("initialize", _dialog, _sampleList);
+        }
+
+        if (_openRequested && _module is not null)
+        {
+            _openRequested = false;
+            await _module.InvokeVoidAsync("open", _dialog, _search);
+        }
+    }
+
+    private Task OpenAsync()
+    {
+        _query = string.Empty;
+        _previewSampleId = PlaygroundSamples.All.Any(sample => sample.Id == CurrentSampleId)
+            ? CurrentSampleId
+            : PlaygroundSamples.All[0].Id;
+        _openRequested = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void HandleSearch(ChangeEventArgs args)
+    {
+        _query = args.Value?.ToString() ?? string.Empty;
+        var filteredSamples = FilteredSamples;
+        if (filteredSamples.IsDefaultOrEmpty)
+        {
+            _previewSampleId = null;
+        }
+        else if (!filteredSamples.Any(sample => sample.Id == _previewSampleId))
+        {
+            _previewSampleId = filteredSamples[0].Id;
+        }
+    }
+
+    private void Preview(PlaygroundSample sample) => _previewSampleId = sample.Id;
+
+    private async Task ApplyAsync()
+    {
+        if (PreviewSample is not { } sample)
+        {
+            return;
+        }
+
+        await SampleSelected.InvokeAsync(sample.Id);
+        await CloseAsync();
+    }
+
+    private async Task CloseAsync()
+    {
+        if (_module is not null)
+        {
+            await _module.InvokeVoidAsync("close", _dialog, _trigger);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _module.InvokeVoidAsync("dispose", _dialog);
+            await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+}

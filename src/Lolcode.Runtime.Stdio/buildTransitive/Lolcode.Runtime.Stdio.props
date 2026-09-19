@@ -1,0 +1,5 @@
+<Project>
+  <ItemGroup>
+    <LolcodeLibrary Include="STDIO|Lolcode.Runtime.Stdio|Lolcode.Runtime.Stdio.StdioLibrary|true|1" />
+  </ItemGroup>
+</Project>

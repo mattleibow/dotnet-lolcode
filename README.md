@@ -46,10 +46,11 @@ if (!result.Success)
 
 ## Features
 
-- 🐱 **LOLCODE 1.2 + pinned future behavior** — including BUKKIT/SRS, built-in libraries, `INVISIBLE`, and `I DUZ`
+- 🐱 **LOLCODE 1.2 + pinned future behavior** — including BUKKIT/SRS, modular official libraries, `INVISIBLE`, and `I DUZ`
 - 🎯 **Compiles to .NET IL** — produces real .NET assemblies (not interpreted)
 - 📦 **MSBuild SDK** — `dotnet build` and `dotnet run` for `.lolproj` projects
 - 🚀 **File-based apps** — `dotnet build hello.lol` and `dotnet run --file hello.lol` with no project needed
+- 🌐 **Browser playground** — standalone Blazor WebAssembly fiddle that compiles and runs LOLCODE in the browser
 - 📊 **Pretty diagnostics** — error messages with source context and line/column info
 - 🧪 **Comprehensive tests** — unit, runtime, end-to-end, SDK integration, and upstream `lci` conformance
 
@@ -76,7 +77,7 @@ dotnet run --file hello.lol
 
 ```bash
 # Create a new LOLCODE project
-dotnet new lolcode -n MyApp
+dotnet new lolconsole -n MyApp
 cd MyApp
 
 # Build and run
@@ -120,11 +121,20 @@ dotnet watch    # Recompile on .lol file changes
 Create a new project from template:
 ```bash
 dotnet new install Lolcode.NET.Templates
-dotnet new lolcode -n MyApp
+dotnet new lolconsole -n MyApp
 cd MyApp && dotnet run
 ```
 
 See [samples/project-based/hello-world](samples/project-based/hello-world/) for a complete example.
+
+## Browser Playground
+
+The standalone Blazor WebAssembly playground lives in
+[`src/Lolcode.Web`](src/Lolcode.Web) and compiles and runs LOLCODE entirely in
+the browser for deployment to GitHub Pages.
+
+See [the playground documentation](docs/WEB_PLAYGROUND.md) for local
+development, deployment, architecture, and browser execution limitations.
 
 ## Example: Hello World
 

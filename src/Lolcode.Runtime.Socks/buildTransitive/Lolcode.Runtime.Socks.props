@@ -1,0 +1,5 @@
+<Project>
+  <ItemGroup>
+    <LolcodeLibrary Include="SOCKS|Lolcode.Runtime.Socks|Lolcode.Runtime.Socks.SocksLibrary|true|1" />
+  </ItemGroup>
+</Project>

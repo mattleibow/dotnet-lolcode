@@ -1,0 +1,248 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "LOLCODE",
+  "scopeName": "source.lolcode",
+  "patterns": [
+    {
+      "include": "#directives"
+    },
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#types"
+    },
+    {
+      "include": "#booleans"
+    },
+    {
+      "include": "#function-declarations"
+    },
+    {
+      "include": "#function-calls"
+    },
+    {
+      "include": "#declarations"
+    },
+    {
+      "include": "#member-access"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#punctuation"
+    }
+  ],
+  "repository": {
+    "directives": {
+      "patterns": [
+        {
+          "name": "comment.line.directive.lolcode",
+          "match": "^\\s*(?:#!|#:).*$"
+        }
+      ]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.block.lolcode",
+          "begin": "(?:^|,)\\s*OBTW\\b",
+          "end": "\\bTLDR(?=\\s*(?:,|$))",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.begin.lolcode"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.end.lolcode"
+            }
+          }
+        },
+        {
+          "name": "comment.line.btw.lolcode",
+          "match": "\\bBTW\\b.*$",
+          "captures": {
+            "0": {
+              "name": "comment.line.btw.lolcode"
+            }
+          }
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.lolcode",
+      "begin": "\"",
+      "end": "\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.lolcode"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.lolcode"
+        }
+      },
+      "patterns": [
+        {
+          "name": "meta.interpolation.lolcode",
+          "match": ":\\{([A-Za-z][A-Za-z0-9_]*)\\}",
+          "captures": {
+            "0": {
+              "name": "punctuation.definition.interpolation.lolcode"
+            },
+            "1": {
+              "name": "variable.other.interpolated.lolcode"
+            }
+          }
+        },
+        {
+          "name": "constant.character.escape.lolcode",
+          "match": ":(?:\\([0-9A-Fa-f]+\\)|\\[[A-Za-z][A-Za-z ]*\\]|\\)|>|o|\"|:)"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.lolcode",
+          "match": "(?<![A-Za-z0-9_.])-?[0-9]+\\.[0-9]+(?![A-Za-z0-9_.])"
+        },
+        {
+          "name": "constant.numeric.integer.lolcode",
+          "match": "(?<![A-Za-z0-9_.])-?[0-9]+(?![A-Za-z0-9_.])"
+        }
+      ]
+    },
+    "types": {
+      "name": "storage.type.lolcode",
+      "match": "\\b(?:NOOB|TROOF|NUMBR|NUMBAR|YARN|BUKKIT)\\b"
+    },
+    "booleans": {
+      "name": "constant.language.boolean.lolcode",
+      "match": "\\b(?:WIN|FAIL)\\b"
+    },
+    "function-declarations": {
+      "match": "\\b(HOW)(\\s+)(IZ)(\\s+)(I)(\\s+)([A-Za-z][A-Za-z0-9_]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.control.function.lolcode"
+        },
+        "3": {
+          "name": "keyword.control.function.lolcode"
+        },
+        "5": {
+          "name": "keyword.control.function.lolcode"
+        },
+        "7": {
+          "name": "entity.name.function.lolcode"
+        }
+      }
+    },
+    "function-calls": {
+      "match": "\\b(I|ME)(\\s+)(IZ)(\\s+)([A-Za-z][A-Za-z0-9_]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.control.function.lolcode"
+        },
+        "3": {
+          "name": "keyword.control.function.lolcode"
+        },
+        "5": {
+          "name": "entity.name.function.lolcode"
+        }
+      }
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "match": "\\b(I)(\\s+)(HAS)(\\s+)(A|AN)(\\s+)([A-Za-z][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "storage.modifier.declaration.lolcode"
+            },
+            "3": {
+              "name": "storage.modifier.declaration.lolcode"
+            },
+            "5": {
+              "name": "storage.modifier.declaration.lolcode"
+            },
+            "7": {
+              "name": "variable.other.definition.lolcode"
+            }
+          }
+        },
+        {
+          "match": "\\b([A-Za-z][A-Za-z0-9_]*)(\\s+)(HAS)(\\s+)(A|AN)(\\s+)([A-Za-z][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "variable.other.object.lolcode"
+            },
+            "3": {
+              "name": "storage.modifier.declaration.lolcode"
+            },
+            "5": {
+              "name": "storage.modifier.declaration.lolcode"
+            },
+            "7": {
+              "name": "variable.other.definition.lolcode"
+            }
+          }
+        }
+      ]
+    },
+    "member-access": {
+      "match": "\\b([A-Za-z][A-Za-z0-9_]*)(\\x27Z)([ \\t]*)([A-Za-z][A-Za-z0-9_]*)",
+      "captures": {
+        "1": {
+          "name": "variable.other.object.lolcode"
+        },
+        "2": {
+          "name": "punctuation.accessor.lolcode"
+        },
+        "4": {
+          "name": "variable.other.member.lolcode"
+        }
+      }
+    },
+    "operators": {
+      "name": "keyword.operator.lolcode",
+      "match": "\\b(?:SUM|DIFF|PRODUKT|QUOSHUNT|MOD|BIGGR|SMALLR|BOTH|EITHER|WON|NOT|ALL|ANY|SAEM|DIFFRINT|SMOOSH|MAEK|IS|NOW|OF|R|AN|MKAY)\\b"
+    },
+    "keywords": {
+      "name": "keyword.control.lolcode",
+      "match": "\\b(?:HAI|KTHXBYE|I|HAS|A|ITZ|IT|VISIBLE|INVISIBLE|GIMMEH|O|YA|NO|WAI|MEBBE|OIC|OMG|OMGWTF|GTFO|IM|IN|OUTTA|YR|TIL|WILE|UPPIN|NERFIN|HOW|IZ|FOUND|IF|U|SAY|SO|SRS|ME|LIEK|KTHX|CAN|DUZ)\\b|\\b(?:RLY|WTF)\\?"
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.separator.statement.lolcode",
+          "match": ","
+        },
+        {
+          "name": "keyword.operator.line-continuation.lolcode",
+          "match": "\\.\\.\\.|…"
+        },
+        {
+          "name": "punctuation.terminator.output.lolcode",
+          "match": "!"
+        },
+        {
+          "name": "punctuation.accessor.lolcode",
+          "match": "\\x27Z"
+        }
+      ]
+    }
+  }
+}

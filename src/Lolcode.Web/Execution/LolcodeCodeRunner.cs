@@ -1,0 +1,232 @@
+using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
+using Lolcode.CodeAnalysis;
+using Lolcode.CodeAnalysis.Scripting;
+using CompilerDiagnosticSeverity = Lolcode.CodeAnalysis.DiagnosticSeverity;
+
+namespace Lolcode.Web.Execution;
+
+internal sealed class LolcodeCodeRunner : ICodeRunner
+{
+    private const string SourceFileName = "Program.lol";
+    private readonly object _scriptCacheLock = new();
+    private readonly Dictionary<string, LolcodeScript> _scriptCache =
+        new(StringComparer.Ordinal);
+
+    internal int CachedScriptCount
+    {
+        get
+        {
+            lock (_scriptCacheLock)
+            {
+                return _scriptCache.Count;
+            }
+        }
+    }
+
+    public string LanguageName => "LOLCODE 1.2";
+
+    public Task<CodeRunResult> RunAsync(
+        CodeRunRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (request.Source.Length > CodeRunnerLimits.MaxSourceLength)
+        {
+            return Task.FromResult(
+                ValidationFailure(
+                    $"Source is limited to {CodeRunnerLimits.MaxSourceLength:N0} characters."));
+        }
+
+        if (request.StandardInput.Length > CodeRunnerLimits.MaxInputLength)
+        {
+            return Task.FromResult(
+                ValidationFailure(
+                    $"Program input is limited to {CodeRunnerLimits.MaxInputLength:N0} characters."));
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        var stopwatch = Stopwatch.StartNew();
+        if (!TryGetScript(request.Source, out var script))
+        {
+            return Task.FromResult(
+                ValidationFailure(
+                    $"Run limit reached. Reload the page to run more than "
+                    + $"{CodeRunnerLimits.MaxCachedScripts} different programs."));
+        }
+
+        var state = script.Run(new LolcodeScriptExecutionOptions
+        {
+            StandardInput = request.StandardInput,
+            MaximumStandardOutputBytes = CodeRunnerLimits.MaxStandardStreamBytes,
+            MaximumStandardErrorBytes = CodeRunnerLimits.MaxStandardStreamBytes,
+        });
+        var diagnostics = state.Diagnostics
+            .Select(ToCodeDiagnostic)
+            .ToImmutableArray();
+
+        if (state.Exception is not null)
+        {
+            diagnostics = diagnostics.Add(
+                CreateRuntimeDiagnostic(state.Exception, script.GetCompilation()));
+        }
+
+        stopwatch.Stop();
+        return Task.FromResult(
+            new CodeRunResult(
+                state.Success,
+                state.Executed,
+                AppendTruncationMarker(
+                    state.StandardOutput,
+                    state.StandardOutputTruncated,
+                    "[standard output truncated]"),
+                AppendTruncationMarker(
+                    state.StandardError,
+                    state.StandardErrorTruncated,
+                    "[standard error truncated]"),
+                stopwatch.Elapsed,
+                diagnostics));
+    }
+
+    private bool TryGetScript(string source, out LolcodeScript script)
+    {
+        lock (_scriptCacheLock)
+        {
+            if (_scriptCache.TryGetValue(source, out script!))
+            {
+                return true;
+            }
+
+            if (_scriptCache.Count >= CodeRunnerLimits.MaxCachedScripts)
+            {
+                script = null!;
+                return false;
+            }
+
+            script = LolcodeScript.Create(source, new LolcodeScriptOptions
+            {
+                FilePath = SourceFileName,
+            });
+            _scriptCache.Add(source, script);
+            return true;
+        }
+    }
+
+    private static CodeDiagnostic ToCodeDiagnostic(Diagnostic diagnostic) =>
+        new(
+            diagnostic.Id,
+            diagnostic.Severity switch
+            {
+                CompilerDiagnosticSeverity.Error => CodeDiagnosticSeverity.Error,
+                CompilerDiagnosticSeverity.Warning => CodeDiagnosticSeverity.Warning,
+                _ => CodeDiagnosticSeverity.Info,
+            },
+            diagnostic.Message,
+            diagnostic.Location.StartLine + 1,
+            diagnostic.Location.StartCharacter + 1,
+            diagnostic.Location.EndLine + 1,
+            diagnostic.Location.EndCharacter + 1);
+
+    internal static CodeDiagnostic CreateRuntimeDiagnostic(
+        Exception exception,
+        LolcodeCompilation compilation)
+    {
+        var sourceFrame = new StackTrace(exception, true)
+            .GetFrames()
+            .FirstOrDefault(frame =>
+                string.Equals(
+                    Path.GetFileName(frame.GetFileName()),
+                    SourceFileName,
+                    StringComparison.OrdinalIgnoreCase)
+                && frame.GetFileLineNumber() > 0);
+        var sourceLocation = sourceFrame is not null
+            ? (Line: sourceFrame.GetFileLineNumber(), Column: sourceFrame.GetFileColumnNumber())
+            : FindPortablePdbLocation(exception, compilation);
+
+        return new CodeDiagnostic(
+            "RUNTIME",
+            CodeDiagnosticSeverity.Error,
+            $"{exception.GetType().Name}: {exception.Message}",
+            sourceLocation.Line > 0 ? sourceLocation.Line : null,
+            sourceLocation.Column > 0 ? sourceLocation.Column : null);
+    }
+
+    internal static (int Line, int Column) FindPortablePdbLocation(
+        Exception exception,
+        LolcodeCompilation compilation)
+    {
+        using var peStream = new MemoryStream();
+        using var pdbStream = new MemoryStream();
+        var emitResult = compilation.Emit(peStream, pdbStream);
+        if (!emitResult.Success)
+        {
+            return (0, 0);
+        }
+
+        pdbStream.Position = 0;
+        using var provider = MetadataReaderProvider.FromPortablePdbStream(pdbStream);
+        var reader = provider.GetMetadataReader();
+
+        foreach (var frame in new StackTrace(exception, false).GetFrames())
+        {
+            var method = frame.GetMethod();
+            var ilOffset = frame.GetILOffset();
+            if (method?.DeclaringType?.FullName != "Program" || ilOffset < 0)
+            {
+                continue;
+            }
+
+            var rowNumber = method.MetadataToken & 0x00FFFFFF;
+            if (rowNumber <= 0 || rowNumber > reader.MethodDebugInformation.Count)
+            {
+                continue;
+            }
+
+            var debugInformation = reader.GetMethodDebugInformation(
+                MetadataTokens.MethodDebugInformationHandle(rowNumber));
+            SequencePoint? closestPoint = null;
+
+            foreach (var sequencePoint in debugInformation.GetSequencePoints())
+            {
+                if (!sequencePoint.IsHidden && sequencePoint.Offset <= ilOffset)
+                {
+                    closestPoint = sequencePoint;
+                }
+            }
+
+            if (closestPoint is { } location)
+            {
+                return (location.StartLine, location.StartColumn);
+            }
+        }
+
+        return (0, 0);
+    }
+
+    internal static string AppendTruncationMarker(
+        string content,
+        bool isTruncated,
+        string marker)
+    {
+        if (!isTruncated)
+        {
+            return content;
+        }
+
+        return string.IsNullOrEmpty(content)
+            ? marker
+            : string.Concat(content, Environment.NewLine, marker);
+    }
+
+    private static CodeRunResult ValidationFailure(string message) =>
+        new(
+            false,
+            false,
+            string.Empty,
+            string.Empty,
+            TimeSpan.Zero,
+            [new CodeDiagnostic("INPUT", CodeDiagnosticSeverity.Error, message)]);
+}

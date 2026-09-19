@@ -2,10 +2,25 @@
 
   <PropertyGroup>
     <RootNamespace>Lolcode.CodeAnalysis</RootNamespace>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>Lolcode.CodeAnalysis</PackageId>
+    <PackageDescription>Roslyn-inspired parsing, diagnostics, binding, and IL emission APIs for LOLCODE programs targeting .NET.</PackageDescription>
+    <PackageTags>lolcode;compiler;code-analysis;parser;roslyn</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/mattleibow/dotnet-lolcode</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Lolcode.CodeAnalysis.Tests" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -14,6 +29,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Lolcode.Runtime\Lolcode.Runtime.csproj" />
+    <ProjectReference Include="..\Lolcode.Runtime.String\Lolcode.Runtime.String.csproj" />
+    <ProjectReference Include="..\Lolcode.Runtime.Stdlib\Lolcode.Runtime.Stdlib.csproj" />
+    <ProjectReference Include="..\Lolcode.Runtime.Stdio\Lolcode.Runtime.Stdio.csproj" />
+    <ProjectReference Include="..\Lolcode.Runtime.Socks\Lolcode.Runtime.Socks.csproj" />
   </ItemGroup>
 
 </Project>
