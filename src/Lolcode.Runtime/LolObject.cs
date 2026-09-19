@@ -22,6 +22,18 @@ public class LolScope
         Resources = parent?.Resources ?? caller?.Resources ?? new LolResourceTracker();
         Libraries = parent?.Libraries ?? caller?.Libraries ?? new LolcodeLibraryRegistry();
     }
+
+    internal LolScope(
+        LolScope? parent,
+        LolObject? caller,
+        LolResourceTracker resources,
+        LolcodeLibraryRegistry libraries)
+    {
+        Parent = parent;
+        Caller = caller;
+        Resources = resources;
+        Libraries = libraries;
+    }
 }
 
 /// <summary>Marks the generated public export type of a LOLCODE class library.</summary>

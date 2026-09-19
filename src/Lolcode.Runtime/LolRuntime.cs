@@ -446,12 +446,15 @@ public static class LolRuntime
     public static LolObject CreateLibraryObject(LolScope importingScope) =>
         new(importingScope, importingScope.Caller) { IsLibraryModule = true };
 
-    /// <summary>Creates a function invocation namespace.</summary>
+    /// <summary>
+    /// Creates a function invocation namespace. Library modules retain their receiver
+    /// as lexical parent while the invocation caller owns resources and libraries.
+    /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
     public static LolScope CreateInvocationScope(LolScope caller, LolObject? receiver) =>
-        new(
-            receiver is { IsLibraryModule: true } ? receiver : caller,
-            receiver ?? caller.Caller);
+        receiver is { IsLibraryModule: true }
+            ? new LolScope(receiver, receiver, caller.Resources, caller.Libraries)
+            : new LolScope(caller, receiver ?? caller.Caller);
 
     /// <summary>Creates a BUKKIT with an optional prototype and copied mixins.</summary>
     public static LolObject CreateObject(LolScope scope, object? parent, object?[] mixins)

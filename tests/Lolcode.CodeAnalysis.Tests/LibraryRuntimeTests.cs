@@ -545,6 +545,69 @@ public class LibraryRuntimeTests
     }
 
     [Fact]
+    public void LibraryModuleInvocationRetainsModuleStateAndUsesCallerOwnership()
+    {
+        var importingScope = LolRuntime.CreateScope();
+        var callingScope = LolRuntime.CreateScope();
+        string assemblyName = typeof(InvocationScopeProvider).Assembly.GetName().Name!;
+        string typeName = typeof(InvocationScopeProvider).FullName!;
+        LolRuntime.ConfigureLibraries(
+            importingScope,
+            [$"SCOPE|{assemblyName}|{typeName}|false|1"]);
+        var module = LolRuntime.CreateLibraryObject(importingScope);
+        module.Values["moduleState"] = "from module";
+        LolRuntime.LoadLibrary(module, "SCOPE");
+        module.Values["OPEN"] = new LolFunction(
+            0,
+            (caller, receiver, _, _) =>
+            {
+                LolScope invocation = LolRuntime.CreateInvocationScope(caller, receiver);
+                invocation.Parent.Should().BeSameAs(module);
+                invocation.Caller.Should().BeSameAs(module);
+                invocation.Resources.Should().BeSameAs(callingScope.Resources);
+                invocation.Libraries.Should().BeSameAs(callingScope.Libraries);
+                LolRuntime.GetValue(invocation, ["moduleState"]).Should().Be("from module");
+                LolRuntime.GetValue(invocation, ["ME", "moduleState"]).Should().Be("from module");
+                return Invoke(invocation, "SCOPE", "OPEN");
+            },
+            []);
+        module.Values["COUNT"] = new LolFunction(
+            0,
+            (caller, receiver, _, _) =>
+            {
+                LolScope invocation = LolRuntime.CreateInvocationScope(caller, receiver);
+                return Invoke(invocation, "SCOPE", "COUNT");
+            },
+            []);
+        callingScope.Values["MODULE"] = module;
+
+        try
+        {
+            object? first = Invoke(callingScope, "MODULE", "OPEN");
+
+            GetTrackedResourceCount(importingScope).Should().Be(0);
+            GetTrackedResourceCount(callingScope).Should().Be(1);
+            ((LolBlob)first!).IsClosed.Should().BeFalse();
+            LolRuntime.DisposeScope(importingScope);
+            ((LolBlob)first).IsClosed.Should().BeFalse();
+
+            Invoke(callingScope, "MODULE", "COUNT").Should().Be(1);
+            object? second = Invoke(callingScope, "MODULE", "OPEN");
+            Invoke(callingScope, "MODULE", "COUNT").Should().Be(2);
+            GetTrackedResourceCount(callingScope).Should().Be(2);
+
+            LolRuntime.DisposeScope(callingScope);
+            ((LolBlob)first).IsClosed.Should().BeTrue();
+            ((LolBlob)second!).IsClosed.Should().BeTrue();
+        }
+        finally
+        {
+            LolRuntime.DisposeScope(importingScope);
+            LolRuntime.DisposeScope(callingScope);
+        }
+    }
+
+    [Fact]
     public void EscapedRegisteredLibraryAllocatesForCallerAfterImporterDisposal()
     {
         var importingScope = CreateScope();
@@ -684,6 +747,31 @@ public class LibraryRuntimeTests
             var blob = new ClosedProviderBlob();
             blob.Dispose();
             return blob;
+        }
+    }
+
+    public static class InvocationScopeProvider
+    {
+        public static object OPEN(LolcodeLibraryContext context)
+        {
+            var state = context.GetOrCreateState(static () => new InvocationScopeProviderState());
+            state.Count++;
+            return new InvocationScopeProviderBlob();
+        }
+
+        public static int COUNT(LolcodeLibraryContext context) =>
+            context.GetOrCreateState(static () => new InvocationScopeProviderState()).Count;
+    }
+
+    private sealed class InvocationScopeProviderState
+    {
+        public int Count { get; set; }
+    }
+
+    private sealed class InvocationScopeProviderBlob : LolBlob
+    {
+        protected override void DisposeCore()
+        {
         }
     }
 
