@@ -8,6 +8,7 @@ namespace Lolcode.EndToEnd.Tests;
 /// Integration tests that run file-based and project-based samples using the
 /// LOLCODE SDK.
 /// </summary>
+[Collection(nameof(SdkSampleCollection))]
 public class SdkSampleTests
 {
     private static readonly string RepoRoot = FindRepoRoot();
@@ -21,6 +22,7 @@ public class SdkSampleTests
                 return dir;
             dir = Path.GetDirectoryName(dir)!;
         }
+
         throw new InvalidOperationException("Could not find repo root (looked for dotnet-lolcode.slnx)");
     }
 
@@ -48,11 +50,20 @@ public class SdkSampleTests
             process.StandardInput.Write(standardInput);
             process.StandardInput.Close();
         }
-        string stdout = process.StandardOutput.ReadToEnd();
-        string stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit(timeoutMs);
 
-        return (process.ExitCode, stdout, stderr);
+        Task<string> stdout = process.StandardOutput.ReadToEndAsync();
+        Task<string> stderr = process.StandardError.ReadToEndAsync();
+        if (!process.WaitForExit(timeoutMs))
+        {
+            process.Kill(entireProcessTree: true);
+            process.WaitForExit();
+            Task.WaitAll(stdout, stderr);
+            throw new TimeoutException(
+                $"dotnet {args} did not exit within {TimeSpan.FromMilliseconds(timeoutMs).TotalSeconds:0} seconds.");
+        }
+        Task.WaitAll(stdout, stderr);
+
+        return (process.ExitCode, stdout.Result, stderr.Result);
     }
 
     /// <summary>
@@ -469,3 +480,9 @@ public class SdkSampleTests
         stdout.Should().Contain("TEH AI WINZ!");
     }
 }
+
+/// <summary>
+/// Serializes nested SDK builds because they share source-built compiler and provider output paths.
+/// </summary>
+[CollectionDefinition(nameof(SdkSampleCollection), DisableParallelization = true)]
+public sealed class SdkSampleCollection;
