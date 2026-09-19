@@ -1,6 +1,0 @@
-HAI 1.4
-
-CAN HAS LolNumericLibrary?
-VISIBLE I IZ LolNumericLibrary'Z DOUBLE YR 21 MKAY
-
-KTHXBYE

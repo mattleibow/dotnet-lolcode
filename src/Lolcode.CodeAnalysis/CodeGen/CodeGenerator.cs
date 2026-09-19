@@ -123,7 +123,6 @@ internal sealed class CodeGenerator
     private MethodInfo _declareParameterMethod = null!;
     private MethodInfo _assignResolvedValueMethod = null!;
     private MethodInfo _resolveFunctionSlotMethod = null!;
-    private MethodInfo _createParameterSlotsMethod = null!;
 
     /// <summary>
     /// Creates a new emitter.

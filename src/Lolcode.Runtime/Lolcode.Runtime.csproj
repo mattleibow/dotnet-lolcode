@@ -14,7 +14,6 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Lolcode.CodeAnalysis.Tests" />
     <None Include="README.md" Pack="true" PackagePath="\" />
-    <InternalsVisibleTo Include="Lolcode.CodeAnalysis.Tests" />
   </ItemGroup>
 
 </Project>

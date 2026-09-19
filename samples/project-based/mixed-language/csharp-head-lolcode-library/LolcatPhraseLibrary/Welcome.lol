@@ -1,7 +1,0 @@
-HAI 1.4
-
-HOW IZ I WELCOME YR name AN YR cheezburgerz
-    FOUND YR SMOOSH "HAI " AN name AN ", U CAN HAZ " AN cheezburgerz AN " CHEEZBURGERZ!" MKAY
-IF U SAY SO
-
-KTHXBYE

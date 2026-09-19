@@ -76,7 +76,8 @@ Interactive programs with user input (`GIMMEH`).
 
 ## Project-Based
 
-Traditional `.lolproj` applications remain supported:
+The dedicated [project-based hello world](project-based/hello-world/) verifies
+that traditional `.lolproj` applications remain supported:
 
 ```bash
 dotnet run --project samples/project-based/hello-world/hello-world.lolproj

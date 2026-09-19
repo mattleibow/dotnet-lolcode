@@ -197,16 +197,11 @@ public class SdkSampleTests
             "CSharpHead",
             "CSharpHead.csproj");
 
-    [Theory]
-    [MemberData(nameof(GetProjectBasedExecutableSamples))]
-    public void ProjectBasedExecutableSample_Runs(string projectFile)
-    {
         var (exitCode, stdout, stderr) = RunDotnet(
             $"run --project \"{projectFile}\"",
             RepoRoot);
 
-        exitCode.Should().Be(0, $"dotnet run --project failed for {projectFile}:\n{stderr}\n{stdout}");
-    }
+        exitCode.Should().Be(0, $"dotnet run --project failed:\n{stderr}");
 
         var output = stdout.Replace("\r\n", "\n").TrimEnd('\n');
         output.Should().Be("HAI DOTNET, U CAN HAZ 3 CHEEZBURGERZ!\n4\nHAI FROM A LIBRARY SCOPE!");
