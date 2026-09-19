@@ -503,6 +503,9 @@ internal sealed class CodeGenerator
 
     private void EmitLibraryConfiguration()
     {
+        if (_libraryDescriptors.Count == 0)
+            return;
+
         _il.Emit(OpCodes.Ldloc, _scopeLocal);
         _il.Emit(OpCodes.Ldc_I4, _libraryDescriptors.Count);
         _il.Emit(OpCodes.Newarr, _stringType);
