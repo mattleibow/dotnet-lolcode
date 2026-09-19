@@ -387,12 +387,34 @@ public class LibraryRuntimeTests
             ((LolBlob)open!).IsClosed.Should().BeTrue();
             GetTrackedResourceCount(scope).Should().Be(0);
         }
+
         finally
         {
             LolRuntime.DisposeScope(scope);
             File.Delete(firstPath);
             File.Delete(secondPath);
         }
+    }
+
+    [Fact]
+    public void PublicWrapperTransfer_DetachesNestedCyclicBlobGraph()
+    {
+        var scope = LolRuntime.CreateScope();
+        var context = new LolcodeLibraryContext(scope.Resources);
+        var blob = context.RegisterResource(new TestBlob());
+        var root = new LolObject();
+        var nested = new LolObject(root);
+        root.Values["direct"] = blob;
+        root.Values["nested"] = nested;
+        nested.Values["duplicate"] = blob;
+        nested.Values["cycle"] = root;
+
+        LolRuntime.TransferPublicLibraryResult(scope, nested);
+        LolRuntime.DisposeScope(scope);
+
+        blob.IsClosed.Should().BeFalse("the managed caller owns all reachable returned BLOBs");
+        blob.Dispose();
+        blob.IsClosed.Should().BeTrue();
     }
 
     [Fact]
@@ -445,5 +467,12 @@ public class LibraryRuntimeTests
                 System.Reflection.BindingFlags.NonPublic)!
             .GetValue(tracker)!;
         return (int)resources.GetType().GetProperty("Count")!.GetValue(resources)!;
+    }
+
+    private sealed class TestBlob : LolBlob
+    {
+        protected override void DisposeCore()
+        {
+        }
     }
 }

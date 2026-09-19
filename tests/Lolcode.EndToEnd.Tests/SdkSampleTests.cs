@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 
@@ -163,6 +164,27 @@ public class SdkSampleTests
         output.Should().Be(expectedOutput);
     }
 
+    private static void AssertPackedProviderVersion(
+        string sdkProject,
+        string outputRoot,
+        string version)
+    {
+        string packageDirectory = Path.Combine(outputRoot, version);
+        Directory.CreateDirectory(packageDirectory);
+        var (exitCode, stdout, stderr) = RunDotnet(
+            $"pack \"{sdkProject}\" --configuration Debug --no-build -p:Version={version} -o \"{packageDirectory}\"",
+            RepoRoot);
+        exitCode.Should().Be(0, $"dotnet pack failed:\n{stderr}\n{stdout}");
+
+        string packagePath = Path.Combine(packageDirectory, $"Lolcode.NET.Sdk.{version}.nupkg");
+        using ZipArchive package = ZipFile.OpenRead(packagePath);
+        ZipArchiveEntry props = package.GetEntry("Sdk/Sdk.props")!;
+        using var reader = new StreamReader(props.Open());
+        string contents = reader.ReadToEnd();
+        contents.Should().Contain(version);
+        contents.Should().NotContain("LolcodeProviderPackageVersion");
+    }
+
     [Fact]
     public void CSharpHeadLolcodeLibrarySample_Runs_CorrectOutput()
     {
@@ -182,6 +204,27 @@ public class SdkSampleTests
 
         var output = stdout.Replace("\r\n", "\n").TrimEnd('\n');
         output.Should().Be("HAI DOTNET, U CAN HAZ 3 CHEEZBURGERZ!\n4\nHAI FROM A LIBRARY SCOPE!");
+    }
+
+    [Fact]
+    public void SdkPack_StampsIndependentProviderVersionsWithoutMutatingTemplate()
+    {
+        string sdkProject = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Lolcode.NET.Sdk.csproj");
+        string template = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk", "Sdk.props");
+        string original = File.ReadAllText(template);
+        string outputRoot = Path.Combine(Path.GetTempPath(), "lolcode-sdk-pack-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(outputRoot);
+
+        try
+        {
+            AssertPackedProviderVersion(sdkProject, outputRoot, "0.3.0-pack-a");
+            AssertPackedProviderVersion(sdkProject, outputRoot, "0.3.0-pack-b");
+            File.ReadAllText(template).Should().Be(original);
+        }
+        finally
+        {
+            Directory.Delete(outputRoot, recursive: true);
+        }
     }
 
     [Theory]
