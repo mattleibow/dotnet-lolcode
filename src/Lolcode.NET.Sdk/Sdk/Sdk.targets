@@ -40,6 +40,8 @@
              AssemblyFile="$(_LolcodeBuildTasksDir)Lolcode.Build.dll" />
   <UsingTask TaskName="Lolcode.Build.MakeValidClrIdentifier"
              AssemblyFile="$(_LolcodeBuildTasksDir)Lolcode.Build.dll" />
+  <UsingTask TaskName="Lolcode.Build.NormalizeClrNamespace"
+             AssemblyFile="$(_LolcodeBuildTasksDir)Lolcode.Build.dll" />
 
   <!-- Add Lolcode.Runtime as a reference so it appears in deps.json and gets copied -->
   <ItemGroup>
@@ -70,22 +72,16 @@
     <Error Condition="'$(OutputType)' == 'Library' and '$(_LolcodeValidatedLibraryTypeName)' != '$(LolcodeLibraryTypeName)'"
            Text="LolcodeLibraryTypeName must be a simple, non-keyword CLR/C# identifier without dots. Set RootNamespace to the desired namespace." />
 
-    <!-- Normalize each explicit or derived namespace component independently. -->
     <PropertyGroup Condition="'$(OutputType)' == 'Library'">
       <_LolcodeEffectiveRootNamespace Condition="'$(RootNamespace)' != ''">$(RootNamespace)</_LolcodeEffectiveRootNamespace>
     </PropertyGroup>
 
-    <ItemGroup Condition="'$(OutputType)' == 'Library' and '$(_LolcodeEffectiveRootNamespace)' != ''">
-      <_LolcodeRootNamespaceSegment Include="$([System.String]::Copy('$(_LolcodeEffectiveRootNamespace)').Split('.'))" />
-    </ItemGroup>
-
-    <MakeValidClrIdentifier Condition="'$(OutputType)' == 'Library' and '@(_LolcodeRootNamespaceSegment)' != ''"
-                            Input="%(_LolcodeRootNamespaceSegment.Identity)">
-      <Output TaskParameter="Identifier" ItemName="_LolcodeSanitizedRootNamespaceSegment" />
-    </MakeValidClrIdentifier>
+    <NormalizeClrNamespace Condition="'$(OutputType)' == 'Library' and '$(_LolcodeEffectiveRootNamespace)' != ''"
+                           Input="$(_LolcodeEffectiveRootNamespace)">
+      <Output TaskParameter="NormalizedNamespace" PropertyName="_LolcodeSanitizedRootNamespace" />
+    </NormalizeClrNamespace>
 
     <PropertyGroup Condition="'$(OutputType)' == 'Library'">
-      <_LolcodeSanitizedRootNamespace>@(_LolcodeSanitizedRootNamespaceSegment, '.')</_LolcodeSanitizedRootNamespace>
       <_LolcodeLibraryFullTypeName
           Condition="'$(_LolcodeSanitizedRootNamespace)' != ''">$(_LolcodeSanitizedRootNamespace).$(LolcodeLibraryTypeName)</_LolcodeLibraryFullTypeName>
       <_LolcodeLibraryFullTypeName

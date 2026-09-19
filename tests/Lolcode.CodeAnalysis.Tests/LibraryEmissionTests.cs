@@ -54,7 +54,10 @@ public class LibraryEmissionTests
                     : null;
             try
             {
-                var assembly = loadContext.LoadFromAssemblyPath(outputPath);
+                var assembly = LoadAssemblyFromCopiedStreams(
+                    loadContext,
+                    outputPath,
+                    result.PdbPath);
                 Type exports = assembly.GetType("LolcodeExports")!;
                 exports.GetMethod("FIRST")!.Invoke(null, null).Should().Be("FIRST");
                 exports.GetMethod("SECOND")!.Invoke(null, null).Should().Be("SECOND");
@@ -265,8 +268,9 @@ public class LibraryEmissionTests
                 SyntaxTree.ParseText(
                     """
                     HAI 1.4
+                    I HAS A greeting ITZ I IZ GREETING MKAY
                     HOW IZ I WELCOME
-                        FOUND YR I IZ GREETING MKAY
+                        FOUND YR greeting
                     IF U SAY SO
                     KTHXBYE
                     """,
@@ -298,8 +302,25 @@ public class LibraryEmissionTests
                     : null;
             try
             {
-                var assembly = loadContext.LoadFromAssemblyPath(outputPath);
-                assembly.GetType("LolcodeExports")!
+                var assembly = LoadAssemblyFromCopiedStreams(
+                    loadContext,
+                    outputPath,
+                    result.PdbPath);
+                Type exports = assembly.GetType("LolcodeExports")!;
+                var importingScope = LolRuntime.CreateScope();
+                try
+                {
+                    var module = (LolObject)exports
+                        .GetMethod("__CreateLolcodeLibrary")!
+                        .Invoke(null, [importingScope])!;
+                    LolRuntime.GetValue(module, ["greeting"]).Should().Be("HAI");
+                }
+                finally
+                {
+                    LolRuntime.DisposeScope(importingScope);
+                }
+
+                exports
                     .GetMethod("WELCOME")!
                     .Invoke(null, null)
                     .Should()
@@ -365,6 +386,21 @@ public class LibraryEmissionTests
         {
             Directory.Delete(outputDirectory, recursive: true);
         }
+    }
+
+    private static Assembly LoadAssemblyFromCopiedStreams(
+        System.Runtime.Loader.AssemblyLoadContext loadContext,
+        string outputPath,
+        string? pdbPath)
+    {
+        byte[] peImage = File.ReadAllBytes(outputPath);
+        using var peStream = new MemoryStream(peImage, writable: false);
+        if (pdbPath is null)
+            return loadContext.LoadFromStream(peStream);
+
+        byte[] pdbImage = File.ReadAllBytes(pdbPath);
+        using var pdbStream = new MemoryStream(pdbImage, writable: false);
+        return loadContext.LoadFromStream(peStream, pdbStream);
     }
 
     private static IEnumerable<string> GetNet10ReferenceAssemblyPaths()

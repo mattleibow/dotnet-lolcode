@@ -198,9 +198,15 @@ public sealed class MakeValidClrIdentifier : Microsoft.Build.Utilities.Task
     /// <inheritdoc/>
     public override bool Execute()
     {
+        Identifier = Normalize(Input);
+        return true;
+    }
+
+    internal static string Normalize(string input)
+    {
         var builder = new StringBuilder();
         var isFirst = true;
-        foreach (Rune rune in Input.EnumerateRunes())
+        foreach (Rune rune in input.EnumerateRunes())
         {
             if (isFirst)
             {
@@ -227,11 +233,11 @@ public sealed class MakeValidClrIdentifier : Microsoft.Build.Utilities.Task
             }
         }
 
-        Identifier = builder.Length == 0 ? "_" : builder.ToString();
-        if (CSharpKeywords.Contains(Identifier))
-            Identifier = $"_{Identifier}";
+        string identifier = builder.Length == 0 ? "_" : builder.ToString();
+        if (CSharpKeywords.Contains(identifier))
+            return $"_{identifier}";
 
-        return true;
+        return identifier;
     }
 
     private static bool IsIdentifierStart(Rune rune) =>
@@ -250,4 +256,28 @@ public sealed class MakeValidClrIdentifier : Microsoft.Build.Utilities.Task
             UnicodeCategory.NonSpacingMark or
             UnicodeCategory.SpacingCombiningMark or
             UnicodeCategory.Format;
+}
+
+/// <summary>
+/// Converts every dot-separated namespace segment to a valid, non-keyword CLR
+/// identifier while preserving its original order and repetitions.
+/// </summary>
+public sealed class NormalizeClrNamespace : Microsoft.Build.Utilities.Task
+{
+    /// <summary>Namespace to normalize.</summary>
+    [Required]
+    public string Input { get; set; } = "";
+
+    /// <summary>Namespace with every segment normalized for CLR consumption.</summary>
+    [Output]
+    public string NormalizedNamespace { get; private set; } = "";
+
+    /// <inheritdoc/>
+    public override bool Execute()
+    {
+        NormalizedNamespace = string.Join(
+            ".",
+            Input.Split('.', StringSplitOptions.None).Select(MakeValidClrIdentifier.Normalize));
+        return true;
+    }
 }

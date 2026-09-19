@@ -606,6 +606,61 @@ public class SdkSampleTests
     }
 
     [Theory]
+    [InlineData("DefaultNamespace", null, "DefaultNamespace")]
+    [InlineData("RepeatedNamespace", "Alpha.Alpha", "Alpha.Alpha")]
+    [InlineData("RepeatedNamespace", "Alpha.Beta.Alpha", "Alpha.Beta.Alpha")]
+    [InlineData("RepeatedNamespace", "Alpha.2-Beta.Alpha.2-Beta", "Alpha._2_Beta.Alpha._2_Beta")]
+    public void LolcodeLibrary_PreservesEverySanitizedRootNamespaceSegmentConsumableFromCSharp(
+        string assemblyName,
+        string? rootNamespace,
+        string expectedNamespace)
+    {
+        string projectDirectory = CreateSdkTestDirectory($"repeated-root-{Guid.NewGuid():N}");
+
+        try
+        {
+            string libraryProject = WriteMultiFileLibraryProject(
+                projectDirectory,
+                ["Exports.lol"],
+                assemblyName,
+                rootNamespace);
+            File.WriteAllText(Path.Combine(projectDirectory, "Exports.lol"), CreateLibraryFunction("FIRST"));
+
+            AssertBuildSucceeds(libraryProject, projectDirectory, "LOLCODE library build");
+            string outputAssembly = GetSdkTestOutputAssembly(projectDirectory, assemblyName);
+            AssertAssemblyContainsType(outputAssembly, expectedNamespace, assemblyName);
+
+            string consumerProject = Path.Combine(projectDirectory, "Consumer.csproj");
+            File.WriteAllText(
+                consumerProject,
+                $$"""
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net10.0</TargetFramework>
+                  </PropertyGroup>
+                  <ItemGroup>
+                    <ProjectReference Include="{{libraryProject}}" />
+                  </ItemGroup>
+                </Project>
+                """);
+            File.WriteAllText(
+                Path.Combine(projectDirectory, "Program.cs"),
+                $"Console.WriteLine({expectedNamespace}.{assemblyName}.FIRST());");
+
+            var (exitCode, stdout, stderr) = RunDotnet(
+                $"run --project \"{consumerProject}\" --no-restore",
+                projectDirectory);
+            exitCode.Should().Be(0, $"C# consumer build failed:\n{stderr}\n{stdout}");
+            stdout.Trim().Should().Be("FIRST");
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
+    [Theory]
     [InlineData("RootlessDefault", null, false)]
     [InlineData("RootlessSpecified", "Exports", true)]
     public void LolcodeLibrary_UsesExplicitEmptyRootNamespaceConsumableFromCSharp(
@@ -1011,7 +1066,7 @@ public class SdkSampleTests
         {
             string providerProject = Path.Combine(RepoRoot, "src", relativeProject);
             var (exitCode, stdout, stderr) = RunDotnet(
-                $"pack \"{providerProject}\" --no-build -p:PackageVersion={packageVersion} -o \"{packageFeed}\"",
+                $"pack \"{providerProject}\" --configuration Debug --no-build -p:PackageVersion={packageVersion} -o \"{packageFeed}\"",
                 RepoRoot);
             exitCode.Should().Be(0, $"packing {relativeProject} failed:\n{stderr}\n{stdout}");
         }

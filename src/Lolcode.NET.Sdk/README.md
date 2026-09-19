@@ -68,12 +68,12 @@ type in the global namespace. Otherwise, the .NET SDK default derived from
 `AssemblyName` is used. Every namespace segment is normalized to a CLR
 identifier, making a hyphenated or leading-digit default safe for C# consumers.
 
-For multi-file projects, 1.2 direct function calls are statically bound across
-files regardless of `Compile` order. The 1.3/1.4 declaration and function-value
-model instead requires declarations to execute before callers that depend on
-their runtime availability. A class-library wrapper initializer evaluates only
-supported import and declaration forms, never arbitrary top-level executable
-statements.
+For multi-file projects, direct top-level functions are installed before normal
+top-level initialization regardless of `Compile` order. In 1.3/1.4, calls
+continue to dynamically resolve the current function slot, so later
+replacements remain effective. A class-library wrapper initializer evaluates
+only supported import and declaration forms, never arbitrary top-level
+executable statements.
 
 ### File-based apps (no project needed)
 
