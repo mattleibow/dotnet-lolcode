@@ -108,6 +108,12 @@ public sealed class InMemoryExecutionTests
             result.GetType().GetProperty("Success")!.GetValue(result).Should().Be(true);
             peStream.Length.Should().BeGreaterThan(0);
             pdbStream.Length.Should().BeGreaterThan(0);
+            ((System.Collections.IEnumerable)result.GetType()
+                    .GetProperty("Diagnostics")!
+                    .GetValue(result)!)
+                .Cast<object>()
+                .Should()
+                .BeEmpty();
         }
         finally
         {

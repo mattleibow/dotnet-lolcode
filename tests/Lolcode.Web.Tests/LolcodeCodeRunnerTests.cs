@@ -72,6 +72,18 @@ public sealed class LolcodeCodeRunnerTests
     }
 
     [Fact]
+    public async Task RunAsync_UsesCurrentRuntimeAssembliesWithoutRuntimePathDiagnostics()
+    {
+        var result = await _runner.RunAsync(new CodeRunRequest(HelloProgram, string.Empty));
+
+        result.Success.Should().BeTrue();
+        result.Executed.Should().BeTrue();
+        result.StandardOutput.Should().Be("HAI" + Environment.NewLine);
+        result.Diagnostics.Should().NotContain(diagnostic =>
+            diagnostic.Message.Contains("System.Runtime", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void AppendTruncationMarker_MarksOnlyTruncatedStreams()
     {
         LolcodeCodeRunner.AppendTruncationMarker(

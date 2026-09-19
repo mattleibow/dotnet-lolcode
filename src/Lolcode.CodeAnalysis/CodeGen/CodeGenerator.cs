@@ -26,7 +26,6 @@ internal sealed class CodeGenerator
     private readonly BoundBlockStatement _boundTree;
     private readonly string _assemblyName;
     private readonly string? _runtimeAssemblyPath;
-    private readonly byte[]? _runtimeAssemblyImage;
     private readonly IReadOnlyList<string> _referenceAssemblyPaths;
     private readonly bool _isLibrary;
     private readonly string? _libraryTypeName;
@@ -133,7 +132,6 @@ internal sealed class CodeGenerator
         BoundBlockStatement boundTree,
         string assemblyName,
         string? runtimeAssemblyPath,
-        byte[]? runtimeAssemblyImage = null,
         IEnumerable<string>? referenceAssemblyPaths = null,
         IReadOnlyList<SyntaxTree>? syntaxTrees = null,
         IReadOnlyDictionary<SyntaxNode, SyntaxTree>? syntaxTreeOwners = null,
@@ -144,7 +142,6 @@ internal sealed class CodeGenerator
         _boundTree = boundTree;
         _assemblyName = assemblyName;
         _runtimeAssemblyPath = runtimeAssemblyPath;
-        _runtimeAssemblyImage = runtimeAssemblyImage;
         _referenceAssemblyPaths = referenceAssemblyPaths?.ToArray() ?? [];
         _syntaxTrees = syntaxTrees ?? [];
         _syntaxTreeOwners = syntaxTreeOwners ?? new Dictionary<SyntaxNode, SyntaxTree>();
@@ -183,14 +180,13 @@ internal sealed class CodeGenerator
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        using var metadataLoadContext = CreateMetadataLoadContext();
-        var runtimeAssembly = _runtimeAssemblyImage is null
-            ? metadataLoadContext.LoadFromAssemblyPath(
-                _runtimeAssemblyPath
-                ?? throw new InvalidOperationException("No Lolcode.Runtime assembly source was supplied."))
-            : metadataLoadContext.LoadFromByteArray(_runtimeAssemblyImage);
-        var coreAssembly = metadataLoadContext.CoreAssembly
-            ?? throw new InvalidOperationException("Could not resolve the target core assembly.");
+        using MetadataLoadContext? metadataLoadContext = _runtimeAssemblyPath is null
+            ? null
+            : CreateMetadataLoadContext();
+        Assembly runtimeAssembly = metadataLoadContext is null
+            ? typeof(LolRuntime).Assembly
+            : metadataLoadContext.LoadFromAssemblyPath(_runtimeAssemblyPath!);
+        Assembly coreAssembly = metadataLoadContext?.CoreAssembly ?? typeof(object).Assembly;
         _systemObjectType = GetCoreType(coreAssembly, "System.Object");
         _voidType = GetCoreType(coreAssembly, "System.Void");
         _stringType = GetCoreType(coreAssembly, "System.String");
@@ -419,7 +415,7 @@ internal sealed class CodeGenerator
     {
         IEnumerable<string> referencePaths = _referenceAssemblyPaths.Count > 0
             ? _referenceAssemblyPaths
-            : Directory.EnumerateFiles(RuntimeEnvironment.GetRuntimeDirectory(), "*.dll");
+            : GetTrustedPlatformAssemblyPaths();
         var resolverPaths = referencePaths
             .Append(_runtimeAssemblyPath)
             .Where(static path => !string.IsNullOrEmpty(path))
@@ -441,6 +437,11 @@ internal sealed class CodeGenerator
             new PathAssemblyResolver(resolverPaths),
             coreAssemblyName: "System.Runtime");
     }
+
+    private static IEnumerable<string> GetTrustedPlatformAssemblyPaths() =>
+        AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") is string trustedPlatformAssemblies
+            ? trustedPlatformAssemblies.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            : [];
 
     private static Type GetCoreType(Assembly coreAssembly, string fullName) =>
         coreAssembly.GetType(fullName)

@@ -17,9 +17,6 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Lolcode.CodeAnalysis.Tests" />
     <None Include="README.md" Pack="true" PackagePath="\" />
-    <EmbeddedResource
-      Include="..\Lolcode.Runtime\bin\$(Configuration)\$(TargetFramework)\Lolcode.Runtime.dll"
-      LogicalName="Lolcode.CodeAnalysis.Embedded.Lolcode.Runtime.dll" />
   </ItemGroup>
 
   <ItemGroup>
