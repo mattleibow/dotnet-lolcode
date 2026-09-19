@@ -63,7 +63,9 @@ library through a normal `ProjectReference`.
 omitted, the SDK derives a valid CLR identifier from `AssemblyName` (for
 example, `Lolcat-Phrase` becomes `Lolcat_Phrase`). The SDK composes the emitted CLR type as
 `$(RootNamespace).$(LolcodeLibraryTypeName)`, or uses the type name without a
-namespace when `RootNamespace` is empty.
+namespace when `RootNamespace` is empty. Every namespace segment is normalized
+to a CLR identifier; this also makes the default namespace derived from a
+hyphenated or leading-digit assembly name safe for C# consumers.
 
 ### File-based apps (no project needed)
 

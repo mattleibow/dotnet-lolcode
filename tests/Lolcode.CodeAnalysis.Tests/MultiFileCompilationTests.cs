@@ -39,6 +39,66 @@ public sealed class MultiFileCompilationTests
         Execute(compilation).Should().Be($"HAI FROM ANOTHER FILE{Environment.NewLine}");
     }
 
+    [Theory]
+    [InlineData("1.3")]
+    [InlineData("1.4")]
+    public void CrossFileRuntimeFunctionCalls_FollowTopLevelExecutionOrder(string version)
+    {
+        var caller = Tree(
+            $$"""
+            HAI {{version}}
+            VISIBLE I IZ GREETING MKAY
+            KTHXBYE
+            """,
+            "Caller.lol");
+        var callee = Tree(
+            $$"""
+            HAI {{version}}
+            HOW IZ I GREETING
+                FOUND YR "HAI FROM ANOTHER FILE"
+            IF U SAY SO
+            KTHXBYE
+            """,
+            "Callee.lol");
+
+        Execute(LolcodeCompilation.Create(callee, caller))
+            .Should().Be($"HAI FROM ANOTHER FILE{Environment.NewLine}");
+        Action callerBeforeCallee = () => Execute(LolcodeCompilation.Create(caller, callee));
+        callerBeforeCallee.Should().Throw<TargetInvocationException>()
+            .Which.InnerException.Should().BeOfType<LolRuntimeException>();
+    }
+
+    [Theory]
+    [InlineData("1.3")]
+    [InlineData("1.4")]
+    public void CrossFileRuntimeFunctionValues_AreInitializedBeforeTheyCanBeCalled(string version)
+    {
+        var declaration = Tree(
+            $$"""
+            HAI {{version}}
+            HOW IZ I GREETING
+                FOUND YR "INITIALIZED"
+            IF U SAY SO
+            KTHXBYE
+            """,
+            "Declaration.lol");
+        var initializationAndCall = Tree(
+            $$"""
+            HAI {{version}}
+            I HAS A replacement ITZ GREETING
+            VISIBLE I IZ replacement MKAY
+            KTHXBYE
+            """,
+            "Initialization.lol");
+
+        Execute(LolcodeCompilation.Create(declaration, initializationAndCall))
+            .Should().Be($"INITIALIZED{Environment.NewLine}");
+        Action callerBeforeDeclaration = () =>
+            Execute(LolcodeCompilation.Create(initializationAndCall, declaration));
+        callerBeforeDeclaration.Should().Throw<TargetInvocationException>()
+            .Which.InnerException.Should().BeOfType<LolRuntimeException>();
+    }
+
     [Fact]
     public void CrossFileTopLevelStatements_ExecuteInSyntaxTreeOrder()
     {

@@ -634,7 +634,7 @@ internal sealed class CodeGenerator
                 _il.Emit(OpCodes.Stelem_Ref);
             }
 
-            _il.Emit(OpCodes.Ldloc, rootScope);
+            _il.Emit(OpCodes.Ldloc, module);
             _il.Emit(OpCodes.Ldloc, module);
             _il.Emit(OpCodes.Ldloc, arguments);
             _il.Emit(OpCodes.Ldloc, parameterSlots);

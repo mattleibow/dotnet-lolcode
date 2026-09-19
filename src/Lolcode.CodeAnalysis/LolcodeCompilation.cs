@@ -261,11 +261,6 @@ public sealed class LolcodeCompilation
 
                 var stagedPePath = StageStream(fileSystem, peStream, dllPath);
                 stagedPaths.Add(stagedPePath);
-                var stagedProviderArtifacts = StageProviderArtifacts(
-                    fileSystem,
-                    runtimeAssemblyPath,
-                    dllPath);
-                stagedPaths.AddRange(stagedProviderArtifacts.Select(static artifact => artifact.StagedPath));
 
                 string StagePeWithoutSymbols()
                 {
@@ -292,7 +287,6 @@ public sealed class LolcodeCompilation
                     stagedPePath,
                     stagedPdbPath,
                     stagedRuntimeConfigPath,
-                    stagedProviderArtifacts,
                     StagePeWithoutSymbols);
 
                 var cleanupFailures = commitResult.CleanupFailures.AddRange(
@@ -340,64 +334,6 @@ public sealed class LolcodeCompilation
             bag.Report(DiagnosticDescriptors.InternalError, default, ex.Message);
             return new EmitResult(false, bag.ToImmutableArray(), null);
         }
-    }
-
-    private sealed record StagedProviderArtifact(string DestinationPath, string StagedPath);
-
-    private static IReadOnlyList<StagedProviderArtifact> StageProviderArtifacts(
-        IPathEmitFileSystem fileSystem,
-        string runtimeAssemblyPath,
-        string outputAssemblyPath)
-    {
-        string? runtimeDirectory = Path.GetDirectoryName(runtimeAssemblyPath);
-        string? outputDirectory = Path.GetDirectoryName(outputAssemblyPath);
-        if (string.IsNullOrEmpty(runtimeDirectory) || string.IsNullOrEmpty(outputDirectory))
-            return [];
-
-        var artifacts = new List<StagedProviderArtifact>();
-        try
-        {
-            foreach (string source in Directory.EnumerateFiles(runtimeDirectory, "Lolcode.Runtime.*.dll"))
-            {
-                if (string.Equals(
-                        source,
-                        runtimeAssemblyPath,
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-                string destination = Path.Combine(outputDirectory, Path.GetFileName(source));
-                if (!string.Equals(source, destination, StringComparison.OrdinalIgnoreCase))
-                {
-                    using var provider = File.OpenRead(source);
-                    artifacts.Add(new StagedProviderArtifact(
-                        destination,
-                        StageStream(fileSystem, provider, destination)));
-                }
-            }
-        }
-        catch (Exception ex) when (IsPathEmissionFailure(ex))
-        {
-            var failures = new List<Exception> { ex };
-            foreach (StagedProviderArtifact artifact in artifacts)
-            {
-                try
-                {
-                    DeleteIfExists(fileSystem, artifact.StagedPath);
-                }
-                catch (Exception cleanupException) when (IsPathEmissionFailure(cleanupException))
-                {
-                    failures.Add(cleanupException);
-                }
-            }
-
-            if (failures.Count > 1)
-                throw new AggregateException(failures);
-
-            throw;
-        }
-
-        return artifacts;
     }
 
     private static bool IsPathEmissionFailure(Exception exception)
@@ -647,16 +583,12 @@ public sealed class LolcodeCompilation
         string stagedPePath,
         string? stagedPdbPath,
         string? stagedRuntimeConfigPath,
-        IReadOnlyList<StagedProviderArtifact> stagedProviderArtifacts,
         Func<string> stagePeWithoutSymbols)
     {
         var primaryTargetPaths = runtimeConfigPath is null
             ? new[] { pdbPath, dllPath }
             : new[] { runtimeConfigPath, pdbPath, dllPath };
-        var targetPaths = stagedProviderArtifacts
-            .Select(static artifact => artifact.DestinationPath)
-            .Concat(primaryTargetPaths)
-            .ToArray();
+        var targetPaths = primaryTargetPaths;
         var originallyExisted = targetPaths.ToDictionary(
             path => path,
             fileSystem.FileExists,
@@ -722,9 +654,6 @@ public sealed class LolcodeCompilation
                     OmitSymbols();
                 }
             }
-
-            foreach (StagedProviderArtifact provider in stagedProviderArtifacts)
-                fileSystem.MoveFile(provider.StagedPath, provider.DestinationPath, overwrite: false);
 
             // The PE is the commit marker: no required artifact replacement follows it.
             fileSystem.MoveFile(pePathToCommit, dllPath, overwrite: false);

@@ -254,6 +254,70 @@ public class LibraryEmissionTests
     }
 
     [Fact]
+    public void LibraryEmission_InitializesRuntimeFunctionValuesInCompileOrder()
+    {
+        string outputPath = Path.Combine(
+            AppContext.BaseDirectory,
+            $"runtime-function-library-{Guid.NewGuid():N}.dll");
+        try
+        {
+            var compilation = LolcodeCompilation.Create(
+                SyntaxTree.ParseText(
+                    """
+                    HAI 1.4
+                    HOW IZ I GREETING
+                        FOUND YR "HAI"
+                    IF U SAY SO
+                    KTHXBYE
+                    """,
+                    "Greeting.lol"),
+                SyntaxTree.ParseText(
+                    """
+                    HAI 1.4
+                    HOW IZ I WELCOME
+                        FOUND YR I IZ GREETING MKAY
+                    IF U SAY SO
+                    KTHXBYE
+                    """,
+                    "Welcome.lol"));
+
+            var result = compilation.Emit(
+                outputPath,
+                typeof(LolRuntime).Assembly.Location,
+                outputType: "Library");
+
+            result.Success.Should().BeTrue(string.Join("\n", result.Diagnostics));
+            var loadContext = new System.Runtime.Loader.AssemblyLoadContext(
+                $"RuntimeFunctionLibrary_{Guid.NewGuid():N}",
+                isCollectible: true);
+            loadContext.Resolving += (_, assemblyName) =>
+                AssemblyName.ReferenceMatchesDefinition(
+                    assemblyName,
+                    typeof(LolRuntime).Assembly.GetName())
+                    ? typeof(LolRuntime).Assembly
+                    : null;
+            try
+            {
+                var assembly = loadContext.LoadFromAssemblyPath(outputPath);
+                assembly.GetType("LolcodeExports")!
+                    .GetMethod("WELCOME")!
+                    .Invoke(null, null)
+                    .Should()
+                    .Be("HAI");
+            }
+            finally
+            {
+                loadContext.Unload();
+            }
+        }
+        finally
+        {
+            File.Delete(outputPath);
+            File.Delete(Path.ChangeExtension(outputPath, ".pdb"));
+        }
+    }
+
+    [Fact]
     public void LibraryEmission_RemovesExistingRuntimeConfigAsPartOfArtifactCommit()
     {
         string outputDirectory = Path.Combine(

@@ -449,7 +449,7 @@ public static class LolRuntime
     /// <summary>Creates a function invocation namespace.</summary>
     [System.Diagnostics.DebuggerStepThrough]
     public static LolScope CreateInvocationScope(LolScope caller, LolObject? receiver) =>
-        new(caller, receiver ?? caller.Caller);
+        new(receiver ?? caller, receiver ?? caller.Caller);
 
     /// <summary>Creates a BUKKIT with an optional prototype and copied mixins.</summary>
     public static LolObject CreateObject(LolScope scope, object? parent, object?[] mixins)

@@ -543,6 +543,29 @@ public sealed class InMemoryExecutionTests
         }
     }
 
+    [Fact]
+    public void Emit_ToPath_DoesNotDeployAdjacentProviderAssemblies()
+    {
+        var tempDirectory = CreateTempDirectory();
+
+        try
+        {
+            var outputPath = Path.Combine(tempDirectory, "program.dll");
+            var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(HelloProgram));
+
+            var result = compilation.Emit(outputPath, typeof(LolRuntime).Assembly.Location);
+
+            result.Success.Should().BeTrue();
+            Directory.EnumerateFiles(tempDirectory, "Lolcode.Runtime.*.dll")
+                .Should()
+                .BeEmpty("API consumers deploy resolved provider assets explicitly");
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
     [Theory]
     [InlineData(".runtimeconfig.json")]
     [InlineData(".dll")]

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 
@@ -43,6 +44,8 @@ public class SdkSampleTests
             RedirectStandardError = true,
             RedirectStandardInput = standardInput is not null,
         };
+        psi.Environment["DOTNET_CLI_USE_MSBUILD_SERVER"] = "0";
+        psi.Environment["MSBUILDDISABLENODEREUSE"] = "1";
 
         using var process = Process.Start(psi)!;
 
@@ -54,18 +57,39 @@ public class SdkSampleTests
 
         Task<string> stdout = process.StandardOutput.ReadToEndAsync();
         Task<string> stderr = process.StandardError.ReadToEndAsync();
-        if (!process.WaitForExit(timeoutMs))
+        Task completion = Task.WhenAll(process.WaitForExitAsync(), stdout, stderr);
+        if (!completion.Wait(timeoutMs))
         {
-            process.Kill(entireProcessTree: true);
-            process.WaitForExit();
-            Task.WaitAll(stdout, stderr);
+            try
+            {
+                if (!process.HasExited)
+                    process.Kill(entireProcessTree: true);
+            }
+            catch (InvalidOperationException) when (process.HasExited)
+            {
+                // The process exited after the check but before Kill.
+            }
+
+            TimeSpan postKillDrainTimeout = TimeSpan.FromSeconds(5);
+            Task postKillCompletion = Task.WhenAll(process.WaitForExitAsync(), stdout, stderr);
+            postKillCompletion.Wait(postKillDrainTimeout);
+            string capturedStdOut = GetCompletedOutput(stdout);
+            string capturedStdErr = GetCompletedOutput(stderr);
             throw new TimeoutException(
-                $"dotnet {args} did not exit within {TimeSpan.FromMilliseconds(timeoutMs).TotalSeconds:0} seconds.");
+                $"dotnet {args} did not complete within {TimeSpan.FromMilliseconds(timeoutMs).TotalSeconds:0} seconds " +
+                $"(including stdout/stderr drain; post-kill drain waited up to {postKillDrainTimeout.TotalSeconds:0} seconds). " +
+                $"Captured stdout:{Environment.NewLine}{capturedStdOut}{Environment.NewLine}" +
+                $"Captured stderr:{Environment.NewLine}{capturedStdErr}");
         }
-        Task.WaitAll(stdout, stderr);
+        completion.GetAwaiter().GetResult();
 
         return (process.ExitCode, stdout.Result, stderr.Result);
     }
+
+    private static string GetCompletedOutput(Task<string> output) =>
+        output.Status == TaskStatus.RanToCompletion
+            ? output.GetAwaiter().GetResult()
+            : "[output drain did not complete]";
 
     /// <summary>
     /// Discovers the primary file-based sample catalog.
@@ -435,6 +459,376 @@ public class SdkSampleTests
         {
             Directory.Delete(projectDirectory, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Sdk_RebuildsWhenALolSourceIsDeleted()
+    {
+        string projectDirectory = CreateSdkTestDirectory("deleted-source");
+
+        try
+        {
+            string projectFile = WriteMultiFileLibraryProject(projectDirectory, useExplicitCompileItems: false);
+            File.WriteAllText(Path.Combine(projectDirectory, "01-First.lol"), CreateLibraryFunction("FIRST"));
+            string secondSource = Path.Combine(projectDirectory, "02-Second.lol");
+            File.WriteAllText(secondSource, CreateLibraryFunction("SECOND"));
+
+            AssertBuildSucceeds(projectFile, projectDirectory, "initial build");
+            string outputAssembly = GetSdkTestOutputAssembly(projectDirectory, "MultiFile");
+            GetPublicMethodNames(outputAssembly, "Incremental", "MultiFile").Should().Contain(["FIRST", "SECOND"]);
+
+            File.Delete(secondSource);
+            var (exitCode, stdout, stderr) = RunDotnet(
+                $"build \"{projectFile}\" --no-restore --verbosity normal",
+                projectDirectory);
+            exitCode.Should().Be(0, $"build after deleting a source failed:\n{stderr}\n{stdout}");
+            stdout.Should().Contain("Lolc: Compiling 1 source file(s)");
+            GetPublicMethodNames(outputAssembly, "Incremental", "MultiFile").Should().ContainSingle().Which.Should().Be("FIRST");
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Sdk_RebuildsWhenAnOlderLolSourceIsAdded()
+    {
+        string projectDirectory = CreateSdkTestDirectory("older-source");
+
+        try
+        {
+            string projectFile = WriteMultiFileLibraryProject(projectDirectory, useExplicitCompileItems: false);
+            string firstSource = Path.Combine(projectDirectory, "01-First.lol");
+            File.WriteAllText(firstSource, CreateLibraryFunction("FIRST"));
+
+            AssertBuildSucceeds(projectFile, projectDirectory, "initial build");
+            string outputAssembly = GetSdkTestOutputAssembly(projectDirectory, "MultiFile");
+            DateTime outputTime = File.GetLastWriteTimeUtc(outputAssembly);
+
+            string secondSource = Path.Combine(projectDirectory, "02-Second.lol");
+            File.WriteAllText(secondSource, CreateLibraryFunction("SECOND"));
+            File.SetLastWriteTimeUtc(secondSource, outputTime.AddMinutes(-1));
+            var (exitCode, stdout, stderr) = RunDotnet(
+                $"build \"{projectFile}\" --no-restore --verbosity normal",
+                projectDirectory);
+            exitCode.Should().Be(0, $"build after adding an older source failed:\n{stderr}\n{stdout}");
+            stdout.Should().Contain(
+                "Lolc: Compiling 2 source file(s)",
+                "the compilation-input stamp must account for a source added with an older timestamp.");
+            GetPublicMethodNames(outputAssembly, "Incremental", "MultiFile").Should().Contain(["FIRST", "SECOND"]);
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Sdk_RebuildsWhenLolCompileOrderChanges()
+    {
+        string projectDirectory = CreateSdkTestDirectory("compile-order");
+
+        try
+        {
+            string projectFile = WriteMultiFileLibraryProject(projectDirectory, ["01-First.lol", "02-Second.lol"]);
+            File.WriteAllText(Path.Combine(projectDirectory, "01-First.lol"), CreateLibraryFunction("FIRST"));
+            File.WriteAllText(Path.Combine(projectDirectory, "02-Second.lol"), CreateLibraryFunction("SECOND"));
+
+            AssertBuildSucceeds(projectFile, projectDirectory, "initial build");
+            string outputAssembly = GetSdkTestOutputAssembly(projectDirectory, "MultiFile");
+            GetPublicMethodNames(outputAssembly, "Incremental", "MultiFile").Should().Equal("FIRST", "SECOND");
+
+            WriteMultiFileLibraryProject(projectDirectory, ["02-Second.lol", "01-First.lol"]);
+            var (exitCode, stdout, stderr) = RunDotnet(
+                $"build \"{projectFile}\" --no-restore --verbosity normal",
+                projectDirectory);
+            exitCode.Should().Be(0, $"build after changing Compile order failed:\n{stderr}\n{stdout}");
+            stdout.Should().Contain("Lolc: Compiling 2 source file(s)");
+            GetPublicMethodNames(outputAssembly, "Incremental", "MultiFile").Should().Equal("SECOND", "FIRST");
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("hyphenated-library", "hyphenated_library")]
+    [InlineData("2leading-library", "_2leading_library")]
+    public void LolcodeLibrary_DerivesSanitizedRootNamespaceConsumableFromCSharp(
+        string assemblyName,
+        string expectedIdentifier)
+    {
+        string projectDirectory = CreateSdkTestDirectory($"sanitized-root-{assemblyName}");
+
+        try
+        {
+            string libraryProject = WriteMultiFileLibraryProject(
+                projectDirectory,
+                ["Exports.lol"],
+                assemblyName,
+                rootNamespace: null);
+            File.WriteAllText(Path.Combine(projectDirectory, "Exports.lol"), CreateLibraryFunction("FIRST"));
+
+            AssertBuildSucceeds(libraryProject, projectDirectory, "LOLCODE library build");
+            string outputAssembly = GetSdkTestOutputAssembly(projectDirectory, assemblyName);
+            AssertAssemblyContainsType(outputAssembly, expectedIdentifier, expectedIdentifier);
+
+            string consumerProject = Path.Combine(projectDirectory, "Consumer.csproj");
+            File.WriteAllText(
+                consumerProject,
+                $$"""
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net10.0</TargetFramework>
+                  </PropertyGroup>
+                  <ItemGroup>
+                    <ProjectReference Include="{{libraryProject}}" />
+                  </ItemGroup>
+                </Project>
+                """);
+            File.WriteAllText(
+                Path.Combine(projectDirectory, "Program.cs"),
+                $"Console.WriteLine({expectedIdentifier}.{expectedIdentifier}.FIRST());");
+
+            var (exitCode, stdout, stderr) = RunDotnet(
+                $"run --project \"{consumerProject}\" --no-restore",
+                projectDirectory);
+            exitCode.Should().Be(0, $"C# consumer build failed:\n{stderr}\n{stdout}");
+            stdout.Trim().Should().Be("FIRST");
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Sdk_DefaultProviderPackageReferencesSupportProjectBodyCustomization()
+    {
+        const string packageVersion = "1.2.3";
+        string projectDirectory = CreateSdkTestDirectory("default-provider-references");
+
+        try
+        {
+            string packageFeed = CreateProviderPackageFeed(projectDirectory, packageVersion);
+            string projectFile = WriteDefaultProviderProject(
+                projectDirectory,
+                "ProviderCustomization.lolproj",
+                packageFeed,
+                packageVersion,
+                """
+                <ItemGroup>
+                  <PackageReference Update="Lolcode.Runtime.String">
+                    <PrivateAssets>all</PrivateAssets>
+                  </PackageReference>
+                  <PackageReference Include="Lolcode.Runtime.Stdlib" Version="1.2.3">
+                    <PrivateAssets>all</PrivateAssets>
+                  </PackageReference>
+                  <PackageReference Remove="Lolcode.Runtime.Stdio" />
+                </ItemGroup>
+                """);
+
+            var (itemExitCode, itemStdOut, itemStdErr) = RunDotnet(
+                $"msbuild \"{projectFile}\" -t:WritePackageReferences",
+                projectDirectory);
+            itemExitCode.Should().Be(0, $"package-reference inspection failed:\n{itemStdErr}\n{itemStdOut}");
+
+            string[] references = File.ReadAllLines(Path.Combine(projectDirectory, "package-references.txt"));
+            references.Should().ContainSingle(reference => reference.StartsWith("Lolcode.Runtime.String|", StringComparison.Ordinal));
+            references.Should().ContainSingle(reference => reference.StartsWith("Lolcode.Runtime.Stdlib|", StringComparison.Ordinal));
+            references.Should().ContainSingle(reference => reference.StartsWith("Lolcode.Runtime.Socks|", StringComparison.Ordinal));
+            references.Should().NotContain(reference => reference.StartsWith("Lolcode.Runtime.Stdio|", StringComparison.Ordinal));
+            references.Single(reference => reference.StartsWith("Lolcode.Runtime.String|", StringComparison.Ordinal))
+                .Should().Contain("|1.2.3|all|true");
+            references.Single(reference => reference.StartsWith("Lolcode.Runtime.Stdlib|", StringComparison.Ordinal))
+                .Should().Contain("|1.2.3|all|");
+
+            var (restoreExitCode, restoreStdOut, restoreStdErr) = RunDotnet(
+                $"restore \"{projectFile}\" --force-evaluate -p:TreatWarningsAsErrors=true",
+                projectDirectory);
+            restoreExitCode.Should().Be(0, $"restore with warnings as errors failed:\n{restoreStdErr}\n{restoreStdOut}");
+            $"{restoreStdOut}\n{restoreStdErr}".Should().NotContain("NU1504");
+
+            string optOutProject = WriteDefaultProviderProject(
+                projectDirectory,
+                "ProviderOptOut.lolproj",
+                packageFeed,
+                packageVersion,
+                """
+                <PropertyGroup>
+                  <LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>
+                </PropertyGroup>
+                """);
+            var (optOutExitCode, optOutStdOut, optOutStdErr) = RunDotnet(
+                $"msbuild \"{optOutProject}\" -t:WritePackageReferences",
+                projectDirectory);
+            optOutExitCode.Should().Be(0, $"opt-out package-reference inspection failed:\n{optOutStdErr}\n{optOutStdOut}");
+            File.ReadAllLines(Path.Combine(projectDirectory, "package-references.txt")).Should().BeEmpty();
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
+    private static string CreateSdkTestDirectory(string name)
+    {
+        string projectDirectory = Path.Combine(
+            RepoRoot,
+            "artifacts",
+            "sdk-e2e-tests",
+            name,
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(projectDirectory);
+        return projectDirectory;
+    }
+
+    private static string WriteMultiFileLibraryProject(
+        string projectDirectory,
+        IEnumerable<string>? sourceFiles = null,
+        string assemblyName = "MultiFile",
+        string? rootNamespace = "Incremental",
+        bool useExplicitCompileItems = true)
+    {
+        string sdkDirectory = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk");
+        string buildTasksDirectory = Path.Combine(
+            RepoRoot,
+            "src",
+            "Lolcode.Build",
+            "bin",
+            "Debug",
+            "net10.0") + Path.DirectorySeparatorChar;
+        string projectFile = Path.Combine(projectDirectory, $"{assemblyName}.lolproj");
+        string rootNamespaceProperty = rootNamespace is null
+            ? ""
+            : $"    <RootNamespace>{rootNamespace}</RootNamespace>{Environment.NewLine}";
+        string compileItemGroup = useExplicitCompileItems
+            ? "  <ItemGroup>" + Environment.NewLine +
+              "    <Compile Remove=\"**/*.lol\" />" + Environment.NewLine +
+              string.Join(
+                  Environment.NewLine,
+                  (sourceFiles ?? Enumerable.Empty<string>())
+                      .Select(source => $"    <Compile Include=\"{source}\" />")) + Environment.NewLine +
+              "  </ItemGroup>"
+            : "";
+        File.WriteAllText(
+            projectFile,
+            $$"""
+            <Project>
+              <Import Project="{{Path.Combine(sdkDirectory, "Sdk.props")}}" />
+              <PropertyGroup>
+                <OutputType>Library</OutputType>
+                <TargetFramework>net10.0</TargetFramework>
+                <AssemblyName>{{assemblyName}}</AssemblyName>
+            {{rootNamespaceProperty}}    <LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>
+                <_LolcodeBuildTasksDir>{{buildTasksDirectory}}</_LolcodeBuildTasksDir>
+              </PropertyGroup>
+            {{compileItemGroup}}
+              <Import Project="{{Path.Combine(sdkDirectory, "Sdk.targets")}}" />
+            </Project>
+            """);
+        return projectFile;
+    }
+
+    private static string CreateLibraryFunction(string name) =>
+        $$"""
+        HAI 1.4
+        HOW IZ I {{name}}
+            FOUND YR "{{name}}"
+        IF U SAY SO
+        KTHXBYE
+        """;
+
+    private static void AssertBuildSucceeds(string projectFile, string projectDirectory, string operation)
+    {
+        var (exitCode, stdout, stderr) = RunDotnet(
+            $"build \"{projectFile}\"",
+            projectDirectory);
+        exitCode.Should().Be(0, $"{operation} failed:\n{stderr}\n{stdout}");
+    }
+
+    private static string GetSdkTestOutputAssembly(string projectDirectory, string assemblyName) =>
+        Path.Combine(projectDirectory, "obj", "Debug", "net10.0", $"{assemblyName}.dll");
+
+    private static IReadOnlyList<string> GetPublicMethodNames(
+        string outputAssembly,
+        string expectedNamespace,
+        string expectedTypeName)
+    {
+        using var stream = File.OpenRead(outputAssembly);
+        using var peReader = new PEReader(stream);
+        MetadataReader metadata = peReader.GetMetadataReader();
+        TypeDefinition type = metadata.TypeDefinitions
+            .Select(metadata.GetTypeDefinition)
+            .Single(definition =>
+                metadata.GetString(definition.Namespace) == expectedNamespace &&
+                metadata.GetString(definition.Name) == expectedTypeName);
+        return type.GetMethods()
+            .Select(metadata.GetMethodDefinition)
+            .Where(method => (method.Attributes & MethodAttributes.MemberAccessMask) == MethodAttributes.Public)
+            .Select(method => metadata.GetString(method.Name))
+            .Where(name => name != "__CreateLolcodeLibrary")
+            .ToArray();
+    }
+
+    private static string CreateProviderPackageFeed(string projectDirectory, string packageVersion)
+    {
+        string packageFeed = Path.Combine(projectDirectory, "packages");
+        Directory.CreateDirectory(packageFeed);
+        string[] projects =
+        [
+            "Lolcode.Runtime/Lolcode.Runtime.csproj",
+            "Lolcode.Runtime.String/Lolcode.Runtime.String.csproj",
+            "Lolcode.Runtime.Stdlib/Lolcode.Runtime.Stdlib.csproj",
+            "Lolcode.Runtime.Stdio/Lolcode.Runtime.Stdio.csproj",
+            "Lolcode.Runtime.Socks/Lolcode.Runtime.Socks.csproj",
+        ];
+
+        foreach (string relativeProject in projects)
+        {
+            string providerProject = Path.Combine(RepoRoot, "src", relativeProject);
+            var (exitCode, stdout, stderr) = RunDotnet(
+                $"pack \"{providerProject}\" --no-build -p:PackageVersion={packageVersion} -o \"{packageFeed}\"",
+                RepoRoot);
+            exitCode.Should().Be(0, $"packing {relativeProject} failed:\n{stderr}\n{stdout}");
+        }
+
+        return packageFeed;
+    }
+
+    private static string WriteDefaultProviderProject(
+        string projectDirectory,
+        string projectName,
+        string packageFeed,
+        string packageVersion,
+        string projectBody)
+    {
+        string sdkDirectory = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk");
+        string projectFile = Path.Combine(projectDirectory, projectName);
+        File.WriteAllText(
+            projectFile,
+            $$"""
+            <Project>
+              <Import Project="{{Path.Combine(sdkDirectory, "Sdk.props")}}" />
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <RestoreSources>{{packageFeed}}</RestoreSources>
+                <LolcodeRuntimePackageVersion>{{packageVersion}}</LolcodeRuntimePackageVersion>
+              </PropertyGroup>
+            {{projectBody}}
+              <Target Name="WritePackageReferences"
+                      DependsOnTargets="_ConfigureDefaultLolcodeLibraryPackages">
+                <WriteLinesToFile File="$(MSBuildProjectDirectory)/package-references.txt"
+                                  Lines="@(PackageReference->'%(Identity)|%(Version)|%(PrivateAssets)|%(LolcodeDefaultProvider)')"
+                                  Overwrite="true" />
+              </Target>
+              <Import Project="{{Path.Combine(sdkDirectory, "Sdk.targets")}}" />
+            </Project>
+            """);
+        return projectFile;
     }
 
     private static string CreateDefaultLibraryProject(string projectDirectory, string assemblyName)

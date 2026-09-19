@@ -10,16 +10,25 @@
   <!-- Setting Language=LOLCODE means it won't find Microsoft.LOLCODE.targets, which is fine -->
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 
-  <!-- This runs after the project body has set opt-out or version properties,
-       but before NuGet collects PackageReference restore inputs. -->
-  <Target Name="_AddDefaultLolcodeLibraryPackages"
-          BeforeTargets="CollectPackageReferences"
-          Condition="'$(LolcodeUseDefaultLibraries)' == 'true' and '$(LolcodeUseSourceLibraries)' != 'true'">
+  <!--
+    Defaults are declared in Sdk.props so project bodies can Update or Remove
+    them. Reconcile them after the project body: an explicit Include wins over
+    the same implicit identity, and opt-out/source-library builds remove only
+    the implicit defaults.
+  -->
+  <Target Name="_ConfigureDefaultLolcodeLibraryPackages"
+          BeforeTargets="CollectPackageReferences">
     <ItemGroup>
-      <PackageReference Include="Lolcode.Runtime.String" Version="$(LolcodeRuntimePackageVersion)" IsImplicitlyDefined="true" />
-      <PackageReference Include="Lolcode.Runtime.Stdlib" Version="$(LolcodeRuntimePackageVersion)" IsImplicitlyDefined="true" />
-      <PackageReference Include="Lolcode.Runtime.Stdio" Version="$(LolcodeRuntimePackageVersion)" IsImplicitlyDefined="true" />
-      <PackageReference Include="Lolcode.Runtime.Socks" Version="$(LolcodeRuntimePackageVersion)" IsImplicitlyDefined="true" />
+      <_LolcodeExplicitProviderPackageReference Include="@(PackageReference)"
+          Condition="'%(PackageReference.LolcodeDefaultProvider)' != 'true' and ('%(PackageReference.Identity)' == 'Lolcode.Runtime.String' or '%(PackageReference.Identity)' == 'Lolcode.Runtime.Stdlib' or '%(PackageReference.Identity)' == 'Lolcode.Runtime.Stdio' or '%(PackageReference.Identity)' == 'Lolcode.Runtime.Socks')" />
+      <PackageReference Remove="@(_LolcodeExplicitProviderPackageReference)" />
+      <PackageReference Include="@(_LolcodeExplicitProviderPackageReference)" />
+      <PackageReference Update="@(PackageReference)"
+          Condition="'%(PackageReference.LolcodeDefaultProvider)' == 'true' and '$(LolcodeRuntimePackageVersion)' != '$(_LolcodeDefaultRuntimePackageVersion)'">
+        <Version>$(LolcodeRuntimePackageVersion)</Version>
+      </PackageReference>
+      <PackageReference Remove="@(PackageReference)"
+          Condition="'%(PackageReference.LolcodeDefaultProvider)' == 'true' and ('$(LolcodeUseDefaultLibraries)' != 'true' or '$(LolcodeUseSourceLibraries)' == 'true')" />
     </ItemGroup>
   </Target>
 
@@ -65,9 +74,25 @@
     <Error Condition="'$(OutputType)' == 'Library' and '$(_LolcodeValidatedLibraryTypeName)' != '$(LolcodeLibraryTypeName)'"
            Text="LolcodeLibraryTypeName must be a simple, non-keyword CLR/C# identifier without dots. Set RootNamespace to the desired namespace." />
 
+    <!-- Normalize each explicit or derived namespace component independently. -->
     <PropertyGroup Condition="'$(OutputType)' == 'Library'">
+      <_LolcodeEffectiveRootNamespace Condition="'$(RootNamespace)' != ''">$(RootNamespace)</_LolcodeEffectiveRootNamespace>
+      <_LolcodeEffectiveRootNamespace Condition="'$(_LolcodeEffectiveRootNamespace)' == ''">$(AssemblyName)</_LolcodeEffectiveRootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(OutputType)' == 'Library' and '$(_LolcodeEffectiveRootNamespace)' != ''">
+      <_LolcodeRootNamespaceSegment Include="$([System.String]::Copy('$(_LolcodeEffectiveRootNamespace)').Split('.'))" />
+    </ItemGroup>
+
+    <MakeValidClrIdentifier Condition="'$(OutputType)' == 'Library' and '@(_LolcodeRootNamespaceSegment)' != ''"
+                            Input="%(_LolcodeRootNamespaceSegment.Identity)">
+      <Output TaskParameter="Identifier" ItemName="_LolcodeSanitizedRootNamespaceSegment" />
+    </MakeValidClrIdentifier>
+
+    <PropertyGroup Condition="'$(OutputType)' == 'Library'">
+      <_LolcodeSanitizedRootNamespace>@(_LolcodeSanitizedRootNamespaceSegment, '.')</_LolcodeSanitizedRootNamespace>
       <_LolcodeLibraryFullTypeName
-          Condition="'$(RootNamespace)' != ''">$(RootNamespace).$(LolcodeLibraryTypeName)</_LolcodeLibraryFullTypeName>
+          Condition="'$(_LolcodeSanitizedRootNamespace)' != ''">$(_LolcodeSanitizedRootNamespace).$(LolcodeLibraryTypeName)</_LolcodeLibraryFullTypeName>
       <_LolcodeLibraryFullTypeName
           Condition="'$(_LolcodeLibraryFullTypeName)' == ''">$(LolcodeLibraryTypeName)</_LolcodeLibraryFullTypeName>
     </PropertyGroup>
@@ -78,7 +103,7 @@
 
     <MakeDir Directories="$(IntermediateOutputPath)" />
     <WriteLinesToFile File="$(_LolcodeCompilerOptionsFile)"
-                      Lines="OutputType=$(OutputType);AssemblyName=$(AssemblyName);RootNamespace=$(RootNamespace);LolcodeLibraryTypeName=$(LolcodeLibraryTypeName);LolcodeLibraryFullTypeName=$(_LolcodeLibraryFullTypeName);LolcodeLibraries=$(_LolcodeLibraryDescriptorStamp)"
+                      Lines="OutputType=$(OutputType);AssemblyName=$(AssemblyName);RootNamespace=$(_LolcodeSanitizedRootNamespace);LolcodeLibraryTypeName=$(LolcodeLibraryTypeName);LolcodeLibraryFullTypeName=$(_LolcodeLibraryFullTypeName);LolcodeLibraries=$(_LolcodeLibraryDescriptorStamp)"
                       Overwrite="true"
                       WriteOnlyWhenDifferent="true" />
   </Target>
@@ -93,7 +118,7 @@
   <Target Name="CoreCompile"
           Condition=" '@(Compile)' != '' "
           DependsOnTargets="$(CoreCompileDependsOn)"
-          Inputs="@(Compile);@(ReferencePathWithRefAssemblies);$(MSBuildAllProjects);$(_LolcodeCompilerOptionsFile)"
+          Inputs="@(Compile);@(CustomAdditionalCompileInputs);@(ReferencePathWithRefAssemblies);$(MSBuildAllProjects);$(_LolcodeCompilerOptionsFile)"
           Outputs="@(IntermediateAssembly)">
 
     <!-- Filter out any non-.lol files (e.g., auto-generated .cs files from file-based apps) -->

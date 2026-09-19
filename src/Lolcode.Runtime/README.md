@@ -62,9 +62,18 @@ bundle rather than a merged DLL; on current .NET SDKs it is self-contained.
 Registered official providers are bundled and load through the default runtime
 context. Deliberately external plugins must remain adjacent to the host.
 
-Dynamic managed libraries are not supported with trimming or NativeAOT. The
-current compiler also compiles one `.lol` source file per output; multi-file
-LOLCODE compilation remains deferred.
+Dynamic managed libraries are not supported with trimming or NativeAOT.
+
+## Multiple source files
+
+A compilation can contain multiple complete `.lol` files. The compiler discovers
+top-level declarations across the complete source set so 1.2 direct function
+calls can bind regardless of file order. Runtime availability remains ordered:
+for the 1.3/1.4 declaration and function-value model, values become available
+when their top-level declarations execute in `Compile` order. Keep declaration
+files before callers when initialization or replacement matters. Library wrapper
+initialization runs supported import and declaration forms only; it does not run
+arbitrary top-level executable statements.
 
 ## Requirements
 
