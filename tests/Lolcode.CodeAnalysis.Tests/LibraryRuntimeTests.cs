@@ -11,7 +11,7 @@ public class LibraryRuntimeTests
     [Fact]
     public void Stdio_Slots_ReadWriteRewindClose_AndReportFailedOpen()
     {
-        var scope = LolRuntime.CreateScope();
+        var scope = CreateScope();
         LolRuntime.LoadLibrary(scope, "STDIO");
         string path = Path.Combine(AppContext.BaseDirectory, $"stdio-{Guid.NewGuid():N}.dat");
         try
@@ -48,7 +48,7 @@ public class LibraryRuntimeTests
     [InlineData("a+")]
     public void Stdio_AppendWritesAlwaysReturnToEndAfterRewind(string mode)
     {
-        var scope = LolRuntime.CreateScope();
+        var scope = CreateScope();
         LolRuntime.LoadLibrary(scope, "STDIO");
         string path = Path.Combine(AppContext.BaseDirectory, $"append-{Guid.NewGuid():N}.dat");
         File.WriteAllText(path, "A");
@@ -72,7 +72,7 @@ public class LibraryRuntimeTests
     [Fact]
     public void Stdio_IoAndAccessErrorsSetDiafWithoutThrowing()
     {
-        var scope = LolRuntime.CreateScope();
+        var scope = CreateScope();
         LolRuntime.LoadLibrary(scope, "STDIO");
         string path = Path.Combine(AppContext.BaseDirectory, $"errors-{Guid.NewGuid():N}.dat");
         File.WriteAllText(path, "HAI");
@@ -104,7 +104,7 @@ public class LibraryRuntimeTests
     [Fact]
     public void Stdlib_ReseedingIsDeterministic_AndBlowZeroIsZero()
     {
-        var scope = LolRuntime.CreateScope();
+        var scope = CreateScope();
         LolRuntime.LoadLibrary(scope, "STDLIB");
         try
         {
@@ -125,7 +125,7 @@ public class LibraryRuntimeTests
     [Fact]
     public void String_SlotsUseUtf8Bytes_AndReturnEmptyOutOfBounds()
     {
-        var scope = LolRuntime.CreateScope();
+        var scope = CreateScope();
         LolRuntime.LoadLibrary(scope, "STRING");
 
         Invoke(scope, "STRING", "LEN", "é").Should().Be(2);
@@ -141,7 +141,7 @@ public class LibraryRuntimeTests
     [Fact]
     public void String_SelectedByteWritesWithoutUtf8Expansion()
     {
-        var scope = LolRuntime.CreateScope();
+        var scope = CreateScope();
         LolRuntime.LoadLibrary(scope, "STRING");
         LolRuntime.LoadLibrary(scope, "STDIO");
         string path = Path.Combine(AppContext.BaseDirectory, $"byte-yarn-{Guid.NewGuid():N}.dat");
@@ -164,7 +164,7 @@ public class LibraryRuntimeTests
     [Fact]
     public void ByteYarns_PreserveIdentityAcrossYarnOperations()
     {
-        var scope = LolRuntime.CreateScope();
+        var scope = CreateScope();
         LolRuntime.LoadLibrary(scope, "STRING");
 
         object? first = Invoke(scope, "STRING", "AT", "é", 0);
@@ -192,7 +192,7 @@ public class LibraryRuntimeTests
     [Fact]
     public void Print_UsesConfiguredStreamWriterForRawByteYarns()
     {
-        var scope = LolRuntime.CreateScope();
+        var scope = CreateScope();
         LolRuntime.LoadLibrary(scope, "STRING");
         object? first = Invoke(scope, "STRING", "AT", "é", 0);
         object? second = Invoke(scope, "STRING", "AT", "é", 1);
@@ -230,7 +230,7 @@ public class LibraryRuntimeTests
     [Fact]
     public void Print_UsesConfiguredStringWriterAndPreservesValidUtf8()
     {
-        var scope = LolRuntime.CreateScope();
+        var scope = CreateScope();
         LolRuntime.LoadLibrary(scope, "STRING");
         object? first = Invoke(scope, "STRING", "AT", "é", 0);
         object? second = Invoke(scope, "STRING", "AT", "é", 1);
@@ -291,7 +291,7 @@ public class LibraryRuntimeTests
         listener.Start();
         int port = ((IPEndPoint)listener.LocalEndpoint).Port;
 
-        var scope = LolRuntime.CreateScope();
+        var scope = CreateScope();
         LolRuntime.LoadLibrary(scope, "SOCKS");
         LolRuntime.LoadLibrary(scope, "STRING");
         try
@@ -339,7 +339,7 @@ public class LibraryRuntimeTests
     [Fact]
     public void UnknownLibrary_IsIgnored()
     {
-        var scope = LolRuntime.CreateScope();
+        var scope = CreateScope();
         LolRuntime.LoadLibrary(scope, "BRAINZ");
 
         FluentActions.Invoking(() => LolRuntime.GetValue(scope, ["BRAINZ"]))
@@ -350,7 +350,7 @@ public class LibraryRuntimeTests
     [Fact]
     public void ScopeCleanupClosesUnclosedBlobHandles()
     {
-        var scope = LolRuntime.CreateScope();
+        var scope = CreateScope();
         LolRuntime.LoadLibrary(scope, "STDIO");
         string path = Path.Combine(AppContext.BaseDirectory, $"cleanup-{Guid.NewGuid():N}.dat");
         object? file = Invoke(scope, "STDIO", "OPEN", path, "w");
@@ -370,7 +370,7 @@ public class LibraryRuntimeTests
     [Fact]
     public void ExplicitCloseUnregistersBlobWhileScopeStillTracksOpenHandles()
     {
-        var scope = LolRuntime.CreateScope();
+        var scope = CreateScope();
         LolRuntime.LoadLibrary(scope, "STDIO");
         string firstPath = Path.Combine(AppContext.BaseDirectory, $"tracked-1-{Guid.NewGuid():N}.dat");
         string secondPath = Path.Combine(AppContext.BaseDirectory, $"tracked-2-{Guid.NewGuid():N}.dat");
@@ -387,12 +387,35 @@ public class LibraryRuntimeTests
             ((LolBlob)open!).IsClosed.Should().BeTrue();
             GetTrackedResourceCount(scope).Should().Be(0);
         }
+
         finally
         {
             LolRuntime.DisposeScope(scope);
             File.Delete(firstPath);
             File.Delete(secondPath);
         }
+    }
+
+    [Fact]
+    public void PublicWrapperTransfer_DetachesNestedCyclicBlobGraph()
+    {
+        var scope = LolRuntime.CreateScope();
+        var context = new LolcodeLibraryContext(scope.Resources);
+        var blob = context.RegisterResource(new TestBlob());
+        var root = new LolObject(scope);
+        var nested = new LolObject(root);
+        scope.Values["prototypeBlob"] = blob;
+        root.Values["direct"] = blob;
+        root.Values["nested"] = nested;
+        nested.Values["duplicate"] = blob;
+        nested.Values["cycle"] = root;
+
+        LolRuntime.TransferPublicLibraryResult(scope, nested);
+        LolRuntime.DisposeScope(scope);
+
+        blob.IsClosed.Should().BeFalse("the managed caller owns all reachable returned BLOBs");
+        blob.Dispose();
+        blob.IsClosed.Should().BeTrue();
     }
 
     [Fact]
@@ -421,6 +444,19 @@ public class LibraryRuntimeTests
         params object?[] arguments) =>
         LolRuntime.Invoke(scope, [library], [function], arguments);
 
+    private static LolScope CreateScope()
+    {
+        var scope = LolRuntime.CreateScope();
+        LolRuntime.ConfigureLibraries(scope,
+        [
+            "STRING|Lolcode.Runtime.String|Lolcode.Runtime.String.StringLibrary|true|1",
+            "STDLIB|Lolcode.Runtime.Stdlib|Lolcode.Runtime.Stdlib.StdlibLibrary|true|1",
+            "STDIO|Lolcode.Runtime.Stdio|Lolcode.Runtime.Stdio.StdioLibrary|true|1",
+            "SOCKS|Lolcode.Runtime.Socks|Lolcode.Runtime.Socks.SocksLibrary|true|1",
+        ]);
+        return scope;
+    }
+
     private static int GetTrackedResourceCount(LolScope scope)
     {
         object tracker = typeof(LolScope)
@@ -432,5 +468,12 @@ public class LibraryRuntimeTests
                 System.Reflection.BindingFlags.NonPublic)!
             .GetValue(tracker)!;
         return (int)resources.GetType().GetProperty("Count")!.GetValue(resources)!;
+    }
+
+    private sealed class TestBlob : LolBlob
+    {
+        protected override void DisposeCore()
+        {
+        }
     }
 }

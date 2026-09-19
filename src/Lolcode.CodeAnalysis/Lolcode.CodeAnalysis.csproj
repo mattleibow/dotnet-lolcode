@@ -20,7 +20,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Lolcode.Runtime\Lolcode.Runtime.csproj" />
+    <ProjectReference Include="..\Lolcode.Runtime.String\Lolcode.Runtime.String.csproj" />
+    <ProjectReference Include="..\Lolcode.Runtime.Stdlib\Lolcode.Runtime.Stdlib.csproj" />
+    <ProjectReference Include="..\Lolcode.Runtime.Stdio\Lolcode.Runtime.Stdio.csproj" />
+    <ProjectReference Include="..\Lolcode.Runtime.Socks\Lolcode.Runtime.Socks.csproj" />
   </ItemGroup>
 
 </Project>

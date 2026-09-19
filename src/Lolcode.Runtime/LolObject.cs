@@ -8,6 +8,7 @@ public class LolScope
     internal LolScope? Parent { get; }
     internal LolObject? Caller { get; }
     internal LolResourceTracker Resources { get; }
+    internal LolcodeLibraryRegistry Libraries { get; }
 
     /// <summary>Gets or sets the implicit IT value for this scope.</summary>
     public object? It { get; set; }
@@ -19,7 +20,111 @@ public class LolScope
         Parent = parent;
         Caller = caller;
         Resources = parent?.Resources ?? caller?.Resources ?? new LolResourceTracker();
+        Libraries = parent?.Libraries ?? caller?.Libraries ?? new LolcodeLibraryRegistry();
     }
+}
+
+/// <summary>Marks the generated public export type of a LOLCODE class library.</summary>
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+public sealed class LolcodeLibraryAttribute : Attribute;
+
+/// <summary>
+/// Provides a registered LOLCODE library with scope-bound capabilities.
+/// </summary>
+public sealed class LolcodeLibraryContext
+{
+    private readonly LolResourceTracker _resources;
+    private readonly Dictionary<Type, object> _state = [];
+
+    internal LolcodeLibraryContext(LolResourceTracker resources) => _resources = resources;
+
+    /// <summary>Registers an opaque BLOB handle for automatic scope cleanup.</summary>
+    public T RegisterResource<T>(T resource) where T : LolBlob => _resources.Register(resource);
+
+    /// <summary>Gets or creates mutable state that is isolated to this library import.</summary>
+    public T GetOrCreateState<T>(Func<T> factory) where T : class
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        if (_state.TryGetValue(typeof(T), out object? existing))
+            return (T)existing;
+
+        T created = factory();
+        _state.Add(typeof(T), created);
+        return created;
+    }
+}
+
+internal sealed record LolcodeLibraryDescriptor(
+        string LolName,
+        string AssemblyName,
+        string ExportTypeName,
+        bool IsReserved,
+        int ContractVersion)
+    {
+        internal const int CurrentContractVersion = 1;
+        internal static readonly IReadOnlyDictionary<string, LolcodeLibraryDescriptor> Official =
+            new Dictionary<string, LolcodeLibraryDescriptor>(StringComparer.Ordinal)
+            {
+                ["STRING"] = new("STRING", "Lolcode.Runtime.String", "Lolcode.Runtime.String.StringLibrary", true, CurrentContractVersion),
+                ["STDLIB"] = new("STDLIB", "Lolcode.Runtime.Stdlib", "Lolcode.Runtime.Stdlib.StdlibLibrary", true, CurrentContractVersion),
+                ["STDIO"] = new("STDIO", "Lolcode.Runtime.Stdio", "Lolcode.Runtime.Stdio.StdioLibrary", true, CurrentContractVersion),
+                ["SOCKS"] = new("SOCKS", "Lolcode.Runtime.Socks", "Lolcode.Runtime.Socks.SocksLibrary", true, CurrentContractVersion),
+            };
+
+        internal static bool TryParse(string value, out LolcodeLibraryDescriptor? descriptor)
+        {
+            string[] fields = value.Split('|');
+            if (fields.Length == 5 &&
+                !fields.Take(3).Any(string.IsNullOrWhiteSpace) &&
+                bool.TryParse(fields[3], out bool reserved) &&
+                int.TryParse(fields[4], out int version))
+            {
+                descriptor = new(fields[0], fields[1], fields[2], reserved, version);
+                return true;
+            }
+
+            descriptor = null;
+            return false;
+        }
+    }
+
+internal sealed class LolcodeLibraryRegistry
+    {
+        private readonly Dictionary<string, LolcodeLibraryDescriptor> _descriptors =
+            new(StringComparer.Ordinal);
+
+        internal void Configure(IEnumerable<string> descriptors)
+        {
+            foreach (string encoded in descriptors)
+            {
+                if (!LolcodeLibraryDescriptor.TryParse(encoded, out LolcodeLibraryDescriptor? descriptor))
+                    throw new LolRuntimeException($"Invalid LOLCODE library descriptor: {encoded}");
+                LolcodeLibraryDescriptor parsed = descriptor
+                        ?? throw new LolRuntimeException($"Invalid LOLCODE library descriptor: {encoded}");
+                if (parsed.ContractVersion != LolcodeLibraryDescriptor.CurrentContractVersion)
+                {
+                        throw new LolRuntimeException(
+                        $"Unsupported LOLCODE library contract version: {parsed.ContractVersion}");
+                }
+                if (LolcodeLibraryDescriptor.Official.TryGetValue(parsed.LolName, out var official) &&
+                    parsed != official)
+                {
+                    throw new LolRuntimeException(
+                        $"Reserved LOLCODE library descriptor does not match the official '{parsed.LolName}' contract.");
+                }
+                if (_descriptors.TryGetValue(parsed.LolName, out var existing))
+                {
+                        if (existing == parsed)
+                            continue;
+                        throw new LolRuntimeException(
+                            $"Ambiguous LOLCODE library descriptor: {parsed.LolName}");
+                }
+                _descriptors.Add(parsed.LolName, parsed);
+            }
+        }
+
+        internal bool TryGet(string name, out LolcodeLibraryDescriptor descriptor) =>
+            _descriptors.TryGetValue(name, out descriptor!);
 }
 
 /// <summary>Represents a LOLCODE BUKKIT and its prototype chain.</summary>
@@ -43,6 +148,10 @@ internal sealed class LolResourceTracker
     {
         lock (_gate)
         {
+            if (resource.IsTrackedBy(this))
+                return resource;
+            if (resource.IsTracked)
+                throw new InvalidOperationException("BLOB handle is owned by a different LOLCODE scope.");
             if (_disposed)
             {
                 resource.Dispose();
@@ -58,6 +167,13 @@ internal sealed class LolResourceTracker
     {
         lock (_gate)
             _resources.Remove(resource);
+    }
+
+    internal void Detach(LolBlob resource)
+    {
+        lock (_gate)
+            _resources.Remove(resource);
+        resource.DetachTracker(this);
     }
 
     internal void Dispose()
@@ -103,7 +219,8 @@ public abstract class LolBlob : IDisposable
     /// <summary>Releases the managed operating-system resource.</summary>
     protected abstract void DisposeCore();
 
-    internal void ThrowIfClosed(string operation)
+    /// <summary>Throws when a provider attempts an operation on a closed handle.</summary>
+    protected void ThrowIfClosed(string operation)
     {
         if (IsClosed)
             throw new LolRuntimeException($"Cannot {operation} a closed BLOB handle");
@@ -114,6 +231,14 @@ public abstract class LolBlob : IDisposable
         if (Interlocked.CompareExchange(ref _tracker, tracker, null) is not null)
             throw new InvalidOperationException("BLOB handle is already tracked.");
     }
+
+    internal bool IsTracked => Volatile.Read(ref _tracker) is not null;
+
+    internal bool IsTrackedBy(LolResourceTracker tracker) =>
+        ReferenceEquals(Volatile.Read(ref _tracker), tracker);
+
+    internal void DetachTracker(LolResourceTracker tracker) =>
+        Interlocked.CompareExchange(ref _tracker, null, tracker);
 }
 
 /// <summary>Incrementally resolves an identifier path in evaluation order.</summary>

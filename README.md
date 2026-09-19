@@ -46,7 +46,7 @@ if (!result.Success)
 
 ## Features
 
-- 🐱 **LOLCODE 1.2 + pinned future behavior** — including BUKKIT/SRS, built-in libraries, `INVISIBLE`, and `I DUZ`
+- 🐱 **LOLCODE 1.2 + pinned future behavior** — including BUKKIT/SRS, modular official libraries, `INVISIBLE`, and `I DUZ`
 - 🎯 **Compiles to .NET IL** — produces real .NET assemblies (not interpreted)
 - 📦 **MSBuild SDK** — `dotnet build` and `dotnet run` for `.lolproj` projects
 - 🚀 **File-based apps** — `dotnet build hello.lol` and `dotnet run --file hello.lol` with no project needed

@@ -43,6 +43,28 @@ dotnet watch    # Recompile on changes
 dotnet publish  # Publish for deployment
 ```
 
+### Class libraries
+
+Set `OutputType` to `Library` to emit a DLL with no entry point or runtime
+configuration file. Top-level directly named `HOW IZ I` functions become public
+static methods returning and accepting `object`, so C# projects can consume the
+library through a normal `ProjectReference`.
+
+```xml
+<PropertyGroup>
+  <OutputType>Library</OutputType>
+  <TargetFramework>net10.0</TargetFramework>
+  <RootNamespace>InteropSamples</RootNamespace>
+  <LolcodeLibraryTypeName>LolcatExports</LolcodeLibraryTypeName>
+</PropertyGroup>
+```
+
+`LolcodeLibraryTypeName` must be a simple type name (without dots). When it is
+omitted, the SDK derives a valid CLR identifier from `AssemblyName` (for
+example, `Lolcat-Phrase` becomes `Lolcat_Phrase`). The SDK composes the emitted CLR type as
+`$(RootNamespace).$(LolcodeLibraryTypeName)`, or uses the type name without a
+namespace when `RootNamespace` is empty.
+
 ### File-based apps (no project needed)
 
 Create `hello.lol` — no project file required:

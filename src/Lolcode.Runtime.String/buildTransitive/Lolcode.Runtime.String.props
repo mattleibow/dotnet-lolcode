@@ -1,0 +1,5 @@
+<Project>
+  <ItemGroup>
+    <LolcodeLibrary Include="STRING|Lolcode.Runtime.String|Lolcode.Runtime.String.StringLibrary|true|1" />
+  </ItemGroup>
+</Project>

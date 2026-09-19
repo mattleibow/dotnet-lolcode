@@ -29,7 +29,7 @@ KTHXBYE
 
 ### Overview
 
-LOLCODE 1.4 reuses the `CAN HAS` phrase found in the sparse 1.0 inclusion/requirement proposal. In `lci/future`, it loads named built-in libraries exposed through BUKKIT semantics.
+LOLCODE 1.4 reuses the `CAN HAS` phrase found in the sparse 1.0 inclusion/requirement proposal. In `lci/future`, it loads named built-in libraries exposed through BUKKIT semantics. In the .NET compiler, the official `STRING`, `STDLIB`, `STDIO`, and `SOCKS` libraries are modular provider assemblies registered by package metadata, not hardcoded runtime implementations.
 
 ### Syntax
 
@@ -214,7 +214,7 @@ DeallocationStmtNode ::= IdentifierNode TT_RNOOB TT_NEWLINE
 
 ## 8. Opaque BLOB Values
 
-The library binding system introduces an interpreter runtime value for opaque native handles. BLOB is not a source-level type keyword: it has no literal, cannot be named as a `MAEK` target, and has no specified casts or equality behavior. It can only be received from and passed back to built-in library functions.
+The library binding system introduces an interpreter runtime value for opaque native handles. BLOB is not a source-level type keyword: it has no literal, cannot be named as a `MAEK` target, and has no specified casts or equality behavior. It can only be received from and passed back to registered library functions.
 
 Lifetime, ownership, truthiness, and invalid-handle behavior are not coherently specified. The pinned interpreter also has unsafe equality behavior for BUKKIT, function, and BLOB values; that defect is not promoted into a language rule.
 

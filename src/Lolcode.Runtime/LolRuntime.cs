@@ -62,6 +62,8 @@ public static class LolRuntime
 {
     private sealed record YarnLiteral(string Value);
     private static readonly AsyncLocal<IoContext?> CurrentIo = new();
+    private static readonly IReadOnlyDictionary<string, LolcodeLibraryDescriptor> OfficialDescriptors =
+        LolcodeLibraryDescriptor.Official;
 
     // ==================== Namespaces and BUKKITs ====================
 
@@ -72,20 +74,372 @@ public static class LolRuntime
     public static void DisposeScope(LolScope scope) => scope.Resources.Dispose();
 
     /// <summary>
-    /// Loads a named built-in library into the current scope.
-    /// Unknown names and duplicate imports are ignored.
+    /// Transfers a BLOB returned through a public library wrapper to the managed caller.
+    /// The caller owns and must dispose the returned handle.
+    /// </summary>
+    public static object? TransferPublicLibraryResult(LolScope scope, object? value)
+    {
+        var visitedScopes = new HashSet<LolScope>(ReferenceEqualityComparer.Instance);
+
+        void TransferValue(object? candidate)
+        {
+            switch (candidate)
+            {
+                case LolBlob blob:
+                    scope.Resources.Detach(blob);
+                    break;
+                case LolObject obj:
+                    TransferScope(obj);
+                    break;
+            }
+        }
+
+        void TransferScope(LolScope candidate)
+        {
+            if (!visitedScopes.Add(candidate))
+                return;
+
+            TransferValue(candidate.It);
+            foreach (object? member in candidate.Values.Values)
+                TransferValue(member);
+
+            // Follow only the lexical chain reachable through the returned BUKKIT's
+            // prototype lookup, not unrelated caller/receiver state.
+            if (candidate is LolObject obj)
+            {
+                if (obj.Prototype is not null)
+                    TransferScope(obj.Prototype);
+            }
+            else if (candidate.Parent is not null)
+            {
+                TransferScope(candidate.Parent);
+            }
+        }
+
+        TransferValue(value);
+        return value;
+    }
+
+    /// <summary>
+    /// Adds package-supplied library descriptors to a scope before it imports libraries.
+    /// </summary>
+    public static void ConfigureLibraries(LolScope scope, string[] descriptors) =>
+        scope.Libraries.Configure(descriptors);
+
+    /// <summary>
+    /// Loads a named registered or local managed library into the current scope.
+    /// Registered libraries take precedence. Unknown names and duplicate imports are ignored.
     /// </summary>
     public static void LoadLibrary(LolScope scope, string name)
     {
         if (scope.Values.ContainsKey(name))
             return;
-        LolObject? library = LolLibraries.Create(scope, name);
+        LolObject? library = LoadRegisteredLibrary(scope, name);
+        library ??= LoadManagedLibrary(scope, name);
         if (library is not null)
             scope.Values[name] = library;
     }
 
+    private static LolObject? LoadRegisteredLibrary(LolScope scope, string name)
+    {
+        if (!scope.Libraries.TryGet(name, out LolcodeLibraryDescriptor descriptor) &&
+            !OfficialDescriptors.TryGetValue(name, out descriptor!))
+        {
+            return null;
+        }
+
+        try
+        {
+            Assembly assembly = Assembly.Load(new AssemblyName(descriptor.AssemblyName));
+            Type? type = assembly.GetType(descriptor.ExportTypeName, throwOnError: false);
+            if (type is null)
+            {
+                throw new LolRuntimeException(
+                    $"Registered LOLCODE library '{name}' does not contain '{descriptor.ExportTypeName}'.");
+            }
+            return CreateManagedLibrary(scope, type, allowContext: true);
+        }
+        catch (LolRuntimeException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (
+            ex is FileNotFoundException or FileLoadException or BadImageFormatException or
+            TypeLoadException or ArgumentException)
+        {
+            throw new LolRuntimeException($"Unable to load registered LOLCODE library '{name}': {ex.Message}");
+        }
+    }
+
+    private static LolObject? LoadManagedLibrary(LolScope scope, string name)
+    {
+        if (!TryGetManagedLibraryPath(name, out string path))
+            return null;
+        if (!File.Exists(path))
+            return null;
+
+        Assembly assembly;
+        try
+        {
+            assembly = Assembly.LoadFrom(path);
+        }
+        catch (Exception ex) when (
+            ex is BadImageFormatException or FileLoadException or FileNotFoundException or
+            PathTooLongException or ArgumentException or NotSupportedException)
+        {
+            return null;
+        }
+
+        Type? type;
+        try
+        {
+            type = SelectManagedLibraryType(assembly.GetTypes(), name);
+        }
+        catch (Exception ex) when (
+            ex is ReflectionTypeLoadException or FileNotFoundException or FileLoadException or
+            BadImageFormatException)
+        {
+            return null;
+        }
+        if (type is null)
+            return null;
+
+        if (type.IsDefined(typeof(LolcodeLibraryAttribute), inherit: false))
+            return CreateGeneratedLolcodeLibrary(scope, type);
+
+        return CreateManagedLibrary(scope, type, allowContext: false);
+    }
+
+    private static LolObject CreateGeneratedLolcodeLibrary(LolScope scope, Type type)
+    {
+        MethodInfo? factory = type.GetMethod(
+            "__CreateLolcodeLibrary",
+            BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly,
+            binder: null,
+            [typeof(LolScope)],
+            modifiers: null);
+        if (factory?.ReturnType != typeof(LolObject))
+        {
+            throw new LolRuntimeException(
+                $"Generated LOLCODE library '{type.FullName}' does not expose a valid module factory.");
+        }
+
+        try
+        {
+            return (LolObject)(factory.Invoke(null, [scope])
+                ?? throw new LolRuntimeException($"Generated LOLCODE library '{type.FullName}' returned no module."));
+        }
+        catch (TargetInvocationException ex)
+        {
+            throw new LolRuntimeException(ex.InnerException?.Message ?? ex.Message);
+        }
+    }
+
+    private static LolObject CreateManagedLibrary(LolScope scope, Type type, bool allowContext)
+    {
+        var library = new LolObject(scope, scope.Caller);
+        LolcodeLibraryContext? ownerContext = allowContext
+            ? new LolcodeLibraryContext(scope.Resources)
+            : null;
+        MethodInfo[] methods = type.GetMethods(
+                BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(static method => !method.IsSpecialName)
+            .GroupBy(static method => method.Name, StringComparer.Ordinal)
+            .Where(static group => group.Take(2).Count() == 1)
+            .Select(static group => group.Single())
+            .Where(method => IsSupportedManagedMethod(method, allowContext))
+            .OrderBy(static method => method.Name, StringComparer.Ordinal)
+            .ToArray();
+
+        foreach (MethodInfo method in methods)
+        {
+            ParameterInfo[] allParameters = method.GetParameters();
+            bool usesContext = allowContext && allParameters.FirstOrDefault()?.ParameterType ==
+                typeof(LolcodeLibraryContext);
+            ParameterInfo[] parameters = usesContext ? allParameters[1..] : allParameters;
+            string[] parameterNames = parameters
+                .Select((parameter, index) => parameter.Name ?? $"arg{index}")
+                .ToArray();
+            LolParameterNameResolver[] resolvers = parameterNames
+                .Select(parameterName =>
+                    (LolParameterNameResolver)(caller => new LolResolvedSlot(caller, parameterName)))
+                .ToArray();
+            library.Values[method.Name] = new LolFunction(
+                parameters.Length,
+                (_, _, arguments, _) => InvokeManagedMethod(
+                    method,
+                    allParameters,
+                    arguments,
+                    ownerContext,
+                    usesContext ? ownerContext : null),
+                resolvers);
+        }
+
+        return library;
+    }
+
+    internal static bool TryGetManagedLibraryPath(string name, out string path)
+    {
+        path = string.Empty;
+        if (string.IsNullOrWhiteSpace(name) ||
+            name is "." or ".." ||
+            name.IndexOfAny(['/', '\\']) >= 0 ||
+            name.Contains(':', StringComparison.Ordinal) ||
+            Path.IsPathRooted(name) ||
+            Path.IsPathFullyQualified(name))
+        {
+            return false;
+        }
+
+        try
+        {
+            string baseDirectory = Path.GetFullPath(AppContext.BaseDirectory);
+            string candidate = Path.GetFullPath(Path.Combine(baseDirectory, $"{name}.dll"));
+            string normalizedBaseDirectory = Path.TrimEndingDirectorySeparator(baseDirectory);
+            string? candidateDirectory = Path.GetDirectoryName(candidate);
+            if (!string.Equals(
+                    candidateDirectory,
+                    normalizedBaseDirectory,
+                    OperatingSystem.IsWindows()
+                        ? StringComparison.OrdinalIgnoreCase
+                        : StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            path = candidate;
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+    }
+
+    internal static Type? SelectManagedLibraryType(IEnumerable<Type> types, string name)
+    {
+        Type[] candidates = types
+            .Where(static candidate => candidate.IsPublic &&
+                !candidate.IsNested &&
+                candidate.IsClass &&
+                candidate.IsAbstract &&
+                candidate.IsSealed)
+            .OrderBy(static candidate => candidate.FullName, StringComparer.Ordinal)
+            .ToArray();
+
+        Type[] marked = candidates
+            .Where(static candidate => candidate.IsDefined(typeof(LolcodeLibraryAttribute), inherit: false))
+            .Take(2)
+            .ToArray();
+        if (marked.Length == 1)
+            return marked[0];
+        if (marked.Length > 1)
+            return null;
+
+        if (candidates.Length == 1)
+            return candidates[0];
+
+        Type[] matchingTypes = candidates
+            .Where(candidate => candidate.Name == name)
+            .Take(2)
+            .ToArray();
+        return matchingTypes.Length == 1 ? matchingTypes[0] : null;
+    }
+
+    internal static bool IsSupportedManagedMethod(MethodInfo method, bool allowContext = false)
+    {
+        if (method.IsGenericMethodDefinition || method.ContainsGenericParameters ||
+            method.ReturnType.IsByRef || method.ReturnType.IsPointer || method.ReturnType.IsByRefLike ||
+            !IsSupportedManagedReturnType(method.ReturnType))
+        {
+            return false;
+        }
+
+        ParameterInfo[] parameters = method.GetParameters();
+        bool hasContext = parameters.FirstOrDefault()?.ParameterType == typeof(LolcodeLibraryContext);
+        if (hasContext && !allowContext)
+            return false;
+        if (parameters.Skip(hasContext ? 1 : 0).Any(parameter => parameter.ParameterType == typeof(LolcodeLibraryContext)))
+            return false;
+
+        return parameters.Skip(hasContext ? 1 : 0).All(parameter =>
+            !parameter.IsOut &&
+            !parameter.ParameterType.IsByRef &&
+            !parameter.ParameterType.IsPointer &&
+            !parameter.ParameterType.IsByRefLike &&
+            IsSupportedManagedValueType(parameter.ParameterType));
+    }
+
+    internal static object? ConvertManagedArgument(object? value, Type targetType)
+    {
+        if (targetType == typeof(object))
+            return value;
+        if (targetType == typeof(string))
+            return CastToYarn(value);
+        if (targetType == typeof(int))
+            return CastToNumbr(value);
+        if (targetType == typeof(double))
+            return CastToNumbar(value);
+        if (targetType == typeof(bool))
+            return CastToTroof(value);
+
+        throw new LolRuntimeException(
+            $"Unsupported managed library parameter type: {targetType.FullName}");
+    }
+
+    private static bool IsSupportedManagedReturnType(Type type) =>
+        type == typeof(void) || IsSupportedManagedValueType(type);
+
+    private static bool IsSupportedManagedValueType(Type type) =>
+        type == typeof(object) ||
+        type == typeof(string) ||
+        type == typeof(int) ||
+        type == typeof(double) ||
+        type == typeof(bool);
+
+    internal static object? InvokeManagedMethod(
+        MethodInfo method,
+        ParameterInfo[] parameters,
+        object?[] arguments,
+        LolcodeLibraryContext? ownerContext = null,
+        LolcodeLibraryContext? injectedContext = null)
+    {
+        try
+        {
+            int parameterOffset = injectedContext is null ? 0 : 1;
+            if (parameters.Length != arguments.Length + parameterOffset)
+                throw new LolRuntimeException("Managed library parameter count does not match LOLCODE call.");
+
+            var convertedArguments = new object?[parameters.Length];
+            if (injectedContext is not null)
+                convertedArguments[0] = injectedContext;
+            for (int index = 0; index < arguments.Length; index++)
+            {
+                convertedArguments[index + parameterOffset] =
+                    ConvertManagedArgument(arguments[index], parameters[index + parameterOffset].ParameterType);
+            }
+
+            object? result = method.Invoke(null, convertedArguments);
+            if (ownerContext is not null && result is LolBlob blob)
+                ownerContext.RegisterResource(blob);
+            return result;
+        }
+        catch (TargetInvocationException ex)
+        {
+            throw new LolRuntimeException(ex.InnerException?.Message ?? ex.Message);
+        }
+        catch (Exception ex)
+        {
+            throw new LolRuntimeException(ex.Message);
+        }
+    }
+
     /// <summary>Creates a lexical child of an existing namespace.</summary>
     public static LolScope CreateChildScope(LolScope parent) => new(parent, parent.Caller);
+
+    /// <summary>Creates a module BUKKIT whose resources are owned by the importing scope.</summary>
+    public static LolObject CreateLibraryObject(LolScope importingScope) =>
+        new(importingScope, importingScope.Caller);
 
     /// <summary>Creates a function invocation namespace.</summary>
     [System.Diagnostics.DebuggerStepThrough]
@@ -604,14 +958,21 @@ public static class LolRuntime
     /// <summary>Creates a source YARN whose Unicode escapes resolve when the value is used.</summary>
     public static object CreateYarnLiteral(string value) => new YarnLiteral(value);
 
-    internal static object CreateByteYarn(byte value) => new LolByteYarn([value]);
+    /// <summary>Creates a YARN that preserves its original UTF-8 byte representation.</summary>
+    public static object CreateByteYarn(byte value) => new LolByteYarn([value]);
 
-    internal static byte[] GetYarnBytes(object? value) =>
+    /// <summary>Creates a YARN that preserves the supplied UTF-8 byte representation.</summary>
+    public static object CreateByteYarn(byte[] bytes) =>
+        new LolByteYarn((byte[])bytes.Clone());
+
+    /// <summary>Gets a YARN's UTF-8 bytes without normalizing byte-preserving YARN values.</summary>
+    public static byte[] GetYarnBytes(object? value) =>
         value is LolByteYarn yarn
             ? yarn.Bytes
             : Encoding.UTF8.GetBytes(CastToYarn(value));
 
-    internal static byte[] GetExplicitYarnBytes(object? value) =>
+    /// <summary>Gets the UTF-8 bytes of a value after explicit YARN coercion.</summary>
+    public static byte[] GetExplicitYarnBytes(object? value) =>
         value is null
             ? []
             : value is LolByteYarn yarn
