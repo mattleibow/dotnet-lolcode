@@ -1,0 +1,55 @@
+HAI 1.4
+
+CAN HAS GameEngine?
+CAN HAS TerminalUi?
+
+BTW REGISTERCOMMANDS installs first-class command function values in the shared router.
+HOW IZ I REGISTERCOMMANDS YR router
+  I IZ router'Z REGISTER YR "STATUS" AN YR COMMANDSTATUS MKAY
+  I IZ router'Z REGISTER YR "MAP" AN YR COMMANDMAP MKAY
+  I IZ router'Z REGISTER YR "TRAVEL1" AN YR COMMANDTRAVEL1 MKAY
+  I IZ router'Z REGISTER YR "TRAVEL2" AN YR COMMANDTRAVEL2 MKAY
+  I IZ router'Z REGISTER YR "TRAVEL3" AN YR COMMANDTRAVEL3 MKAY
+  I IZ router'Z REGISTER YR "MINE" AN YR COMMANDMINE MKAY
+  I IZ router'Z REGISTER YR "SELL" AN YR COMMANDSELL MKAY
+  I IZ router'Z REGISTER YR "FUEL" AN YR COMMANDFUEL MKAY
+  I IZ router'Z REGISTER YR "FIGHT" AN YR COMMANDFIGHT MKAY
+  I IZ router'Z REGISTER YR "MISSION" AN YR COMMANDMISSION MKAY
+  I IZ router'Z REGISTER YR "SAVE" AN YR COMMANDSAVE MKAY
+  I IZ router'Z REGISTER YR "LOAD" AN YR COMMANDLOAD MKAY
+  I IZ router'Z REGISTER YR "QUIT" AN YR COMMANDQUIT MKAY
+  FOUND YR router
+IF U SAY SO
+
+BTW RUN owns interactive input while domain state stays in a dispatchable BUKKIT.
+HOW IZ I RUN
+  CAN HAS CanHasGalaxy?
+  BTW session is the CLI-owned mutable BUKKIT passed to generic handlers.
+  I HAS A session ITZ A BUKKIT
+  session HAS A game ITZ I IZ CanHasGalaxy'Z CREATEGAME YR "CAPTAIN" AN YR 7 MKAY
+  session HAS A running ITZ WIN
+  session HAS A saveFile ITZ "can-has-galaxy.save"
+  I HAS A router ITZ I IZ GameEngine'Z NEWROUTER MKAY
+  I IZ REGISTERCOMMANDS YR router MKAY
+  I IZ TerminalUi'Z HEADER YR "CAN HAS GALAXY?  SPACE TRADER" MKAY
+  I IZ TerminalUi'Z MENU YR "STATUS MAP TRAVEL1 TRAVEL2 TRAVEL3 MINE SELL FUEL FIGHT MISSION SAVE LOAD QUIT" MKAY
+  IM IN YR commandLoop UPPIN YR tick WILE BOTH SAEM session'Z running AN WIN
+    I IZ TerminalUi'Z PROMPT YR "GALAXY>" MKAY
+    I HAS A command
+    GIMMEH command
+    BOTH SAEM command AN ""
+    O RLY?
+      YA RLY
+        VISIBLE "EOF. SAFE LANDIN."
+        session'Z running R FAIL
+      NO WAI
+        I HAS A result ITZ router IZ DISPATCH YR command AN YR session MKAY
+        VISIBLE result
+    OIC
+  IM OUTTA YR commandLoop
+  FOUND YR session'Z game
+IF U SAY SO
+
+I IZ RUN MKAY
+
+KTHXBYE

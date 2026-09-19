@@ -1,63 +1,81 @@
 # CAN HAS GALAXY?
 
-`CAN HAS GALAXY?` is a persistent terminal space-trading/exploration roguelike
-written entirely in LOLCODE 1.4. It deliberately uses a project graph rather
-than a monolithic source file, demonstrating the LOLCODE-to-LOLCODE class
-library support introduced by the project-reference work.
+`CAN HAS GALAXY?` is a persistent, line-oriented space-trading roguelike
+written entirely in LOLCODE 1.4. It is organized as one realistic multi-file
+application instead of seven artificial one-file projects. The same pure
+LOLCODE framework projects power its smaller companion, `KITTEH CATACOMBS`.
 
 ```bash
-dotnet build dotnet-lolcode.slnx
-dotnet run --project samples/project-based/can-has-galaxy/Galaxy.Game
-dotnet run --project samples/project-based/can-has-galaxy/Galaxy.Simulation
+dotnet build dotnet-lolcode.slnx --disable-build-servers -p:BuildInParallel=false
+dotnet run --project CanHasGalaxy.Cli
+dotnet run --project Kitteh.Catacombs
+dotnet test ../../../tests/CanHasGalaxy.Tests/CanHasGalaxy.Tests.csproj
 ```
+
+Run those commands from this directory. Both executables exit safely on an
+empty line or EOF, so scripts can use pipes without a terminal emulator.
 
 ## Project graph
 
 ```text
-Galaxy.Collections ─┬─> Galaxy.World ─> Galaxy.Story ─> Galaxy.Engine
-                    │                                      │
-                    └──────────────────────────────> Galaxy.Persistence
-Galaxy.Engine ───────────────────────────────────────> Galaxy.Game
-Galaxy.Persistence ──────────────────────────────────> Galaxy.Game
-Galaxy.Engine ───────────────────────────────────────> Galaxy.Simulation
+Lolcode.GameEngine ─┬─> CanHasGalaxy ─> CanHasGalaxy.Cli
+                    └──────────────────> Kitteh.Catacombs
+Lolcode.TerminalUi ─┬─> CanHasGalaxy ─> CanHasGalaxy.Cli
+                    └──────────────────> Kitteh.Catacombs
 ```
 
-| Project | Role |
+| Project | Purpose |
 | --- | --- |
-| `Galaxy.Collections` | Reusable dynamic list, pair, and character codec helpers. |
-| `Galaxy.World` | Ship/player, sector, and market data factories. |
-| `Galaxy.Story` | Deterministic sector names, encounters, and mission text. |
-| `Galaxy.Engine` | Turns, travel, mining, trading, combat, mission progress, map/status views, and the seeded headless scenario. |
-| `Galaxy.Persistence` | Versioned save/load format backed by `STDIO`. |
-| `Galaxy.Game` | EOF-safe interactive terminal game. |
-| `Galaxy.Simulation` | Stable batch run sharing the real engine. |
+| `Lolcode.GameEngine` | Prototype-backed dynamic list, SRS/BUKKIT first-class-function command router, and deterministic clamp/seed helpers. It contains neither Galaxy rules nor rendering. |
+| `Lolcode.TerminalUi` | Portable text helpers plus boxed headers/panels, menus, prompts, and status bars. It uses lines only—no cursor addressing or ANSI control sequences. |
+| `CanHasGalaxy` | Galaxy model, navigation, economy, combat, story, primitive save/load codec, and views. `STDIO` handles remain inside save/load functions. |
+| `CanHasGalaxy.Cli` | EOF-safe interactive shell that registers Galaxy command functions in the generic router and renders with TerminalUi. |
+| `Kitteh.Catacombs` | A compact deterministic crawler that independently registers `LOOK`, `STEP`, and `QUIT` handlers in the same router and uses the same UI widgets. |
 
-Each `.lolproj` deliberately contains one cohesive `.lol` source file. Multi-file
-LOLCODE compilation is deferred, so project references are the clean,
-compiler-supported composition boundary rather than an invented include system.
+`tests/CanHasGalaxy.Tests` is the dedicated C# xUnit test project. It calls
+the generated `CanHasGalaxy.GalaxyExports` and `TerminalUi.UiExports` wrappers,
+tests persistence in isolated temporary directories, and runs both executable
+games. Generic executable-sample discovery stays in `Lolcode.EndToEnd.Tests`;
+detailed Galaxy behavior lives only in the dedicated tests.
 
-## Playing
+## File organization and initialization order
 
-Start as a small freighter in sector 0. Travel costs fuel; mine ore, sell it at
-the current market, buy fuel, and fight encounters for bounties. Reach sector 3
-and win a fight to recover the Starfish Relic.
+Every `.lol` file is a complete `HAI 1.4` / `KTHXBYE` unit. Each project
+removes the default glob and lists its files with ordered `<Compile Include>`
+items:
 
-Commands are case-sensitive:
+| Project | Ordered files |
+| --- | --- |
+| `Lolcode.GameEngine` | `01-Collections`, `02-Commands`, `03-Determinism` |
+| `Lolcode.TerminalUi` | `01-Text`, `02-Widgets` |
+| `CanHasGalaxy` | `01-Model` through `07-Views` |
+| Both executables | `01-Commands`, `02-Program` |
+
+Top-level functions are collected across the compilation, while 1.4 runtime
+function values and top-level state initialize in MSBuild compile order. These
+projects intentionally avoid top-level effects except each executable's final
+`RUN` call, which follows all handler definitions. This makes cross-file
+function values predictable and leaves cohesive model/function groups together
+without tiny files or god modules.
+
+## Playing Galaxy
+
+The startup header, boxed status rows, and `HULL`/`FUEL` bars are supplied by
+`TerminalUi`. Commands are case-sensitive:
 
 `STATUS`, `MAP`, `TRAVEL1`, `TRAVEL2`, `TRAVEL3`, `MINE`, `SELL`, `FUEL`,
 `FIGHT`, `MISSION`, `SAVE`, `LOAD`, and `QUIT`.
 
-An empty line or EOF exits safely, which makes the game appropriate for the
-generic executable sample runner. `SAVE` writes `can-has-galaxy.save` in the
-working directory; `LOAD` rejects missing or invalid files without ending the
-game.
+Travel consumes fuel. Mine and sell ore for credits, buy fuel, then fight in
+sector 3 to recover the Starfish Relic. The generic router stores each command
+handler as a first-class LOLCODE function value in a dynamic SRS slot and
+dispatches it with the shared mutable session BUKKIT.
 
-## Save format
-
-The small explicit text format is intentionally inspectable:
+`SAVE` writes `can-has-galaxy.save` in the working directory. The inspectable
+format is newline-delimited:
 
 ```text
-CHG2
+CHG3
 <sector>
 <credits>
 <fuel>
@@ -69,20 +87,14 @@ CHG2
 <omen>
 ```
 
-`CHG2` is the format/version marker. It preserves every value that affects
-future simulation, so a loaded game continues deterministically rather than
-starting a new timeline with similar ship statistics. The pure-LOLCODE codec
-walks the newline-delimited fields with `STRING` byte indexing, validates the
-header and field ranges, and rejects malformed state without a hidden managed
-serializer.
+`LOAD` validates the marker and every bounded numeric field before constructing
+fresh game state. It never returns the live `STDIO` BLOB that was used to read
+the file.
 
-## LOLCODE and runtime features
+## Playing Kitteh Catacombs
 
-The sample uses `HAI 1.4`, `CAN HAS` imports across LOLCODE project references,
-BUKKIT factories, dynamic `SRS` slots, object methods with `ME`, prototype
-inheritance through `LIEK A`, first-class function values (list methods stored
-on a prototype), `STDLIB` seeded randomness, `STRING` byte indexing, and
-`STDIO` persistence. The list factory copies its `ADD` method into an `append`
-slot as a first-class function value before Engine invokes it. No C# gameplay
-or game-data helper is involved: the .NET projects only compile and host the
-LOLCODE libraries.
+`LOOK` describes the current room, `STEP` advances through a finite,
+deterministic three-room crawl, and `QUIT` exits. Reaching the final room prints
+`CATACOMBS COMPLETE.` This intentionally small game proves reuse by using the
+engine's dynamic command registry and TerminalUi header/menu/panel widgets
+without importing Galaxy.
