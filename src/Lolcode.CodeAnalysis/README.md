@@ -46,7 +46,7 @@ if (!result.Success)
 ## Compatibility
 
 The package targets .NET 10 and follows the public API shape described in the
-repository's [design documentation](https://github.com/mattleibow/dotnet-lolcode/blob/main/docs/DESIGN.md).
+repository's [design documentation](https://github.com/mattleibow/dotnet-lolcode/blob/main/docs/dev/compiler-architecture.md).
 
 ## License
 

@@ -25,10 +25,14 @@ x86/
 bld/
 [Bb]uild/
 artifacts/
+_site/
+docs/_site/
+docs/public/_api/
 
 # IDE
 .vs/
 .vscode/.history
+.impeccable/questions/
 *.swp
 *~
 .idea/

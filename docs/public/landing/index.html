@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Learn LOLCODE or run it in the dotnet-lolcode browser playground.">
+  <title>dotnet-lolcode</title>
+  <link rel="icon" href="docs/assets/favicon.svg">
+  <link rel="stylesheet" href="main.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="dotnet-lolcode home">
+      <span aria-hidden="true">:3</span>
+      dotnet-lolcode
+    </a>
+    <a class="source-link" href="https://github.com/mattleibow/dotnet-lolcode">View source</a>
+  </header>
+
+  <main>
+    <section class="welcome" aria-labelledby="welcome-title">
+      <h1 id="welcome-title">HAI. WHAT DO YOU WANT TO MAKE?</h1>
+      <p>Learn programming through LOLCODE, explore the language and its
+        history, or run a real .NET compiler without leaving your browser.</p>
+    </section>
+
+    <section class="destinations" aria-label="Choose a destination">
+      <a class="destination docs-destination" href="docs/">
+        <h2>Documentation</h2>
+        <span class="destination-label">Read and build</span>
+        <p>Start with one working program, follow the beginner trail, browse the
+          complete language reference, or learn how to build your own .NET
+          language and compiler.</p>
+        <strong>Open the Trail Map</strong>
+      </a>
+
+      <a class="destination playground-destination" href="playground/">
+        <h2>Playground</h2>
+        <span class="destination-label">Run it now</span>
+        <p>Edit a LOLCODE program, provide input, compile it to .NET IL, and see
+          output and diagnostics immediately in the browser.</p>
+        <pre aria-hidden="true"><code>HAI 1.2
+  VISIBLE "OH HAI!"
+KTHXBYE</code></pre>
+        <strong>Open the Playground</strong>
+      </a>
+    </section>
+  </main>
+
+  <footer>
+    <span>LOLCODE on .NET 10</span>
+    <span>Compiler, runtime, SDK, docs, and playground</span>
+  </footer>
+</body>
+</html>
