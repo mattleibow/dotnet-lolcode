@@ -38,25 +38,27 @@ tests persistence in isolated temporary directories, and runs both executable
 games. Generic executable-sample discovery stays in `Lolcode.EndToEnd.Tests`;
 detailed Galaxy behavior lives only in the dedicated tests.
 
-## File organization and initialization order
+## File organization and source order
 
-Every `.lol` file is a complete `HAI 1.4` / `KTHXBYE` unit. Each project
-removes the default glob and lists its files with ordered `<Compile Include>`
-items:
+Every `.lol` file is a complete `HAI 1.4` / `KTHXBYE` unit. The projects use
+the SDK's normal `**/*.lol` glob, and filenames describe concepts rather than
+encoding a compilation sequence:
 
-| Project | Ordered files |
+| Project | Files |
 | --- | --- |
-| `Lolcode.GameEngine` | `01-Collections`, `02-Commands`, `03-Determinism` |
-| `Lolcode.TerminalUi` | `01-Text`, `02-Widgets` |
-| `CanHasGalaxy` | `01-Model` through `07-Views` |
-| Both executables | `01-Commands`, `02-Program` |
+| `Lolcode.GameEngine` | `Collections`, `Commands`, `Determinism` |
+| `Lolcode.TerminalUi` | `Text`, `Widgets` |
+| `CanHasGalaxy` | `Model`, `Navigation`, `Economy`, `Combat`, `Story`, `Persistence`, `Views` |
+| Both executables | `Application`, `Commands` |
 
-Top-level functions are collected across the compilation, while 1.4 runtime
-function values and top-level state initialize in MSBuild compile order. These
-projects intentionally avoid top-level effects except each executable's final
-`RUN` call, which follows all handler definitions. This makes cross-file
-function values predictable and leaves cohesive model/function groups together
-without tiny files or god modules.
+Direct top-level functions are hoisted compilation-wide, so cross-file calls
+and first-class handler references do not depend on source order. The libraries
+avoid order-sensitive top-level mutable initialization. Executable imports are
+function-local, so either source file may be compiled first even though
+`Application.lol` performs the final top-level `RUN` call. Its alphabetical
+position deliberately exercises the formerly difficult entry-point-first
+order. This keeps the files cohesive without numeric prefixes, tiny projects,
+or god modules.
 
 ## Playing Galaxy
 

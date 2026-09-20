@@ -7,11 +7,5 @@
     <RootNamespace>GameEngine</RootNamespace>
     <LolcodeLibraryTypeName>EngineExports</LolcodeLibraryTypeName>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="**/*.lol" />
-    <Compile Include="01-Collections.lol" />
-    <Compile Include="02-Commands.lol" />
-    <Compile Include="03-Determinism.lol" />
-  </ItemGroup>
   <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.targets" />
 </Project>

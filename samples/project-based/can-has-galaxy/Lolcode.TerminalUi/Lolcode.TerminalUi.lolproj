@@ -7,10 +7,5 @@
     <RootNamespace>TerminalUi</RootNamespace>
     <LolcodeLibraryTypeName>UiExports</LolcodeLibraryTypeName>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="**/*.lol" />
-    <Compile Include="01-Text.lol" />
-    <Compile Include="02-Widgets.lol" />
-  </ItemGroup>
   <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.targets" />
 </Project>

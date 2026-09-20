@@ -1,8 +1,5 @@
 HAI 1.4
 
-CAN HAS GameEngine?
-CAN HAS TerminalUi?
-
 BTW REGISTERCOMMANDS installs first-class command function values in the shared router.
 HOW IZ I REGISTERCOMMANDS YR router
   I IZ router'Z REGISTER YR "STATUS" AN YR COMMANDSTATUS MKAY
@@ -23,6 +20,8 @@ IF U SAY SO
 
 BTW RUN owns interactive input while domain state stays in a dispatchable BUKKIT.
 HOW IZ I RUN
+  CAN HAS GameEngine?
+  CAN HAS TerminalUi?
   CAN HAS CanHasGalaxy?
   BTW session is the CLI-owned mutable BUKKIT passed to generic handlers.
   I HAS A session ITZ A BUKKIT
