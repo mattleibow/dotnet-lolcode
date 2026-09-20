@@ -1,33 +1,5 @@
 {
   "knownLciDivergences": {
-    "KnownLciDivergence/1.2/Boolean/all-of": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.2/Boolean/any-of": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.2/Boolean/either-of": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.2/Boolean/not": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.2/Casting/casting-rules-matrix": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.2/Casting/maek-troof": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.2/Casting/noob-explicit-cast": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
     "KnownLciDivergence/1.2/EdgeCases/it-across-control-flow": {
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
@@ -45,10 +17,6 @@
       "evidence": "Pinned lci does not match this repository regression contract."
     },
     "KnownLciDivergence/1.2/Math/large-number-arithmetic": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.2/Strings/smoosh": {
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
     },
@@ -72,31 +40,7 @@
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
     },
-    "KnownLciDivergence/1.3/Runtime-Scope/if-body-uses-child-scope-and-restores-parent-it": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.3/Runtime-Scope/gtfo-from-switch-body-restores-parent-scope": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.3/Runtime-Scope/gtfo-from-loop-body-restores-parent-scope": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
     "KnownLciDivergence/1.3/Runtime-Scope/block-declaration-does-not-leak": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.3/Objects/prototype-lookup-and-method-receiver-are-polymorphic": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.3/Objects/srs-resolves-declarations-slots-functions-and-parameters": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.3/Objects/inherited-slot-override-evaluates-initializer": {
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
     },
@@ -108,23 +52,11 @@
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
     },
-    "KnownLciDivergence/1.3/Objects/assignment-evaluates-rhs-before-dynamic-target": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
     "KnownLciDivergence/1.3/Objects/dynamic-function-cannot-replace-local-variable": {
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
     },
     "KnownLciDivergence/1.3/Objects/srs-function-call-scopes-support-dynamic-object-paths": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.3/Objects/gimmeh-accepts-dynamic-and-slot-targets": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.3/Objects/receiverless-call-preserves-caller-me": {
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
     },
@@ -136,15 +68,7 @@
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
     },
-    "KnownLciDivergence/1.3/Objects/function-bindings-are-first-class-and-replaceable": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
     "KnownLciDivergence/1.3/Objects/alternate-object-declaration-cannot-replace-local-binding": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.3/Objects/global-and-object-functions-with-same-name-have-independent-signatures": {
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
     },
@@ -152,23 +76,7 @@
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
     },
-    "KnownLciDivergence/1.3/Objects/nested-default-parent-bukkit-preserves-method-caller": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.3/Objects/is-now-a-accepts-dynamic-and-slot-targets": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.3/Objects/argument-side-effects-cannot-retarget-function-or-receiver": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
     "KnownLciDivergence/1.3/Objects/scoped-declaration-collision-precedes-initializer": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.3/Objects/method-uses-caller-lexical-scope-and-receiver-only-through-me": {
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
     },
@@ -184,10 +92,6 @@
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
     },
-    "KnownLciDivergence/1.3/Objects/method-can-read-calling-block-lexical-bindings": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
     "KnownLciDivergence/1.3/Objects/articleless-dynamic-declaration-is-accepted": {
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
@@ -200,10 +104,6 @@
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
     },
-    "KnownLciDivergence/1.3/Objects/later-dynamic-slot-cannot-retarget-captured-object": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
     "KnownLciDivergence/1.3/Objects/srs-declaration-collision-precedes-initializer": {
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
@@ -212,21 +112,9 @@
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
     },
-    "KnownLciDivergence/1.3/Functions/replaced-function-uses-current-runtime-arity": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
     "KnownLciDivergence/1.3/Functions/dynamic-parameter-names-resolve-in-caller-before-each-argument": {
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.3/Functions/nested-function-is-emitted-and-callable": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.3/Loops/loop-variable-shadows-parent-for-guard-body-and-update": {
-      "category": "pinned-lci-extension-gap",
-      "evidence": "Pinned lci does not implement this repository custom-loop operation contract."
     },
     "KnownLciDivergence/1.3/Loops/loop-scope-it-starts-noob-and-parent-it-is-restored": {
       "category": "pinned-lci-extension-gap",
@@ -240,57 +128,41 @@
       "category": "pinned-lci-extension-gap",
       "evidence": "Pinned lci does not implement this repository custom-loop operation contract."
     },
-    "KnownLciDivergence/1.2/Strings/interpolation-rejects-troof": {
-      "category": "error-contract-gap",
-      "evidence": "The focused dotnet diagnostic/runtime-error assertion has no equivalent pinned-lci text contract."
-    },
-    "KnownLciDivergence/1.2/Strings/unicode-hex-escape-ascii": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.2/Variables/noob-variable-cannot-be-printed-implicitly": {
-      "category": "error-contract-gap",
-      "evidence": "The focused dotnet diagnostic/runtime-error assertion has no equivalent pinned-lci text contract."
-    },
     "KnownLciDivergence/1.2/Functions/function-it-independent": {
       "category": "pinned-lci-semantic-gap",
       "evidence": "Pinned lci does not match this repository regression contract."
-    },
-    "KnownLciDivergence/1.2/Loops/custom-loop-operation-must-be-unary": {
-      "category": "pinned-lci-extension-gap",
-      "evidence": "Pinned lci does not implement this repository custom-loop operation contract."
-    },
-    "KnownLciDivergence/1.2/Loops/undefined-custom-loop-operation-is-an-error": {
-      "category": "pinned-lci-extension-gap",
-      "evidence": "Pinned lci does not implement this repository custom-loop operation contract."
-    },
-    "KnownLciDivergence/1.2/Loops/loop-variable-is-undeclared-after-loop": {
-      "category": "pinned-lci-extension-gap",
-      "evidence": "Pinned lci does not implement this repository custom-loop operation contract."
-    },
-    "KnownLciDivergence/1.2/Loops/custom-unary-operation-uses-returned-value": {
-      "category": "pinned-lci-extension-gap",
-      "evidence": "Pinned lci does not implement this repository custom-loop operation contract."
-    },
-    "KnownLciDivergence/1.2/Loops/gtfo-skips-custom-loop-operation": {
-      "category": "pinned-lci-extension-gap",
-      "evidence": "Pinned lci does not implement this repository custom-loop operation contract."
     },
     "KnownLciDivergence/1.2/Errors/non-numeric-yarn-in-arithmetic-throws-error": {
       "category": "error-contract-gap",
       "evidence": "The focused dotnet diagnostic/runtime-error assertion has no equivalent pinned-lci text contract."
     },
-    "KnownLciDivergence/1.2/Errors/undeclared-variable-error": {
-      "category": "error-contract-gap",
-      "evidence": "The focused dotnet diagnostic/runtime-error assertion has no equivalent pinned-lci text contract."
+    "KnownLciDivergence/1.4/FutureFeature/has-an-and-r-noob-work-for-direct-srs-and-object-slots": {
+      "category": "pinned-lci-parser-gap",
+      "evidence": "Pinned lci rejects `I HAS AN` at line 4 with `expected end of expression at: HAS`; dotnet-lolcode accepts the 1.4 direct, SRS, and BUKKIT-slot NOOB assignments."
     },
-    "KnownLciDivergence/1.2/Errors/noob-in-arithmetic-throws-error": {
-      "category": "error-contract-gap",
-      "evidence": "The focused dotnet diagnostic/runtime-error assertion has no equivalent pinned-lci text contract."
+    "KnownLciDivergence/1.2/Casting/explicit-noob-initializer": {
+      "category": "pinned-lci-parser-gap",
+      "evidence": "Pinned lci rejects the explicit `I HAS A value ITZ NOOB` spelling with `expected expression at: NOOB`; uninitialized NOOB coverage is shared."
     },
-    "KnownLciDivergence/1.2/Casting/maek-troof-to-yarn-fails": {
-      "category": "error-contract-gap",
-      "evidence": "The focused dotnet diagnostic/runtime-error assertion has no equivalent pinned-lci text contract."
+    "KnownLciDivergence/1.2/Boolean/any-of-literal-noob": {
+      "category": "pinned-lci-parser-gap",
+      "evidence": "Pinned lci rejects literal NOOB operands; all non-literal-NOOB ANY OF coverage is shared."
+    },
+    "KnownLciDivergence/1.2/Boolean/either-of-literal-noob": {
+      "category": "pinned-lci-parser-gap",
+      "evidence": "Pinned lci rejects literal NOOB operands; all non-literal-NOOB EITHER OF coverage is shared."
+    },
+    "KnownLciDivergence/1.2/Boolean/not-literal-noob": {
+      "category": "pinned-lci-parser-gap",
+      "evidence": "Pinned lci rejects the literal NOOB operand; all non-literal-NOOB NOT coverage is shared."
+    },
+    "KnownLciDivergence/1.2/Boolean/all-of-truthiness-and-optional-an": {
+      "category": "pinned-lci-semantic-gap",
+      "evidence": "Pinned lci returns FAIL for numeric/string ALL OF truthiness and does not accept the optional-AN form; literal TROOF ALL OF coverage is shared."
+    },
+    "KnownLciDivergence/1.2/Strings/smoosh-omitted-mkay": {
+      "category": "pinned-lci-parser-gap",
+      "evidence": "Pinned lci rejects SMOOSH when MKAY is omitted at end of line; explicit-MKAY and cast coverage is shared."
     }
   }
 }

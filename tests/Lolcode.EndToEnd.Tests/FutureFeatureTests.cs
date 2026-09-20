@@ -64,7 +64,7 @@ public class FutureFeatureTests : EndToEndTestBase
     public void StdlibAndStringExposePinnedEdgeBehavior()
     {
         string output = CompileAndRun(
-            FixtureSource("DotNet/1.4/FutureFeature/stdlib-and-string-expose-pinned-edge-behavior/test.lol"));
+            FixtureSource("Shared/1.4/FutureFeature/stdlib-and-string-expose-pinned-edge-behavior/test.lol"));
 
         output.Replace("\r\n", "\n").TrimEnd('\n').Should().Be("0\n2\n[]\n[]");
     }
@@ -138,7 +138,7 @@ public class FutureFeatureTests : EndToEndTestBase
     public void HasAnAndRNoobWorkForDirectSrsAndObjectSlots()
     {
         AssertOutput(
-            FixtureSource("DotNet/1.4/FutureFeature/has-an-and-r-noob-work-for-direct-srs-and-object-slots/test.lol"),
+            FixtureSource("KnownLciDivergence/1.4/FutureFeature/has-an-and-r-noob-work-for-direct-srs-and-object-slots/test.lol"),
             "direct\nsrs\nslot");
     }
 

@@ -1,0 +1,4 @@
+HAI 1.2
+I HAS A nothing ITZ NOOB
+VISIBLE MAEK nothing A NUMBR
+KTHXBYE

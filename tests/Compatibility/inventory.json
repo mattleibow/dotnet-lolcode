@@ -26,15 +26,15 @@
       "test": "BooleanTests.AllOf",
       "assertion": "Output",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Boolean/all-of",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Boolean/all-of",
+      "classification": "Shared"
     },
     {
       "test": "BooleanTests.AnyOf",
       "assertion": "Output",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Boolean/any-of",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Boolean/any-of",
+      "classification": "Shared"
     },
     {
       "test": "BooleanTests.BooleanAutoCast",
@@ -54,15 +54,15 @@
       "test": "BooleanTests.EitherOf",
       "assertion": "Output",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Boolean/either-of",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Boolean/either-of",
+      "classification": "Shared"
     },
     {
       "test": "BooleanTests.Not",
       "assertion": "Output",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Boolean/not",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Boolean/not",
+      "classification": "Shared"
     },
     {
       "test": "BooleanTests.WonOf",
@@ -75,8 +75,8 @@
       "test": "CastingTests.CastingRulesMatrix",
       "assertion": "Output",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Casting/casting-rules-matrix",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Casting/casting-rules-matrix",
+      "classification": "Shared"
     },
     {
       "test": "CastingTests.IsNowA",
@@ -103,8 +103,8 @@
       "test": "CastingTests.MaekTroof",
       "assertion": "Output",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Casting/maek-troof",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Casting/maek-troof",
+      "classification": "Shared"
     },
     {
       "test": "CastingTests.MaekYarn",
@@ -117,15 +117,15 @@
       "test": "CastingTests.MaekTroofToYarnFails",
       "assertion": "RuntimeError",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Casting/maek-troof-to-yarn-fails",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Casting/maek-troof-to-yarn-fails",
+      "classification": "Shared"
     },
     {
       "test": "CastingTests.NoobExplicitCast",
       "assertion": "Output",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Casting/noob-explicit-cast",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Casting/noob-explicit-cast",
+      "classification": "Shared"
     },
     {
       "test": "CastingTests.NumbarToYarnTruncation",
@@ -306,8 +306,8 @@
       "test": "ErrorTests.NoobInArithmeticThrowsError",
       "assertion": "RuntimeError",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Errors/noob-in-arithmetic-throws-error",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Errors/noob-in-arithmetic-throws-error",
+      "classification": "Shared"
     },
     {
       "test": "ErrorTests.NonNumericYarnInArithmeticThrowsError",
@@ -320,8 +320,8 @@
       "test": "ErrorTests.UndeclaredVariableError",
       "assertion": "CompileError",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Errors/undeclared-variable-error",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Errors/undeclared-variable-error",
+      "classification": "Shared"
     },
     {
       "test": "ExpressionTests.AssignmentNoIt",
@@ -425,15 +425,15 @@
       "test": "FunctionTests.NestedFunctionIsEmittedAndCallable",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Functions/nested-function-is-emitted-and-callable",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Functions/nested-function-is-emitted-and-callable",
+      "classification": "Shared"
     },
     {
       "test": "FunctionTests.ReplacedFunctionUsesCurrentRuntimeArity",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Functions/replaced-function-uses-current-runtime-arity",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Functions/replaced-function-uses-current-runtime-arity",
+      "classification": "Shared"
     },
     {
       "test": "FunctionTests.BasicFunction",
@@ -628,15 +628,15 @@
       "test": "LoopTests.LoopVariableShadowsParentForGuardBodyAndUpdate",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Loops/loop-variable-shadows-parent-for-guard-body-and-update",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Loops/loop-variable-shadows-parent-for-guard-body-and-update",
+      "classification": "Shared"
     },
     {
       "test": "LoopTests.CustomUnaryOperationUsesReturnedValue",
       "assertion": "Output",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Loops/custom-unary-operation-uses-returned-value",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Loops/custom-unary-operation-uses-returned-value",
+      "classification": "Shared"
     },
     {
       "test": "LoopTests.CustomOperationAcceptsSrsScopeAndName",
@@ -656,29 +656,29 @@
       "test": "LoopTests.GtfoSkipsCustomLoopOperation",
       "assertion": "Output",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Loops/gtfo-skips-custom-loop-operation",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Loops/gtfo-skips-custom-loop-operation",
+      "classification": "Shared"
     },
     {
       "test": "LoopTests.LoopVariableIsUndeclaredAfterLoop",
       "assertion": "CompileError",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Loops/loop-variable-is-undeclared-after-loop",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Loops/loop-variable-is-undeclared-after-loop",
+      "classification": "Shared"
     },
     {
       "test": "LoopTests.UndefinedCustomLoopOperationIsAnError",
       "assertion": "CompileError",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Loops/undefined-custom-loop-operation-is-an-error",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Loops/undefined-custom-loop-operation-is-an-error",
+      "classification": "Shared"
     },
     {
       "test": "LoopTests.CustomLoopOperationMustBeUnary",
       "assertion": "CompileError",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Loops/custom-loop-operation-must-be-unary",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Loops/custom-loop-operation-must-be-unary",
+      "classification": "Shared"
     },
     {
       "test": "LoopTests.LoopGtfoBreak",
@@ -824,8 +824,8 @@
       "test": "ObjectTests.GlobalAndObjectFunctionsWithSameNameHaveIndependentSignatures",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/global-and-object-functions-with-same-name-have-independent-signatures",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/global-and-object-functions-with-same-name-have-independent-signatures",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.AlternateObjectDeclarationCannotReplaceLocalBinding",
@@ -845,36 +845,36 @@
       "test": "ObjectTests.ArgumentSideEffectsCannotRetargetFunctionOrReceiver",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/argument-side-effects-cannot-retarget-function-or-receiver",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/argument-side-effects-cannot-retarget-function-or-receiver",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.AssignmentEvaluatesRhsBeforeDynamicTarget",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/assignment-evaluates-rhs-before-dynamic-target",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/assignment-evaluates-rhs-before-dynamic-target",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.LaterDynamicSlotCannotRetargetCapturedObject",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/later-dynamic-slot-cannot-retarget-captured-object",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/later-dynamic-slot-cannot-retarget-captured-object",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.PrototypeLookupAndMethodReceiverArePolymorphic",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/prototype-lookup-and-method-receiver-are-polymorphic",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/prototype-lookup-and-method-receiver-are-polymorphic",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.SrsResolvesDeclarationsSlotsFunctionsAndParameters",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/srs-resolves-declarations-slots-functions-and-parameters",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/srs-resolves-declarations-slots-functions-and-parameters",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.SrsFunctionCallScopesSupportDynamicObjectPaths",
@@ -894,22 +894,22 @@
       "test": "ObjectTests.FunctionBindingsAreFirstClassAndReplaceable",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/function-bindings-are-first-class-and-replaceable",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/function-bindings-are-first-class-and-replaceable",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.GimmehAcceptsDynamicAndSlotTargets",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/gimmeh-accepts-dynamic-and-slot-targets",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/gimmeh-accepts-dynamic-and-slot-targets",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.IsNowAAcceptsDynamicAndSlotTargets",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/is-now-a-accepts-dynamic-and-slot-targets",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/is-now-a-accepts-dynamic-and-slot-targets",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.ArticlelessDynamicDeclarationIsAccepted",
@@ -964,8 +964,8 @@
       "test": "ObjectTests.InheritedSlotOverrideEvaluatesInitializer",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/inherited-slot-override-evaluates-initializer",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/inherited-slot-override-evaluates-initializer",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.ScopedDeclarationCollisionPrecedesInitializer",
@@ -999,50 +999,50 @@
       "test": "ObjectTests.MethodUsesCallerLexicalScopeAndReceiverOnlyThroughMe",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/method-uses-caller-lexical-scope-and-receiver-only-through-me",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/method-uses-caller-lexical-scope-and-receiver-only-through-me",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.MethodCanReadCallingBlockLexicalBindings",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/method-can-read-calling-block-lexical-bindings",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/method-can-read-calling-block-lexical-bindings",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.ReceiverlessCallPreservesCallerMe",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/receiverless-call-preserves-caller-me",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/receiverless-call-preserves-caller-me",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.NestedDefaultParentBukkitPreservesMethodCaller",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/nested-default-parent-bukkit-preserves-method-caller",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/nested-default-parent-bukkit-preserves-method-caller",
+      "classification": "Shared"
     },
     {
       "test": "RuntimeScopeTests.IfBodyUsesChildScopeAndRestoresParentIt",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Runtime-Scope/if-body-uses-child-scope-and-restores-parent-it",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Runtime-Scope/if-body-uses-child-scope-and-restores-parent-it",
+      "classification": "Shared"
     },
     {
       "test": "RuntimeScopeTests.GtfoFromSwitchBodyRestoresParentScope",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Runtime-Scope/gtfo-from-switch-body-restores-parent-scope",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Runtime-Scope/gtfo-from-switch-body-restores-parent-scope",
+      "classification": "Shared"
     },
     {
       "test": "RuntimeScopeTests.GtfoFromLoopBodyRestoresParentScope",
       "assertion": "Output",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Runtime-Scope/gtfo-from-loop-body-restores-parent-scope",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Runtime-Scope/gtfo-from-loop-body-restores-parent-scope",
+      "classification": "Shared"
     },
     {
       "test": "RuntimeScopeTests.BlockDeclarationDoesNotLeak",
@@ -1090,8 +1090,8 @@
       "test": "StringTests.InterpolationRejectsTroof",
       "assertion": "RuntimeError",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Strings/interpolation-rejects-troof",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Strings/interpolation-rejects-troof",
+      "classification": "Shared"
     },
     {
       "test": "StringTests.InterpolationResolvesSrsCreatedBindingAtRuntime",
@@ -1104,8 +1104,8 @@
       "test": "StringTests.Smoosh",
       "assertion": "Output",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Strings/smoosh",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Strings/smoosh",
+      "classification": "Shared"
     },
     {
       "test": "StringTests.SmooshNested",
@@ -1118,8 +1118,8 @@
       "test": "StringTests.UnicodeHexEscapeAscii",
       "assertion": "Output",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Strings/unicode-hex-escape-ascii",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Strings/unicode-hex-escape-ascii",
+      "classification": "Shared"
     },
     {
       "test": "StringTests.UnicodeHexEscapeNonAscii",
@@ -1272,8 +1272,8 @@
       "test": "VariableTests.NoobVariableCannotBePrintedImplicitly",
       "assertion": "RuntimeError",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Variables/noob-variable-cannot-be-printed-implicitly",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Variables/noob-variable-cannot-be-printed-implicitly",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.GtfoLeavingObjectBodyRestoresOuterScope[loop]",
@@ -1328,8 +1328,8 @@
       "test": "FutureFeatureTests.StdlibAndStringExposePinnedEdgeBehavior",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
-      "fixture": "DotNet/1.4/FutureFeature/stdlib-and-string-expose-pinned-edge-behavior",
-      "classification": "DotNet"
+      "fixture": "Shared/1.4/FutureFeature/stdlib-and-string-expose-pinned-edge-behavior",
+      "classification": "Shared"
     },
     {
       "test": "FutureFeatureTests.InvisibleMatchesVisibleArityAndNewlineRulesOnStandardError",
@@ -1370,8 +1370,8 @@
       "test": "FutureFeatureTests.HasAnAndRNoobWorkForDirectSrsAndObjectSlots",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
-      "fixture": "DotNet/1.4/FutureFeature/has-an-and-r-noob-work-for-direct-srs-and-object-slots",
-      "classification": "DotNet"
+      "fixture": "KnownLciDivergence/1.4/FutureFeature/has-an-and-r-noob-work-for-direct-srs-and-object-slots",
+      "classification": "KnownLciDivergence"
     },
     {
       "test": "LciAdditionalFixtureTests.UnregisteredStdlibFixtureProducesThreeBoundedValues",
@@ -1381,7 +1381,7 @@
       "classification": "DotNet"
     },
     {
-      "test": "SdkSampleTests.SdkCompilesMultipleLolSources",
+      "test": "SdkSampleTests.ProjectNameEndingInLol_StillGlobsMultipleSources",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/Sdk/multi-file-first",
@@ -1409,14 +1409,14 @@
       "classification": "DotNet"
     },
     {
-      "test": "SdkSampleTests.SdkResolvesRedirectedProjectReference",
+      "test": "SdkSampleTests.Sdk_ProjectReferenceRunsWhenBuildOutputsAreRedirected",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/Sdk/redirected-consumer",
       "classification": "DotNet"
     },
     {
-      "test": "SdkSampleTests.CreateLibraryProject",
+      "test": "SdkSampleTests.CreateDefaultLibraryProject",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/Sdk/library-welcome",
