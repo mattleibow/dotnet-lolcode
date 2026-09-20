@@ -1,0 +1,10 @@
+HAI 1.2
+HOW IZ I choose
+  WIN
+  O RLY?
+    YA RLY
+      42
+  OIC
+IF U SAY SO
+VISIBLE I IZ choose MKAY
+KTHXBYE

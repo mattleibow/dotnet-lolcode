@@ -1191,6 +1191,15 @@ internal sealed class CodeGenerator
         _il.Emit(OpCodes.Ldloc, outerScope);
         _il.Emit(OpCodes.Call, _createChildScopeMethod);
         _il.Emit(OpCodes.Stloc, _scopeLocal);
+        if (loop.PropagatesItToParent)
+        {
+            // A 1.2 loop has a local loop-variable namespace, but shares the
+            // enclosing program/function IT for its control-flow body.
+            _il.Emit(OpCodes.Ldloc, _scopeLocal);
+            _il.Emit(OpCodes.Ldloc, outerScope);
+            _il.Emit(OpCodes.Call, _getItMethod);
+            _il.Emit(OpCodes.Call, _setItMethod);
+        }
 
         _il.BeginExceptionBlock();
         _exceptionDepth++;
@@ -1351,6 +1360,13 @@ internal sealed class CodeGenerator
         _il.Emit(OpCodes.Ldloc, outerScope);
         _il.Emit(OpCodes.Call, _createChildScopeMethod);
         _il.Emit(OpCodes.Stloc, _scopeLocal);
+        if (block.PropagatesItToParent)
+        {
+            _il.Emit(OpCodes.Ldloc, _scopeLocal);
+            _il.Emit(OpCodes.Ldloc, outerScope);
+            _il.Emit(OpCodes.Call, _getItMethod);
+            _il.Emit(OpCodes.Call, _setItMethod);
+        }
 
         _il.BeginExceptionBlock();
         _exceptionDepth++;

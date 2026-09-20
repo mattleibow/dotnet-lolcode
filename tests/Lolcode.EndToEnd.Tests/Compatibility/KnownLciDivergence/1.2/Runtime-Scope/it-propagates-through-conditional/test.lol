@@ -1,9 +1,9 @@
 HAI 1.2
-100
-WIN
+"before"
 O RLY?
   YA RLY
-    200
+    VISIBLE IT
+    "after"
 OIC
 VISIBLE IT
 KTHXBYE

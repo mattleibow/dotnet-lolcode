@@ -159,17 +159,29 @@ internal sealed class Binder
         return new BoundBlockStatement(boundStatements.ToImmutable());
     }
 
-    private BoundBlockStatement BindNestedBlock(ImmutableArray<StatementSyntax> statements)
+    private BoundBlockStatement BindNestedBlock(
+        ImmutableArray<StatementSyntax> statements,
+        bool createsIterationScope = false)
     {
-        // LOLCODE 1.2 has one IT per program/function.  The lexical block IT
-        // introduced for runtime identifiers is a 1.3+ object-model behavior.
+        // LOLCODE 1.2 clauses execute in their enclosing program/function
+        // scope. This applies to declarations as well as the implicit IT.
+        // Later object-model versions introduce lexical child scopes.
         if (!_runtimeIdentifiers)
         {
+            if (createsIterationScope)
+            {
+                var iterationOuter = _scope;
+                _scope = new BoundScope(iterationOuter, inheritsVariables: true, inheritsIt: true);
+                var iteration = BindBlock(statements);
+                _scope = iterationOuter;
+                return new BoundBlockStatement(
+                    iteration.Statements,
+                    createsScope: true,
+                    propagatesItToParent: true);
+            }
+
             BoundBlockStatement block = BindBlock(statements);
-            return new BoundBlockStatement(
-                block.Statements,
-                createsScope: true,
-                propagatesItToParent: true);
+            return new BoundBlockStatement(block.Statements, createsScope: false);
         }
 
         var outer = _scope;
@@ -435,7 +447,7 @@ internal sealed class Binder
             BoundBlockStatement body;
             try
             {
-                body = BindNestedBlock(syntax.Body.Statements);
+                body = BindNestedBlock(syntax.Body.Statements, createsIterationScope: true);
             }
             finally
             {

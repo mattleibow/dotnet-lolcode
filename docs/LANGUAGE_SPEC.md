@@ -148,6 +148,11 @@ KTHXBYE
 
 All variable scope, as of this version, is local to the enclosing function or to the main program block. Variables are only accessible after declaration, and there is no global scope.
 
+In 1.2, declarations in `O RLY?` clauses and `WTF?` cases belong to that
+enclosing program or function scope. A loop body is evaluated in a fresh
+iteration scope, so its declarations (including the loop counter) are not
+available after `IM OUTTA YR`.
+
 ### Naming
 
 *(from 1.1)*
