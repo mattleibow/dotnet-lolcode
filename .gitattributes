@@ -1,2 +1,5 @@
 # Fixture output bytes are the contract, including trailing whitespace.
 tests/Compatibility/**/test.out -whitespace
+
+# Flattened compatibility fixtures are generated with LF line endings.
+tests/Compatibility/**/*.lol text eol=lf

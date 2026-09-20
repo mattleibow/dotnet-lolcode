@@ -32,19 +32,18 @@ public static class FixtureFlattener
         }
 
         var result = new StringBuilder();
-        result.Append(units[0].Header);
+        AppendWithTrailingNewline(result, units[0].Header);
         foreach (Unit unit in units)
         {
-            foreach (TextRange declaration in unit.HoistedDeclarations)
-                AppendWithTrailingNewline(result, unit.Source[declaration.Start..declaration.End]);
+            foreach (string declaration in unit.HoistedDeclarations)
+                AppendWithTrailingNewline(result, declaration);
         }
 
         foreach (Unit unit in units)
-            AppendWithTrailingNewline(result, RemoveRanges(unit.Body, unit.BodyRangesToRemove));
+            AppendWithTrailingNewline(result, unit.Body);
 
-        result.Append("KTHXBYE");
-        result.Append('\n');
-        return result.ToString();
+        AppendWithTrailingNewline(result, units[0].Footer);
+        return NormalizeLineEndings(result.ToString());
     }
 
     /// <summary>Loads source file names from a case-local <c>sources.txt</c> manifest.</summary>
@@ -70,6 +69,10 @@ public static class FixtureFlattener
         return paths;
     }
 
+    /// <summary>Normalizes generated fixture text to LF line endings.</summary>
+    public static string NormalizeLineEndings(string value) =>
+        value.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+
     private static Unit ParseUnit(string path)
     {
         string source = StripLauncherTrivia(File.ReadAllText(path, new UTF8Encoding(false, true)));
@@ -85,8 +88,15 @@ public static class FixtureFlattener
         if (program.VersionToken is null)
             throw new InvalidDataException($"'{path}' must declare a HAI version.");
 
-        int headerEnd = FindLineEnd(source, program.HaiKeyword.Span.End);
-        int footerStart = FindLineStart(source, program.KthxbyeKeyword.Position);
+        SyntaxToken? headerSeparator = tree.Tokens.FirstOrDefault(
+            token => token.Position >= program.VersionToken.Span.End &&
+                     token.Kind == SyntaxKind.EndOfLineToken);
+        if (headerSeparator is null)
+            throw new InvalidDataException($"'{path}' must terminate its HAI declaration.");
+
+        int headerEnd = headerSeparator.Position;
+        int bodyStart = headerSeparator.Span.End;
+        int footerStart = program.KthxbyeKeyword.Position;
         var functions = new List<TextRange>();
         foreach (StatementSyntax statement in program.Statements)
         {
@@ -94,18 +104,26 @@ public static class FixtureFlattener
                 continue;
 
             var function = (FunctionDeclarationSyntax)statement;
-            int start = FindLineStart(source, function.NameToken.Position);
-            int end = FindLineEnd(source, function.EndKeyword.Span.End);
+            TextRange startStatement = FindLogicalStatement(
+                tree.Tokens,
+                bodyStart,
+                function.NameToken.Position);
+            TextRange endStatement = FindLogicalStatement(
+                tree.Tokens,
+                bodyStart,
+                function.EndKeyword.Span.End - 1);
+            int start = startStatement.Start;
+            int end = endStatement.End;
             functions.Add(new TextRange(start, end));
         }
 
         return new Unit(
-            source,
             program.VersionToken.Text,
             source[..headerEnd],
-            source[headerEnd..footerStart],
-            functions,
-            functions.Select(range => new TextRange(range.Start - headerEnd, range.End - headerEnd)).ToArray());
+            RenderLogicalStatements(source, tree.Tokens, bodyStart, footerStart, functions),
+            RenderLogicalStatements(source, tree.Tokens, footerStart, source.Length),
+            functions.Select(range =>
+                RenderLogicalStatements(source, tree.Tokens, range.Start, range.End)).ToArray());
     }
 
     private static bool IsDirectTopLevelFunction(StatementSyntax statement) =>
@@ -116,21 +134,69 @@ public static class FixtureFlattener
         } &&
         string.Equals(scope.DirectToken.Text, "I", StringComparison.OrdinalIgnoreCase);
 
-    private static string RemoveRanges(string text, IReadOnlyList<TextRange> ranges)
+    private static TextRange FindLogicalStatement(
+        IReadOnlyList<SyntaxToken> tokens,
+        int minimumStart,
+        int position)
     {
-        if (ranges.Count == 0)
-            return text;
-
-        var result = new StringBuilder(text.Length);
-        int current = 0;
-        foreach (TextRange range in ranges.OrderBy(range => range.Start))
+        int start = minimumStart;
+        foreach (SyntaxToken token in tokens)
         {
-            result.Append(text, current, range.Start - current);
-            current = range.End;
+            if (token.Kind != SyntaxKind.EndOfLineToken)
+                continue;
+
+            if (token.Position >= position)
+                return new TextRange(start, token.Position);
+
+            start = token.Span.End;
         }
 
-        result.Append(text, current, text.Length - current);
+        throw new InvalidDataException(
+            $"Could not determine the logical statement containing source position {position}.");
+    }
+
+    private static string RenderLogicalStatements(
+        string source,
+        IReadOnlyList<SyntaxToken> tokens,
+        int start,
+        int end,
+        IReadOnlyList<TextRange>? excludedRanges = null)
+    {
+        var result = new StringBuilder(end - start);
+        int statementStart = start;
+        foreach (SyntaxToken token in tokens)
+        {
+            if (token.Kind != SyntaxKind.EndOfLineToken ||
+                token.Position < start ||
+                token.Position >= end)
+            {
+                continue;
+            }
+
+            AppendLogicalStatement(source, statementStart, token.Position, excludedRanges, result);
+            statementStart = token.Span.End;
+        }
+
+        AppendLogicalStatement(source, statementStart, end, excludedRanges, result);
         return result.ToString();
+    }
+
+    private static void AppendLogicalStatement(
+        string source,
+        int start,
+        int end,
+        IReadOnlyList<TextRange>? excludedRanges,
+        StringBuilder result)
+    {
+        if (excludedRanges?.Any(range => range.Start <= start && end <= range.End) == true)
+            return;
+
+        string statement = source[start..end].Trim();
+        if (statement.Length == 0)
+            return;
+
+        result.Append(statement);
+        result.Append('\n');
     }
 
     private static string StripLauncherTrivia(string source)
@@ -152,22 +218,6 @@ public static class FixtureFlattener
         return result.ToString();
     }
 
-    private static int FindLineStart(string value, int position)
-    {
-        while (position > 0 && value[position - 1] is not '\n' and not '\r')
-            position--;
-        return position;
-    }
-
-    private static int FindLineEnd(string value, int position)
-    {
-        while (position < value.Length && value[position] is not '\n' and not '\r')
-            position++;
-        while (position < value.Length && (value[position] is '\n' or '\r'))
-            position++;
-        return position;
-    }
-
     private static void AppendWithTrailingNewline(StringBuilder result, string value)
     {
         if (value.Length == 0)
@@ -179,12 +229,11 @@ public static class FixtureFlattener
     }
 
     private sealed record Unit(
-        string Source,
         string Version,
         string Header,
         string Body,
-        IReadOnlyList<TextRange> HoistedDeclarations,
-        IReadOnlyList<TextRange> BodyRangesToRemove);
+        string Footer,
+        IReadOnlyList<string> HoistedDeclarations);
 
     private readonly record struct TextRange(int Start, int End);
 
@@ -230,7 +279,9 @@ internal static class Program
             string directory = Path.GetDirectoryName(manifest)!;
             string generated = FixtureFlattener.Flatten(FixtureFlattener.ReadManifest(directory));
             string target = Path.Combine(directory, "test.lol");
-            if (File.Exists(target) && File.ReadAllText(target, new UTF8Encoding(false, true)) == generated)
+            if (File.Exists(target) &&
+                FixtureFlattener.NormalizeLineEndings(
+                    File.ReadAllText(target, new UTF8Encoding(false, true))) == generated)
                 continue;
 
             if (check)

@@ -9,6 +9,9 @@ public sealed class FixtureFlattenerTests
     [InlineData("caller-before-callee-1.2")]
     [InlineData("caller-before-callee-1.3")]
     [InlineData("caller-before-callee-1.4")]
+    [InlineData("comma-after-function")]
+    [InlineData("comma-before-function")]
+    [InlineData("inline-wrapper")]
     [InlineData("initializer-call")]
     [InlineData("function-replacement")]
     [InlineData("mutual-recursion")]
@@ -19,6 +22,17 @@ public sealed class FixtureFlattenerTests
         FixtureFlattener.Flatten(FixtureFlattener.ReadManifest(directory))
             .Should()
             .Be(File.ReadAllText(Path.Combine(directory, "test.lol")));
+    }
+
+    [Fact]
+    public void Generated_fixture_comparison_accepts_CRLF_without_changing_generated_LF()
+    {
+        string directory = FlattenFixtureDirectory("inline-wrapper");
+        string generated = FixtureFlattener.Flatten(FixtureFlattener.ReadManifest(directory));
+        string crlfFixture = generated.Replace("\n", "\r\n", StringComparison.Ordinal);
+
+        FixtureFlattener.NormalizeLineEndings(crlfFixture).Should().Be(generated);
+        generated.Should().NotContain("\r");
     }
 
     [Fact]

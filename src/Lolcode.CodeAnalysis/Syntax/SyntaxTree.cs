@@ -18,15 +18,23 @@ public sealed class SyntaxTree
     /// <summary>All diagnostics from lexing and parsing.</summary>
     public ImmutableArray<Diagnostic> Diagnostics { get; }
 
+    /// <summary>All non-trivia tokens in source order, including statement separators and EOF.</summary>
+    public ImmutableArray<SyntaxToken> Tokens { get; }
+
     /// <summary>Optional file path for this syntax tree.</summary>
     public string? FilePath { get; }
 
-    private SyntaxTree(SourceText text, CompilationUnitSyntax root,
-                       ImmutableArray<Diagnostic> diagnostics, string? filePath)
+    private SyntaxTree(
+        SourceText text,
+        CompilationUnitSyntax root,
+        ImmutableArray<Diagnostic> diagnostics,
+        ImmutableArray<SyntaxToken> tokens,
+        string? filePath)
     {
         Text = text;
         Root = root;
         Diagnostics = diagnostics;
+        Tokens = tokens;
         FilePath = filePath;
     }
 
@@ -42,7 +50,7 @@ public sealed class SyntaxTree
         if (!string.Equals(text.FileName, effectiveFilePath, StringComparison.Ordinal))
             text = SourceText.From(text.ToString(), effectiveFilePath);
         var lexer = new Lexer(text);
-        var tokens = lexer.Tokenize();
+        ImmutableArray<SyntaxToken> tokens = lexer.Tokenize().ToImmutableArray();
 
         var parser = new Parser(tokens, text);
         var root = parser.Parse();
@@ -51,7 +59,7 @@ public sealed class SyntaxTree
             .Concat(parser.Diagnostics)
             .ToImmutableArray();
 
-        return new SyntaxTree(text, root, diagnostics, effectiveFilePath);
+        return new SyntaxTree(text, root, diagnostics, tokens, effectiveFilePath);
     }
 
     /// <summary>Parse source code string into a syntax tree.</summary>
