@@ -91,6 +91,8 @@ public sealed class FixtureFlattenerTests
         Path.Combine(
             AppContext.BaseDirectory,
             "Compatibility",
+            "Shared",
+            "1.2",
             "ProjectFlatten",
             caseName);
 }
