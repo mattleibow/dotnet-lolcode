@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 
 namespace CanHasGalaxy.Tests;
 
@@ -46,6 +47,8 @@ internal static class TestProcess
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
             UseShellExecute = false,
         };
 
