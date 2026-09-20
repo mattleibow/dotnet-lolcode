@@ -1123,10 +1123,10 @@
     },
     {
       "test": "StringTests.UnicodeHexEscapeNonAscii",
-      "assertion": "Output",
+      "assertion": "Specialized",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/Strings/unicode-hex-escape-non-ascii",
-      "classification": "KnownLciDivergence"
+      "fixture": "DotNet/1.2/Strings/unicode-hex-escape-non-ascii",
+      "classification": "DotNet"
     },
     {
       "test": "StringTests.SmooshConcatenationInAssignment",

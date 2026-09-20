@@ -240,10 +240,6 @@
       "category": "pinned-lci-extension-gap",
       "evidence": "Pinned lci does not implement this repository custom-loop operation contract."
     },
-    "KnownLciDivergence/1.2/Strings/unicode-hex-escape-non-ascii": {
-      "category": "pinned-lci-semantic-gap",
-      "evidence": "Pinned lci does not match this repository regression contract."
-    },
     "KnownLciDivergence/1.2/Strings/interpolation-rejects-troof": {
       "category": "error-contract-gap",
       "evidence": "The focused dotnet diagnostic/runtime-error assertion has no equivalent pinned-lci text contract."
