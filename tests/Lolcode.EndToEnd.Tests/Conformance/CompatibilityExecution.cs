@@ -18,6 +18,8 @@ internal sealed record ProcessExecution(
 /// <summary>Runs fixture programs as isolated child processes with bounded output capture.</summary>
 internal static class CompatibilityProcessRunner
 {
+    private const int MaximumCapturedBytes = 4 * 1024 * 1024;
+
     internal static async Task<ProcessExecution> RunAsync(
         ProcessStartInfo startInfo,
         string? standardInput,
@@ -31,23 +33,44 @@ internal static class CompatibilityProcessRunner
 
         using Process process = Process.Start(startInfo)
             ?? throw new InvalidOperationException($"Could not start '{startInfo.FileName}'.");
-        Task<byte[]> outputTask = ReadAllBytesAsync(process.StandardOutput.BaseStream);
-        Task<byte[]> errorTask = ReadAllBytesAsync(process.StandardError.BaseStream);
+        Task<byte[]> outputTask = ReadAllBytesAsync(process.StandardOutput.BaseStream, "stdout");
+        Task<byte[]> errorTask = ReadAllBytesAsync(process.StandardError.BaseStream, "stderr");
         Task inputTask = WriteInputAsync(process, standardInput);
 
         using var cancellation = new CancellationTokenSource(timeout);
         try
         {
-            await process.WaitForExitAsync(cancellation.Token);
+            Task exitTask = process.WaitForExitAsync(cancellation.Token);
+            while (!exitTask.IsCompleted)
+            {
+                var waiters = new List<Task> { exitTask };
+                if (!outputTask.IsCompleted)
+                    waiters.Add(outputTask);
+                if (!errorTask.IsCompleted)
+                    waiters.Add(errorTask);
+
+                Task first = await Task.WhenAny(waiters);
+                if (first == outputTask)
+                    await outputTask;
+                if (first == errorTask)
+                    await errorTask;
+            }
+
+            await exitTask; // Propagates timeout cancellation after the loop condition.
         }
         catch (OperationCanceledException)
         {
-            if (!process.HasExited)
-                process.Kill(entireProcessTree: true);
-            await process.WaitForExitAsync();
-            await Task.WhenAll(outputTask, errorTask, inputTask);
+            await StopAndDrainAsync(process, outputTask, errorTask, inputTask);
             throw new TimeoutException(
                 $"'{startInfo.FileName}' did not exit within {timeout.TotalSeconds:0} seconds.");
+        }
+        catch (OutputLimitExceededException exception)
+        {
+            await StopAndDrainAsync(process, outputTask, errorTask, inputTask);
+            throw new InvalidOperationException(
+                $"'{startInfo.FileName}' exceeded the {MaximumCapturedBytes:N0}-byte " +
+                $"{exception.StreamName} capture limit.",
+                exception);
         }
 
         await Task.WhenAll(outputTask, errorTask, inputTask);
@@ -63,11 +86,45 @@ internal static class CompatibilityProcessRunner
         process.StandardInput.Close();
     }
 
-    private static async Task<byte[]> ReadAllBytesAsync(Stream stream)
+    private static async Task StopAndDrainAsync(
+        Process process,
+        Task<byte[]> outputTask,
+        Task<byte[]> errorTask,
+        Task inputTask)
+    {
+        if (!process.HasExited)
+            process.Kill(entireProcessTree: true);
+        await process.WaitForExitAsync();
+        try
+        {
+            await Task.WhenAll(outputTask, errorTask, inputTask);
+        }
+        catch
+        {
+            // The primary timeout/size exception is more useful than a broken input pipe.
+        }
+    }
+
+    private static async Task<byte[]> ReadAllBytesAsync(Stream stream, string streamName)
     {
         using var result = new MemoryStream();
-        await stream.CopyToAsync(result);
+        byte[] buffer = new byte[81920];
+        while (true)
+        {
+            int bytesRead = await stream.ReadAsync(buffer);
+            if (bytesRead == 0)
+                break;
+
+            if (result.Length + bytesRead > MaximumCapturedBytes)
+                throw new OutputLimitExceededException(streamName);
+            await result.WriteAsync(buffer.AsMemory(0, bytesRead));
+        }
         return result.ToArray();
+    }
+
+    private sealed class OutputLimitExceededException(string streamName) : Exception
+    {
+        internal string StreamName { get; } = streamName;
     }
 }
 
