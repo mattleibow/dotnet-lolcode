@@ -29,6 +29,7 @@ internal sealed record LciTestRegistration(
     string? ExpectedOutputPath,
     string? InputPath,
     string? ExpectedErrorPath,
+    string? ExpectedDiagnosticPath,
     bool ExpectError,
     string? WorkingDirectoryPath);
 
@@ -44,11 +45,15 @@ internal static class CompatibilityCorpus
         LciRegistrationParser.Discover(
             Path.Combine(AppContext.BaseDirectory, "Compatibility"),
             "shared compatibility",
-            excludedDirectoryNames: new HashSet<string>(StringComparer.Ordinal) { "DotNetOnly" });
+            excludedDirectoryNames: new HashSet<string>(StringComparer.Ordinal)
+            {
+                "KnownLciDivergence",
+                "DotNet",
+            });
 }
 
-/// <summary>Discovers repository-owned fixtures that are intentionally dotnet-lolcode-only.</summary>
-internal static class DotNetOnlyCompatibilityCorpus
+/// <summary>Discovers fixtures with a documented pinned-lci semantic or parser divergence.</summary>
+internal static class KnownLciDivergenceCompatibilityCorpus
 {
     private static readonly Lazy<IReadOnlyList<LciTestRegistration>> RegistrationsValue =
         new(LoadRegistrations);
@@ -57,8 +62,8 @@ internal static class DotNetOnlyCompatibilityCorpus
 
     private static IReadOnlyList<LciTestRegistration> LoadRegistrations() =>
         LciRegistrationParser.Discover(
-            Path.Combine(AppContext.BaseDirectory, "Compatibility", "DotNetOnly"),
-            "dotnet-only compatibility");
+            Path.Combine(AppContext.BaseDirectory, "Compatibility", "KnownLciDivergence"),
+            "known-lci-divergence compatibility");
 }
 
 /// <summary>
@@ -127,6 +132,7 @@ internal static partial class LciRegistrationParser
                 }
 
                 string expectedError = Path.Combine(directory, "test.err");
+                string expectedDiagnostic = Path.Combine(directory, "test.diag");
                 registrations.Add(new LciTestRegistration(
                     Path.GetRelativePath(root, directory).Replace('\\', '/'),
                     arguments[0],
@@ -134,6 +140,7 @@ internal static partial class LciRegistrationParser
                     expectedOutput,
                     input,
                     expectError && File.Exists(expectedError) ? expectedError : null,
+                    expectError && File.Exists(expectedDiagnostic) ? expectedDiagnostic : null,
                     expectError,
                     useWorkingDirectory ? directory : null));
             }

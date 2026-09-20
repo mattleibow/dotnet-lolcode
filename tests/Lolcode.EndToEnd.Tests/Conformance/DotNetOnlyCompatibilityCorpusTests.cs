@@ -1,24 +1,24 @@
 namespace Lolcode.EndToEnd.Tests;
 
-/// <summary>Runs each classified dotnet-lolcode-only fixture without weakening lci conformance.</summary>
+/// <summary>Runs each classified lci divergence without weakening shared conformance.</summary>
 [Collection(nameof(LciConformanceCollection))]
-public sealed class DotNetOnlyCompatibilityCorpusTests : IDisposable
+public sealed class KnownLciDivergenceCompatibilityCorpusTests : IDisposable
 {
     private readonly DotNetLolcodeEngine _dotnet = new();
 
     public static IEnumerable<object[]> RegisteredCases =>
-        DotNetOnlyCompatibilityCorpus.Registrations.Select(
+        KnownLciDivergenceCompatibilityCorpus.Registrations.Select(
             (test, index) => new object[] { index, test.Id });
 
     [Fact]
     public void Registered_inventory_is_not_empty() =>
-        DotNetOnlyCompatibilityCorpus.Registrations.Should().NotBeEmpty();
+        KnownLciDivergenceCompatibilityCorpus.Registrations.Should().NotBeEmpty();
 
     [Theory]
     [MemberData(nameof(RegisteredCases))]
-    public async Task Dotnet_lolcode_matches_dotnet_only_fixture(int index, string id)
+    public async Task Dotnet_lolcode_matches_known_lci_divergence_fixture(int index, string id)
     {
-        LciTestRegistration test = DotNetOnlyCompatibilityCorpus.Registrations[index];
+        LciTestRegistration test = KnownLciDivergenceCompatibilityCorpus.Registrations[index];
         test.Id.Should().Be(id);
 
         ProcessExecution result = await _dotnet.RunAsync(test);

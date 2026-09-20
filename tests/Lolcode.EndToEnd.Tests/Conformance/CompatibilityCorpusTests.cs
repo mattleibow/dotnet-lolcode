@@ -79,6 +79,18 @@ public sealed class CompatibilityCorpusTests : IDisposable
                 result.StandardErrorText.Should().Contain(expectedDiagnostic, details);
             }
 
+            if (requireDiagnosticSubstring && test.ExpectedDiagnosticPath is not null)
+            {
+                string expectedDiagnostic = DotNetLolcodeEngine.ReadUtf8(test.ExpectedDiagnosticPath).Trim();
+                result.StandardErrorText.Should().Contain(expectedDiagnostic, details);
+            }
+
+            if (test.ExpectedOutputPath is not null)
+            {
+                byte[] expectedOutput = NormalizeLineEndings(File.ReadAllBytes(test.ExpectedOutputPath));
+                NormalizeLineEndings(result.StandardOutput).Should().Equal(expectedOutput, details);
+            }
+
             return;
         }
 
