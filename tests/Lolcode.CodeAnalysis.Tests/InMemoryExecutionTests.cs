@@ -15,6 +15,9 @@ public sealed class InMemoryExecutionTests
     private static string FixtureSource(params string[] path) =>
         File.ReadAllText(Path.Combine([AppContext.BaseDirectory, "Compatibility", "DotNet", "1.2", "CodeAnalysis", .. path]));
 
+    private static string CompatibilityFixtureSource(params string[] path) =>
+        File.ReadAllText(Path.Combine([AppContext.BaseDirectory, "Compatibility", .. path]));
+
     [Fact]
     public void Emit_ToStreams_CreatesNoFiles()
     {
@@ -265,16 +268,8 @@ public sealed class InMemoryExecutionTests
     [Fact]
     public void Run_PreservesRawYarnBytesOnBothStandardStreams()
     {
-        var state = LolcodeScript.Run(
-            """
-            HAI 1.4
-              CAN HAS STRING?
-              I HAS A first ITZ I IZ STRING'Z AT YR "é" AN YR 0 MKAY
-              I HAS A second ITZ I IZ STRING'Z AT YR "é" AN YR 1 MKAY
-              VISIBLE first!
-              INVISIBLE second!
-            KTHXBYE
-            """);
+        var state = LolcodeScript.Run(CompatibilityFixtureSource(
+            "DotNet/1.4/FutureFeature/visible-and-invisible-write-selected-raw-bytes-to-process-streams/test.lol"));
 
         state.Success.Should().BeTrue();
         state.StandardOutputBytes.Should().Equal(0xC3);

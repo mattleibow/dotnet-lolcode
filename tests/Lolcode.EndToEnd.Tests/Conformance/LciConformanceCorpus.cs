@@ -44,7 +44,8 @@ internal static class CompatibilityCorpus
     private static IReadOnlyList<LciTestRegistration> LoadRegistrations() =>
         LciRegistrationParser.Discover(
             Path.Combine(AppContext.BaseDirectory, "Compatibility", "Shared"),
-            "shared compatibility");
+            "shared compatibility",
+            requireErrorSidecar: true);
 }
 
 /// <summary>Discovers fixtures with a documented pinned-lci semantic or parser divergence.</summary>
@@ -58,7 +59,8 @@ internal static class KnownLciDivergenceCompatibilityCorpus
     private static IReadOnlyList<LciTestRegistration> LoadRegistrations() =>
         LciRegistrationParser.Discover(
             Path.Combine(AppContext.BaseDirectory, "Compatibility", "KnownLciDivergence"),
-            "known-lci-divergence compatibility");
+            "known-lci-divergence compatibility",
+            requireErrorSidecar: true);
 }
 
 /// <summary>
@@ -71,7 +73,8 @@ internal static partial class LciRegistrationParser
     internal static IReadOnlyList<LciTestRegistration> Discover(
         string root,
         string corpusName,
-        IReadOnlySet<string>? excludedDirectoryNames = null)
+        IReadOnlySet<string>? excludedDirectoryNames = null,
+        bool requireErrorSidecar = false)
     {
         if (!Directory.Exists(root))
             throw new DirectoryNotFoundException($"The {corpusName} corpus was not copied to '{root}'.");
@@ -126,16 +129,21 @@ internal static partial class LciRegistrationParser
                     }
                 }
 
-                string expectedError = Path.Combine(directory, "test.err");
-                string expectedDiagnostic = Path.Combine(directory, "test.diag");
+                string errorSidecar = Path.Combine(directory, "test.err");
+                string diagnosticSidecar = Path.Combine(directory, "test.diag");
                 ValidatePath(source, "LOLCODE source", cmakePath);
                 if (expectedOutput is not null)
                     ValidatePath(expectedOutput, "OUTPUT", cmakePath);
                 if (input is not null)
                     ValidatePath(input, "INPUT", cmakePath);
-                if (expectError && File.Exists(expectedError) && File.Exists(expectedDiagnostic))
-                    throw new InvalidDataException(
-                        $"ADD_LOL_TEST cannot use both test.err and test.diag in {cmakePath}.");
+                string? expectedError = File.Exists(errorSidecar) ? errorSidecar : null;
+                string? expectedDiagnostic = File.Exists(diagnosticSidecar) ? diagnosticSidecar : null;
+                ValidateErrorSidecars(
+                    expectError,
+                    expectedError is null ? null : File.ReadAllText(expectedError),
+                    expectedDiagnostic is null ? null : File.ReadAllText(expectedDiagnostic),
+                    cmakePath,
+                    requireErrorSidecar);
                 registrations.Add(new LciTestRegistration(
                     Path.GetRelativePath(root, directory).Replace('\\', '/'),
                     arguments[0],
@@ -150,6 +158,39 @@ internal static partial class LciRegistrationParser
         }
 
         return registrations.OrderBy(test => test.Id, StringComparer.Ordinal).ToArray();
+    }
+
+    internal static void ValidateErrorSidecars(
+        bool expectError,
+        string? errorSidecar,
+        string? diagnosticSidecar,
+        string cmakePath,
+        bool requireErrorSidecar)
+    {
+        if (!expectError)
+            return;
+
+        if (errorSidecar is not null && diagnosticSidecar is not null)
+        {
+            throw new InvalidDataException(
+                $"ADD_LOL_TEST cannot use both test.err and test.diag in {cmakePath}.");
+        }
+
+        if (!requireErrorSidecar)
+            return;
+
+        if (errorSidecar is null && diagnosticSidecar is null)
+        {
+            throw new InvalidDataException(
+                $"Repository ERROR fixture requires exactly one nonempty test.err or test.diag in {cmakePath}.");
+        }
+
+        if ((errorSidecar is not null && string.IsNullOrWhiteSpace(errorSidecar)) ||
+            (diagnosticSidecar is not null && string.IsNullOrWhiteSpace(diagnosticSidecar)))
+        {
+            throw new InvalidDataException(
+                $"Repository ERROR fixture sidecar must be nonempty in {cmakePath}.");
+        }
     }
 
     private static string StripComments(string cmake) =>

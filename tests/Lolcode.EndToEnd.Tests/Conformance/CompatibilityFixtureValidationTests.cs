@@ -87,6 +87,39 @@ public sealed partial class CompatibilityFixtureValidationTests
         }
     }
 
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", null)]
+    [InlineData(" \r\n\t", null)]
+    [InlineData(null, "")]
+    [InlineData(null, " \r\n\t")]
+    public void Repository_error_registrations_reject_missing_or_empty_sidecars(
+        string? errorSidecar,
+        string? diagnosticSidecar)
+    {
+        Action validate = () => LciRegistrationParser.ValidateErrorSidecars(
+            expectError: true,
+            errorSidecar: errorSidecar,
+            diagnosticSidecar: diagnosticSidecar,
+            cmakePath: "synthetic/CMakeLists.txt",
+            requireErrorSidecar: true);
+
+        validate.Should().Throw<InvalidDataException>();
+    }
+
+    [Fact]
+    public void Repository_error_registrations_reject_both_sidecars()
+    {
+        Action validate = () => LciRegistrationParser.ValidateErrorSidecars(
+            expectError: true,
+            errorSidecar: "runtime error",
+            diagnosticSidecar: "LOL2001",
+            cmakePath: "synthetic/CMakeLists.txt",
+            requireErrorSidecar: true);
+
+        validate.Should().Throw<InvalidDataException>();
+    }
+
     [Fact]
     public void Every_flattened_fixture_is_current_without_a_separate_tool()
     {

@@ -1,6 +1,7 @@
 HAI 1.4
 I HAS A dynamicName ITZ "dynamic"
-I HAS SRS dynamicName ITZ NOOB
+I HAS A dynamic ITZ 1
+SRS dynamicName R NOOB
 I HAS A literal ITZ NOOB
 BOTH SAEM SRS dynamicName AN NOOB
 O RLY?

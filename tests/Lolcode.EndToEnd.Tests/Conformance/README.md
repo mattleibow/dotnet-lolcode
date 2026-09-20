@@ -31,6 +31,11 @@ tests as soon as the submodule gitlink advances. Corpus integrity tests reject
 duplicate IDs, missing referenced files, conflicting result metadata, and an
 empty registration inventory.
 
+Repository-owned `Shared` and `KnownLciDivergence` registrations additionally
+require exactly one nonempty sidecar for every `ERROR` case: `test.err` for a
+runtime failure or `test.diag` for a compiler diagnostic. Upstream retains its
+native any-nonzero `ERROR` behavior unchanged.
+
 ## Upstream Driver Differences
 
 The .NET runner reproduces the semantics of upstream's CMake/Python driver

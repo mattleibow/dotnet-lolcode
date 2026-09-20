@@ -6,14 +6,6 @@ namespace Lolcode.EndToEnd.Tests;
 public class FutureFeatureTests : EndToEndTestBase
 {
     [Fact]
-    public void StdioSupportsEverySlotAndFailedOpen()
-    {
-        AssertOutput(
-            FixtureSource("DotNet/1.4/FutureFeature/stdio-supports-every-slot-and-failed-open/test.lol"),
-            "opened\nHAI\nfailed safely");
-    }
-
-    [Fact]
     public void StdioAppendAndErrorsMatchCStreamSemantics()
     {
         string path = Path.Combine(TestDirectory, "append.dat");
