@@ -103,7 +103,22 @@ public sealed class CompatibilityCorpusTests : IDisposable
         return !string.IsNullOrWhiteSpace(path) && File.Exists(path);
     }
 
-    private static byte[] NormalizeLineEndings(byte[] value) =>
-        Encoding.UTF8.GetBytes(
-            Encoding.UTF8.GetString(value).Replace("\r\n", "\n", StringComparison.Ordinal));
+    internal static byte[] NormalizeLineEndings(byte[] value)
+    {
+        int firstCarriageReturn = Array.IndexOf(value, (byte)'\r');
+        if (firstCarriageReturn < 0)
+            return value;
+
+        using var normalized = new MemoryStream(value.Length);
+        normalized.Write(value, 0, firstCarriageReturn);
+        for (int index = firstCarriageReturn; index < value.Length; index++)
+        {
+            if (value[index] == '\r' && index + 1 < value.Length && value[index + 1] == '\n')
+                continue;
+
+            normalized.WriteByte(value[index]);
+        }
+
+        return normalized.ToArray();
+    }
 }

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 using Lolcode.CodeAnalysis;
 using Lolcode.CodeAnalysis.Syntax;
@@ -19,6 +20,7 @@ internal sealed record ProcessExecution(
 internal static class CompatibilityProcessRunner
 {
     private const int MaximumCapturedBytes = 4 * 1024 * 1024;
+    private static readonly TimeSpan CleanupTimeout = TimeSpan.FromSeconds(1);
 
     internal static async Task<ProcessExecution> RunAsync(
         ProcessStartInfo startInfo,
@@ -33,91 +35,135 @@ internal static class CompatibilityProcessRunner
 
         using Process process = Process.Start(startInfo)
             ?? throw new InvalidOperationException($"Could not start '{startInfo.FileName}'.");
-        Task<byte[]> outputTask = ReadAllBytesAsync(process.StandardOutput.BaseStream, "stdout");
-        Task<byte[]> errorTask = ReadAllBytesAsync(process.StandardError.BaseStream, "stderr");
-        Task inputTask = WriteInputAsync(process, standardInput);
+        int? processGroupId = UnixProcessGroups.TryCreate(process.Id);
+        using var cancellation = new CancellationTokenSource();
+        Task<byte[]> outputTask = ReadAllBytesAsync(
+            process.StandardOutput.BaseStream, "stdout", cancellation.Token);
+        Task<byte[]> errorTask = ReadAllBytesAsync(
+            process.StandardError.BaseStream, "stderr", cancellation.Token);
+        Task inputTask = WriteInputAsync(process, standardInput, cancellation.Token);
+        Task exitTask = process.WaitForExitAsync(cancellation.Token);
+        Task deadlineTask = Task.Delay(timeout);
+        var pending = new List<Task> { outputTask, errorTask, inputTask, exitTask };
 
-        using var cancellation = new CancellationTokenSource(timeout);
         try
         {
-            Task exitTask = process.WaitForExitAsync(cancellation.Token);
-            while (!exitTask.IsCompleted)
+            while (pending.Count > 0)
             {
-                var waiters = new List<Task> { exitTask };
-                if (!outputTask.IsCompleted)
-                    waiters.Add(outputTask);
-                if (!errorTask.IsCompleted)
-                    waiters.Add(errorTask);
+                Task completed = await Task.WhenAny(pending.Append(deadlineTask));
+                if (completed == deadlineTask)
+                    throw new TimeoutException();
 
-                Task first = await Task.WhenAny(waiters);
-                if (first == outputTask)
-                    await outputTask;
-                if (first == errorTask)
-                    await errorTask;
+                await completed;
+                pending.Remove(completed);
             }
 
-            await exitTask; // Propagates timeout cancellation after the loop condition.
+            return new ProcessExecution(process.ExitCode, outputTask.Result, errorTask.Result);
         }
-        catch (OperationCanceledException)
+        catch (TimeoutException)
         {
-            await StopAndDrainAsync(process, outputTask, errorTask, inputTask);
+            await StopAndDrainAsync(
+                process, processGroupId, cancellation, outputTask, errorTask, inputTask);
             throw new TimeoutException(
-                $"'{startInfo.FileName}' did not exit within {timeout.TotalSeconds:0} seconds.");
+                $"'{startInfo.FileName}' did not complete within {timeout.TotalSeconds:0} seconds.");
         }
         catch (OutputLimitExceededException exception)
         {
-            await StopAndDrainAsync(process, outputTask, errorTask, inputTask);
+            await StopAndDrainAsync(
+                process, processGroupId, cancellation, outputTask, errorTask, inputTask);
             throw new InvalidOperationException(
                 $"'{startInfo.FileName}' exceeded the {MaximumCapturedBytes:N0}-byte " +
                 $"{exception.StreamName} capture limit.",
                 exception);
         }
-
-        await Task.WhenAll(outputTask, errorTask, inputTask);
-        return new ProcessExecution(process.ExitCode, outputTask.Result, errorTask.Result);
+        catch
+        {
+            await StopAndDrainAsync(
+                process, processGroupId, cancellation, outputTask, errorTask, inputTask);
+            throw;
+        }
     }
 
-    private static async Task WriteInputAsync(Process process, string? standardInput)
+    private static async Task WriteInputAsync(
+        Process process,
+        string? standardInput,
+        CancellationToken cancellationToken)
     {
         if (standardInput is null)
             return;
 
-        await process.StandardInput.WriteAsync(standardInput);
+        await process.StandardInput.WriteAsync(standardInput.AsMemory(), cancellationToken);
         process.StandardInput.Close();
     }
 
     private static async Task StopAndDrainAsync(
         Process process,
+        int? processGroupId,
+        CancellationTokenSource cancellation,
         Task<byte[]> outputTask,
         Task<byte[]> errorTask,
         Task inputTask)
     {
-        if (!process.HasExited)
-            process.Kill(entireProcessTree: true);
-        await process.WaitForExitAsync();
+        cancellation.Cancel();
+        UnixProcessGroups.TryKill(processGroupId);
         try
         {
-            await Task.WhenAll(outputTask, errorTask, inputTask);
+            process.Kill(entireProcessTree: true);
+        }
+        catch (InvalidOperationException)
+        {
+            // The direct process can exit while descendants still retain its pipes.
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // A process that has already been reaped cannot be killed again.
+        }
+
+        try
+        {
+            process.StandardInput.Close();
+            process.StandardOutput.Close();
+            process.StandardError.Close();
         }
         catch
         {
-            // The primary timeout/size exception is more useful than a broken input pipe.
+            // Closing a pipe is best effort while a concurrent I/O operation is being cancelled.
+        }
+
+        Task drains = Task.WhenAll(outputTask, errorTask, inputTask);
+        Task exit = process.WaitForExitAsync();
+        Task cleanup = Task.WhenAll(IgnoreFailuresAsync(drains), IgnoreFailuresAsync(exit));
+        _ = await Task.WhenAny(cleanup, Task.Delay(CleanupTimeout));
+    }
+
+    private static async Task IgnoreFailuresAsync(Task task)
+    {
+        try
+        {
+            await task;
+        }
+        catch
+        {
+            // The original timeout, output limit, or process exception is more useful.
         }
     }
 
-    private static async Task<byte[]> ReadAllBytesAsync(Stream stream, string streamName)
+    private static async Task<byte[]> ReadAllBytesAsync(
+        Stream stream,
+        string streamName,
+        CancellationToken cancellationToken)
     {
         using var result = new MemoryStream();
         byte[] buffer = new byte[81920];
         while (true)
         {
-            int bytesRead = await stream.ReadAsync(buffer);
+            int bytesRead = await stream.ReadAsync(buffer, cancellationToken);
             if (bytesRead == 0)
                 break;
 
             if (result.Length + bytesRead > MaximumCapturedBytes)
                 throw new OutputLimitExceededException(streamName);
-            await result.WriteAsync(buffer.AsMemory(0, bytesRead));
+            await result.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
         }
         return result.ToArray();
     }
@@ -125,6 +171,31 @@ internal static class CompatibilityProcessRunner
     private sealed class OutputLimitExceededException(string streamName) : Exception
     {
         internal string StreamName { get; } = streamName;
+    }
+
+    private static class UnixProcessGroups
+    {
+        private const int SigKill = 9;
+
+        internal static int? TryCreate(int processId)
+        {
+            if (OperatingSystem.IsWindows())
+                return null;
+
+            return setpgid(processId, processId) == 0 ? processId : null;
+        }
+
+        internal static void TryKill(int? processGroupId)
+        {
+            if (processGroupId is int groupId)
+                _ = kill(-groupId, SigKill);
+        }
+
+        [DllImport("libc", SetLastError = true)]
+        private static extern int setpgid(int pid, int pgid);
+
+        [DllImport("libc", SetLastError = true)]
+        private static extern int kill(int pid, int signal);
     }
 }
 
