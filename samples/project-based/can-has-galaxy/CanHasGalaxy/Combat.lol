@@ -1,5 +1,14 @@
 HAI 1.4
 
+OBTW
+Galaxy combat implements the deterministic FIGHT transition. It imports
+GameEngine locally for bounded damage, mutates only the provided game/player
+BUKKIT, and returns a communications-ready outcome YARN. This file owns no
+terminal output, persistence handles, or top-level initialization. Its direct
+function is hoisted, so model and story helpers may reside in any SDK glob
+order.
+TLDR
+
 CAN HAS GameEngine?
 
 BTW FIGHT applies deterministic damage, bounty, and relic progress to Galaxy state.

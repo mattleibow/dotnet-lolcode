@@ -1,5 +1,13 @@
 HAI 1.4
 
+OBTW
+Galaxy navigation supplies the fixed sector catalogue, compact MAP summary,
+and deterministic TRAVEL state transition. SECTORNAME and MAP are pure views;
+TRAVEL mutates fuel, sector, turn, and omen in its supplied game BUKKIT.
+GameEngine is loaded for the deterministic seed step, while rendering remains
+in Views.lol. Hoisted functions permit cross-file calls without file ordering.
+TLDR
+
 CAN HAS GameEngine?
 
 BTW SECTORNAME maps Galaxy's fixed star chart to human-readable sector names.

@@ -1,5 +1,13 @@
 HAI 1.4
 
+OBTW
+Galaxy story text maps deterministic omen values and relic progress to pure
+display YARNs. ENCOUNTER and MISSIONTEXT neither mutate state nor print, so
+Views.lol may safely use them during retained screen composition. The module
+has no imports, initialization, or source-order assumptions; direct functions
+are hoisted project-wide.
+TLDR
+
 BTW ENCOUNTER maps a deterministic omen to a short event description.
 HOW IZ I ENCOUNTER YR omen
   omen

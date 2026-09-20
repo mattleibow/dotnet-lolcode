@@ -6,6 +6,7 @@
     <AssemblyName>GameEngine</AssemblyName>
     <RootNamespace>GameEngine</RootNamespace>
     <LolcodeLibraryTypeName>EngineExports</LolcodeLibraryTypeName>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
   <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.targets" />
 </Project>

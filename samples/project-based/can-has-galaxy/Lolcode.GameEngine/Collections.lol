@@ -1,5 +1,14 @@
 HAI 1.4
 
+OBTW
+GameEngine collection primitives provide NEWLIST, a prototype-backed BUKKIT
+list with SRS item slots, and PAIR, a lightweight two-value exchange BUKKIT.
+Their public functions create and mutate only returned objects; they perform no
+I/O and import no application modules. The list methods are defined with their
+prototype so construction has no cross-file initialization dependency. Direct
+top-level functions are hoisted for consumers in either game.
+TLDR
+
 BTW NEWLIST creates a prototype-backed dynamic list for reusable game state.
 HOW IZ I NEWLIST
   BTW listPrototype holds methods shared by each list instance.
