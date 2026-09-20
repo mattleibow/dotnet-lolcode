@@ -146,7 +146,7 @@ jobs:
       - name: Verify compatibility contracts with autocrlf enabled
         shell: bash
         run: |
-          git clone --no-local . artifacts/autocrlf-compatibility
+          git clone --no-local --recurse-submodules . artifacts/autocrlf-compatibility
           cd artifacts/autocrlf-compatibility
           git config core.autocrlf true
           git config core.eol crlf
