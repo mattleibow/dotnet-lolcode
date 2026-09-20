@@ -26,11 +26,11 @@ Lolcode.TerminalUi ─┬─> CanHasGalaxy ─> CanHasGalaxy.Cli
 
 | Project | Purpose |
 | --- | --- |
-| `Lolcode.GameEngine` | Prototype-backed dynamic list, SRS/BUKKIT first-class-function command router, and deterministic clamp/seed helpers. It contains neither Galaxy rules nor rendering. |
-| `Lolcode.TerminalUi` | Retained BUKKIT/SRS line views, ASCII-width fitting, Unicode frames, horizontal/vertical compositors, progress rows, snapshots, and optional ANSI redraw. |
-| `CanHasGalaxy` | Galaxy model, navigation, economy, combat, story, primitive save/load codec, and views. `STDIO` handles remain inside save/load functions. |
-| `CanHasGalaxy.Cli` | EOF-safe interactive shell that registers Galaxy command functions in the generic router and renders with TerminalUi. |
-| `Kitteh.Catacombs` | A compact deterministic crawler that independently registers `LOOK`, `STEP`, and `QUIT` handlers in the same router and uses the same UI widgets. |
+| `Lolcode.GameEngine` | Feature folders isolate collection primitives, command routing, and deterministic numeric helpers. It contains neither Galaxy rules nor rendering. |
+| `Lolcode.TerminalUi` | Feature folders isolate text formatting, retained views, layouts, controls, rendering, and legacy widgets. |
+| `CanHasGalaxy` | Domain feature folders isolate model, navigation, economy, combat, story, and persistence parsing/validation/save/load. `STDIO` handles remain inside save/load functions. |
+| `CanHasGalaxy.Cli` | Feature folders separate application startup/registration from navigation, economy, combat, story, persistence, and lifecycle commands. |
+| `Kitteh.Catacombs` | A compact deterministic crawler split into application, domain, presentation, and command features while reusing the same engine and UI. |
 
 `tests/CanHasGalaxy.Tests` is the dedicated C# xUnit test project. It calls
 the generated `CanHasGalaxy.GalaxyExports` and `TerminalUi.UiExports` wrappers,
@@ -46,21 +46,18 @@ encoding a compilation sequence:
 
 | Project | Files |
 | --- | --- |
-| `Lolcode.GameEngine` | `Collections`, `Commands`, `Determinism` |
-| `Lolcode.TerminalUi` | `Text`, `Widgets` |
-| `CanHasGalaxy` | `Model`, `Navigation`, `Economy`, `Combat`, `Story`, `Persistence`, `Views` |
-| Both executables | `Application`, `Commands` |
+| `Lolcode.GameEngine` | `Collections/List`, `Collections/Pair`, `Commands/Router`, `Determinism/Numbers` |
+| `Lolcode.TerminalUi` | `Text/Formatting`, `Core/View`, `Layout`, `Controls`, `Rendering`, `Compatibility/LegacyWidgets` |
+| `CanHasGalaxy` | `Domain/{Model,Navigation,Economy,Combat,Story}`, `Infrastructure/Persistence`, `Presentation` |
+| `CanHasGalaxy.Cli` | `Application/{Registration,GameLoop}`, `Commands/{Navigation,Economy,Combat,Story,Persistence,Lifecycle}` |
+| `Kitteh.Catacombs` | `Application/GameLoop`, `Domain/Rooms`, `Presentation/Dashboard`, `Commands/{Adventure,Lifecycle}` |
 
 Direct top-level functions are hoisted compilation-wide, so cross-file calls
 and first-class handler references do not depend on source order. The libraries
 avoid order-sensitive top-level mutable initialization. Executable imports are
 function-local, so either source file may be compiled first even though
-`Application.lol` performs the final top-level `RUN` call. Its alphabetical
-position deliberately exercises the formerly difficult entry-point-first
-order. This keeps the files cohesive without numeric prefixes, tiny projects,
-or god modules.
-
-## Playing Galaxy
+`Application/GameLoop.lol` performs the final top-level `RUN` call. This keeps
+the files cohesive without numeric prefixes, tiny projects, or god modules.
 
 ## Retained terminal UI
 

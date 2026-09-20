@@ -1,0 +1,28 @@
+HAI 1.4
+
+OBTW
+Galaxy presentation compatibility retains prior status rendering and headless APIs.
+TLDR
+
+BTW RENDERSTATUS remains a compatibility wrapper for previous callers.
+HOW IZ I RENDERSTATUS YR game
+  I IZ RENDERDASHBOARD YR game AN YR "STATUS REQUESTED." MKAY
+  FOUND YR I IZ STATUS YR game MKAY
+IF U SAY SO
+
+BTW HEADLESS runs a finite deterministic scenario for scripts and smoke tests.
+HOW IZ I HEADLESS
+  I HAS A game ITZ I IZ CREATEGAME YR "BOT" AN YR 4242 MKAY
+  VISIBLE "CAN HAS GALAXY? SIMULATION v2"
+  VISIBLE I IZ STATUS YR game MKAY
+  VISIBLE I IZ TRAVEL YR game AN YR 1 MKAY
+  VISIBLE I IZ MINE YR game MKAY
+  VISIBLE I IZ SELLORE YR game MKAY
+  VISIBLE I IZ TRAVEL YR game AN YR 3 MKAY
+  VISIBLE I IZ FIGHT YR game MKAY
+  VISIBLE I IZ MISSIONTEXT YR game MKAY
+  VISIBLE I IZ STATUS YR game MKAY
+  FOUND YR game
+IF U SAY SO
+
+KTHXBYE

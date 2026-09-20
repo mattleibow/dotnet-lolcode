@@ -27,14 +27,17 @@ public class GalaxyPersistenceTests
         }
     }
 
-    [Fact]
-    public void Load_InvalidSaveReturnsNoobAsNull()
+    [Theory]
+    [InlineData("BAD3\n99\n")]
+    [InlineData("CHG3\n")]
+    [InlineData("CHG3\n1\n6\n5\n9\n1\n0\n2\n7\n")]
+    public void Load_InvalidOrTruncatedSaveReturnsNoobAsNull(string contents)
     {
         string directory = TestProcess.CreateTemporaryDirectory();
         string savePath = Path.Combine(directory, "bad.save");
         try
         {
-            File.WriteAllText(savePath, "BAD3\n99\n");
+            File.WriteAllText(savePath, contents);
 
             GalaxyExports.LOAD(savePath).Should().BeNull();
         }
