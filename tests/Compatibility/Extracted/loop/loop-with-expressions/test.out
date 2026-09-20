@@ -1,0 +1,18 @@
+COMPLEX TIL CONDITION:
+  x = 0, limit = 10
+  x = 1, limit = 10
+  x = 2, limit = 10
+  x = 3, limit = 10
+  x = 4, limit = 10
+  x = 5, limit = 10
+  x = 6, limit = 10
+  x = 7, limit = 10
+  x = 8, limit = 10
+  x = 9, limit = 10
+COMPLEX WILE CONDITION:
+  y = 0, a = 1, b = 20
+  y = 1, a = 2, b = 20
+  y = 2, a = 4, b = 20
+  y = 3, a = 8, b = 20
+  y = 4, a = 16, b = 20
+DONE

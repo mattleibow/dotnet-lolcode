@@ -1,0 +1,56 @@
+BTW Comprehensive casting matrix tests for LANGUAGE_SPEC Casting Rules Summary
+BTW Per spec: verify each From -> To case with representative values
+
+HAI 1.2
+  BTW NUMBR -> YARN
+  VISIBLE "NUMBR->YARN:: " MAEK 42 A YARN
+
+  BTW NUMBAR -> YARN (2 decimal places)
+  I HAS A numbar ITZ 3.14159
+  VISIBLE "NUMBAR->YARN:: " MAEK numbar A YARN
+
+  BTW YARN -> NUMBR
+  VISIBLE "YARN :"123:"->NUMBR:: " MAEK "123" A NUMBR
+  VISIBLE "YARN :"4.56:"->NUMBR:: " MAEK "4.56" A NUMBR
+
+  BTW YARN -> NUMBAR
+  VISIBLE "YARN :"4.56:"->NUMBAR:: " MAEK "4.56" A NUMBAR
+
+  BTW YARN -> TROOF
+  VISIBLE "YARN :":"->TROOF:: " MAEK MAEK "" A TROOF A NUMBR
+  VISIBLE "YARN :"LOL:"->TROOF:: " MAEK MAEK "LOL" A TROOF A NUMBR
+
+  BTW NUMBR -> TROOF
+  VISIBLE "NUMBR 0->TROOF:: " MAEK MAEK 0 A TROOF A NUMBR
+  VISIBLE "NUMBR 5->TROOF:: " MAEK MAEK 5 A TROOF A NUMBR
+
+  BTW NUMBAR -> TROOF
+  I HAS A zeroNumbar ITZ 0.0
+  I HAS A nonzeroNumbar ITZ -1.5
+  VISIBLE "NUMBAR 0.0->TROOF:: " MAEK MAEK zeroNumbar A TROOF A NUMBR
+  VISIBLE "NUMBAR -1.5->TROOF:: " MAEK MAEK nonzeroNumbar A TROOF A NUMBR
+
+  BTW TROOF -> NUMBR
+  VISIBLE "TROOF WIN->NUMBR:: " MAEK WIN A NUMBR
+  VISIBLE "TROOF FAIL->NUMBR:: " MAEK FAIL A NUMBR
+
+  BTW TROOF -> NUMBAR
+  VISIBLE "TROOF WIN->NUMBAR:: " MAEK WIN A NUMBAR
+  VISIBLE "TROOF FAIL->NUMBAR:: " MAEK FAIL A NUMBAR
+
+  BTW NOOB -> TROOF (implicit and explicit)
+  I HAS A nothing ITZ NOOB
+  VISIBLE "NOOB->TROOF (explicit):: " MAEK MAEK nothing A TROOF A NUMBR
+  nothing
+  O RLY?
+    YA RLY
+      VISIBLE "NOOB->TROOF (implicit in O RLY?):: WIN BRANCH"
+    NO WAI
+      VISIBLE "NOOB->TROOF (implicit in O RLY?):: FAIL BRANCH"
+  OIC
+
+  BTW NOOB -> other (explicit)
+  VISIBLE "NOOB->NUMBR:: " MAEK nothing A NUMBR
+  VISIBLE "NOOB->NUMBAR:: " MAEK nothing A NUMBAR
+  VISIBLE "NOOB->YARN:: [" MAEK nothing A YARN "]"
+KTHXBYE

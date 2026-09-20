@@ -140,6 +140,9 @@ jobs:
       - name: Check generated flattened fixtures
         run: dotnet run --project tools/Lolcode.Compatibility.Flatten/Lolcode.Compatibility.Flatten.csproj -- --check
 
+      - name: Check extracted compatibility fixtures
+        run: python3 tools/extract-e2e-compatibility.py --check
+
       - name: Upload compatibility results
         if: always()
         uses: actions/upload-artifact@v4

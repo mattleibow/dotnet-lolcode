@@ -1,0 +1,4 @@
+HAI 1.2
+  I HAS A x ITZ 7.0
+  VISIBLE x
+KTHXBYE

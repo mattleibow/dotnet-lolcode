@@ -1,0 +1,8 @@
+Outer: x is 5
+Outer loop: 0
+Outer loop: 1
+Inner: i is 1
+Inner loop: 0
+Inner loop: 1
+Deepest: j is 1
+Done!

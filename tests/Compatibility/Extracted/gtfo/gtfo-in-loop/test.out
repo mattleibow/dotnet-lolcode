@@ -1,0 +1,8 @@
+TESTING GTFO IN LOOP:
+  iteration 0
+  end of iteration 0
+  iteration 1
+  end of iteration 1
+  iteration 2
+  breaking at counter = 3
+AFTER LOOP
