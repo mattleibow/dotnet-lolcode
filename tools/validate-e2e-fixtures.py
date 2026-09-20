@@ -13,6 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 COMPATIBILITY = ROOT / "tests" / "Compatibility"
+CLASSIFICATIONS = ROOT / "tools" / "compatibility-classifications.json"
 END_TO_END = ROOT / "tests" / "Lolcode.EndToEnd.Tests"
 PROGRAM = re.compile(r"\bHAI\s+[0-9.]+\b.*?\bKTHXBYE\b", re.DOTALL)
 ROOTS = {"Shared", "KnownLciDivergence", "DotNet"}
@@ -34,6 +35,17 @@ def main() -> int:
             failures.append(f"unknown classification for {identity}: {item['classification']}")
         if item["fixture"].split("/", 1)[0] != item["classification"]:
             failures.append(f"classification/path mismatch for {identity}: {item['fixture']}")
+
+    catalog = json.loads(CLASSIFICATIONS.read_text(encoding="utf-8"))["knownLciDivergences"]
+    registered_divergences = {
+        str(cmake.parent.relative_to(COMPATIBILITY)).replace("\\", "/")
+        for cmake in (COMPATIBILITY / "KnownLciDivergence").glob("**/CMakeLists.txt")
+    }
+    if set(catalog) != registered_divergences:
+        failures.append("known-lci-divergence catalog must exactly classify every registered fixture")
+    for fixture, metadata in catalog.items():
+        if not metadata.get("category") or not metadata.get("evidence"):
+            failures.append(f"missing category or evidence for {fixture}")
 
     for source in END_TO_END.rglob("*.cs"):
         if PROGRAM.search(source.read_text(encoding="utf-8")):
