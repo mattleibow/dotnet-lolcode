@@ -24,11 +24,14 @@ and `test.in` retain exact bytes. `CWD` uses ordinary fixture support files.
 `ERROR` in `CMakeLists.txt` preserves lci's nonzero-exit contract. A dotnet
 fixture can additionally use:
 
-* `test.err` — stable runtime-error substring; and
-* `test.diag` — stable compile diagnostic ID, optionally followed by a message
-  substring or location assertion in future only when a test needs it.
+* `test.err` — stable runtime-error substring. The fixture must compile and
+  launch, then exit nonzero.
+* `test.diag` — stable compiler diagnostic ID, optionally followed by a
+  message substring or location assertion. The fixture must fail before any
+  program is launched.
 
-The dotnet runner checks both files when present. lci sees only its existing
+The dotnet runner rejects a wrong-phase result even when its text happens to
+contain the expected substring or diagnostic ID. lci sees only its existing
 `ERROR` contract. Runtime-error fixtures may also have `test.out`, whose exact
 bytes are checked by dotnet-lolcode without changing lci behavior.
 
@@ -48,5 +51,8 @@ dotnet run --project tools/Lolcode.Compatibility.Flatten/Lolcode.Compatibility.F
 ```
 
 The guard validates `tests/Compatibility/inventory.json` (historic C# identity
-→ canonical fixture/classification) and fails when C# EndToEnd code reintroduces
-a complete `HAI ... KTHXBYE` program.
+→ canonical fixture/classification), CMake registrations, assertion sidecars,
+classification evidence, specialized C# consumers, and duplicate or retargeted
+historic mappings. It scans EndToEnd, CodeAnalysis, and Web tests for complete
+`HAI ... KTHXBYE` programs; narrowly documented parser, source-path, PDB, and
+stream-construction exceptions remain in the inventory.

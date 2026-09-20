@@ -23,7 +23,9 @@ internal sealed record ProcessExecution(
     internal string StandardErrorText => Encoding.UTF8.GetString(StandardError);
 
     internal string CompilationDiagnosticText =>
-        string.Join(Environment.NewLine, CompilationDiagnostics);
+        CompilationSucceeded
+            ? string.Empty
+            : string.Join(Environment.NewLine, CompilationDiagnostics);
 
     internal static ProcessExecution CompilationFailure(ImmutableArray<Diagnostic> diagnostics) =>
         new(-1, [], [], diagnostics);
