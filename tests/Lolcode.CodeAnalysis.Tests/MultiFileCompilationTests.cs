@@ -12,25 +12,10 @@ public sealed class MultiFileCompilationTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void CrossFileFunctionCalls_AreIndependentOfSourceFileOrder(bool calleeFirst)
     {
-        var caller = Tree(
-            """
-            HAI 1.2
-            VISIBLE I IZ GREETING MKAY
-            KTHXBYE
-            """,
-            "Caller.lol");
-        var callee = Tree(
-            """
-            HAI 1.2
-            HOW IZ I GREETING
-                FOUND YR "HAI FROM ANOTHER FILE"
-            IF U SAY SO
-            KTHXBYE
-            """,
-            "Callee.lol");
+        var caller = Tree(FixtureSource("cross-file-functions", "caller.lol"), "Caller.lol");
+        var callee = Tree(FixtureSource("cross-file-functions", "callee.lol"), "Callee.lol");
 
         var compilation = calleeFirst
             ? LolcodeCompilation.Create(callee, caller)
@@ -253,8 +238,8 @@ public sealed class MultiFileCompilationTests
     public void CrossFileTopLevelStatements_ExecuteInSyntaxTreeOrder()
     {
         var compilation = LolcodeCompilation.Create(
-            Tree(FixtureSource("first.lol"), "First.lol"),
-            Tree(FixtureSource("second.lol"), "Second.lol"));
+            Tree(FixtureSource("multi-file-order", "first.lol"), "First.lol"),
+            Tree(FixtureSource("multi-file-order", "second.lol"), "Second.lol"));
 
         Execute(compilation).Should().Be(
             $"FIRST{Environment.NewLine}SECOND{Environment.NewLine}");
@@ -478,9 +463,9 @@ public sealed class MultiFileCompilationTests
         peStream.Length.Should().BeGreaterThan(0);
     }
 
-    private static string FixtureSource(string fileName) =>
+    private static string FixtureSource(params string[] path) =>
         File.ReadAllText(Path.Combine(
-            AppContext.BaseDirectory, "Compatibility", "DotNet", "1.2", "CodeAnalysis", "multi-file-order", fileName));
+            [AppContext.BaseDirectory, "Compatibility", "DotNet", "1.2", "CodeAnalysis", .. path]));
 
     private static SyntaxTree Tree(string source, string filePath) =>
         SyntaxTree.ParseText(source, filePath);

@@ -135,19 +135,18 @@ public sealed class LolcodeCodeRunnerTests
     }
 
     [Fact]
-    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public async Task RunAsync_CapturesAndBoundsStandardErrorIndependently()
     {
         var result = await _runner.RunAsync(
             new CodeRunRequest(
-                """
-                HAI 1.2
-                  VISIBLE "stdout"!
-                  IM IN YR loop UPPIN YR i TIL BOTH SAEM i AN 128001
-                    INVISIBLE "E"!
-                  IM OUTTA YR loop
-                KTHXBYE
-                """,
+                File.ReadAllText(Path.Combine(
+                    AppContext.BaseDirectory,
+                    "Compatibility",
+                    "DotNet",
+                    "1.2",
+                    "Web",
+                    "code-runner-standard-error",
+                    "test.lol")),
                 string.Empty));
 
         result.Success.Should().BeTrue();

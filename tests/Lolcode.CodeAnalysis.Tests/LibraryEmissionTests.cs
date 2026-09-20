@@ -15,7 +15,6 @@ public class LibraryEmissionTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void LibraryEmission_MultipleParameterlessWrappersInitializeObjectsIndependently(bool emitPdb)
     {
         string assemblyName = $"library-wrappers-{Guid.NewGuid():N}";
@@ -24,19 +23,7 @@ public class LibraryEmissionTests
         try
         {
             var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(
-                """
-                HAI 1.3
-                O HAI IM state
-                    I HAS A value ITZ 42
-                KTHX
-                HOW IZ I FIRST
-                    FOUND YR "FIRST"
-                IF U SAY SO
-                HOW IZ I SECOND
-                    FOUND YR "SECOND"
-                IF U SAY SO
-                KTHXBYE
-                """,
+                CompatibilityFixtureSource("DotNet", "1.4", "CodeAnalysis", "library-wrappers", "test.lol"),
                 sourcePath));
 
             var result = compilation.Emit(
@@ -164,20 +151,13 @@ public class LibraryEmissionTests
     }
 
     [Fact]
-    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void LibraryEmission_UsesSuppliedTargetFrameworkReferenceAssemblies()
     {
         string outputPath = Path.Combine(AppContext.BaseDirectory, $"library-{Guid.NewGuid():N}.dll");
         try
         {
             var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(
-                """
-                HAI 1.4
-                HOW IZ I ADD YR left AN YR right
-                    FOUND YR SUM OF left AN right
-                IF U SAY SO
-                KTHXBYE
-                """));
+                CompatibilityFixtureSource("DotNet", "1.4", "CodeAnalysis", "library-reference-assemblies", "test.lol")));
 
             var result = compilation.Emit(
                 outputPath,
@@ -217,7 +197,6 @@ public class LibraryEmissionTests
     }
 
     [Fact]
-    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void LibraryEmission_ExportsFunctionsDeclaredInMultipleSourceFiles()
     {
         string outputPath = Path.Combine(AppContext.BaseDirectory, $"multifile-library-{Guid.NewGuid():N}.dll");
@@ -225,10 +204,10 @@ public class LibraryEmissionTests
         {
             var compilation = LolcodeCompilation.Create(
                 SyntaxTree.ParseText(
-                    "HAI 1.4\nHOW IZ I FIRST\nFOUND YR 1\nIF U SAY SO\nKTHXBYE",
+                    CompatibilityFixtureSource("DotNet", "1.4", "CodeAnalysis", "library-multifile-exports", "first.lol"),
                     "First.lol"),
                 SyntaxTree.ParseText(
-                    "HAI 1.4\nHOW IZ I SECOND\nFOUND YR 2\nIF U SAY SO\nKTHXBYE",
+                    CompatibilityFixtureSource("DotNet", "1.4", "CodeAnalysis", "library-multifile-exports", "second.lol"),
                     "Second.lol"));
 
             var result = compilation.Emit(
@@ -257,7 +236,6 @@ public class LibraryEmissionTests
     }
 
     [Fact]
-    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void LibraryEmission_HoistsRuntimeFunctionValuesBeforeWrapperInitialization()
     {
         string outputPath = Path.Combine(
@@ -267,23 +245,10 @@ public class LibraryEmissionTests
         {
             var compilation = LolcodeCompilation.Create(
                 SyntaxTree.ParseText(
-                    """
-                    HAI 1.4
-                    I HAS A greeting ITZ I IZ GREETING MKAY
-                    HOW IZ I WELCOME
-                        FOUND YR greeting
-                    IF U SAY SO
-                    KTHXBYE
-                    """,
+                    CompatibilityFixtureSource("DotNet", "1.4", "CodeAnalysis", "library-runtime-function-values", "welcome.lol"),
                     "Welcome.lol"),
                 SyntaxTree.ParseText(
-                    """
-                    HAI 1.4
-                    HOW IZ I GREETING
-                        FOUND YR "HAI"
-                    IF U SAY SO
-                    KTHXBYE
-                    """,
+                    CompatibilityFixtureSource("DotNet", "1.4", "CodeAnalysis", "library-runtime-function-values", "greeting.lol"),
                     "Greeting.lol"));
 
             var result = compilation.Emit(
@@ -340,7 +305,6 @@ public class LibraryEmissionTests
     }
 
     [Fact]
-    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void LibraryEmission_RemovesExistingRuntimeConfigAsPartOfArtifactCommit()
     {
         string outputDirectory = Path.Combine(
@@ -359,13 +323,7 @@ public class LibraryEmissionTests
             File.WriteAllText(runtimeConfigPath, "old runtimeconfig");
 
             var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(
-                """
-                HAI 1.4
-                HOW IZ I WELCOME
-                    FOUND YR "HAI"
-                IF U SAY SO
-                KTHXBYE
-                """,
+                CompatibilityFixtureSource("DotNet", "1.4", "CodeAnalysis", "library-runtimeconfig-commit", "test.lol"),
                 Path.Combine(outputDirectory, "Welcome.lol")));
             var fileSystem = new RuntimeConfigDeletionFailureFileSystem(runtimeConfigPath);
 

@@ -185,18 +185,12 @@ public sealed class InMemoryExecutionTests
     [InlineData(6, "ABCDE", false)]
     [InlineData(5, "ABCDE", false)]
     [InlineData(4, "ABCD", true)]
-    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Run_BoundsCapturedStandardOutputBytes(
         int maximumStandardOutputBytes,
         string expectedOutput,
         bool expectedTruncated)
     {
-        var script = LolcodeScript.Create(
-            """
-            HAI 1.2
-              VISIBLE "ABCDE"!
-            KTHXBYE
-            """);
+        var script = LolcodeScript.Create(FixtureSource("in-memory-bounds-output", "test.lol"));
 
         var state = script.Run(new LolcodeScriptExecutionOptions
         {
@@ -210,16 +204,10 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
-    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Run_BoundsStandardStreamsIndependentlyAndUsesReplacementForPartialUtf8()
     {
         var state = LolcodeScript.Run(
-            """
-            HAI 1.2
-              VISIBLE "é"!
-              INVISIBLE "é"!
-            KTHXBYE
-            """,
+            FixtureSource("in-memory-bounded-streams", "test.lol"),
             executionOptions: new LolcodeScriptExecutionOptions
             {
                 MaximumStandardOutputBytes = 1,
@@ -254,16 +242,9 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
-    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Run_CapturesStandardOutputAndStandardErrorIndependently()
     {
-        var state = LolcodeScript.Run(
-            """
-            HAI 1.2
-              VISIBLE "stdout"!
-              INVISIBLE "stderr"!
-            KTHXBYE
-            """);
+        var state = LolcodeScript.Run(FixtureSource("in-memory-standard-streams", "test.lol"));
 
         state.Success.Should().BeTrue();
         state.StandardOutput.Should().Be("stdout");
@@ -296,17 +277,10 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
-    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Run_SuppliesInputToGimmeh()
     {
         var state = LolcodeScript.Run(
-            """
-            HAI 1.2
-              I HAS A name
-              GIMMEH name
-              VISIBLE "HAI, " name "!"
-            KTHXBYE
-            """,
+            FixtureSource("in-memory-gimmeh", "test.lol"),
             executionOptions: new LolcodeScriptExecutionOptions
             {
                 StandardInput = $"LOLCAT{Environment.NewLine}",
@@ -335,16 +309,10 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
-    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Run_UnwrapsRuntimeExceptions()
     {
         var state = LolcodeScript.Run(
-            """
-            HAI 1.2
-              I HAS A value
-              VISIBLE SUM OF value AN 1
-            KTHXBYE
-            """);
+            CompatibilityFixtureSource("Shared", "1.2", "Errors", "noob-in-arithmetic-throws-error", "test.lol"));
 
         state.Success.Should().BeFalse();
         state.Executed.Should().BeTrue();
@@ -354,24 +322,10 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
-    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Run_ExecutesFunctionsAndControlFlow()
     {
         var state = LolcodeScript.Run(
-            """
-            HAI 1.2
-              HOW IZ I factorial YR n
-                BOTH SAEM n AN 0
-                O RLY?
-                  YA RLY
-                    FOUND YR 1
-                OIC
-                FOUND YR PRODUKT OF n AN I IZ factorial YR DIFF OF n AN 1 MKAY
-              IF U SAY SO
-
-              VISIBLE I IZ factorial YR 5 MKAY
-            KTHXBYE
-            """);
+            CompatibilityFixtureSource("Shared", "1.2", "Functions", "recursive-function", "test.lol"));
 
         state.Success.Should().BeTrue();
         state.StandardOutput.Should().Be($"120{Environment.NewLine}");
@@ -491,19 +445,9 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
-    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public async Task Run_ParallelExecutionsKeepInputAndStandardStreamsScoped()
     {
-        const string program = """
-            HAI 1.2
-              I HAS A value
-              GIMMEH value
-              VISIBLE value
-              INVISIBLE value
-            KTHXBYE
-            """;
-
-        var script = LolcodeScript.Create(program);
+        var script = LolcodeScript.Create(FixtureSource("in-memory-parallel-streams", "test.lol"));
         var executions = Enumerable.Range(0, 12)
             .Select(index => Task.Run(() => script.Run(new LolcodeScriptExecutionOptions
             {
