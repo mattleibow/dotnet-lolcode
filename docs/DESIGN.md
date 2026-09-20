@@ -22,6 +22,7 @@ This document describes the internal architecture of the LOLCODE .NET compiler, 
 - [IL Emission Strategy](#il-emission-strategy)
 - [In-Memory Execution](#in-memory-execution)
 - [MSBuild SDK Integration](#msbuild-sdk-integration)
+- [NativeAOT, Trimming, and Single-File Publishing](#nativeaot-trimming-and-single-file-publishing)
 - [File-Based App Support](#file-based-app-support)
 - [VS Code Extension Architecture](#vs-code-extension-architecture)
 - [Key .NET APIs](#key-net-apis)
@@ -692,6 +693,19 @@ Lolcode.NET.Sdk.nupkg/
 **`dotnet new` Templates:** The `Lolcode.NET.Templates` package provides `dotnet new lolconsole` for a minimal `.lolproj` + `Program.lol`, `dotnet new lol` for a plain source file, and `dotnet new lolcode` for a file-based app.
 
 This means `dotnet build`, `dotnet run`, `dotnet publish`, `dotnet clean`, and `dotnet watch` all work natively with `.lol` projects.
+
+---
+
+## NativeAOT, Trimming, and Single-File Publishing
+
+Deployment remains a responsibility of Microsoft.NET.Sdk after the LOLCODE
+compiler emits `@(IntermediateAssembly)`. Supported trimming and NativeAOT
+publishes use a closed, statically registered library graph; ordinary builds
+retain the existing dynamic provider and adjacent-library loader.
+
+The implementation decisions, compatibility boundaries, diagnostics, phased
+work, and acceptance criteria are tracked in
+[NATIVE_AOT_PLAN.md](NATIVE_AOT_PLAN.md).
 
 ---
 
