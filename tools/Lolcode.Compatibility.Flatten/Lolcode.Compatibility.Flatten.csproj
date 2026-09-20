@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <RootNamespace>Lolcode.Compatibility.Flatten</RootNamespace>
-  </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="../../src/Lolcode.CodeAnalysis/Lolcode.CodeAnalysis.csproj" />
-  </ItemGroup>
-</Project>

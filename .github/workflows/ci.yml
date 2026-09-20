@@ -135,13 +135,7 @@ jobs:
         run: >-
           dotnet test tests/Lolcode.EndToEnd.Tests/Lolcode.EndToEnd.Tests.csproj
           --logger "trx;LogFileName=compatibility-results.trx"
-          --filter "FullyQualifiedName~.CompatibilityCorpusTests.|FullyQualifiedName~.KnownLciDivergenceCompatibilityCorpusTests.|FullyQualifiedName~.PinnedLciConformanceTests."
-
-      - name: Check generated flattened fixtures
-        run: dotnet run --project tools/Lolcode.Compatibility.Flatten/Lolcode.Compatibility.Flatten.csproj -- --check
-
-      - name: Validate canonical EndToEnd fixtures
-        run: python3 tools/validate-e2e-fixtures.py
+          --filter "FullyQualifiedName~.CompatibilityCorpusTests.|FullyQualifiedName~.KnownLciDivergenceCompatibilityCorpusTests.|FullyQualifiedName~.PinnedLciConformanceTests.|FullyQualifiedName~.CompatibilityFixtureValidationTests.|FullyQualifiedName~.FixtureFlattenerTests."
 
       - name: Verify compatibility contracts with autocrlf enabled
         shell: bash
@@ -152,9 +146,7 @@ jobs:
           git config core.eol crlf
           git rm --cached -r . >/dev/null
           git reset --hard HEAD
-          python3 tools/validate-e2e-fixtures.py
-          dotnet run --project tools/Lolcode.Compatibility.Flatten/Lolcode.Compatibility.Flatten.csproj -- --check
-          LCI_PATH="$PWD/../lci-build/lci" REQUIRE_LCI=1 dotnet test tests/Lolcode.EndToEnd.Tests/Lolcode.EndToEnd.Tests.csproj --filter "FullyQualifiedName~CompatibilityCorpusTests.Pinned_lci_matches_registered_fixture" --logger "console;verbosity=minimal"
+          LCI_PATH="$PWD/../lci-build/lci" REQUIRE_LCI=1 dotnet test tests/Lolcode.EndToEnd.Tests/Lolcode.EndToEnd.Tests.csproj --filter "FullyQualifiedName~CompatibilityCorpusTests.Pinned_lci_matches_registered_fixture|FullyQualifiedName~CompatibilityFixtureValidationTests|FullyQualifiedName~FixtureFlattenerTests" --logger "console;verbosity=minimal"
           git diff --check
 
       - name: Upload compatibility results

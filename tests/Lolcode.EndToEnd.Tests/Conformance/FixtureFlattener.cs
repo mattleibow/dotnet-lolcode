@@ -1,14 +1,14 @@
 using System.Text;
 using Lolcode.CodeAnalysis.Syntax;
 
-namespace Lolcode.Compatibility.Flatten;
+namespace Lolcode.EndToEnd.Tests;
 
 /// <summary>
 /// Converts canonical multi-file LOLCODE units into standard single-file
 /// fixtures by moving only direct top-level function declarations before the
 /// remaining program statements.
 /// </summary>
-public static class FixtureFlattener
+internal static class FixtureFlattener
 {
     /// <summary>
     /// Flattens the ordered source units into one valid LOLCODE program.
@@ -255,51 +255,5 @@ public static class FixtureFlattener
 
         if (start < value.Length)
             yield return value[start..];
-    }
-}
-
-internal static class Program
-{
-    private static int Main(string[] args)
-    {
-        bool check = args.Length == 1 && args[0] == "--check";
-        if (args.Length != 0 && !check)
-        {
-            Console.Error.WriteLine("Usage: Lolcode.Compatibility.Flatten [--check]");
-            return 2;
-        }
-
-        string root = Path.Combine(Directory.GetCurrentDirectory(), "tests", "Compatibility");
-        string[] manifests = Directory.EnumerateFiles(root, "sources.txt", SearchOption.AllDirectories)
-            .OrderBy(path => path, StringComparer.Ordinal)
-            .ToArray();
-        var stale = new List<string>();
-        foreach (string manifest in manifests)
-        {
-            string directory = Path.GetDirectoryName(manifest)!;
-            string generated = FixtureFlattener.Flatten(FixtureFlattener.ReadManifest(directory));
-            string target = Path.Combine(directory, "test.lol");
-            if (File.Exists(target) &&
-                FixtureFlattener.NormalizeLineEndings(
-                    File.ReadAllText(target, new UTF8Encoding(false, true))) == generated)
-                continue;
-
-            if (check)
-            {
-                stale.Add(Path.GetRelativePath(Directory.GetCurrentDirectory(), target));
-                continue;
-            }
-
-            File.WriteAllText(target, generated, new UTF8Encoding(false));
-            Console.WriteLine($"Generated {Path.GetRelativePath(Directory.GetCurrentDirectory(), target)}");
-        }
-
-        if (stale.Count == 0)
-            return 0;
-
-        Console.Error.WriteLine("Generated flattened fixtures are stale:");
-        foreach (string path in stale)
-            Console.Error.WriteLine($"  {path}");
-        return 1;
     }
 }

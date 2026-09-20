@@ -1,4 +1,3 @@
-using Lolcode.Compatibility.Flatten;
 
 namespace Lolcode.EndToEnd.Tests;
 
