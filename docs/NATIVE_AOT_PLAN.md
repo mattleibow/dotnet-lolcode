@@ -193,6 +193,11 @@ Generated static-compatible libraries include versioned build-time metadata for
 their factory ABI, dependencies, resolution mode, and any declared dynamic
 import candidates. Runtime code does not reflect over this metadata.
 
+The initial implementation uses the assembly-level
+`LolcodeStaticLibraryAttribute` as its compatibility marker. Static consumers
+reject generated libraries without that marker with `LOL3006`; future contract
+versions can extend the marker without weakening this closed-world check.
+
 ## MSBuild contract
 
 The public properties use standard .NET meanings:

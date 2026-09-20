@@ -19,6 +19,11 @@ dotnet publish MyApp.lolproj -c Release -r linux-x64 -p:PublishTrimmed=true --se
 dotnet publish MyApp.lolproj -c Release -r osx-arm64 -p:PublishAot=true --self-contained true
 ```
 
+Project-based applications are the validated NativeAOT path. File-based apps
+retain their normal SDK behavior, but native file-based publishing is not yet
+part of the supported validation matrix; move the source into a `.lolproj` when
+you need a supported native artifact.
+
 NativeAOT output is not cross-platform. It is a native executable for the
 selected RID and has no required managed DLL, `.deps.json`, or
 `.runtimeconfig.json` sidecars. Native debug symbols and operating-system
@@ -44,7 +49,9 @@ Generated LOLCODE project references are discovered from their
 factory. Their import name is the referenced assembly name, matching the
 existing adjacent-library convention. Each statically compiled library emits
 direct calls for its own imports, so transitive framework dependencies remain
-self-contained.
+self-contained. Static-compatible generated assemblies also carry a
+`LolcodeStaticLibraryAttribute` marker; a static consumer rejects unmarked
+legacy or dynamically compiled modules with `LOL3006`.
 
 An undeclared literal `CAN HAS` name fails compilation with `LOL3001` instead
 of probing a sidecar DLL. Runtime-selected import names currently fail with
@@ -85,6 +92,11 @@ The first five descriptor fields remain compatible with dynamic builds.
   Set `LolcodeLibraryResolution=Static` (or leave it `Auto`).
 - `LOL3003` means the resolved provider is an old/dynamic-only package. Update
   the package or add a public factory and sixth descriptor field.
+- `LOL3006` means a generated LOLCODE dependency was built with dynamic imports.
+  Set `IsAotCompatible=true`, `IsTrimmable=true`, or
+  `LolcodeLibraryResolution=Static` in that library and rebuild it.
+- `LOL3009` means `publish --no-build` found an assembly built for a different
+  library-resolution mode. Rebuild before publishing.
 - `LOL3001` is reserved for source imports that are not present in the declared
   static closure. Add the package/project reference; do not copy a DLL next to
   the executable.

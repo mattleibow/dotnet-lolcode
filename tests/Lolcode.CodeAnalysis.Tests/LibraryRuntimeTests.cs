@@ -35,6 +35,30 @@ public class LibraryRuntimeTests
     }
 
     [Fact]
+    public void DynamicDescriptors_IgnoreOptionalStaticFactoryMetadataForCompatibility()
+    {
+        var scope = CreateScope();
+        try
+        {
+            LolRuntime.ConfigureLibraries(
+                scope,
+                ["STRING|Lolcode.Runtime.String|Lolcode.Runtime.String.StringLibrary|true|1"]);
+            LolRuntime.ConfigureLibraries(
+                scope,
+                [
+                    "STRING|Lolcode.Runtime.String|Lolcode.Runtime.String.StringLibrary|true|1|Lolcode.Runtime.String.StringLibraryFactory"
+                ]);
+
+            LolRuntime.LoadLibrary(scope, "STRING");
+            Invoke(scope, "STRING", "LEN", "HAI").Should().Be(3);
+        }
+        finally
+        {
+            LolRuntime.DisposeScope(scope);
+        }
+    }
+
+    [Fact]
     public void StaticRegistrations_UseDirectFactoriesAndRetainPerImportState()
     {
         var first = CreateScope();
@@ -338,6 +362,34 @@ public class LibraryRuntimeTests
         }
 
         output.ToString().Should().Be("é" + output.NewLine);
+    }
+
+    [Fact]
+    public void Print_HonorsConsoleWriterRedirectionForByteYarns()
+    {
+        var scope = CreateScope();
+        LolRuntime.LoadLibrary(scope, "STRING");
+        object? first = Invoke(scope, "STRING", "AT", "é", 0);
+        object? second = Invoke(scope, "STRING", "AT", "é", 1);
+        TextWriter originalOutput = Console.Out;
+        TextWriter originalError = Console.Error;
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        try
+        {
+            Console.SetOut(output);
+            Console.SetError(error);
+            LolRuntime.Print([first, second], suppressNewline: false);
+            LolRuntime.Print([first, second], suppressNewline: false, standardError: true);
+        }
+        finally
+        {
+            Console.SetOut(originalOutput);
+            Console.SetError(originalError);
+        }
+
+        output.ToString().Should().Be("é" + output.NewLine);
+        error.ToString().Should().Be("é" + error.NewLine);
     }
 
     [Fact]

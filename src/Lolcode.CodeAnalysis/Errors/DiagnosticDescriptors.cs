@@ -165,6 +165,12 @@ public static class DiagnosticDescriptors
         "Static LOLCODE import '{0}' is not declared by the resolved project references.",
         "Deployment");
 
+    /// <summary>Static imports resolve the same alias to different factories.</summary>
+    public static readonly DiagnosticDescriptor StaticImportConflict = new(
+        "LOL3002", "Static import contract conflicts",
+        "Static LOLCODE import '{0}' resolves to conflicting library factories.",
+        "Deployment");
+
     /// <summary>A static import descriptor does not expose a usable factory.</summary>
     public static readonly DiagnosticDescriptor StaticFactoryUnavailable = new(
         "LOL3003", "Static factory is unavailable",
@@ -177,10 +183,22 @@ public static class DiagnosticDescriptors
         "Dynamic LOLCODE library resolution cannot be used with trimming, single-file imports, or NativeAOT. Use LolcodeLibraryResolution=Static.",
         "Deployment");
 
+    /// <summary>A referenced generated library was not compiled for static imports.</summary>
+    public static readonly DiagnosticDescriptor DynamicLibraryDependency = new(
+        "LOL3006", "Referenced library requires dynamic resolution",
+        "Referenced LOLCODE library '{0}' was not compiled with static library resolution. Rebuild it with LolcodeLibraryResolution=Static or IsAotCompatible=true.",
+        "Deployment");
+
     /// <summary>A runtime-selected import does not have a closed static candidate set.</summary>
     public static readonly DiagnosticDescriptor DynamicImportWithoutCandidates = new(
         "LOL3007", "Dynamic import has no static candidate set",
         "Dynamic LOLCODE import requires a declared static provider candidate set.",
+        "Deployment");
+
+    /// <summary>Existing compiler output does not match the requested deployment mode.</summary>
+    public static readonly DiagnosticDescriptor DeploymentOutputMismatch = new(
+        "LOL3009", "Build output does not match deployment options",
+        "Existing LOLCODE output was compiled for '{0}' library resolution, but this publish requires '{1}'. Rebuild without --no-build.",
         "Deployment");
 
     // --- Internal ---

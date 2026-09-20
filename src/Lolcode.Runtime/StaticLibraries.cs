@@ -1,5 +1,12 @@
 namespace Lolcode.Runtime;
 
+/// <summary>
+/// Marks a generated LOLCODE assembly whose imports were compiled to direct,
+/// trimming-safe library factories.
+/// </summary>
+[AttributeUsage(AttributeTargets.Assembly)]
+public sealed class LolcodeStaticLibraryAttribute : Attribute;
+
 /// <summary>Creates a scope-bound LOLCODE library module.</summary>
 /// <param name="scope">The scope importing the library.</param>
 /// <returns>A new library module for the import.</returns>

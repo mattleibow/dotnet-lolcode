@@ -183,6 +183,7 @@ jobs:
         shell: bash
         run: |
           OUTPUT=$(dotnet run --project tests/NativeAotFixture/NativeAotFixture.lolproj -c Release)
+          OUTPUT=${OUTPUT//$'\r'/}
           [ "$OUTPUT" = "18" ] || { echo "Unexpected managed output: $OUTPUT"; exit 1; }
 
           if dotnet build tests/NativeAotFixture/NativeAotFixture.lolproj \
@@ -195,6 +196,19 @@ jobs:
           fi
           grep -q "LOL3005" unsupported.log
 
+          dotnet build tests/NativeAotFixture/NativeAotFixture.lolproj \
+            -c Release -r "${{ matrix.rid }}" \
+            -p:LolcodeLibraryResolution=Dynamic
+          if dotnet publish tests/NativeAotFixture/NativeAotFixture.lolproj \
+              -c Release -r "${{ matrix.rid }}" \
+              -p:PublishAot=true --self-contained true \
+              --no-build --no-restore > stale.log 2>&1; then
+            echo "NativeAOT publish unexpectedly accepted stale dynamic output"
+            cat stale.log
+            exit 1
+          fi
+          grep -q "LOL3009" stale.log
+
       - name: Publish static provider fixture
         shell: bash
         run: |
@@ -205,8 +219,9 @@ jobs:
 
           PUBLISH_DIR="tests/NativeAotFixture/bin/Release/net10.0/${{ matrix.rid }}/publish"
           OUTPUT=$("$PUBLISH_DIR/NativeAotFixture${{ matrix.extension }}")
+          OUTPUT=${OUTPUT//$'\r'/}
           [ "$OUTPUT" = "18" ] || { echo "Unexpected native output: $OUTPUT"; exit 1; }
-          ! find "$PUBLISH_DIR" -maxdepth 1 -type f \
+          ! find "$PUBLISH_DIR" -type f \
             \( -name '*.dll' -o -name '*.deps.json' -o -name '*.runtimeconfig.json' \) \
             | grep -q .
 
@@ -230,7 +245,7 @@ jobs:
           grep -q "KTHXBAI, CAPTAIN." galaxy.out
           test -f can-has-galaxy.save
           popd
-          ! find "$PUBLISH_DIR" -maxdepth 1 -type f \
+          ! find "$PUBLISH_DIR" -type f \
             \( -name '*.dll' -o -name '*.deps.json' -o -name '*.runtimeconfig.json' \) \
             | grep -q .
 
@@ -336,8 +351,26 @@ jobs:
           # Build and run
           dotnet build MyApp/MyApp.lolproj
           OUTPUT=$(dotnet run --project MyApp/MyApp.lolproj)
+          OUTPUT=${OUTPUT//$'\r'/}
           [ "$OUTPUT" = "HAI WORLD!" ] || { echo "❌ Unexpected output: $OUTPUT"; exit 1; }
           echo "✅ Template project builds and runs"
+
+          case "${{ runner.os }}" in
+            Linux) RID=linux-x64; EXT= ;;
+            macOS) RID=osx-arm64; EXT= ;;
+            Windows) RID=win-x64; EXT=.exe ;;
+          esac
+          dotnet publish MyApp/MyApp.lolproj -c Release -r "$RID" \
+            -p:PublishAot=true -p:LolcodeRequireSingleBinary=true \
+            --self-contained true
+          PUBLISH_DIR="MyApp/bin/Release/net10.0/$RID/publish"
+          OUTPUT=$("$PUBLISH_DIR/MyApp$EXT")
+          OUTPUT=${OUTPUT//$'\r'/}
+          [ "$OUTPUT" = "HAI WORLD!" ] || { echo "❌ Unexpected native output: $OUTPUT"; exit 1; }
+          ! find "$PUBLISH_DIR" -type f \
+            \( -name '*.dll' -o -name '*.deps.json' -o -name '*.runtimeconfig.json' \) \
+            | grep -q .
+          echo "✅ Packaged SDK publishes a native executable"
 
           # Source-file template must not contain file-based directives.
           dotnet new lol -n Greeter
