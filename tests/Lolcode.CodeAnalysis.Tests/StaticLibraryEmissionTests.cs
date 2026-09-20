@@ -9,6 +9,7 @@ namespace Lolcode.CodeAnalysis.Tests;
 public class StaticLibraryEmissionTests
 {
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to verify static provider emission.")]
     public void StaticProviderEmission_ReferencesFactoryWithoutDynamicLoader()
     {
         string outputPath = Path.Combine(
@@ -67,6 +68,7 @@ public class StaticLibraryEmissionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to verify generated library linking.")]
     public void StaticGeneratedLibraryEmission_ReferencesGeneratedFactory()
     {
         string directory = Path.Combine(
@@ -136,6 +138,7 @@ public class StaticLibraryEmissionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to verify dynamic dependency rejection.")]
     public void StaticGeneratedLibraryEmission_RejectsDynamicDependency()
     {
         string directory = Path.Combine(
@@ -215,6 +218,7 @@ public class StaticLibraryEmissionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to verify unresolved static diagnostics.")]
     public void StaticEmission_ReportsUndeclaredImport()
     {
         string outputPath = Path.Combine(
@@ -253,6 +257,7 @@ public class StaticLibraryEmissionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to verify static factory validation.")]
     public void StaticEmission_RejectsInaccessibleFactoryType()
     {
         string outputPath = Path.Combine(
