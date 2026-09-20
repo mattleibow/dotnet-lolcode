@@ -1,6 +1,6 @@
 # Compatibility corpus
 
-`tests/Compatibility` is the canonical source for repository-owned complete
+`tests/Lolcode.EndToEnd.Tests/Compatibility` is the canonical source for repository-owned complete
 LOLCODE programs. The fixture root is self-contained and has exactly three
 classification roots:
 

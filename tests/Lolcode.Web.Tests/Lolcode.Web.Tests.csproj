@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="../Compatibility/**/*"
+    <None Include="../Lolcode.EndToEnd.Tests/Compatibility/**/*"
           Link="Compatibility/%(RecursiveDir)%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
