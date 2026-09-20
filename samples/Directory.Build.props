@@ -25,4 +25,10 @@
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Lolcode.Runtime.Stdio\Lolcode.Runtime.Stdio.csproj" />
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Lolcode.Runtime.Socks\Lolcode.Runtime.Socks.csproj" />
   </ItemGroup>
+
+  <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.lolproj'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Lolcode.Build\Lolcode.Build.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+  </ItemGroup>
 </Project>
