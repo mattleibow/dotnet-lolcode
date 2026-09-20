@@ -1,0 +1,6 @@
+HAI 1.4
+HOW IZ I greet
+FOUND YR "flattened"
+IF U SAY SO
+VISIBLE I IZ greet MKAY
+KTHXBYE
