@@ -34,6 +34,6 @@ public sealed class PinnedLciConformanceTests
             "pinned lci",
             test,
             result,
-            requireDiagnosticSubstring: false);
+            validateDotNetPhase: false);
     }
 }

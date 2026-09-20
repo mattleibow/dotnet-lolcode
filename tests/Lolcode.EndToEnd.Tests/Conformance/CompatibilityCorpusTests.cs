@@ -23,7 +23,7 @@ public sealed class CompatibilityCorpusTests : IDisposable
     {
         LciTestRegistration test = GetTest(index, id);
         ProcessExecution result = await _dotnet.RunAsync(test);
-        AssertFixtureResult("dotnet-lolcode", test, result, requireDiagnosticSubstring: true);
+        AssertFixtureResult("dotnet-lolcode", test, result, validateDotNetPhase: true);
     }
 
     [LciTheory]
@@ -42,7 +42,7 @@ public sealed class CompatibilityCorpusTests : IDisposable
             startInfo,
             test.InputPath is null ? null : DotNetLolcodeEngine.ReadUtf8(test.InputPath),
             TimeSpan.FromSeconds(30));
-        AssertFixtureResult("pinned lci", test, result, requireDiagnosticSubstring: false);
+        AssertFixtureResult("pinned lci", test, result, validateDotNetPhase: false);
     }
 
     public void Dispose() => _dotnet.Dispose();
@@ -58,30 +58,30 @@ public sealed class CompatibilityCorpusTests : IDisposable
         string engine,
         LciTestRegistration test,
         ProcessExecution result,
-        bool requireDiagnosticSubstring)
+        bool validateDotNetPhase)
     {
         string source = DotNetLolcodeEngine.ReadUtf8(test.SourcePath);
         string details =
             $"Case: {test.Id}{Environment.NewLine}" +
             $"Source: {test.SourcePath}{Environment.NewLine}" +
             $"Engine: {engine}{Environment.NewLine}" +
+            $"Phase: {(result.ProcessLaunched ? "runtime" : "compilation")}{Environment.NewLine}" +
             $"Exit code: {result.ExitCode}{Environment.NewLine}" +
             $"stdout:{Environment.NewLine}{result.StandardOutputText}{Environment.NewLine}" +
             $"stderr:{Environment.NewLine}{result.StandardErrorText}{Environment.NewLine}" +
+            $"diagnostics:{Environment.NewLine}{result.CompilationDiagnosticText}{Environment.NewLine}" +
             $"source:{Environment.NewLine}{source}";
 
-        if (test.ExpectError)
+        if (test.ExpectedErrorPath is not null)
         {
+            if (validateDotNetPhase)
+                result.ProcessLaunched.Should().BeTrue(
+                    $"{details}{Environment.NewLine}test.err requires successful compilation and a launched program.");
+
             result.ExitCode.Should().NotBe(0, details);
-            if (requireDiagnosticSubstring && test.ExpectedErrorPath is not null)
+            if (validateDotNetPhase)
             {
                 string expectedDiagnostic = DotNetLolcodeEngine.ReadUtf8(test.ExpectedErrorPath).Trim();
-                result.StandardErrorText.Should().Contain(expectedDiagnostic, details);
-            }
-
-            if (requireDiagnosticSubstring && test.ExpectedDiagnosticPath is not null)
-            {
-                string expectedDiagnostic = DotNetLolcodeEngine.ReadUtf8(test.ExpectedDiagnosticPath).Trim();
                 result.StandardErrorText.Should().Contain(expectedDiagnostic, details);
             }
 
@@ -94,6 +94,37 @@ public sealed class CompatibilityCorpusTests : IDisposable
             return;
         }
 
+        if (test.ExpectedDiagnosticPath is not null)
+        {
+            if (validateDotNetPhase)
+            {
+                result.ProcessLaunched.Should().BeFalse(
+                    $"{details}{Environment.NewLine}test.diag requires compiler diagnostics, not a launched process.");
+                string expectedDiagnostic = DotNetLolcodeEngine.ReadUtf8(test.ExpectedDiagnosticPath).Trim();
+                result.CompilationDiagnosticText.Should().Contain(expectedDiagnostic, details);
+            }
+            else
+            {
+                result.ExitCode.Should().NotBe(0, details);
+            }
+
+            if (test.ExpectedOutputPath is not null)
+            {
+                byte[] expectedOutput = NormalizeLineEndings(File.ReadAllBytes(test.ExpectedOutputPath));
+                NormalizeLineEndings(result.StandardOutput).Should().Equal(expectedOutput, details);
+            }
+
+            return;
+        }
+
+        if (test.ExpectError)
+        {
+            result.ExitCode.Should().NotBe(0, details);
+            return;
+        }
+
+        if (validateDotNetPhase)
+            result.ProcessLaunched.Should().BeTrue(details);
         result.ExitCode.Should().Be(0, details);
         byte[] expected = NormalizeLineEndings(File.ReadAllBytes(test.ExpectedOutputPath!));
         NormalizeLineEndings(result.StandardOutput).Should().Equal(expected, details);

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Collections.Immutable;
 using Microsoft.Win32.SafeHandles;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -10,11 +11,22 @@ namespace Lolcode.EndToEnd.Tests;
 internal sealed record ProcessExecution(
     int ExitCode,
     byte[] StandardOutput,
-    byte[] StandardError)
+    byte[] StandardError,
+    ImmutableArray<Diagnostic> CompilationDiagnostics = default)
 {
+    internal bool CompilationSucceeded => CompilationDiagnostics.IsDefault;
+
+    internal bool ProcessLaunched => CompilationSucceeded;
+
     internal string StandardOutputText => Encoding.UTF8.GetString(StandardOutput);
 
     internal string StandardErrorText => Encoding.UTF8.GetString(StandardError);
+
+    internal string CompilationDiagnosticText =>
+        string.Join(Environment.NewLine, CompilationDiagnostics);
+
+    internal static ProcessExecution CompilationFailure(ImmutableArray<Diagnostic> diagnostics) =>
+        new(-1, [], [], diagnostics);
 }
 
 /// <summary>Runs fixture programs as isolated child processes with bounded output capture.</summary>
@@ -813,10 +825,7 @@ internal sealed class DotNetLolcodeEngine : IDisposable
             .Emit(Path.Combine(_directory, $"{Guid.NewGuid():N}.dll"), _runtimeAssemblyPath);
 
         if (!result.Success)
-        {
-            string diagnostics = string.Join(Environment.NewLine, result.Diagnostics);
-            return new ProcessExecution(1, [], Encoding.UTF8.GetBytes(diagnostics));
-        }
+            return ProcessExecution.CompilationFailure(result.Diagnostics);
 
         string assemblyPath = result.OutputPath
             ?? throw new InvalidOperationException("A successful emit did not produce an assembly path.");

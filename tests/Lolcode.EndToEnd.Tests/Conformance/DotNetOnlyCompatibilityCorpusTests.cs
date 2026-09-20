@@ -26,7 +26,7 @@ public sealed class KnownLciDivergenceCompatibilityCorpusTests : IDisposable
             "dotnet-lolcode",
             test,
             result,
-            requireDiagnosticSubstring: true);
+            validateDotNetPhase: true);
     }
 
     public void Dispose() => _dotnet.Dispose();
