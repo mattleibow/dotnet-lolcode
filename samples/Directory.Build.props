@@ -14,4 +14,9 @@
     <_LolcodeBuildTasksDir>$(_LolcodeLocalBuildTasksDir)</_LolcodeBuildTasksDir>
     <LolcodeRuntimeAssemblyPath>$(MSBuildThisFileDirectory)..\src\Lolcode.Runtime\bin\$(_LolcodeLocalConfiguration)\net10.0\Lolcode.Runtime.dll</LolcodeRuntimeAssemblyPath>
   </PropertyGroup>
+  <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.lolproj'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Lolcode.Build\Lolcode.Build.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+  </ItemGroup>
 </Project>
