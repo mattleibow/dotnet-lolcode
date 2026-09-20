@@ -6,8 +6,8 @@ validated from the tree rather than generated from C# source:
 | Classification | Complete sources | CMake registrations | Execution |
 | --- | ---: | ---: | --- |
 | Shared | 137 | 138 | dotnet-lolcode and pinned lci |
-| KnownLciDivergence | 74 | 74 | dotnet-lolcode only |
-| DotNet | 22 | 0 | specialized fixture-backed C# assertions |
+| KnownLciDivergence | 73 | 73 | dotnet-lolcode only |
+| DotNet | 23 | 1 | specialized fixture-backed C# assertions |
 | Pinned upstream lci | 325 | 325 | dotnet-lolcode and pinned lci |
 
 `tests/Compatibility/inventory.json` records **204** historic complete inline
