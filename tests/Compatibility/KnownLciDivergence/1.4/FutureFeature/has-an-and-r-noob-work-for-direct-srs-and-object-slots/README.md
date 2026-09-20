@@ -2,4 +2,7 @@
 
 Category: `pinned-lci-parser-gap`
 
-Pinned-lci evidence: Pinned lci rejects the articleless `I HAS SRS dynamicName ITZ NOOB` declaration and literal NOOB initializer; direct and BUKKIT-slot HAS AN/R NOOB operations are shared.
+Pinned-lci evidence: lci rejects the articleless `I HAS SRS dynamicName ITZ NOOB`
+declaration and literal-NOOB equality observation. The portable fixture covers
+accepted direct and BUKKIT-slot declaration/deallocation spelling without the
+unsupported literal-NOOB comparison.
