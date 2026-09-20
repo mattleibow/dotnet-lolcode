@@ -100,8 +100,29 @@ public sealed class CompatibilityCorpusTests : IDisposable
             {
                 result.ProcessLaunched.Should().BeFalse(
                     $"{details}{Environment.NewLine}test.diag requires compiler diagnostics, not a launched process.");
-                string expectedDiagnostic = DotNetLolcodeEngine.ReadUtf8(test.ExpectedDiagnosticPath).Trim();
-                result.CompilationDiagnosticText.Should().Contain(expectedDiagnostic, details);
+                DiagnosticExpectation expectation = DiagnosticExpectation.Parse(
+                    DotNetLolcodeEngine.ReadUtf8(test.ExpectedDiagnosticPath));
+                result.CompilationDiagnostics.Select(diagnostic => diagnostic.Id)
+                    .Should()
+                    .Contain(expectation.Id, details);
+
+                if (expectation.Message is not null)
+                {
+                    result.CompilationDiagnostics
+                        .Where(diagnostic => diagnostic.Id == expectation.Id)
+                        .Select(diagnostic => diagnostic.Message)
+                        .Should()
+                        .Contain(message => message.Contains(expectation.Message, StringComparison.Ordinal), details);
+                }
+
+                if (expectation.Location is not null)
+                {
+                    result.CompilationDiagnostics
+                        .Where(diagnostic => diagnostic.Id == expectation.Id)
+                        .Select(diagnostic => diagnostic.Location.ToString())
+                        .Should()
+                        .Contain(expectation.Location, details);
+                }
             }
             else
             {
@@ -163,5 +184,43 @@ public sealed class CompatibilityCorpusTests : IDisposable
         }
 
         return normalized.ToArray();
+    }
+
+    private sealed record DiagnosticExpectation(string Id, string? Message, string? Location)
+    {
+        internal static DiagnosticExpectation Parse(string contents)
+        {
+            string[] lines = contents.Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (lines.Length == 0 || !System.Text.RegularExpressions.Regex.IsMatch(lines[0], "^LOL[0-9]{4}$"))
+                throw new InvalidDataException("test.diag must begin with an exact LOL diagnostic ID.");
+
+            string? message = null;
+            string? location = null;
+            foreach (string line in lines.Skip(1))
+            {
+                int separator = line.IndexOf(':');
+                if (separator <= 0)
+                    throw new InvalidDataException(
+                        "test.diag optional expectations must use `message:` or `location:`.");
+
+                string key = line[..separator].Trim();
+                string value = line[(separator + 1)..].Trim();
+                switch (key)
+                {
+                    case "message":
+                        message ??= value;
+                        break;
+                    case "location":
+                        location ??= value;
+                        break;
+                    default:
+                        throw new InvalidDataException(
+                            $"Unsupported test.diag expectation '{key}'.");
+                }
+            }
+
+            return new DiagnosticExpectation(lines[0], message, location);
+        }
     }
 }

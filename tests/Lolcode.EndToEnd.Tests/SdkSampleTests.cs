@@ -293,7 +293,8 @@ public class SdkSampleTests
 
         try
         {
-            string projectFile = CreateDefaultLibraryProject(projectDirectory, assemblyName);
+            string welcomeFixture = CompatibilityFixtures.ReadSource("DotNet/1.4/Sdk/library-welcome/test.lol");
+            string projectFile = CreateDefaultLibraryProject(projectDirectory, assemblyName, welcomeFixture);
 
             var (exitCode, stdout, stderr) = RunDotnet(
                 $"build \"{projectFile}\"",
@@ -548,8 +549,9 @@ public class SdkSampleTests
 
         try
         {
+            string functionFixture = CompatibilityFixtures.ReadSource("DotNet/1.4/Sdk/library-function-template/test.lol");
             string projectFile = WriteMultiFileLibraryProject(projectDirectory, useExplicitCompileItems: false);
-            File.WriteAllText(Path.Combine(projectDirectory, "01-First.lol"), CreateLibraryFunction("FIRST"));
+            File.WriteAllText(Path.Combine(projectDirectory, "01-First.lol"), CreateLibraryFunction(functionFixture, "FIRST"));
             string secondSource = Path.Combine(projectDirectory, "02-Second.lol");
             File.WriteAllText(secondSource, CreateLibraryFunction("SECOND"));
 
@@ -1084,8 +1086,10 @@ public class SdkSampleTests
     }
 
     private static string CreateLibraryFunction(string name) =>
-        CompatibilityFixtures.ReadSource("DotNet/1.4/Sdk/library-function-template/test.lol")
-            .Replace("{{name}}", name, StringComparison.Ordinal);
+        CreateLibraryFunction(CompatibilityFixtures.ReadSource("DotNet/1.4/Sdk/library-function-template/test.lol"), name);
+
+    private static string CreateLibraryFunction(string template, string name) =>
+        template.Replace("{{name}}", name, StringComparison.Ordinal);
 
     private static void AssertBuildSucceeds(string projectFile, string projectDirectory, string operation)
     {
@@ -1184,7 +1188,7 @@ public class SdkSampleTests
         return projectFile;
     }
 
-    private static string CreateDefaultLibraryProject(string projectDirectory, string assemblyName)
+    private static string CreateDefaultLibraryProject(string projectDirectory, string assemblyName, string? welcomeSource = null)
     {
         string sdkDirectory = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk");
         string buildTasksDirectory = Path.Combine(
@@ -1213,7 +1217,7 @@ public class SdkSampleTests
             """);
         File.WriteAllText(
             Path.Combine(projectDirectory, "Welcome.lol"),
-            CompatibilityFixtures.ReadSource("DotNet/1.4/Sdk/library-welcome/test.lol"));
+            welcomeSource ?? CompatibilityFixtures.ReadSource("DotNet/1.4/Sdk/library-welcome/test.lol"));
         return projectFile;
     }
 

@@ -1257,6 +1257,13 @@ internal sealed class CodeGenerator
         _loopBreakTargets.Pop();
 
         _il.BeginFinallyBlock();
+        if (loop.PropagatesItToParent)
+        {
+            _il.Emit(OpCodes.Ldloc, outerScope);
+            _il.Emit(OpCodes.Ldloc, _scopeLocal);
+            _il.Emit(OpCodes.Call, _getItMethod);
+            _il.Emit(OpCodes.Call, _setItMethod);
+        }
         _il.Emit(OpCodes.Ldloc, outerScope);
         _il.Emit(OpCodes.Stloc, _scopeLocal);
         _il.EndExceptionBlock();
@@ -1332,6 +1339,12 @@ internal sealed class CodeGenerator
 
     private void EmitBlock(BoundBlockStatement block)
     {
+        if (!block.CreatesScope)
+        {
+            EmitStatements(block);
+            return;
+        }
+
         var outerScope = _il.DeclareLocal(_scopeType);
         _il.Emit(OpCodes.Ldloc, _scopeLocal);
         _il.Emit(OpCodes.Stloc, outerScope);
@@ -1343,6 +1356,13 @@ internal sealed class CodeGenerator
         _exceptionDepth++;
         EmitStatements(block);
         _il.BeginFinallyBlock();
+        if (block.PropagatesItToParent)
+        {
+            _il.Emit(OpCodes.Ldloc, outerScope);
+            _il.Emit(OpCodes.Ldloc, _scopeLocal);
+            _il.Emit(OpCodes.Call, _getItMethod);
+            _il.Emit(OpCodes.Call, _setItMethod);
+        }
         _il.Emit(OpCodes.Ldloc, outerScope);
         _il.Emit(OpCodes.Stloc, _scopeLocal);
         _il.EndExceptionBlock();

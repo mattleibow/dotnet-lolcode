@@ -6,11 +6,8 @@ namespace Lolcode.Web.Tests;
 
 public sealed class LolcodeCodeRunnerTests
 {
-    private const string HelloProgram = """
-        HAI 1.2
-          VISIBLE "HAI"
-        KTHXBYE
-        """;
+    private static string HelloProgram => File.ReadAllText(Path.Combine(
+        AppContext.BaseDirectory, "Compatibility", "DotNet", "1.2", "Web", "code-runner-hello", "test.lol"));
 
     private readonly LolcodeCodeRunner _runner = new();
 

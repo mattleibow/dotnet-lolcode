@@ -10,11 +10,10 @@ namespace Lolcode.CodeAnalysis.Tests;
 
 public sealed class InMemoryExecutionTests
 {
-    private const string HelloProgram = """
-        HAI 1.2
-          VISIBLE "HAI FROM MEMORY"
-        KTHXBYE
-        """;
+    private static string HelloProgram => FixtureSource("in-memory-hello", "test.lol");
+
+    private static string FixtureSource(params string[] path) =>
+        File.ReadAllText(Path.Combine([AppContext.BaseDirectory, "Compatibility", "DotNet", "1.2", "CodeAnalysis", .. path]));
 
     [Fact]
     public void Emit_ToStreams_CreatesNoFiles()

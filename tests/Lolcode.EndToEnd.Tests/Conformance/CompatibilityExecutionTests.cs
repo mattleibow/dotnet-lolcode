@@ -1,5 +1,8 @@
 using System.Diagnostics;
 using System.Text;
+using System.Collections.Immutable;
+using Lolcode.CodeAnalysis;
+using Lolcode.CodeAnalysis.Text;
 
 namespace Lolcode.EndToEnd.Tests;
 
@@ -115,19 +118,22 @@ public sealed class CompatibilityExecutionTests
         var test = new LciTestRegistration(
             "phase-regression",
             "phase-regression",
-            Path.Combine(AppContext.BaseDirectory, "Compatibility", "KnownLciDivergence", "1.2", "Errors", "noob-in-arithmetic-throws-error", "test.lol"),
+            FixturePath("KnownLciDivergence", "1.2", "Errors", "non-numeric-yarn-in-arithmetic-throws-error", "test.lol"),
             null,
             null,
-            Path.Combine(AppContext.BaseDirectory, "Compatibility", "KnownLciDivergence", "1.2", "Errors", "noob-in-arithmetic-throws-error", "test.err"),
+            FixturePath("KnownLciDivergence", "1.2", "Errors", "non-numeric-yarn-in-arithmetic-throws-error", "test.err"),
             null,
             true,
             null);
+        File.Exists(test.SourcePath).Should().BeTrue();
+        File.Exists(test.ExpectedErrorPath!).Should().BeTrue();
         ProcessExecution compilationFailure = ProcessExecution.CompilationFailure([]);
 
         Action assertion = () => CompatibilityCorpusTests.AssertFixtureResult(
             "simulated", test, compilationFailure, validateDotNetPhase: true);
 
-        assertion.Should().Throw<Exception>();
+        assertion.Should().Throw<Xunit.Sdk.XunitException>()
+            .WithMessage("*test.err requires successful compilation*");
     }
 
     [Fact]
@@ -136,18 +142,85 @@ public sealed class CompatibilityExecutionTests
         var test = new LciTestRegistration(
             "phase-regression",
             "phase-regression",
-            Path.Combine(AppContext.BaseDirectory, "Compatibility", "KnownLciDivergence", "1.2", "Loops", "undefined-custom-loop-operation-is-an-error", "test.lol"),
+            FixturePath("Shared", "1.2", "Loops", "undefined-custom-loop-operation-is-an-error", "test.lol"),
             null,
             null,
             null,
-            Path.Combine(AppContext.BaseDirectory, "Compatibility", "KnownLciDivergence", "1.2", "Loops", "undefined-custom-loop-operation-is-an-error", "test.diag"),
+            FixturePath("Shared", "1.2", "Loops", "undefined-custom-loop-operation-is-an-error", "test.diag"),
             true,
             null);
+        File.Exists(test.SourcePath).Should().BeTrue();
+        File.Exists(test.ExpectedDiagnosticPath!).Should().BeTrue();
         var runtimeFailure = new ProcessExecution(1, [], Encoding.UTF8.GetBytes("LOL2003"));
 
         Action assertion = () => CompatibilityCorpusTests.AssertFixtureResult(
             "simulated", test, runtimeFailure, validateDotNetPhase: true);
 
+        assertion.Should().Throw<Xunit.Sdk.XunitException>()
+            .WithMessage("*test.diag requires compiler diagnostics*");
+    }
+
+    [Fact]
+    public void Compile_diagnostic_fixture_rejects_a_different_id_when_its_message_mentions_the_expected_id()
+    {
+        var test = new LciTestRegistration(
+            "phase-regression",
+            "phase-regression",
+            FixturePath("Shared", "1.2", "Loops", "undefined-custom-loop-operation-is-an-error", "test.lol"),
+            null,
+            null,
+            null,
+            FixturePath("Shared", "1.2", "Loops", "undefined-custom-loop-operation-is-an-error", "test.diag"),
+            true,
+            null);
+        var location = new TextLocation("test.lol", new TextSpan(0, 0), 0, 0, 0, 0);
+        ProcessExecution wrongDiagnostic = ProcessExecution.CompilationFailure(
+            ImmutableArray.Create(new Diagnostic("LOL9999", location, "Expected LOL2003 appears in this message.")));
+
+        Action assertion = () => CompatibilityCorpusTests.AssertFixtureResult(
+            "simulated", test, wrongDiagnostic, validateDotNetPhase: true);
+
         assertion.Should().Throw<Exception>();
     }
+
+    [Fact]
+    public void Valid_compile_diagnostic_and_runtime_error_controls_are_accepted()
+    {
+        TextLocation location = new("test.lol", new TextSpan(0, 0), 0, 0, 0, 0);
+        var diagnostic = new LciTestRegistration(
+            "diagnostic-control",
+            "diagnostic-control",
+            FixturePath("Shared", "1.2", "Loops", "undefined-custom-loop-operation-is-an-error", "test.lol"),
+            null,
+            null,
+            null,
+            FixturePath("Shared", "1.2", "Loops", "undefined-custom-loop-operation-is-an-error", "test.diag"),
+            true,
+            null);
+        var runtime = new LciTestRegistration(
+            "runtime-control",
+            "runtime-control",
+            FixturePath("KnownLciDivergence", "1.2", "Errors", "non-numeric-yarn-in-arithmetic-throws-error", "test.lol"),
+            null,
+            null,
+            FixturePath("KnownLciDivergence", "1.2", "Errors", "non-numeric-yarn-in-arithmetic-throws-error", "test.err"),
+            null,
+            true,
+            null);
+
+        CompatibilityCorpusTests.AssertFixtureResult(
+            "simulated",
+            diagnostic,
+            ProcessExecution.CompilationFailure(
+                ImmutableArray.Create(new Diagnostic("LOL2003", location, "Undefined function."))),
+            validateDotNetPhase: true);
+        CompatibilityCorpusTests.AssertFixtureResult(
+            "simulated",
+            runtime,
+            new ProcessExecution(1, [], Encoding.UTF8.GetBytes("Cannot cast YARN to numeric")),
+            validateDotNetPhase: true);
+    }
+
+    private static string FixturePath(params string[] segments) =>
+        Path.Combine([AppContext.BaseDirectory, "Compatibility", .. segments]);
 }

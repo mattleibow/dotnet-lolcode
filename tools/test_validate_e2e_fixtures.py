@@ -70,7 +70,12 @@ class FixtureValidatorTests(unittest.TestCase):
 
     def test_missing_registration_is_rejected(self) -> None:
         (self.work / "tests" / "Compatibility" / "Shared" / "1.2" / "Basic" / "case" / "CMakeLists.txt").unlink()
-        self.assertIn("lacks CMake registration", self.validate())
+        self.assertIn("lacks active CMake registration", self.validate())
+
+    def test_commented_registration_is_rejected(self) -> None:
+        cmake = self.work / "tests" / "Compatibility" / "Shared" / "1.2" / "Basic" / "case" / "CMakeLists.txt"
+        cmake.write_text("# ADD_LOL_TEST(case OUTPUT test.out)\n", encoding="utf-8")
+        self.assertIn("lacks active CMake registration", self.validate())
 
     def test_missing_assertion_file_is_rejected(self) -> None:
         (self.work / "tests" / "Compatibility" / "Shared" / "1.2" / "Basic" / "case" / "test.out").unlink()
@@ -85,6 +90,10 @@ class FixtureValidatorTests(unittest.TestCase):
         self.inventory["inlinePrograms"][0]["test"] = "Case.Renamed"
         self.write_inventory()
         self.assertIn("historic inventory mappings", self.validate())
+
+    def test_unclassified_root_is_rejected(self) -> None:
+        (self.work / "tests" / "Compatibility" / "Scratch").mkdir()
+        self.assertIn("unclassified compatibility root", self.validate())
 
 
 if __name__ == "__main__":

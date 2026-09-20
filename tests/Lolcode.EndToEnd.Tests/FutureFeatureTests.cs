@@ -6,14 +6,6 @@ namespace Lolcode.EndToEnd.Tests;
 public class FutureFeatureTests : EndToEndTestBase
 {
     [Fact]
-    public void ImportsSupportOptionalQuestionSrsUnknownNamesAndBothCallSpellings()
-    {
-        AssertOutput(
-            FixtureSource("DotNet/1.4/FutureFeature/imports-support-optional-question-srs-unknown-names-and-both-call-spellings/test.lol"),
-            "3\nA");
-    }
-
-    [Fact]
     public void StdioSupportsEverySlotAndFailedOpen()
     {
         AssertOutput(
@@ -132,14 +124,6 @@ public class FutureFeatureTests : EndToEndTestBase
         result.ExitCode.Should().Be(0);
         result.StandardOutputBytes.Should().BeEmpty();
         result.StandardErrorBytes.Should().Equal(0xC3);
-    }
-
-    [Fact]
-    public void HasAnAndRNoobWorkForDirectSrsAndObjectSlots()
-    {
-        AssertOutput(
-            FixtureSource("KnownLciDivergence/1.4/FutureFeature/has-an-and-r-noob-work-for-direct-srs-and-object-slots/test.lol"),
-            "direct\nsrs\nslot");
     }
 
     private static string GetFileOutputCommand(string fileName) =>

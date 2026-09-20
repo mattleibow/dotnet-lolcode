@@ -161,6 +161,17 @@ internal sealed class Binder
 
     private BoundBlockStatement BindNestedBlock(ImmutableArray<StatementSyntax> statements)
     {
+        // LOLCODE 1.2 has one IT per program/function.  The lexical block IT
+        // introduced for runtime identifiers is a 1.3+ object-model behavior.
+        if (!_runtimeIdentifiers)
+        {
+            BoundBlockStatement block = BindBlock(statements);
+            return new BoundBlockStatement(
+                block.Statements,
+                createsScope: true,
+                propagatesItToParent: true);
+        }
+
         var outer = _scope;
         _scope = new BoundScope(outer, inheritsVariables: true);
         var result = BindBlock(statements);
@@ -398,7 +409,10 @@ internal sealed class Binder
         VariableSymbol? loopVariable = null;
         BoundFunctionCallExpression? operationCall = null;
         var outerScope = _scope;
-        _scope = new BoundScope(outerScope, inheritsVariables: true);
+        _scope = new BoundScope(
+            outerScope,
+            inheritsVariables: true,
+            inheritsIt: !_runtimeIdentifiers);
 
         if (variableName != null)
         {
@@ -430,7 +444,8 @@ internal sealed class Binder
 
             return new BoundLoopStatement(
                 label, operation, operationCall, loopVariable,
-                isTil, condition, body, syntax: syntax);
+                isTil, condition, body, syntax: syntax,
+                propagatesItToParent: !_runtimeIdentifiers);
         }
         finally
         {

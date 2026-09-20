@@ -285,8 +285,8 @@
       "test": "EdgeCaseTests.ItAcrossControlFlow",
       "assertion": "Output",
       "sourceVersion": "1.2",
-      "fixture": "KnownLciDivergence/1.2/EdgeCases/it-across-control-flow",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.2/Runtime-Scope/it-propagates-through-conditional",
+      "classification": "Shared"
     },
     {
       "test": "EdgeCaseTests.VariableNameLikeKeyword",
@@ -831,8 +831,8 @@
       "test": "ObjectTests.AlternateObjectDeclarationCannotReplaceLocalBinding",
       "assertion": "CompileError",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/alternate-object-declaration-cannot-replace-local-binding",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/alternate-object-declaration-cannot-replace-local-binding",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.NestedFunctionCannotReplaceParameter",
@@ -936,15 +936,15 @@
       "test": "ObjectTests.DynamicFunctionCannotReplaceLocalVariable",
       "assertion": "RuntimeError",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/dynamic-function-cannot-replace-local-variable",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/dynamic-function-cannot-replace-local-variable",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.DuplicateDirectBukkitSlotDeclarationIsRejected",
       "assertion": "RuntimeError",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/duplicate-direct-bukkit-slot-declaration-is-rejected",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/duplicate-direct-bukkit-slot-declaration-is-rejected",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.DuplicateDynamicBukkitSlotDeclarationIsRejected",
@@ -971,8 +971,8 @@
       "test": "ObjectTests.ScopedDeclarationCollisionPrecedesInitializer",
       "assertion": "RuntimeError",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/scoped-declaration-collision-precedes-initializer",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/scoped-declaration-collision-precedes-initializer",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.SrsDeclarationCollisionPrecedesInitializer",
@@ -985,8 +985,8 @@
       "test": "ObjectTests.AlternateObjectCollisionPrecedesPrototypeAndBody",
       "assertion": "RuntimeError",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Objects/alternate-object-collision-precedes-prototype-and-body",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Objects/alternate-object-collision-precedes-prototype-and-body",
+      "classification": "Shared"
     },
     {
       "test": "ObjectTests.AssignmentToInheritedSlotUpdatesOwnerWithoutCreatingShadow",
@@ -1048,8 +1048,8 @@
       "test": "RuntimeScopeTests.BlockDeclarationDoesNotLeak",
       "assertion": "RuntimeError",
       "sourceVersion": "1.3",
-      "fixture": "KnownLciDivergence/1.3/Runtime-Scope/block-declaration-does-not-leak",
-      "classification": "KnownLciDivergence"
+      "fixture": "Shared/1.3/Runtime-Scope/block-declaration-does-not-leak",
+      "classification": "Shared"
     },
     {
       "test": "RuntimeScopeTests.DirectItTargetSupportsAssignmentAndInPlaceCast",
@@ -1126,7 +1126,10 @@
       "assertion": "Specialized",
       "sourceVersion": "1.2",
       "fixture": "DotNet/1.2/Strings/unicode-hex-escape-non-ascii",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "StringTests.UnicodeHexEscapeNonAscii",
+      "sourceUnit": "Unicode_hex_escape_non_ascii_round_trips_when_the_host_console_supports_it",
+      "consumer": "Lolcode.EndToEnd.Tests.UnicodeFixtureTests.Unicode_hex_escape_non_ascii_round_trips_when_the_host_console_supports_it"
     },
     {
       "test": "StringTests.SmooshConcatenationInAssignment",
@@ -1291,84 +1294,114 @@
     },
     {
       "test": "FutureFeatureTests.ImportsSupportOptionalQuestionSrsUnknownNamesAndBothCallSpellings",
-      "assertion": "Specialized",
+      "assertion": "Output",
       "sourceVersion": "1.4",
-      "fixture": "DotNet/1.4/FutureFeature/imports-support-optional-question-srs-unknown-names-and-both-call-spellings",
-      "classification": "DotNet"
+      "fixture": "KnownLciDivergence/1.4/FutureFeature/imports-support-optional-question-srs-unknown-names-and-both-call-spellings",
+      "classification": "KnownLciDivergence"
     },
     {
       "test": "FutureFeatureTests.StdioSupportsEverySlotAndFailedOpen",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/FutureFeature/stdio-supports-every-slot-and-failed-open",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "FutureFeatureTests.StdioSupportsEverySlotAndFailedOpen",
+      "sourceUnit": "StdioSupportsEverySlotAndFailedOpen",
+      "consumer": "Lolcode.EndToEnd.Tests.FutureFeatureTests.StdioSupportsEverySlotAndFailedOpen"
     },
     {
       "test": "FutureFeatureTests.StdioAppendAndErrorsMatchCStreamSemantics",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/FutureFeature/stdio-append-and-errors-match-c-stream-semantics",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "FutureFeatureTests.StdioAppendAndErrorsMatchCStreamSemantics",
+      "sourceUnit": "StdioAppendAndErrorsMatchCStreamSemantics",
+      "consumer": "Lolcode.EndToEnd.Tests.FutureFeatureTests.StdioAppendAndErrorsMatchCStreamSemantics"
     },
     {
       "test": "FutureFeatureTests.StringAtPreservesBytesThroughAllYarnOperations",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/FutureFeature/string-at-preserves-bytes-through-all-yarn-operations",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "FutureFeatureTests.StringAtPreservesBytesThroughAllYarnOperations",
+      "sourceUnit": "StringAtPreservesBytesThroughAllYarnOperations",
+      "consumer": "Lolcode.EndToEnd.Tests.FutureFeatureTests.StringAtPreservesBytesThroughAllYarnOperations"
     },
     {
       "test": "FutureFeatureTests.VisibleAndInvisibleWriteSelectedRawBytesToProcessStreams",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/FutureFeature/visible-and-invisible-write-selected-raw-bytes-to-process-streams",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "FutureFeatureTests.VisibleAndInvisibleWriteSelectedRawBytesToProcessStreams",
+      "sourceUnit": "VisibleAndInvisibleWriteSelectedRawBytesToProcessStreams",
+      "consumer": "Lolcode.EndToEnd.Tests.FutureFeatureTests.VisibleAndInvisibleWriteSelectedRawBytesToProcessStreams"
     },
     {
       "test": "FutureFeatureTests.StdlibAndStringExposePinnedEdgeBehavior",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "Shared/1.4/FutureFeature/stdlib-and-string-expose-pinned-edge-behavior",
-      "classification": "Shared"
+      "classification": "Shared",
+      "historicIdentity": "FutureFeatureTests.StdlibAndStringExposePinnedEdgeBehavior",
+      "sourceUnit": "StdlibAndStringExposePinnedEdgeBehavior",
+      "consumer": "Lolcode.EndToEnd.Tests.FutureFeatureTests.StdlibAndStringExposePinnedEdgeBehavior"
     },
     {
       "test": "FutureFeatureTests.InvisibleMatchesVisibleArityAndNewlineRulesOnStandardError",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/FutureFeature/invisible-matches-visible-arity-and-newline-rules-on-standard-error",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "FutureFeatureTests.InvisibleMatchesVisibleArityAndNewlineRulesOnStandardError",
+      "sourceUnit": "InvisibleMatchesVisibleArityAndNewlineRulesOnStandardError",
+      "consumer": "Lolcode.EndToEnd.Tests.FutureFeatureTests.InvisibleMatchesVisibleArityAndNewlineRulesOnStandardError"
     },
     {
       "test": "FutureFeatureTests.SystemCommandReturnsValidTextOutput",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/FutureFeature/system-command-returns-valid-text-output",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "FutureFeatureTests.SystemCommandReturnsValidTextOutput",
+      "sourceUnit": "SystemCommandReturnsValidTextOutput",
+      "consumer": "Lolcode.EndToEnd.Tests.FutureFeatureTests.SystemCommandReturnsValidTextOutput"
     },
     {
       "test": "FutureFeatureTests.SystemCommandReturnsEmptyStandardOutput",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/FutureFeature/system-command-returns-empty-standard-output",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "FutureFeatureTests.SystemCommandReturnsEmptyStandardOutput",
+      "sourceUnit": "SystemCommandReturnsEmptyStandardOutput",
+      "consumer": "Lolcode.EndToEnd.Tests.FutureFeatureTests.SystemCommandReturnsEmptyStandardOutput"
     },
     {
       "test": "FutureFeatureTests.SystemCommandPreservesInvalidUtf8ThroughStringLenAndPrinting",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/FutureFeature/system-command-preserves-invalid-utf8-through-string-len-and-printing",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "FutureFeatureTests.SystemCommandPreservesInvalidUtf8ThroughStringLenAndPrinting",
+      "sourceUnit": "SystemCommandPreservesInvalidUtf8ThroughStringLenAndPrinting",
+      "consumer": "Lolcode.EndToEnd.Tests.FutureFeatureTests.SystemCommandPreservesInvalidUtf8ThroughStringLenAndPrinting"
     },
     {
       "test": "FutureFeatureTests.SystemCommandForwardsInvalidStandardErrorBytesUnchanged",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/FutureFeature/system-command-forwards-invalid-standard-error-bytes-unchanged",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "FutureFeatureTests.SystemCommandForwardsInvalidStandardErrorBytesUnchanged",
+      "sourceUnit": "SystemCommandForwardsInvalidStandardErrorBytesUnchanged",
+      "consumer": "Lolcode.EndToEnd.Tests.FutureFeatureTests.SystemCommandForwardsInvalidStandardErrorBytesUnchanged"
     },
     {
       "test": "FutureFeatureTests.HasAnAndRNoobWorkForDirectSrsAndObjectSlots",
-      "assertion": "Specialized",
+      "assertion": "Output",
       "sourceVersion": "1.4",
       "fixture": "KnownLciDivergence/1.4/FutureFeature/has-an-and-r-noob-work-for-direct-srs-and-object-slots",
       "classification": "KnownLciDivergence"
@@ -1378,102 +1411,137 @@
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/LciHarness/reseeded-random",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "LciAdditionalFixtureTests.UnregisteredStdlibFixtureProducesThreeBoundedValues",
+      "sourceUnit": "UnregisteredStdlibFixtureProducesThreeBoundedValues",
+      "consumer": "Lolcode.EndToEnd.Tests.LciAdditionalFixtureTests.UnregisteredStdlibFixtureProducesThreeBoundedValues"
     },
     {
       "test": "SdkSampleTests.ProjectNameEndingInLol_StillGlobsMultipleSources",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/Sdk/multi-file-first",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "SdkSampleTests.ProjectNameEndingInLol_StillGlobsMultipleSources",
+      "sourceUnit": "ProjectNameEndingInLol_StillGlobsMultipleSources",
+      "consumer": "Lolcode.EndToEnd.Tests.SdkSampleTests.ProjectNameEndingInLol_StillGlobsMultipleSources"
     },
     {
       "test": "SdkSampleTests.SdkCompilesMultipleLolSources.Second",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/Sdk/multi-file-second",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "SdkSampleTests.SdkCompilesMultipleLolSources.Second",
+      "sourceUnit": "Second",
+      "consumer": "Lolcode.EndToEnd.Tests.SdkSampleTests.ProjectNameEndingInLol_StillGlobsMultipleSources"
     },
     {
       "test": "SdkSampleTests.SdkRebuildsWhenOnlyANonFirstLolSourceChanges.First",
       "assertion": "Specialized",
       "sourceVersion": "1.2",
       "fixture": "DotNet/1.2/Sdk/incremental-first",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "SdkSampleTests.SdkRebuildsWhenOnlyANonFirstLolSourceChanges.First",
+      "sourceUnit": "First",
+      "consumer": "Lolcode.EndToEnd.Tests.SdkSampleTests.Sdk_RebuildsWhenOnlyANonFirstLolSourceChanges"
     },
     {
       "test": "SdkSampleTests.SdkRebuildsWhenOnlyANonFirstLolSourceChanges.Second",
       "assertion": "Specialized",
       "sourceVersion": "1.2",
       "fixture": "DotNet/1.2/Sdk/incremental-second",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "SdkSampleTests.SdkRebuildsWhenOnlyANonFirstLolSourceChanges.Second",
+      "sourceUnit": "Second",
+      "consumer": "Lolcode.EndToEnd.Tests.SdkSampleTests.Sdk_RebuildsWhenOnlyANonFirstLolSourceChanges"
     },
     {
       "test": "SdkSampleTests.Sdk_ProjectReferenceRunsWhenBuildOutputsAreRedirected",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/Sdk/redirected-consumer",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "SdkSampleTests.Sdk_ProjectReferenceRunsWhenBuildOutputsAreRedirected",
+      "sourceUnit": "Sdk_ProjectReferenceRunsWhenBuildOutputsAreRedirected",
+      "consumer": "Lolcode.EndToEnd.Tests.SdkSampleTests.Sdk_ProjectReferenceRunsWhenBuildOutputsAreRedirected"
     },
     {
       "test": "SdkSampleTests.CreateDefaultLibraryProject",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/Sdk/library-welcome",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "SdkSampleTests.CreateDefaultLibraryProject",
+      "sourceUnit": "Welcome",
+      "consumer": "Lolcode.EndToEnd.Tests.SdkSampleTests.LolcodeLibrary_DefaultExportTypeName_IsSanitizedFromAssemblyName"
     },
     {
       "test": "SdkSampleTests.CreateLibraryFunction",
       "assertion": "Specialized",
       "sourceVersion": "1.4",
       "fixture": "DotNet/1.4/Sdk/library-function-template",
-      "classification": "DotNet"
+      "classification": "DotNet",
+      "historicIdentity": "SdkSampleTests.CreateLibraryFunction",
+      "sourceUnit": "FunctionTemplate",
+      "consumer": "Lolcode.EndToEnd.Tests.SdkSampleTests.Sdk_RebuildsWhenALolSourceIsDeleted"
     }
   ],
   "inlineExceptions": [
     {
       "file": "tests/Lolcode.CodeAnalysis.Tests/LexerTests.cs",
-      "reason": "Lexer tests intentionally construct malformed token fragments; text construction is the behavior under test."
+      "reason": "Lexer tests intentionally construct malformed token fragments; text construction is the behavior under test.",
+      "method": "NarrowSourceConstruction"
     },
     {
       "file": "tests/Lolcode.CodeAnalysis.Tests/ParserTests.cs",
-      "reason": "Parser tests intentionally construct narrow syntax snippets and malformed statements; text construction is the behavior under test."
+      "reason": "Parser tests intentionally construct narrow syntax snippets and malformed statements; text construction is the behavior under test.",
+      "method": "NarrowSourceConstruction"
     },
     {
       "file": "tests/Lolcode.CodeAnalysis.Tests/BindingTests.cs",
-      "reason": "Binding tests construct narrow switch diagnostic inputs inline to isolate literal comparison behavior."
+      "reason": "Binding tests construct narrow switch diagnostic inputs inline to isolate literal comparison behavior.",
+      "method": "NarrowSourceConstruction"
     },
     {
       "file": "tests/Lolcode.CodeAnalysis.Tests/MultiFileCompilationTests.cs",
-      "reason": "Multi-file tests intentionally construct per-case source filenames, source order, and version substitutions to assert compilation-wide diagnostics."
+      "reason": "Multi-file tests intentionally construct per-case source filenames, source order, and version substitutions to assert compilation-wide diagnostics.",
+      "method": "NarrowSourceConstruction"
     },
     {
       "file": "tests/Lolcode.CodeAnalysis.Tests/LibraryEmissionTests.cs",
-      "reason": "Library emission tests retain inline source where the source filename, PDB option, and emitted-library metadata are the behavior under test."
+      "reason": "Library emission tests retain inline source where the source filename, PDB option, and emitted-library metadata are the behavior under test.",
+      "method": "NarrowSourceConstruction"
     },
     {
       "file": "tests/Lolcode.CodeAnalysis.Tests/InMemoryExecutionTests.cs",
-      "reason": "In-memory execution tests retain source construction where BOM, stream truncation, and byte-preserving source construction are the behavior under test."
+      "reason": "In-memory execution tests retain source construction where BOM, stream truncation, and byte-preserving source construction are the behavior under test.",
+      "method": "NarrowSourceConstruction"
     },
     {
       "file": "tests/Lolcode.CodeAnalysis.Tests/PortablePdbTests.cs",
-      "reason": "PDB tests retain source construction where exact source line numbers and temporary source filenames are asserted."
+      "reason": "PDB tests retain source construction where exact source line numbers and temporary source filenames are asserted.",
+      "method": "NarrowSourceConstruction"
     },
     {
       "file": "tests/Lolcode.CodeAnalysis.Tests/DebuggerSmokeTests.cs",
-      "reason": "Debugger smoke test retains source construction because the temporary source path and sequence points are asserted."
+      "reason": "Debugger smoke test retains source construction because the temporary source path and sequence points are asserted.",
+      "method": "NarrowSourceConstruction"
     },
     {
       "file": "tests/Lolcode.CodeAnalysis.Tests/VsdbgDebuggerTests.cs",
-      "reason": "Debugger protocol tests retain source construction because generated paths and source line mapping are asserted."
+      "reason": "Debugger protocol tests retain source construction because generated paths and source line mapping are asserted.",
+      "method": "NarrowSourceConstruction"
     },
     {
       "file": "tests/Lolcode.Web.Tests/LolcodeCodeRunnerTests.cs",
-      "reason": "Web runner tests retain source construction where dynamic output limits and diagnostic locations are asserted."
+      "reason": "Web runner tests retain source construction where dynamic output limits and diagnostic locations are asserted.",
+      "method": "NarrowSourceConstruction"
     },
     {
       "file": "tests/Lolcode.Web.Tests/PlaygroundSamplesTests.cs",
-      "reason": "The test does not construct source; it verifies the application-owned sample catalog retains complete sample boundaries."
+      "reason": "The test does not construct source; it verifies the application-owned sample catalog retains complete sample boundaries.",
+      "method": "NarrowSourceConstruction"
     }
   ],
   "expectedMappings": {
@@ -1517,7 +1585,7 @@
     "EdgeCaseTests.DeeplyNested": "Shared/1.2/EdgeCases/deeply-nested",
     "EdgeCaseTests.EmptyProgram": "Shared/1.2/EdgeCases/empty-program",
     "EdgeCaseTests.FunctionAndLoop": "Shared/1.2/EdgeCases/function-and-loop",
-    "EdgeCaseTests.ItAcrossControlFlow": "KnownLciDivergence/1.2/EdgeCases/it-across-control-flow",
+    "EdgeCaseTests.ItAcrossControlFlow": "Shared/1.2/Runtime-Scope/it-propagates-through-conditional",
     "EdgeCaseTests.VariableNameLikeKeyword": "Shared/1.2/EdgeCases/variable-name-like-keyword",
     "EdgeCaseTests.MultipleVisibleOnSameLine": "Shared/1.2/EdgeCases/multiple-visible-on-same-line",
     "ErrorTests.NoobInArithmeticThrowsError": "Shared/1.2/Errors/noob-in-arithmetic-throws-error",
@@ -1595,7 +1663,7 @@
     "MathTests.LargeNumberArithmetic": "KnownLciDivergence/1.2/Math/large-number-arithmetic",
     "MathTests.NegativeNumbers": "Shared/1.2/Math/negative-numbers",
     "ObjectTests.GlobalAndObjectFunctionsWithSameNameHaveIndependentSignatures": "Shared/1.3/Objects/global-and-object-functions-with-same-name-have-independent-signatures",
-    "ObjectTests.AlternateObjectDeclarationCannotReplaceLocalBinding": "KnownLciDivergence/1.3/Objects/alternate-object-declaration-cannot-replace-local-binding",
+    "ObjectTests.AlternateObjectDeclarationCannotReplaceLocalBinding": "Shared/1.3/Objects/alternate-object-declaration-cannot-replace-local-binding",
     "ObjectTests.NestedFunctionCannotReplaceParameter": "KnownLciDivergence/1.3/Objects/nested-function-cannot-replace-parameter",
     "ObjectTests.ArgumentSideEffectsCannotRetargetFunctionOrReceiver": "Shared/1.3/Objects/argument-side-effects-cannot-retarget-function-or-receiver",
     "ObjectTests.AssignmentEvaluatesRhsBeforeDynamicTarget": "Shared/1.3/Objects/assignment-evaluates-rhs-before-dynamic-target",
@@ -1610,14 +1678,14 @@
     "ObjectTests.ArticlelessDynamicDeclarationIsAccepted": "KnownLciDivergence/1.3/Objects/articleless-dynamic-declaration-is-accepted",
     "ObjectTests.DynamicDeclarationCannotReplaceLocalVariable": "KnownLciDivergence/1.3/Objects/dynamic-declaration-cannot-replace-local-variable",
     "ObjectTests.DynamicDeclarationCannotReplaceLocalFunction": "KnownLciDivergence/1.3/Objects/dynamic-declaration-cannot-replace-local-function",
-    "ObjectTests.DynamicFunctionCannotReplaceLocalVariable": "KnownLciDivergence/1.3/Objects/dynamic-function-cannot-replace-local-variable",
-    "ObjectTests.DuplicateDirectBukkitSlotDeclarationIsRejected": "KnownLciDivergence/1.3/Objects/duplicate-direct-bukkit-slot-declaration-is-rejected",
+    "ObjectTests.DynamicFunctionCannotReplaceLocalVariable": "Shared/1.3/Objects/dynamic-function-cannot-replace-local-variable",
+    "ObjectTests.DuplicateDirectBukkitSlotDeclarationIsRejected": "Shared/1.3/Objects/duplicate-direct-bukkit-slot-declaration-is-rejected",
     "ObjectTests.DuplicateDynamicBukkitSlotDeclarationIsRejected": "KnownLciDivergence/1.3/Objects/duplicate-dynamic-bukkit-slot-declaration-is-rejected",
     "ObjectTests.BukkitSlotDeclarationMayOverrideInheritedSlot": "KnownLciDivergence/1.3/Objects/bukkit-slot-declaration-may-override-inherited-slot",
     "ObjectTests.InheritedSlotOverrideEvaluatesInitializer": "Shared/1.3/Objects/inherited-slot-override-evaluates-initializer",
-    "ObjectTests.ScopedDeclarationCollisionPrecedesInitializer": "KnownLciDivergence/1.3/Objects/scoped-declaration-collision-precedes-initializer",
+    "ObjectTests.ScopedDeclarationCollisionPrecedesInitializer": "Shared/1.3/Objects/scoped-declaration-collision-precedes-initializer",
     "ObjectTests.SrsDeclarationCollisionPrecedesInitializer": "KnownLciDivergence/1.3/Objects/srs-declaration-collision-precedes-initializer",
-    "ObjectTests.AlternateObjectCollisionPrecedesPrototypeAndBody": "KnownLciDivergence/1.3/Objects/alternate-object-collision-precedes-prototype-and-body",
+    "ObjectTests.AlternateObjectCollisionPrecedesPrototypeAndBody": "Shared/1.3/Objects/alternate-object-collision-precedes-prototype-and-body",
     "ObjectTests.AssignmentToInheritedSlotUpdatesOwnerWithoutCreatingShadow": "KnownLciDivergence/1.3/Objects/assignment-to-inherited-slot-updates-owner-without-creating-shadow",
     "ObjectTests.MethodUsesCallerLexicalScopeAndReceiverOnlyThroughMe": "Shared/1.3/Objects/method-uses-caller-lexical-scope-and-receiver-only-through-me",
     "ObjectTests.MethodCanReadCallingBlockLexicalBindings": "Shared/1.3/Objects/method-can-read-calling-block-lexical-bindings",
@@ -1626,7 +1694,7 @@
     "RuntimeScopeTests.IfBodyUsesChildScopeAndRestoresParentIt": "Shared/1.3/Runtime-Scope/if-body-uses-child-scope-and-restores-parent-it",
     "RuntimeScopeTests.GtfoFromSwitchBodyRestoresParentScope": "Shared/1.3/Runtime-Scope/gtfo-from-switch-body-restores-parent-scope",
     "RuntimeScopeTests.GtfoFromLoopBodyRestoresParentScope": "Shared/1.3/Runtime-Scope/gtfo-from-loop-body-restores-parent-scope",
-    "RuntimeScopeTests.BlockDeclarationDoesNotLeak": "KnownLciDivergence/1.3/Runtime-Scope/block-declaration-does-not-leak",
+    "RuntimeScopeTests.BlockDeclarationDoesNotLeak": "Shared/1.3/Runtime-Scope/block-declaration-does-not-leak",
     "RuntimeScopeTests.DirectItTargetSupportsAssignmentAndInPlaceCast": "KnownLciDivergence/1.3/Runtime-Scope/direct-it-target-supports-assignment-and-in-place-cast",
     "RuntimeScopeTests.DynamicItTargetSupportsReadAssignmentAndInPlaceCast": "KnownLciDivergence/1.3/Runtime-Scope/dynamic-it-target-supports-read-assignment-and-in-place-cast",
     "StringTests.EmptyString": "Shared/1.2/Strings/empty-string",
@@ -1660,7 +1728,7 @@
     "VariableTests.NoobVariableCannotBePrintedImplicitly": "Shared/1.2/Variables/noob-variable-cannot-be-printed-implicitly",
     "ObjectTests.GtfoLeavingObjectBodyRestoresOuterScope[loop]": "KnownLciDivergence/1.3/Objects/gtfo-leaving-object-loop",
     "ObjectTests.GtfoLeavingObjectBodyRestoresOuterScope[switch]": "KnownLciDivergence/1.3/Objects/gtfo-leaving-object-switch",
-    "FutureFeatureTests.ImportsSupportOptionalQuestionSrsUnknownNamesAndBothCallSpellings": "DotNet/1.4/FutureFeature/imports-support-optional-question-srs-unknown-names-and-both-call-spellings",
+    "FutureFeatureTests.ImportsSupportOptionalQuestionSrsUnknownNamesAndBothCallSpellings": "KnownLciDivergence/1.4/FutureFeature/imports-support-optional-question-srs-unknown-names-and-both-call-spellings",
     "FutureFeatureTests.StdioSupportsEverySlotAndFailedOpen": "DotNet/1.4/FutureFeature/stdio-supports-every-slot-and-failed-open",
     "FutureFeatureTests.StdioAppendAndErrorsMatchCStreamSemantics": "DotNet/1.4/FutureFeature/stdio-append-and-errors-match-c-stream-semantics",
     "FutureFeatureTests.StringAtPreservesBytesThroughAllYarnOperations": "DotNet/1.4/FutureFeature/string-at-preserves-bytes-through-all-yarn-operations",
@@ -1680,6 +1748,6 @@
     "SdkSampleTests.Sdk_ProjectReferenceRunsWhenBuildOutputsAreRedirected": "DotNet/1.4/Sdk/redirected-consumer",
     "SdkSampleTests.CreateDefaultLibraryProject": "DotNet/1.4/Sdk/library-welcome",
     "SdkSampleTests.CreateLibraryFunction": "DotNet/1.4/Sdk/library-function-template",
-    "UnicodeFixtureTests.Unicode_hex_escape_non_ascii_round_trips_when_the_host_console_supports_it": "DotNet/1.2/Strings/unicode-hex-escape-non-ascii"
+    "StringTests.UnicodeHexEscapeNonAscii": "DotNet/1.2/Strings/unicode-hex-escape-non-ascii"
   }
 }

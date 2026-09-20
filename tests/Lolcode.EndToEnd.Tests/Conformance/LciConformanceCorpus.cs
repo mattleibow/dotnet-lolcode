@@ -43,13 +43,8 @@ internal static class CompatibilityCorpus
 
     private static IReadOnlyList<LciTestRegistration> LoadRegistrations() =>
         LciRegistrationParser.Discover(
-            Path.Combine(AppContext.BaseDirectory, "Compatibility"),
-            "shared compatibility",
-            excludedDirectoryNames: new HashSet<string>(StringComparer.Ordinal)
-            {
-                "KnownLciDivergence",
-                "DotNet",
-            });
+            Path.Combine(AppContext.BaseDirectory, "Compatibility", "Shared"),
+            "shared compatibility");
 }
 
 /// <summary>Discovers fixtures with a documented pinned-lci semantic or parser divergence.</summary>
@@ -89,7 +84,7 @@ internal static partial class LciRegistrationParser
             if (excludedDirectoryNames?.Contains(relativePath.Split(Path.DirectorySeparatorChar)[0]) == true)
                 continue;
 
-            string cmake = File.ReadAllText(cmakePath);
+            string cmake = StripComments(File.ReadAllText(cmakePath));
             foreach (Match match in RegistrationRegex().Matches(cmake))
             {
                 string directory = Path.GetDirectoryName(cmakePath)!;
@@ -133,6 +128,14 @@ internal static partial class LciRegistrationParser
 
                 string expectedError = Path.Combine(directory, "test.err");
                 string expectedDiagnostic = Path.Combine(directory, "test.diag");
+                ValidatePath(source, "LOLCODE source", cmakePath);
+                if (expectedOutput is not null)
+                    ValidatePath(expectedOutput, "OUTPUT", cmakePath);
+                if (input is not null)
+                    ValidatePath(input, "INPUT", cmakePath);
+                if (expectError && File.Exists(expectedError) && File.Exists(expectedDiagnostic))
+                    throw new InvalidDataException(
+                        $"ADD_LOL_TEST cannot use both test.err and test.diag in {cmakePath}.");
                 registrations.Add(new LciTestRegistration(
                     Path.GetRelativePath(root, directory).Replace('\\', '/'),
                     arguments[0],
@@ -147,6 +150,25 @@ internal static partial class LciRegistrationParser
         }
 
         return registrations.OrderBy(test => test.Id, StringComparer.Ordinal).ToArray();
+    }
+
+    private static string StripComments(string cmake) =>
+        string.Join(
+            Environment.NewLine,
+            cmake.Split(["\r\n", "\n"], StringSplitOptions.None)
+                .Select(StripComment));
+
+    private static string StripComment(string line)
+    {
+        int comment = line.IndexOf('#');
+        return comment < 0 ? line : line[..comment];
+    }
+
+    private static void ValidatePath(string path, string kind, string cmakePath)
+    {
+        if (!File.Exists(path))
+            throw new InvalidDataException(
+                $"ADD_LOL_TEST {kind} path '{path}' does not exist ({cmakePath}).");
     }
 
     private static string ResolveArgumentPath(

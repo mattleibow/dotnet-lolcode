@@ -245,8 +245,8 @@ public sealed class MultiFileCompilationTests
     public void CrossFileTopLevelStatements_ExecuteInSyntaxTreeOrder()
     {
         var compilation = LolcodeCompilation.Create(
-            Tree("HAI 1.2\nVISIBLE \"FIRST\"\nKTHXBYE", "First.lol"),
-            Tree("HAI 1.2\nVISIBLE \"SECOND\"\nKTHXBYE", "Second.lol"));
+            Tree(FixtureSource("first.lol"), "First.lol"),
+            Tree(FixtureSource("second.lol"), "Second.lol"));
 
         Execute(compilation).Should().Be(
             $"FIRST{Environment.NewLine}SECOND{Environment.NewLine}");
@@ -460,6 +460,10 @@ public sealed class MultiFileCompilationTests
         result.Success.Should().BeTrue();
         peStream.Length.Should().BeGreaterThan(0);
     }
+
+    private static string FixtureSource(string fileName) =>
+        File.ReadAllText(Path.Combine(
+            AppContext.BaseDirectory, "Compatibility", "DotNet", "1.2", "CodeAnalysis", "multi-file-order", fileName));
 
     private static SyntaxTree Tree(string source, string filePath) =>
         SyntaxTree.ParseText(source, filePath);

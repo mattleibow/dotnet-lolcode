@@ -785,3 +785,10 @@ VISIBLE IT                         BTW prints 8
 | `,` | Statement separator (soft-command-break) |
 | `...` / `…` | Line continuation |
 | `!` | Suppress newline (after VISIBLE) |
+
+### `IT` and control flow in 1.2
+
+LOLCODE 1.2 has one implicit `IT` binding for the main program or function body.
+Expressions evaluated in `O RLY?` clauses, loops, and `WTF?` cases update that enclosing
+binding; it remains visible after `OIC` or `IM OUTTA YR`. The separate lexical `IT` used by
+runtime object/block scopes is a 1.3+ behavior.
