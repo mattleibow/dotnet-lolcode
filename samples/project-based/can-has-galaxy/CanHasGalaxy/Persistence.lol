@@ -1,5 +1,14 @@
 HAI 1.4
 
+OBTW
+Galaxy persistence owns save-record parsing, range validation, and the only
+STDIO file-handle effects in the domain project. SAVE serializes primitive game
+state; LOAD validates every field then returns a newly constructed game or
+NOOB. STRING and STDIO imports are function-local where required, handles are
+closed in their owning functions, and CREATEFROM is hoisted so SDK glob order
+does not matter. Rendering is deliberately absent from this module.
+TLDR
+
 CAN HAS STDIO?
 CAN HAS STRING?
 

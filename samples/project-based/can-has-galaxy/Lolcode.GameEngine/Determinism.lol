@@ -1,5 +1,13 @@
 HAI 1.4
 
+OBTW
+GameEngine deterministic numeric helpers expose CLAMP and STEPSEED for both
+sample games. They are pure: no BUKKIT state, imports, I/O, or rendering is
+performed. Callers choose bounds and seeds, which makes their behavior stable
+for process tests and persistence. Both top-level functions are hoisted and
+have no source-order assumptions.
+TLDR
+
 BTW CLAMP keeps a numeric state value inside an inclusive deterministic range.
 HOW IZ I CLAMP YR value AN YR minimum AN YR maximum
   BOTH SAEM value AN SMALLR OF value AN minimum

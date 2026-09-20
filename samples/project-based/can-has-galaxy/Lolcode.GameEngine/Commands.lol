@@ -1,5 +1,14 @@
 HAI 1.4
 
+OBTW
+GameEngine command routing creates a generic first-class-function registry
+backed by BUKKIT SRS slots and the NEWLIST name index. NEWROUTER returns
+mutable router state; REGISTER, KNOWS, and DISPATCH are methods with no output
+side effects beyond that router. Collections functions are hoisted so this file
+does not depend on glob order, and game-specific command names never appear
+here. Consumers own command state and decide how returned messages are drawn.
+TLDR
+
 BTW NEWROUTER creates a first-class-function command registry using SRS slots.
 HOW IZ I NEWROUTER
   BTW routerPrototype dispatches registered function values against a state BUKKIT.

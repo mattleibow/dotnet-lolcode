@@ -1,5 +1,14 @@
 HAI 1.4
 
+OBTW
+Galaxy model construction owns the mutable player and game BUKKIT shapes plus
+the ADVANCE clock operation. Public NEWPLAYER, CREATEGAME, and CREATEFROM
+return fresh state; ADVANCE intentionally mutates a provided game. GameEngine
+is imported where list construction is needed, no rendering or persistence is
+performed, and direct top-level function hoisting removes source-order
+assumptions among the Galaxy files.
+TLDR
+
 CAN HAS GameEngine?
 
 BTW NEWPLAYER creates the mutable ship and cargo model used by Galaxy only.

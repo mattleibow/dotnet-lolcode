@@ -1,19 +1,24 @@
 HAI 1.4
 
-BTW COMMANDSTATUS renders the current ship data through the shared UI widgets.
+OBTW
+Galaxy command handlers bridge the generic GameEngine router and mutable CLI
+session BUKKIT. Each public handler imports only the domain it needs, mutates
+only documented game/session state, and returns one communications YARN rather
+than drawing partial UI. Application.lol presents the retained dashboard after
+dispatch, so handler output cannot interleave with widgets. Functions are
+hoisted and therefore independent of the two source files' compilation order.
+TLDR
+
+BTW COMMANDSTATUS returns the current concise ship data for the communications panel.
 HOW IZ I COMMANDSTATUS YR session
   CAN HAS CanHasGalaxy?
-  I IZ CanHasGalaxy'Z RENDERSTATUS YR session'Z game MKAY
-  FOUND YR "STATUS SHOWN."
+  FOUND YR I IZ CanHasGalaxy'Z STATUS YR session'Z game MKAY
 IF U SAY SO
 
-BTW COMMANDMAP displays the reusable one-line star chart view.
+BTW COMMANDMAP returns the reusable star-chart summary for the next dashboard.
 HOW IZ I COMMANDMAP YR session
   CAN HAS CanHasGalaxy?
-  CAN HAS TerminalUi?
-  I HAS A result ITZ I IZ CanHasGalaxy'Z MAP YR session'Z game MKAY
-  I IZ TerminalUi'Z PANEL YR "STAR CHART" AN YR result MKAY
-  FOUND YR result
+  FOUND YR I IZ CanHasGalaxy'Z MAP YR session'Z game MKAY
 IF U SAY SO
 
 BTW COMMANDTRAVEL1 dispatches a fixed portable travel command.

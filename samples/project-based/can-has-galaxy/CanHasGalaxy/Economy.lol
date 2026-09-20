@@ -1,5 +1,13 @@
 HAI 1.4
 
+OBTW
+Galaxy economy implements derived local market prices plus MINE, BUYFUEL, and
+SELLORE state transitions. NEWMARKET returns short-lived calculated BUKKIT
+data; action functions mutate the supplied game and return messages for the
+dashboard communications area. GameEngine is used only for shared clamps, and
+this module has no rendering, file, or source-order-dependent initialization.
+TLDR
+
 CAN HAS GameEngine?
 
 BTW NEWMARKET calculates a deterministic local market from a sector number.

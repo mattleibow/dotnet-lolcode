@@ -27,7 +27,7 @@ Lolcode.TerminalUi ─┬─> CanHasGalaxy ─> CanHasGalaxy.Cli
 | Project | Purpose |
 | --- | --- |
 | `Lolcode.GameEngine` | Prototype-backed dynamic list, SRS/BUKKIT first-class-function command router, and deterministic clamp/seed helpers. It contains neither Galaxy rules nor rendering. |
-| `Lolcode.TerminalUi` | Portable text helpers plus boxed headers/panels, menus, prompts, and status bars. It uses lines only—no cursor addressing or ANSI control sequences. |
+| `Lolcode.TerminalUi` | Retained BUKKIT/SRS line views, ASCII-width fitting, Unicode frames, horizontal/vertical compositors, progress rows, snapshots, and optional ANSI redraw. |
 | `CanHasGalaxy` | Galaxy model, navigation, economy, combat, story, primitive save/load codec, and views. `STDIO` handles remain inside save/load functions. |
 | `CanHasGalaxy.Cli` | EOF-safe interactive shell that registers Galaxy command functions in the generic router and renders with TerminalUi. |
 | `Kitteh.Catacombs` | A compact deterministic crawler that independently registers `LOOK`, `STEP`, and `QUIT` handlers in the same router and uses the same UI widgets. |
@@ -62,8 +62,36 @@ or god modules.
 
 ## Playing Galaxy
 
-The startup header, boxed status rows, and `HULL`/`FUEL` bars are supplied by
-`TerminalUi`. Commands are case-sensitive:
+## Retained terminal UI
+
+`Lolcode.TerminalUi` is a pure-LOLCODE retained view framework. `NEWVIEW`
+creates a BUKKIT with `width`, `count`, `ADDLINE`, and `GETLINE`; every line is
+stored under a dynamic SRS slot after `FIT` truncates and pads it. `FRAME`,
+`HSTACK`, and `VSTACK` create new views, while `BANNER`, `MESSAGE`, and
+`PROGRESS` provide reusable dashboard pieces. `TOTEXT` serializes a finished
+view and `PRESENT` prints precisely that one complete snapshot.
+
+The apps target a 78-column screen. Content is ASCII-only before composition:
+the STRING provider counts UTF-8 bytes, so Unicode box characters are inserted
+only after fixed-width fitting. This keeps `┌─┐` frames visually stable without
+using their byte lengths for layout.
+
+Galaxy uses a banner, framed 44-column star-chart viewport, framed 24-column
+ship sidebar, hull/fuel bars, mission/turn/cargo/credit data, communications
+panel, command footer, and prompt. Catacombs reuses the exact composition model
+for room art/description on the left and run/depth/status information on the
+right; it does not import Galaxy.
+
+`PRESENT` is deliberately scroll-safe: it never clears the terminal, so piped
+input and captured tests show readable complete screens. `CLEAR` is available
+as an opt-in ANSI clear/home helper for a future live redraw client, but neither
+game requires it. Command handlers return communications messages instead of
+printing fragments, and the owning application renders the next complete
+screen before prompting.
+
+## Playing Galaxy
+
+Commands are case-sensitive:
 
 `STATUS`, `MAP`, `TRAVEL1`, `TRAVEL2`, `TRAVEL3`, `MINE`, `SELL`, `FUEL`,
 `FIGHT`, `MISSION`, `SAVE`, `LOAD`, and `QUIT`.
@@ -98,5 +126,5 @@ the file.
 `LOOK` describes the current room, `STEP` advances through a finite,
 deterministic three-room crawl, and `QUIT` exits. Reaching the final room prints
 `CATACOMBS COMPLETE.` This intentionally small game proves reuse by using the
-engine's dynamic command registry and TerminalUi header/menu/panel widgets
+engine's dynamic command registry and the retained TerminalUi compositors
 without importing Galaxy.

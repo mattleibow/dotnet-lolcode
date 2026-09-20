@@ -1,5 +1,15 @@
 HAI 1.4
 
+OBTW
+Galaxy CLI application owns the interactive session BUKKIT, command router,
+save-file choice, and EOF-safe input loop. It imports application libraries
+inside RUN, registers hoisted command functions, and presents one retained
+Galaxy screen before each input prompt. Command handlers update game state and
+return a communications message; this file alone controls rendering and input.
+The final top-level RUN call is intentionally effectful and relies on direct
+function hoisting rather than source-file order.
+TLDR
+
 BTW REGISTERCOMMANDS installs first-class command function values in the shared router.
 HOW IZ I REGISTERCOMMANDS YR router
   I IZ router'Z REGISTER YR "STATUS" AN YR COMMANDSTATUS MKAY
@@ -28,22 +38,29 @@ HOW IZ I RUN
   session HAS A game ITZ I IZ CanHasGalaxy'Z CREATEGAME YR "CAPTAIN" AN YR 7 MKAY
   session HAS A running ITZ WIN
   session HAS A saveFile ITZ "can-has-galaxy.save"
+  session HAS A message ITZ "WELCOME, CAPTAIN. CHART READY."
   I HAS A router ITZ I IZ GameEngine'Z NEWROUTER MKAY
   I IZ REGISTERCOMMANDS YR router MKAY
-  I IZ TerminalUi'Z HEADER YR "CAN HAS GALAXY?  SPACE TRADER" MKAY
-  I IZ TerminalUi'Z MENU YR "STATUS MAP TRAVEL1 TRAVEL2 TRAVEL3 MINE SELL FUEL FIGHT MISSION SAVE LOAD QUIT" MKAY
   IM IN YR commandLoop UPPIN YR tick WILE BOTH SAEM session'Z running AN WIN
+    I IZ CanHasGalaxy'Z RENDERDASHBOARD YR session'Z game AN YR session'Z message MKAY
     I IZ TerminalUi'Z PROMPT YR "GALAXY>" MKAY
     I HAS A command
     GIMMEH command
+    BTW Terminate the prompt in redirected output where typed input is not echoed.
+    VISIBLE ""
     BOTH SAEM command AN ""
     O RLY?
       YA RLY
         VISIBLE "EOF. SAFE LANDIN."
         session'Z running R FAIL
       NO WAI
-        I HAS A result ITZ router IZ DISPATCH YR command AN YR session MKAY
-        VISIBLE result
+        session'Z message R router IZ DISPATCH YR command AN YR session MKAY
+        BTW A terminating command receives one final dashboard for its response.
+        BOTH SAEM session'Z running AN FAIL
+        O RLY?
+          YA RLY
+            I IZ CanHasGalaxy'Z RENDERDASHBOARD YR session'Z game AN YR session'Z message MKAY
+        OIC
     OIC
   IM OUTTA YR commandLoop
   FOUND YR session'Z game
