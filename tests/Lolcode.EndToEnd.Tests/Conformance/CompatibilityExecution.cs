@@ -375,9 +375,9 @@ internal static class WindowsJobProcess
             var ownedProcess = new WindowsOwnedProcess(
                 processHandle,
                 job,
-                new FileStream(parentInput, FileAccess.Write, bufferSize: 4096, isAsync: true),
-                new FileStream(parentOutput, FileAccess.Read, bufferSize: 81920, isAsync: true),
-                new FileStream(parentError, FileAccess.Read, bufferSize: 81920, isAsync: true));
+                new FileStream(parentInput, FileAccess.Write, bufferSize: 4096, isAsync: false),
+                new FileStream(parentOutput, FileAccess.Read, bufferSize: 81920, isAsync: false),
+                new FileStream(parentError, FileAccess.Read, bufferSize: 81920, isAsync: false));
             childOutput.Dispose();
             childError.Dispose();
             return ownedProcess;

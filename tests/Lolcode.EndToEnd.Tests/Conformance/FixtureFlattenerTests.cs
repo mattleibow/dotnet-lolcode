@@ -62,7 +62,7 @@ public sealed class FixtureFlattenerTests
             "lowercase-receiver-not-hoisted");
         string source = FixtureFlattener.Flatten(FixtureFlattener.ReadManifest(directory));
 
-        source.IndexOf("O HAI IM box", StringComparison.Ordinal)
+        source.IndexOf("O HAI IM i", StringComparison.Ordinal)
             .Should()
             .BeLessThan(source.IndexOf("HOW IZ i deferred", StringComparison.Ordinal));
         source.IndexOf("HOW IZ i deferred", StringComparison.Ordinal)
