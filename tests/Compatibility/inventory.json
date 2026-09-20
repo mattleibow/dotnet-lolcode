@@ -1,0 +1,1434 @@
+{
+  "schemaVersion": 1,
+  "inlinePrograms": [
+    {
+      "test": "BasicProgramTests.BasicProgram",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Basic/basic-program",
+      "classification": "Shared"
+    },
+    {
+      "test": "BasicProgramTests.VersionNumber",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Basic/version-number",
+      "classification": "Shared"
+    },
+    {
+      "test": "BasicProgramTests.HelloWorld",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Basic/hello-world",
+      "classification": "Shared"
+    },
+    {
+      "test": "BooleanTests.AllOf",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Boolean/all-of",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "BooleanTests.AnyOf",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Boolean/any-of",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "BooleanTests.BooleanAutoCast",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Boolean/boolean-auto-cast",
+      "classification": "Shared"
+    },
+    {
+      "test": "BooleanTests.BothOf",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Boolean/both-of",
+      "classification": "Shared"
+    },
+    {
+      "test": "BooleanTests.EitherOf",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Boolean/either-of",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "BooleanTests.Not",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Boolean/not",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "BooleanTests.WonOf",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Boolean/won-of",
+      "classification": "Shared"
+    },
+    {
+      "test": "CastingTests.CastingRulesMatrix",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Casting/casting-rules-matrix",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "CastingTests.IsNowA",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Casting/is-now-a",
+      "classification": "Shared"
+    },
+    {
+      "test": "CastingTests.MaekNumbar",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Casting/maek-numbar",
+      "classification": "Shared"
+    },
+    {
+      "test": "CastingTests.MaekNumbr",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Casting/maek-numbr",
+      "classification": "Shared"
+    },
+    {
+      "test": "CastingTests.MaekTroof",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Casting/maek-troof",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "CastingTests.MaekYarn",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Casting/maek-yarn",
+      "classification": "Shared"
+    },
+    {
+      "test": "CastingTests.MaekTroofToYarnFails",
+      "assertion": "RuntimeError",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Casting/maek-troof-to-yarn-fails",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "CastingTests.NoobExplicitCast",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Casting/noob-explicit-cast",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "CastingTests.NumbarToYarnTruncation",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Casting/numbar-to-yarn-truncation",
+      "classification": "Shared"
+    },
+    {
+      "test": "CastingTests.YarnToNumbrParsing",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Casting/yarn-to-numbr-parsing",
+      "classification": "Shared"
+    },
+    {
+      "test": "CommentTests.CommentEdgeCases",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Comments/comment-edge-cases",
+      "classification": "Shared"
+    },
+    {
+      "test": "CommentTests.MultiLineComment",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Comments/multi-line-comment",
+      "classification": "Shared"
+    },
+    {
+      "test": "CommentTests.SingleLineComment",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Comments/single-line-comment",
+      "classification": "Shared"
+    },
+    {
+      "test": "ComparisonTests.BothSaem",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Comparison/both-saem",
+      "classification": "Shared"
+    },
+    {
+      "test": "ComparisonTests.Diffrint",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Comparison/diffrint",
+      "classification": "Shared"
+    },
+    {
+      "test": "ComparisonTests.GreaterThanIdiom",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Comparison/greater-than-idiom",
+      "classification": "Shared"
+    },
+    {
+      "test": "ComparisonTests.LessThanIdiom",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Comparison/less-than-idiom",
+      "classification": "Shared"
+    },
+    {
+      "test": "ComparisonTests.NoAutoCastEquality",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Comparison/no-auto-cast-equality",
+      "classification": "Shared"
+    },
+    {
+      "test": "ComparisonTests.NumbarComparison",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Comparison/numbar-comparison",
+      "classification": "Shared"
+    },
+    {
+      "test": "ConditionalTests.BasicIfElse",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Conditional/basic-if-else",
+      "classification": "Shared"
+    },
+    {
+      "test": "ConditionalTests.CommaOnConditional",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Conditional/comma-on-conditional",
+      "classification": "Shared"
+    },
+    {
+      "test": "ConditionalTests.ExpressionBeforeOrly",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Conditional/expression-before-orly",
+      "classification": "Shared"
+    },
+    {
+      "test": "ConditionalTests.IfOnly",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Conditional/if-only",
+      "classification": "Shared"
+    },
+    {
+      "test": "ConditionalTests.ItTruthiness",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Conditional/it-truthiness",
+      "classification": "Shared"
+    },
+    {
+      "test": "ConditionalTests.Mebbe",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Conditional/mebbe",
+      "classification": "Shared"
+    },
+    {
+      "test": "ConditionalTests.NestedConditionals",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Conditional/nested-conditionals",
+      "classification": "Shared"
+    },
+    {
+      "test": "EdgeCaseTests.AllFeatures",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/EdgeCases/all-features",
+      "classification": "Shared"
+    },
+    {
+      "test": "EdgeCaseTests.DeeplyNested",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/EdgeCases/deeply-nested",
+      "classification": "Shared"
+    },
+    {
+      "test": "EdgeCaseTests.EmptyProgram",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/EdgeCases/empty-program",
+      "classification": "Shared"
+    },
+    {
+      "test": "EdgeCaseTests.FunctionAndLoop",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/EdgeCases/function-and-loop",
+      "classification": "Shared"
+    },
+    {
+      "test": "EdgeCaseTests.ItAcrossControlFlow",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/EdgeCases/it-across-control-flow",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "EdgeCaseTests.VariableNameLikeKeyword",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/EdgeCases/variable-name-like-keyword",
+      "classification": "Shared"
+    },
+    {
+      "test": "EdgeCaseTests.MultipleVisibleOnSameLine",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/EdgeCases/multiple-visible-on-same-line",
+      "classification": "Shared"
+    },
+    {
+      "test": "ErrorTests.NoobInArithmeticThrowsError",
+      "assertion": "RuntimeError",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Errors/noob-in-arithmetic-throws-error",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ErrorTests.NonNumericYarnInArithmeticThrowsError",
+      "assertion": "RuntimeError",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Errors/non-numeric-yarn-in-arithmetic-throws-error",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ErrorTests.UndeclaredVariableError",
+      "assertion": "CompileError",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Errors/undeclared-variable-error",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ExpressionTests.AssignmentNoIt",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Expressions/assignment-no-it",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ExpressionTests.ChainedExpressions",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Expressions/chained-expressions",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ExpressionTests.DeclarationNoIt",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Expressions/declaration-no-it",
+      "classification": "Shared"
+    },
+    {
+      "test": "ExpressionTests.ExpressionSetsIt",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Expressions/expression-sets-it",
+      "classification": "Shared"
+    },
+    {
+      "test": "ExpressionTests.ItInVisible",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Expressions/it-in-visible",
+      "classification": "Shared"
+    },
+    {
+      "test": "ExpressionTests.ItPersists",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Expressions/it-persists",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ExpressionTests.ItUsedByOrly",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Expressions/it-used-by-orly",
+      "classification": "Shared"
+    },
+    {
+      "test": "ExpressionTests.ItUsedByWtf",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Expressions/it-used-by-wtf",
+      "classification": "Shared"
+    },
+    {
+      "test": "FormattingTests.CommaSeparator",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Formatting/comma-separator",
+      "classification": "Shared"
+    },
+    {
+      "test": "FormattingTests.Indentation",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Formatting/indentation",
+      "classification": "Shared"
+    },
+    {
+      "test": "FormattingTests.LineContinuation",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Formatting/line-continuation",
+      "classification": "Shared"
+    },
+    {
+      "test": "FormattingTests.MultipleSpaces",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Formatting/multiple-spaces",
+      "classification": "Shared"
+    },
+    {
+      "test": "FormattingTests.NumbarPrintsTwoDecimals",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Formatting/numbar-prints-two-decimals",
+      "classification": "Shared"
+    },
+    {
+      "test": "FormattingTests.NumbarPiTruncatesToTwoDecimals",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Formatting/numbar-pi-truncates-to-two-decimals",
+      "classification": "Shared"
+    },
+    {
+      "test": "FunctionTests.NestedFunctionIsEmittedAndCallable",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Functions/nested-function-is-emitted-and-callable",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "FunctionTests.ReplacedFunctionUsesCurrentRuntimeArity",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Functions/replaced-function-uses-current-runtime-arity",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "FunctionTests.BasicFunction",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Functions/basic-function",
+      "classification": "Shared"
+    },
+    {
+      "test": "FunctionTests.FunctionCallAsExpression",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Functions/function-call-as-expression",
+      "classification": "Shared"
+    },
+    {
+      "test": "FunctionTests.FunctionCallInExpression",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Functions/function-call-in-expression",
+      "classification": "Shared"
+    },
+    {
+      "test": "FunctionTests.FunctionGtfo",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Functions/function-gtfo",
+      "classification": "Shared"
+    },
+    {
+      "test": "FunctionTests.FunctionImplicitReturn",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Functions/function-implicit-return",
+      "classification": "Shared"
+    },
+    {
+      "test": "FunctionTests.FunctionItIndependent",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Functions/function-it-independent",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "FunctionTests.FunctionNoArgs",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Functions/function-no-args",
+      "classification": "Shared"
+    },
+    {
+      "test": "FunctionTests.FunctionParams",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Functions/function-params",
+      "classification": "Shared"
+    },
+    {
+      "test": "FunctionTests.DynamicParameterNamesResolveInCallerBeforeEachArgument",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Functions/dynamic-parameter-names-resolve-in-caller-before-each-argument",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "FunctionTests.FunctionReturn",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Functions/function-return",
+      "classification": "Shared"
+    },
+    {
+      "test": "FunctionTests.FunctionScopeIsolation",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Functions/function-scope-isolation",
+      "classification": "Shared"
+    },
+    {
+      "test": "FunctionTests.MultipleFunctions",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Functions/multiple-functions",
+      "classification": "Shared"
+    },
+    {
+      "test": "FunctionTests.RecursiveFunction",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Functions/recursive-function",
+      "classification": "Shared"
+    },
+    {
+      "test": "GtfoTests.GtfoInLoop",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Gtfo/gtfo-in-loop",
+      "classification": "Shared"
+    },
+    {
+      "test": "GtfoTests.GtfoInSwitch",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Gtfo/gtfo-in-switch",
+      "classification": "Shared"
+    },
+    {
+      "test": "GtfoTests.GtfoNestedLoopSwitch",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Gtfo/gtfo-nested-loop-switch",
+      "classification": "Shared"
+    },
+    {
+      "test": "IoTests.VisibleBasic",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/IO/visible-basic",
+      "classification": "Shared"
+    },
+    {
+      "test": "IoTests.VisibleExpression",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/IO/visible-expression",
+      "classification": "Shared"
+    },
+    {
+      "test": "IoTests.VisibleMultipleArgs",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/IO/visible-multiple-args",
+      "classification": "Shared"
+    },
+    {
+      "test": "IoTests.VisibleNewlineDefault",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/IO/visible-newline-default",
+      "classification": "Shared"
+    },
+    {
+      "test": "IoTests.VisibleNoNewline",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/IO/visible-no-newline",
+      "classification": "Shared"
+    },
+    {
+      "test": "IoTests.GimmehInput",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/IO/gimmeh-input",
+      "classification": "Shared"
+    },
+    {
+      "test": "IoTests.VisibleMultipleArgsWithAn",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/IO/visible-multiple-args-with-an",
+      "classification": "Shared"
+    },
+    {
+      "test": "LoopTests.InfiniteLoopGtfo",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Loops/infinite-loop-gtfo",
+      "classification": "Shared"
+    },
+    {
+      "test": "LoopTests.LoopCounterZeroStart",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Loops/loop-counter-zero-start",
+      "classification": "Shared"
+    },
+    {
+      "test": "LoopTests.LoopConditionCheckedBeforeBody",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Loops/loop-condition-checked-before-body",
+      "classification": "Shared"
+    },
+    {
+      "test": "LoopTests.LoopScopeItStartsNoobAndParentItIsRestored",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Loops/loop-scope-it-starts-noob-and-parent-it-is-restored",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "LoopTests.LoopVariableShadowsParentForGuardBodyAndUpdate",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Loops/loop-variable-shadows-parent-for-guard-body-and-update",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "LoopTests.CustomUnaryOperationUsesReturnedValue",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Loops/custom-unary-operation-uses-returned-value",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "LoopTests.CustomOperationAcceptsSrsScopeAndName",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Loops/custom-operation-accepts-srs-scope-and-name",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "LoopTests.CustomOperationAcceptsObjectQualifiedScopeAndName",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Loops/custom-operation-accepts-object-qualified-scope-and-name",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "LoopTests.GtfoSkipsCustomLoopOperation",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Loops/gtfo-skips-custom-loop-operation",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "LoopTests.LoopVariableIsUndeclaredAfterLoop",
+      "assertion": "CompileError",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Loops/loop-variable-is-undeclared-after-loop",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "LoopTests.UndefinedCustomLoopOperationIsAnError",
+      "assertion": "CompileError",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Loops/undefined-custom-loop-operation-is-an-error",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "LoopTests.CustomLoopOperationMustBeUnary",
+      "assertion": "CompileError",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Loops/custom-loop-operation-must-be-unary",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "LoopTests.LoopGtfoBreak",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Loops/loop-gtfo-break",
+      "classification": "Shared"
+    },
+    {
+      "test": "LoopTests.LoopVariableLocal",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Loops/loop-variable-local",
+      "classification": "Shared"
+    },
+    {
+      "test": "LoopTests.LoopWithExpressions",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Loops/loop-with-expressions",
+      "classification": "Shared"
+    },
+    {
+      "test": "LoopTests.NerfinLoop",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Loops/nerfin-loop",
+      "classification": "Shared"
+    },
+    {
+      "test": "LoopTests.NestedLoops",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Loops/nested-loops",
+      "classification": "Shared"
+    },
+    {
+      "test": "LoopTests.UppinLoop",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Loops/uppin-loop",
+      "classification": "Shared"
+    },
+    {
+      "test": "LoopTests.WileLoop",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Loops/wile-loop",
+      "classification": "Shared"
+    },
+    {
+      "test": "MathTests.BiggrOf",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Math/biggr-of",
+      "classification": "Shared"
+    },
+    {
+      "test": "MathTests.DiffOf",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Math/diff-of",
+      "classification": "Shared"
+    },
+    {
+      "test": "MathTests.MathTypePromotion",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Math/math-type-promotion",
+      "classification": "Shared"
+    },
+    {
+      "test": "MathTests.MathWithAn",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Math/math-with-an",
+      "classification": "Shared"
+    },
+    {
+      "test": "MathTests.ModOf",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Math/mod-of",
+      "classification": "Shared"
+    },
+    {
+      "test": "MathTests.NestedMath",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Math/nested-math",
+      "classification": "Shared"
+    },
+    {
+      "test": "MathTests.ProduktOf",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Math/produkt-of",
+      "classification": "Shared"
+    },
+    {
+      "test": "MathTests.QuoshuntOf",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Math/quoshunt-of",
+      "classification": "Shared"
+    },
+    {
+      "test": "MathTests.SmallrOf",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Math/smallr-of",
+      "classification": "Shared"
+    },
+    {
+      "test": "MathTests.SumOf",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Math/sum-of",
+      "classification": "Shared"
+    },
+    {
+      "test": "MathTests.YarnInMath",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Math/yarn-in-math",
+      "classification": "Shared"
+    },
+    {
+      "test": "MathTests.LargeNumberArithmetic",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Math/large-number-arithmetic",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "MathTests.NegativeNumbers",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Math/negative-numbers",
+      "classification": "Shared"
+    },
+    {
+      "test": "ObjectTests.GlobalAndObjectFunctionsWithSameNameHaveIndependentSignatures",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/global-and-object-functions-with-same-name-have-independent-signatures",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.AlternateObjectDeclarationCannotReplaceLocalBinding",
+      "assertion": "CompileError",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/alternate-object-declaration-cannot-replace-local-binding",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.NestedFunctionCannotReplaceParameter",
+      "assertion": "CompileError",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/nested-function-cannot-replace-parameter",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.ArgumentSideEffectsCannotRetargetFunctionOrReceiver",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/argument-side-effects-cannot-retarget-function-or-receiver",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.AssignmentEvaluatesRhsBeforeDynamicTarget",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/assignment-evaluates-rhs-before-dynamic-target",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.LaterDynamicSlotCannotRetargetCapturedObject",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/later-dynamic-slot-cannot-retarget-captured-object",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.PrototypeLookupAndMethodReceiverArePolymorphic",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/prototype-lookup-and-method-receiver-are-polymorphic",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.SrsResolvesDeclarationsSlotsFunctionsAndParameters",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/srs-resolves-declarations-slots-functions-and-parameters",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.SrsFunctionCallScopesSupportDynamicObjectPaths",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/srs-function-call-scopes-support-dynamic-object-paths",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.MixinsAreCopiedInReverseArgumentOrder",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/mixins-are-copied-in-reverse-argument-order",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.FunctionBindingsAreFirstClassAndReplaceable",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/function-bindings-are-first-class-and-replaceable",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.GimmehAcceptsDynamicAndSlotTargets",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/gimmeh-accepts-dynamic-and-slot-targets",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.IsNowAAcceptsDynamicAndSlotTargets",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/is-now-a-accepts-dynamic-and-slot-targets",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.ArticlelessDynamicDeclarationIsAccepted",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/articleless-dynamic-declaration-is-accepted",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.DynamicDeclarationCannotReplaceLocalVariable",
+      "assertion": "RuntimeError",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/dynamic-declaration-cannot-replace-local-variable",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.DynamicDeclarationCannotReplaceLocalFunction",
+      "assertion": "RuntimeError",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/dynamic-declaration-cannot-replace-local-function",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.DynamicFunctionCannotReplaceLocalVariable",
+      "assertion": "RuntimeError",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/dynamic-function-cannot-replace-local-variable",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.DuplicateDirectBukkitSlotDeclarationIsRejected",
+      "assertion": "RuntimeError",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/duplicate-direct-bukkit-slot-declaration-is-rejected",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.DuplicateDynamicBukkitSlotDeclarationIsRejected",
+      "assertion": "RuntimeError",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/duplicate-dynamic-bukkit-slot-declaration-is-rejected",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.BukkitSlotDeclarationMayOverrideInheritedSlot",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/bukkit-slot-declaration-may-override-inherited-slot",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.InheritedSlotOverrideEvaluatesInitializer",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/inherited-slot-override-evaluates-initializer",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.ScopedDeclarationCollisionPrecedesInitializer",
+      "assertion": "RuntimeError",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/scoped-declaration-collision-precedes-initializer",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.SrsDeclarationCollisionPrecedesInitializer",
+      "assertion": "RuntimeError",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/srs-declaration-collision-precedes-initializer",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.AlternateObjectCollisionPrecedesPrototypeAndBody",
+      "assertion": "RuntimeError",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/alternate-object-collision-precedes-prototype-and-body",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.AssignmentToInheritedSlotUpdatesOwnerWithoutCreatingShadow",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/assignment-to-inherited-slot-updates-owner-without-creating-shadow",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.MethodUsesCallerLexicalScopeAndReceiverOnlyThroughMe",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/method-uses-caller-lexical-scope-and-receiver-only-through-me",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.MethodCanReadCallingBlockLexicalBindings",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/method-can-read-calling-block-lexical-bindings",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.ReceiverlessCallPreservesCallerMe",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/receiverless-call-preserves-caller-me",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.NestedDefaultParentBukkitPreservesMethodCaller",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/nested-default-parent-bukkit-preserves-method-caller",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "RuntimeScopeTests.IfBodyUsesChildScopeAndRestoresParentIt",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Runtime-Scope/if-body-uses-child-scope-and-restores-parent-it",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "RuntimeScopeTests.GtfoFromSwitchBodyRestoresParentScope",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Runtime-Scope/gtfo-from-switch-body-restores-parent-scope",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "RuntimeScopeTests.GtfoFromLoopBodyRestoresParentScope",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Runtime-Scope/gtfo-from-loop-body-restores-parent-scope",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "RuntimeScopeTests.BlockDeclarationDoesNotLeak",
+      "assertion": "RuntimeError",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Runtime-Scope/block-declaration-does-not-leak",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "RuntimeScopeTests.DirectItTargetSupportsAssignmentAndInPlaceCast",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Runtime-Scope/direct-it-target-supports-assignment-and-in-place-cast",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "RuntimeScopeTests.DynamicItTargetSupportsReadAssignmentAndInPlaceCast",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Runtime-Scope/dynamic-it-target-supports-read-assignment-and-in-place-cast",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "StringTests.EmptyString",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Strings/empty-string",
+      "classification": "Shared"
+    },
+    {
+      "test": "StringTests.EscapeSequences",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Strings/escape-sequences",
+      "classification": "Shared"
+    },
+    {
+      "test": "StringTests.Interpolation",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Strings/interpolation",
+      "classification": "Shared"
+    },
+    {
+      "test": "StringTests.InterpolationRejectsTroof",
+      "assertion": "RuntimeError",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Strings/interpolation-rejects-troof",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "StringTests.InterpolationResolvesSrsCreatedBindingAtRuntime",
+      "assertion": "Output",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Strings/interpolation-resolves-srs-created-binding-at-runtime",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "StringTests.Smoosh",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Strings/smoosh",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "StringTests.SmooshNested",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Strings/smoosh-nested",
+      "classification": "Shared"
+    },
+    {
+      "test": "StringTests.UnicodeHexEscapeAscii",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Strings/unicode-hex-escape-ascii",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "StringTests.UnicodeHexEscapeNonAscii",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Strings/unicode-hex-escape-non-ascii",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "StringTests.SmooshConcatenationInAssignment",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Strings/smoosh-concatenation-in-assignment",
+      "classification": "Shared"
+    },
+    {
+      "test": "SwitchTests.BasicSwitch",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Switch/basic-switch",
+      "classification": "Shared"
+    },
+    {
+      "test": "SwitchTests.SwitchDefault",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Switch/switch-default",
+      "classification": "Shared"
+    },
+    {
+      "test": "SwitchTests.SwitchFallthrough",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Switch/switch-fallthrough",
+      "classification": "Shared"
+    },
+    {
+      "test": "SwitchTests.SwitchGtfoStopsFallthrough",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Switch/switch-gtfo-stops-fallthrough",
+      "classification": "Shared"
+    },
+    {
+      "test": "SwitchTests.SwitchMultipleFallthrough",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Switch/switch-multiple-fallthrough",
+      "classification": "Shared"
+    },
+    {
+      "test": "SwitchTests.SwitchNoMatch",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Switch/switch-no-match",
+      "classification": "Shared"
+    },
+    {
+      "test": "SwitchTests.SwitchNumbr",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Switch/switch-numbr",
+      "classification": "Shared"
+    },
+    {
+      "test": "SwitchTests.SwitchString",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Switch/switch-string",
+      "classification": "Shared"
+    },
+    {
+      "test": "TypeTests.Noob",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Types/noob",
+      "classification": "Shared"
+    },
+    {
+      "test": "TypeTests.Numbar",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Types/numbar",
+      "classification": "Shared"
+    },
+    {
+      "test": "TypeTests.Numbr",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Types/numbr",
+      "classification": "Shared"
+    },
+    {
+      "test": "TypeTests.Troof",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Types/troof",
+      "classification": "Shared"
+    },
+    {
+      "test": "TypeTests.Yarn",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Types/yarn",
+      "classification": "Shared"
+    },
+    {
+      "test": "VariableTests.Assignment",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Variables/assignment",
+      "classification": "Shared"
+    },
+    {
+      "test": "VariableTests.CaseSensitivity",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Variables/case-sensitivity",
+      "classification": "Shared"
+    },
+    {
+      "test": "VariableTests.Declaration",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Variables/declaration",
+      "classification": "Shared"
+    },
+    {
+      "test": "VariableTests.ItNotSetByAssignment",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Variables/it-not-set-by-assignment",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "VariableTests.ItVariable",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Variables/it-variable",
+      "classification": "Shared"
+    },
+    {
+      "test": "VariableTests.NoobVariable",
+      "assertion": "Output",
+      "sourceVersion": "1.2",
+      "fixture": "Shared/1.2/Variables/noob-variable",
+      "classification": "Shared"
+    },
+    {
+      "test": "VariableTests.NoobVariableCannotBePrintedImplicitly",
+      "assertion": "RuntimeError",
+      "sourceVersion": "1.2",
+      "fixture": "KnownLciDivergence/1.2/Variables/noob-variable-cannot-be-printed-implicitly",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.GtfoLeavingObjectBodyRestoresOuterScope[loop]",
+      "assertion": "RuntimeError",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/gtfo-leaving-object-loop",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "ObjectTests.GtfoLeavingObjectBodyRestoresOuterScope[switch]",
+      "assertion": "RuntimeError",
+      "sourceVersion": "1.3",
+      "fixture": "KnownLciDivergence/1.3/Objects/gtfo-leaving-object-switch",
+      "classification": "KnownLciDivergence"
+    },
+    {
+      "test": "FutureFeatureTests.ImportsSupportOptionalQuestionSrsUnknownNamesAndBothCallSpellings",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/FutureFeature/imports-support-optional-question-srs-unknown-names-and-both-call-spellings",
+      "classification": "DotNet"
+    },
+    {
+      "test": "FutureFeatureTests.StdioSupportsEverySlotAndFailedOpen",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/FutureFeature/stdio-supports-every-slot-and-failed-open",
+      "classification": "DotNet"
+    },
+    {
+      "test": "FutureFeatureTests.StdioAppendAndErrorsMatchCStreamSemantics",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/FutureFeature/stdio-append-and-errors-match-c-stream-semantics",
+      "classification": "DotNet"
+    },
+    {
+      "test": "FutureFeatureTests.StringAtPreservesBytesThroughAllYarnOperations",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/FutureFeature/string-at-preserves-bytes-through-all-yarn-operations",
+      "classification": "DotNet"
+    },
+    {
+      "test": "FutureFeatureTests.VisibleAndInvisibleWriteSelectedRawBytesToProcessStreams",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/FutureFeature/visible-and-invisible-write-selected-raw-bytes-to-process-streams",
+      "classification": "DotNet"
+    },
+    {
+      "test": "FutureFeatureTests.StdlibAndStringExposePinnedEdgeBehavior",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/FutureFeature/stdlib-and-string-expose-pinned-edge-behavior",
+      "classification": "DotNet"
+    },
+    {
+      "test": "FutureFeatureTests.InvisibleMatchesVisibleArityAndNewlineRulesOnStandardError",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/FutureFeature/invisible-matches-visible-arity-and-newline-rules-on-standard-error",
+      "classification": "DotNet"
+    },
+    {
+      "test": "FutureFeatureTests.SystemCommandReturnsValidTextOutput",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/FutureFeature/system-command-returns-valid-text-output",
+      "classification": "DotNet"
+    },
+    {
+      "test": "FutureFeatureTests.SystemCommandReturnsEmptyStandardOutput",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/FutureFeature/system-command-returns-empty-standard-output",
+      "classification": "DotNet"
+    },
+    {
+      "test": "FutureFeatureTests.SystemCommandPreservesInvalidUtf8ThroughStringLenAndPrinting",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/FutureFeature/system-command-preserves-invalid-utf8-through-string-len-and-printing",
+      "classification": "DotNet"
+    },
+    {
+      "test": "FutureFeatureTests.SystemCommandForwardsInvalidStandardErrorBytesUnchanged",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/FutureFeature/system-command-forwards-invalid-standard-error-bytes-unchanged",
+      "classification": "DotNet"
+    },
+    {
+      "test": "FutureFeatureTests.HasAnAndRNoobWorkForDirectSrsAndObjectSlots",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/FutureFeature/has-an-and-r-noob-work-for-direct-srs-and-object-slots",
+      "classification": "DotNet"
+    },
+    {
+      "test": "LciAdditionalFixtureTests.UnregisteredStdlibFixtureProducesThreeBoundedValues",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/LciHarness/reseeded-random",
+      "classification": "DotNet"
+    },
+    {
+      "test": "SdkSampleTests.SdkCompilesMultipleLolSources",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/Sdk/multi-file-first",
+      "classification": "DotNet"
+    },
+    {
+      "test": "SdkSampleTests.SdkCompilesMultipleLolSources.Second",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/Sdk/multi-file-second",
+      "classification": "DotNet"
+    },
+    {
+      "test": "SdkSampleTests.SdkRebuildsWhenOnlyANonFirstLolSourceChanges.First",
+      "assertion": "Specialized",
+      "sourceVersion": "1.2",
+      "fixture": "DotNet/1.2/Sdk/incremental-first",
+      "classification": "DotNet"
+    },
+    {
+      "test": "SdkSampleTests.SdkRebuildsWhenOnlyANonFirstLolSourceChanges.Second",
+      "assertion": "Specialized",
+      "sourceVersion": "1.2",
+      "fixture": "DotNet/1.2/Sdk/incremental-second",
+      "classification": "DotNet"
+    },
+    {
+      "test": "SdkSampleTests.SdkResolvesRedirectedProjectReference",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/Sdk/redirected-consumer",
+      "classification": "DotNet"
+    },
+    {
+      "test": "SdkSampleTests.CreateLibraryProject",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/Sdk/library-welcome",
+      "classification": "DotNet"
+    },
+    {
+      "test": "SdkSampleTests.CreateLibraryFunction",
+      "assertion": "Specialized",
+      "sourceVersion": "1.4",
+      "fixture": "DotNet/1.4/Sdk/library-function-template",
+      "classification": "DotNet"
+    }
+  ],
+  "inlineExceptions": []
+}

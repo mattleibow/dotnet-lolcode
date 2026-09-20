@@ -1,91 +1,52 @@
-# lci compatibility corpus
+# Compatibility corpus
 
-`tests/Compatibility` is the repository-owned behavioral corpus. Every shared
-case has one directory, an lci-compatible `CMakeLists.txt`, and the normal
-`ADD_LOL_TEST` metadata:
+`tests/Compatibility` is the canonical source for complete repository-owned
+LOLCODE programs. Its semantic layout keeps engine classification structural:
 
-```cmake
-INCLUDE(AddLolTest)
-ADD_LOL_TEST(example OUTPUT test.out INPUT test.in CWD)
-```
+* `Shared/<version>/<category>/<case>` runs on dotnet-lolcode and pinned lci.
+  A registered case has `test.lol`, `CMakeLists.txt`, and exact byte fixtures
+  (`test.out`, optionally `test.in`) using lci's `ADD_LOL_TEST` contract.
+* `KnownLciDivergence/<version>/<category>/<case>` runs only on dotnet-lolcode.
+  It is a language case with a documented, evidenced pinned-lci parser,
+  semantic, host-width, or unsafe-native divergence. It is not a .NET feature.
+  The classification catalog is `tools/compatibility-classifications.json`.
+* `DotNet/<version>/<category>/<case>` contains .NET SDK, managed-library,
+  provider, byte-stream, filesystem, project, and other host integration
+  sources. Focused C# tests load these fixtures for their non-language
+  assertions; they do not embed a second program source.
 
-The supported lci arguments are exactly `LOLCODE`, `OUTPUT`, `INPUT`, `ERROR`,
-and `CWD`. `test.lol` is the default source; `test.out`, `test.in`, and support
-files are case-local. `ERROR` checks for a nonzero process result. An optional
-`test.err` is **not** interpreted by lci: dotnet-lolcode treats its contents as
-a stable diagnostic substring, rather than an error-exit-number contract.
+## Fixture contract
 
-## Engines and CI
+`test.lol` is the canonical source. `sources.txt` lists ordered units for a
+multi-file fixture; the flattener produces its portable `test.lol`. `test.out`
+and `test.in` retain exact bytes. `CWD` uses ordinary fixture support files.
 
-The shared `LciRegistrationParser` discovers both the pinned upstream corpus
-and the shared portion of this tree. `CompatibilityCorpusTests` runs every
-registered shared case against dotnet-lolcode and, when `LCI_PATH` is set,
-pinned lci. `DotNetOnlyCompatibilityCorpusTests` independently discovers and
-runs only `DotNetOnly` `ADD_LOL_TEST` registrations with dotnet-lolcode.
-Locally the lci theory is visibly skipped if the executable is unavailable.
-CI sets both `LCI_PATH` and `REQUIRE_LCI=1`, so absence of the native
-executable fails.
+`ERROR` in `CMakeLists.txt` preserves lci's nonzero-exit contract. A dotnet
+fixture can additionally use:
 
-`PinnedLciConformanceTests` runs all 325 upstream registrations with pinned
-lci; the existing `LciConformanceTests` continues to run all 325 upstream
-registrations with dotnet-lolcode. The Ubuntu `compatibility` job builds lci
-from the pristine submodule, publishes its TRX results, and runs both engines.
-Network-bound fixtures remain outside the shared corpus unless explicitly
-bounded and gated.
+* `test.err` — stable runtime-error substring; and
+* `test.diag` — stable compile diagnostic ID, optionally followed by a message
+  substring or location assertion in future only when a test needs it.
 
-## Compatibility boundary
+The dotnet runner checks both files when present. lci sees only its existing
+`ERROR` contract. Runtime-error fixtures may also have `test.out`, whose exact
+bytes are checked by dotnet-lolcode without changing lci behavior.
 
-* STRING, STDLIB, STDIO, and SOCKS APIs are portable only where the lci
-  contract defines them. Managed assemblies, LOLCODE assembly loading, CLR
-  exports, and project files are dotnet-only.
-* `tests/Compatibility/DotNetOnly` is the explicit directory-root
-  classification for nonportable repository fixtures. Its lci-style
-  registrations run under the dotnet-only theory, never the shared lci theory.
-  `DotNetOnly/README.md` and `tools/compatibility-classifications.json`
-  document the reason for every moved fixture. It also keeps managed-safety,
-  BLOB ownership/use-after-close, interop, trimming/NativeAOT, and .NET-specific
-  flattening probes out of lci.
-* STDLIB random values are not cross-engine values. Portable tests assert
-  bounds and reseed behavior, never a particular random sequence.
-* Error exit numbers and unsafe native BLOB behavior are not equivalence
-  contracts.
-* A raw 1.2 source concatenation can leave a caller before its callee.
-  Project flattening below produces a standard single-file program and is the
-  compatibility contract; this does not claim a raw-concatenation equivalence.
+## Discovery and validation
 
-## Multi-file fixture flattening
+`CompatibilityCorpusTests` discovers only `Shared`; its paired theories execute
+the same CMake registrations on dotnet-lolcode and pinned lci. The separate
+`KnownLciDivergenceCompatibilityCorpusTests` runs the documented divergences
+on dotnet-lolcode. Specialized fixture-backed C# tests cover .NET host
+assertions that cannot be expressed by lci CMake metadata.
 
-Each multi-file case stores canonical ordered units in `sources.txt`. Generate
-its standard `test.lol` with:
+Run the migration guard after test changes:
 
 ```sh
-dotnet run --project tools/Lolcode.Compatibility.Flatten/Lolcode.Compatibility.Flatten.csproj
+python3 tools/validate-e2e-fixtures.py
 dotnet run --project tools/Lolcode.Compatibility.Flatten/Lolcode.Compatibility.Flatten.csproj -- --check
 ```
 
-The flattener validates a common HAI version and emits one outer
-`HAI`/`KTHXBYE`. It hoists only direct program-level `HOW IZ I <direct-name>`
-declarations, in source/statement order. It preserves every other statement's
-order and does not hoist SRS, nested, or object functions. Initial launcher
-trivia (`#!` and `#:`) is removed only while producing the portable fixture.
-`DotNetOnly/ProjectFlatten` contains non-hoisting and mismatch-rejection
-probes; they are deliberately not registered as lci tests.
-
-## Extracted EndToEnd fixtures
-
-`tools/extract-e2e-compatibility.py` inventories the selected complete inline
-HAI/KTHXBYE EndToEnd programs and creates meaningful category/method fixture
-directories. Run it after editing those source tests:
-
-```sh
-python3 tools/extract-e2e-compatibility.py
-python3 tools/extract-e2e-compatibility.py --check
-```
-
-The script reads `tools/compatibility-classifications.json` before writing a
-fixture. Classified cases are generated under `DotNetOnly/Extracted`, and a
-rerun removes an obsolete shared generated copy rather than recreating it.
-The script's explicit retained sets document tests that require newer
-SRS/object/custom-loop semantics or stronger C# assertions. Lexer/parser
-trees, diagnostics/spans, PDB/debugger/emission APIs, MSBuild/package/publish
-tests, CLR interop, managed BLOB safety, trimming, and NativeAOT remain C#.
+The guard validates `tests/Compatibility/inventory.json` (historic C# identity
+→ canonical fixture/classification) and fails when C# EndToEnd code reintroduces
+a complete `HAI ... KTHXBYE` program.

@@ -1,64 +1,64 @@
 {
-  "dotnetOnly": {
-    "Extracted/boolean/all-of": {
-      "category": "adopted-spec-semantic-difference",
-      "reason": "Pinned lci uses different primitive truthiness for ALL OF."
+  "knownLciDivergences": {
+    "KnownLciDivergence/1.2/Boolean/all-of": {
+      "category": "spec-semantics",
+      "evidence": "LOLCODE 1.2 truthiness; pinned lci uses different primitive truthiness for ALL OF."
     },
-    "Extracted/boolean/any-of": {
+    "KnownLciDivergence/1.2/Boolean/any-of": {
       "category": "pinned-lci-parser-gap",
-      "reason": "Pinned lci rejects the bare NOOB expression used by the fixture."
+      "evidence": "Pinned lci rejects the bare NOOB expression accepted by the LOLCODE 1.2 fixture."
     },
-    "Extracted/boolean/either-of": {
-      "category": "adopted-spec-semantic-difference",
-      "reason": "Pinned lci uses different primitive truthiness for EITHER OF."
+    "KnownLciDivergence/1.2/Boolean/either-of": {
+      "category": "spec-semantics",
+      "evidence": "Pinned lci uses different primitive truthiness for EITHER OF."
     },
-    "Extracted/boolean/not": {
-      "category": "adopted-spec-semantic-difference",
-      "reason": "Pinned lci uses different primitive and string truthiness for NOT."
+    "KnownLciDivergence/1.2/Boolean/not": {
+      "category": "spec-semantics",
+      "evidence": "Pinned lci uses different primitive and YARN truthiness for NOT."
     },
-    "Extracted/casting/casting-rules-matrix": {
+    "KnownLciDivergence/1.2/Casting/casting-rules-matrix": {
       "category": "pinned-lci-parser-gap",
-      "reason": "Pinned lci rejects the bare NOOB expression in the control-flow portion."
+      "evidence": "Pinned lci rejects the fixture's bare NOOB control-flow expression."
     },
-    "Extracted/casting/maek-troof": {
-      "category": "adopted-spec-semantic-difference",
-      "reason": "Pinned lci has different primitive and string-to-TROOF behavior."
+    "KnownLciDivergence/1.2/Casting/maek-troof": {
+      "category": "spec-semantics",
+      "evidence": "Pinned lci differs for primitive and YARN-to-TROOF conversion."
     },
-    "Extracted/casting/noob-explicit-cast": {
+    "KnownLciDivergence/1.2/Casting/noob-explicit-cast": {
       "category": "pinned-lci-parser-gap",
-      "reason": "Pinned lci rejects the NOOB cast form accepted by dotnet-lolcode."
+      "evidence": "Pinned lci rejects the accepted NOOB cast form."
     },
-    "Extracted/edge-case/it-across-control-flow": {
+    "KnownLciDivergence/1.2/EdgeCases/it-across-control-flow": {
       "category": "unsafe-native-behavior",
-      "reason": "Pinned lci can bus-error and otherwise differs for IT across control flow."
+      "evidence": "Pinned lci can bus-error for IT across control flow, so this case is never run in its shared job."
     },
-    "Extracted/expression/assignment-no-it": {
-      "category": "adopted-spec-semantic-difference",
-      "reason": "Pinned lci has different IT assignment persistence behavior."
+    "KnownLciDivergence/1.2/Expressions/assignment-no-it": {
+      "category": "spec-semantics",
+      "evidence": "Pinned lci differs in assignment's IT persistence behavior."
     },
-    "Extracted/expression/chained-expressions": {
-      "category": "adopted-spec-semantic-difference",
-      "reason": "Pinned lci produces different chained bare-expression IT results."
+    "KnownLciDivergence/1.2/Expressions/chained-expressions": {
+      "category": "spec-semantics",
+      "evidence": "Pinned lci produces different chained bare-expression IT results."
     },
-    "Extracted/expression/it-persists": {
-      "category": "adopted-spec-semantic-difference",
-      "reason": "Pinned lci has different IT persistence behavior."
+    "KnownLciDivergence/1.2/Expressions/it-persists": {
+      "category": "spec-semantics",
+      "evidence": "Pinned lci differs in IT persistence behavior."
     },
-    "Extracted/math/large-number-arithmetic": {
-      "category": "host-runtime-difference",
-      "reason": "Pinned lci uses a different integer width and overflow result."
+    "KnownLciDivergence/1.2/Math/large-number-arithmetic": {
+      "category": "host-width",
+      "evidence": "Pinned lci uses a different integer width and overflow result."
     },
-    "Extracted/string/smoosh": {
+    "KnownLciDivergence/1.2/Strings/smoosh": {
       "category": "pinned-lci-parser-gap",
-      "reason": "Pinned lci rejects the optional-at-end-of-line SMOOSH MKAY form."
+      "evidence": "Pinned lci rejects the optional end-of-line SMOOSH MKAY form."
     },
-    "Extracted/variables/it-not-set-by-assignment": {
-      "category": "adopted-spec-semantic-difference",
-      "reason": "Pinned lci has different IT assignment persistence behavior."
+    "KnownLciDivergence/1.2/Variables/it-not-set-by-assignment": {
+      "category": "spec-semantics",
+      "evidence": "Pinned lci differs in assignment's IT persistence behavior."
     },
-    "Language/1.2/Boolean/truthiness": {
-      "category": "adopted-spec-semantic-difference",
-      "reason": "Pinned lci has different primitive and string truthiness behavior."
+    "KnownLciDivergence/1.2/Boolean/truthiness": {
+      "category": "spec-semantics",
+      "evidence": "Pinned lci has different primitive and YARN truthiness behavior."
     }
   }
 }
