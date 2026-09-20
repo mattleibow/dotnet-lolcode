@@ -63,7 +63,7 @@ public class TerminalUiTests
         object message = UiExports.MESSAGE("READY", 16);
         string screen = Yarn(UiExports.TOTEXT(UiExports.VSTACK(banner, message)));
 
-        screen.Split(Environment.NewLine).Should().HaveCount(7);
+        screen.Split('\n').Should().HaveCount(7);
         screen.Should().Contain("╔");
         screen.Should().Contain("KITTEH");
         screen.Should().Contain("COMMS");
