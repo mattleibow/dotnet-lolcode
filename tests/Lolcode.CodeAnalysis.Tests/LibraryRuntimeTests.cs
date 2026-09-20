@@ -11,6 +11,30 @@ namespace Lolcode.CodeAnalysis.Tests;
 public class LibraryRuntimeTests
 {
     [Fact]
+    public void DirectStaticImport_DoesNotCreateDuplicateModule()
+    {
+        var scope = CreateScope();
+        int factoryCalls = 0;
+        try
+        {
+            LolObject Factory(LolScope importingScope)
+            {
+                factoryCalls++;
+                return LolRuntime.CreateLibraryObject(importingScope);
+            }
+
+            LolRuntime.ImportStaticLibrary(scope, "TEST", Factory);
+            LolRuntime.ImportStaticLibrary(scope, "TEST", Factory);
+
+            factoryCalls.Should().Be(1);
+        }
+        finally
+        {
+            LolRuntime.DisposeScope(scope);
+        }
+    }
+
+    [Fact]
     public void StaticRegistrations_UseDirectFactoriesAndRetainPerImportState()
     {
         var first = CreateScope();

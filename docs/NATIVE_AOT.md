@@ -39,9 +39,18 @@ providers expose these registration facades: STRING, STDLIB, STDIO, and SOCKS.
 The compiler still emits managed IL and the SDK owns apphost, runtimeconfig,
 deps, bundle, and publish artifacts.
 
-An undeclared `CAN HAS` name fails at runtime with an explicit static-contract
-error instead of probing a sidecar DLL. Old or custom provider descriptors
-without a public static factory fail the build with `LOL3003`.
+Generated LOLCODE project references are discovered from their
+`LolcodeLibraryAttribute` marker and public `__CreateLolcodeLibrary(LolScope)`
+factory. Their import name is the referenced assembly name, matching the
+existing adjacent-library convention. Each statically compiled library emits
+direct calls for its own imports, so transitive framework dependencies remain
+self-contained.
+
+An undeclared literal `CAN HAS` name fails compilation with `LOL3001` instead
+of probing a sidecar DLL. Runtime-selected import names currently fail with
+`LOL3007` because no finite candidate list has been declared. Old or custom
+provider descriptors without a public static factory fail the build with
+`LOL3003`.
 
 ## Provider authoring
 
@@ -69,9 +78,9 @@ The first five descriptor fields remain compatible with dynamic builds.
 - Dynamic adjacent plugins, late-installed providers, and `LolcodeScript.Run`
   are CoreCLR-only. They use reflection/filesystem loading and are explicitly
   excluded from trimmed and NativeAOT applications.
-- Generated LOLCODE library modules and arbitrary managed exports still require
-  their own static factory descriptor; absent metadata is diagnosed rather
-  than dynamically loaded.
+- Generated LOLCODE library modules are supported through resolved project or
+  assembly references. Arbitrary managed exports without a public static
+  provider factory remain dynamic-only.
 - `LOL3005` means a deployment property was combined with dynamic resolution.
   Set `LolcodeLibraryResolution=Static` (or leave it `Auto`).
 - `LOL3003` means the resolved provider is an old/dynamic-only package. Update
@@ -84,3 +93,9 @@ The direct path preserves normal LOLCODE value coercion, dynamic values inside
 the declared closure, scoped BLOB ownership, raw-byte output, and flushing.
 Ordinary framework-dependent applications keep the existing dynamic loader by
 default.
+
+The repository validates the STRING provider and the multi-project
+`CanHasGalaxy.Cli` application as NativeAOT executables. The Galaxy validation
+executes status, save, load, and quit commands from a relocated working
+directory and verifies that the publish directory contains no managed runtime
+sidecars.

@@ -6,7 +6,6 @@
     <AssemblyName>NativeAotFixture</AssemblyName>
     <LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>
     <LolcodeUseSourceLibraries>true</LolcodeUseSourceLibraries>
-    <LolcodeLibraryResolution>Dynamic</LolcodeLibraryResolution>
     <_LolcodeBuildTasksDir>$(MSBuildThisFileDirectory)..\..\src\Lolcode.Build\bin\$(Configuration)\net10.0\</_LolcodeBuildTasksDir>
   </PropertyGroup>
   <ItemGroup>
@@ -14,6 +13,8 @@
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all"
                       GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;SelfContained;RuntimeIdentifier;IsAotCompatible;IsTrimmable" />
+    <ProjectReference Include="../../src/Lolcode.Runtime.String/Lolcode.Runtime.String.csproj" />
+    <LolcodeLibrary Include="STRING|Lolcode.Runtime.String|Lolcode.Runtime.String.StringLibrary|true|1|Lolcode.Runtime.String.StringLibraryFactory" />
   </ItemGroup>
   <Import Project="../../src/Lolcode.NET.Sdk/Sdk/Sdk.targets" />
 </Project>

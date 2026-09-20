@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
 
 jobs:
   version:
@@ -155,6 +154,85 @@ jobs:
         with:
           name: compatibility-results
           path: '**/compatibility-results.trx'
+
+  nativeaot-publish:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            extension: ''
+          - os: macos-latest
+            rid: osx-arm64
+            extension: ''
+          - os: windows-latest
+            rid: win-x64
+            extension: '.exe'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Verify managed and unsupported modes
+        shell: bash
+        run: |
+          OUTPUT=$(dotnet run --project tests/NativeAotFixture/NativeAotFixture.lolproj -c Release)
+          [ "$OUTPUT" = "18" ] || { echo "Unexpected managed output: $OUTPUT"; exit 1; }
+
+          if dotnet build tests/NativeAotFixture/NativeAotFixture.lolproj \
+              -c Release -r "${{ matrix.rid }}" \
+              -p:PublishAot=true -p:LolcodeLibraryResolution=Dynamic \
+              > unsupported.log 2>&1; then
+            echo "Dynamic NativeAOT build unexpectedly succeeded"
+            cat unsupported.log
+            exit 1
+          fi
+          grep -q "LOL3005" unsupported.log
+
+      - name: Publish static provider fixture
+        shell: bash
+        run: |
+          dotnet publish tests/NativeAotFixture/NativeAotFixture.lolproj \
+            -c Release -r "${{ matrix.rid }}" \
+            -p:PublishAot=true -p:LolcodeRequireSingleBinary=true \
+            --self-contained true
+
+          PUBLISH_DIR="tests/NativeAotFixture/bin/Release/net10.0/${{ matrix.rid }}/publish"
+          OUTPUT=$("$PUBLISH_DIR/NativeAotFixture${{ matrix.extension }}")
+          [ "$OUTPUT" = "18" ] || { echo "Unexpected native output: $OUTPUT"; exit 1; }
+          ! find "$PUBLISH_DIR" -maxdepth 1 -type f \
+            \( -name '*.dll' -o -name '*.deps.json' -o -name '*.runtimeconfig.json' \) \
+            | grep -q .
+
+      - name: Publish and run native Galaxy
+        shell: bash
+        run: |
+          dotnet publish \
+            samples/project-based/can-has-galaxy/CanHasGalaxy.Cli/CanHasGalaxy.Cli.lolproj \
+            -c Release -r "${{ matrix.rid }}" \
+            -p:PublishAot=true -p:LolcodeRequireSingleBinary=true \
+            --self-contained true
+
+          PUBLISH_DIR="samples/project-based/can-has-galaxy/CanHasGalaxy.Cli/bin/Release/net10.0/${{ matrix.rid }}/publish"
+          RUN_DIR=$(mktemp -d)
+          pushd "$RUN_DIR"
+          printf 'STATUS\nSAVE\nLOAD\nQUIT\n' \
+            | "$GITHUB_WORKSPACE/$PUBLISH_DIR/CanHasGalaxy.Cli${{ matrix.extension }}" \
+            > galaxy.out
+          grep -q "SAVE OK: can-has-galaxy.save" galaxy.out
+          grep -q "LOAD OK." galaxy.out
+          grep -q "KTHXBAI, CAPTAIN." galaxy.out
+          test -f can-has-galaxy.save
+          popd
+          ! find "$PUBLISH_DIR" -maxdepth 1 -type f \
+            \( -name '*.dll' -o -name '*.deps.json' -o -name '*.runtimeconfig.json' \) \
+            | grep -q .
 
   pack:
     runs-on: ubuntu-latest

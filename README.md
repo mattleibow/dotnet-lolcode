@@ -292,6 +292,8 @@ dotnet test --filter "StringTests"
 | [Design Document](docs/DESIGN.md) | Architecture, technical decisions, component details |
 | [Language Specification](docs/LANGUAGE_SPEC.md) | Normative LOLCODE 1.2 stable profile |
 | [Implementation Profile](docs/LANGUAGE_IMPLEMENTATION.md) | .NET mappings, support status, and reference decisions |
+| [NativeAOT Publishing](docs/NATIVE_AOT.md) | Native, trimmed, and single-file commands, contracts, and limitations |
+| [NativeAOT Implementation Plan](docs/NATIVE_AOT_PLAN.md) | Architecture decisions, phased work, risks, and acceptance criteria |
 | [1.3 Draft Changes](docs/LANGUAGE_SPEC_1.3_CHANGES.md) | Archived 1.2-to-1.3 proposal delta |
 | [1.4 Reference Changes](docs/LANGUAGE_SPEC_1.4_CHANGES.md) | Pinned `lci/future` implementation delta |
 | [Roadmap](docs/ROADMAP.md) | Build phases and progress tracking |
