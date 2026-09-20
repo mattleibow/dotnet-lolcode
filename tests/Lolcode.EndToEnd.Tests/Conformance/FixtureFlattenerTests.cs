@@ -41,7 +41,7 @@ public sealed class FixtureFlattenerTests
         string directory = Path.Combine(
             AppContext.BaseDirectory,
             "Compatibility",
-            "DotNetOnly",
+            "DotNet",
             "ProjectFlatten",
             "dynamic-srs-not-hoisted");
         string source = FixtureFlattener.Flatten(FixtureFlattener.ReadManifest(directory));
@@ -57,7 +57,7 @@ public sealed class FixtureFlattenerTests
         string directory = Path.Combine(
             AppContext.BaseDirectory,
             "Compatibility",
-            "DotNetOnly",
+            "DotNet",
             "ProjectFlatten",
             "lowercase-receiver-not-hoisted");
         string source = FixtureFlattener.Flatten(FixtureFlattener.ReadManifest(directory));
@@ -76,7 +76,7 @@ public sealed class FixtureFlattenerTests
         string directory = Path.Combine(
             AppContext.BaseDirectory,
             "Compatibility",
-            "DotNetOnly",
+            "DotNet",
             "ProjectFlatten",
             "version-mismatch-rejected");
         string[] paths = File.ReadAllLines(Path.Combine(directory, "mismatch.sources.txt"))

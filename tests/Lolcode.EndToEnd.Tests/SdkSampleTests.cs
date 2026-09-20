@@ -456,18 +456,10 @@ public class SdkSampleTests
                 """);
             File.WriteAllText(
                 Path.Combine(projectDirectory, "First.lol"),
-                """
-                HAI 1.4
-                VISIBLE "FIRST"
-                KTHXBYE
-                """);
+                CompatibilityFixtures.ReadSource("DotNet/1.4/Sdk/multi-file-first/test.lol"));
             File.WriteAllText(
                 Path.Combine(projectDirectory, "Second.lol"),
-                """
-                HAI 1.4
-                VISIBLE "SECOND"
-                KTHXBYE
-                """);
+                CompatibilityFixtures.ReadSource("DotNet/1.4/Sdk/multi-file-second/test.lol"));
 
             var (exitCode, stdout, stderr) = RunDotnet(
                 $"run --project \"{projectFile}\"",
@@ -523,9 +515,11 @@ public class SdkSampleTests
                 """);
             File.WriteAllText(
                 Path.Combine(projectDirectory, "01-First.lol"),
-                "HAI 1.2\nVISIBLE \"FIRST\"\nKTHXBYE");
+                CompatibilityFixtures.ReadSource("DotNet/1.2/Sdk/incremental-first/test.lol"));
             string secondSource = Path.Combine(projectDirectory, "02-Second.lol");
-            File.WriteAllText(secondSource, "HAI 1.2\nVISIBLE \"SECOND\"\nKTHXBYE");
+            File.WriteAllText(
+                secondSource,
+                CompatibilityFixtures.ReadSource("DotNet/1.2/Sdk/incremental-second/test.lol"));
 
             var (firstExitCode, firstStdOut, firstStdErr) = RunDotnet(
                 $"build \"{projectFile}\"",
@@ -993,12 +987,7 @@ public class SdkSampleTests
                 """);
             File.WriteAllText(
                 Path.Combine(consumerDirectory, "Program.lol"),
-                """
-                HAI 1.4
-                CAN HAS RedirectedLibrary?
-                VISIBLE I IZ RedirectedLibrary'Z HELLO MKAY
-                KTHXBYE
-                """);
+                CompatibilityFixtures.ReadSource("DotNet/1.4/Sdk/redirected-consumer/test.lol"));
 
             var (buildExitCode, buildStdout, buildStderr) = RunDotnet(
                 $"build \"{consumerProject}\"",
@@ -1095,13 +1084,8 @@ public class SdkSampleTests
     }
 
     private static string CreateLibraryFunction(string name) =>
-        $$"""
-        HAI 1.4
-        HOW IZ I {{name}}
-            FOUND YR "{{name}}"
-        IF U SAY SO
-        KTHXBYE
-        """;
+        CompatibilityFixtures.ReadSource("DotNet/1.4/Sdk/library-function-template/test.lol")
+            .Replace("{{name}}", name, StringComparison.Ordinal);
 
     private static void AssertBuildSucceeds(string projectFile, string projectDirectory, string operation)
     {
@@ -1229,13 +1213,7 @@ public class SdkSampleTests
             """);
         File.WriteAllText(
             Path.Combine(projectDirectory, "Welcome.lol"),
-            """
-            HAI 1.4
-            HOW IZ I WELCOME
-                FOUND YR "HAI"
-            IF U SAY SO
-            KTHXBYE
-            """);
+            CompatibilityFixtures.ReadSource("DotNet/1.4/Sdk/library-welcome/test.lol"));
         return projectFile;
     }
 

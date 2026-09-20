@@ -27,6 +27,10 @@ public abstract class EndToEndTestBase : IDisposable
     /// <summary>Gets the isolated directory used by the current test.</summary>
     protected string TestDirectory => _tempDir;
 
+    /// <summary>Loads a canonical compatibility fixture copied beside the test assembly.</summary>
+    protected static string FixtureSource(string relativePath)
+        => CompatibilityFixtures.ReadSource(relativePath);
+
     /// <summary>Captured output and process status from an emitted program.</summary>
     protected sealed record ExecutionResult(
         int ExitCode,
@@ -227,6 +231,7 @@ public abstract class EndToEndTestBase : IDisposable
                     overwrite: true);
             }
         }
+
     }
 
     private static async Task<byte[]> ReadAllBytesAsync(Stream stream)
@@ -234,5 +239,17 @@ public abstract class EndToEndTestBase : IDisposable
         using var result = new MemoryStream();
         await stream.CopyToAsync(result);
         return result.ToArray();
+    }
+}
+
+internal static class CompatibilityFixtures
+{
+    internal static string ReadSource(string relativePath)
+    {
+        string path = Path.Combine(
+            AppContext.BaseDirectory,
+            "Compatibility",
+            relativePath.Replace('/', Path.DirectorySeparatorChar));
+        return File.ReadAllText(path, Encoding.UTF8);
     }
 }
