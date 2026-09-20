@@ -18,10 +18,13 @@ a stable diagnostic substring, rather than an error-exit-number contract.
 ## Engines and CI
 
 The shared `LciRegistrationParser` discovers both the pinned upstream corpus
-and this tree. `CompatibilityCorpusTests` runs every registered shared case
-against dotnet-lolcode and, when `LCI_PATH` is set, pinned lci. Locally the lci
-theory is visibly skipped if the executable is unavailable. CI sets both
-`LCI_PATH` and `REQUIRE_LCI=1`, so absence of the native executable fails.
+and the shared portion of this tree. `CompatibilityCorpusTests` runs every
+registered shared case against dotnet-lolcode and, when `LCI_PATH` is set,
+pinned lci. `DotNetOnlyCompatibilityCorpusTests` independently discovers and
+runs only `DotNetOnly` `ADD_LOL_TEST` registrations with dotnet-lolcode.
+Locally the lci theory is visibly skipped if the executable is unavailable.
+CI sets both `LCI_PATH` and `REQUIRE_LCI=1`, so absence of the native
+executable fails.
 
 `PinnedLciConformanceTests` runs all 325 upstream registrations with pinned
 lci; the existing `LciConformanceTests` continues to run all 325 upstream
@@ -35,9 +38,13 @@ bounded and gated.
 * STRING, STDLIB, STDIO, and SOCKS APIs are portable only where the lci
   contract defines them. Managed assemblies, LOLCODE assembly loading, CLR
   exports, and project files are dotnet-only.
-* `tests/Compatibility/DotNetOnly` is intentionally not CMake-registered.
-  It keeps managed-safety, BLOB ownership/use-after-close, interop,
-  trimming/NativeAOT, and .NET-specific flattening probes out of lci.
+* `tests/Compatibility/DotNetOnly` is the explicit directory-root
+  classification for nonportable repository fixtures. Its lci-style
+  registrations run under the dotnet-only theory, never the shared lci theory.
+  `DotNetOnly/README.md` and `tools/compatibility-classifications.json`
+  document the reason for every moved fixture. It also keeps managed-safety,
+  BLOB ownership/use-after-close, interop, trimming/NativeAOT, and .NET-specific
+  flattening probes out of lci.
 * STDLIB random values are not cross-engine values. Portable tests assert
   bounds and reseed behavior, never a particular random sequence.
 * Error exit numbers and unsafe native BLOB behavior are not equivalence
@@ -75,6 +82,9 @@ python3 tools/extract-e2e-compatibility.py
 python3 tools/extract-e2e-compatibility.py --check
 ```
 
+The script reads `tools/compatibility-classifications.json` before writing a
+fixture. Classified cases are generated under `DotNetOnly/Extracted`, and a
+rerun removes an obsolete shared generated copy rather than recreating it.
 The script's explicit retained sets document tests that require newer
 SRS/object/custom-loop semantics or stronger C# assertions. Lexer/parser
 trees, diagnostics/spans, PDB/debugger/emission APIs, MSBuild/package/publish

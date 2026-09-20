@@ -1,0 +1,2 @@
+# Fixture output bytes are the contract, including trailing whitespace.
+tests/Compatibility/**/test.out -whitespace

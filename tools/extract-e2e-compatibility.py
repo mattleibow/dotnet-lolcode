@@ -10,7 +10,9 @@ silently treating .NET-specific tests as lci contracts.
 from __future__ import annotations
 
 import argparse
+import json
 import re
+import shutil
 import sys
 import textwrap
 from dataclasses import dataclass
@@ -19,7 +21,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TEST_ROOT = ROOT / "tests" / "Lolcode.EndToEnd.Tests"
-CORPUS_ROOT = ROOT / "tests" / "Compatibility" / "Extracted"
+COMPATIBILITY_ROOT = ROOT / "tests" / "Compatibility"
+CLASSIFICATIONS_PATH = ROOT / "tools" / "compatibility-classifications.json"
 
 FILES = {
     "Basic": "BasicProgramTests.cs",
@@ -72,6 +75,11 @@ class Case:
     source: str
     expected: str
     stdin: str | None
+
+
+def classifications() -> dict[str, dict[str, str]]:
+    value = json.loads(CLASSIFICATIONS_PATH.read_text(encoding="utf-8"))
+    return value["dotnetOnly"]
 
 
 def kebab(value: str) -> str:
@@ -137,8 +145,11 @@ def expected_bytes(case: Case) -> bytes:
     return (case.expected + suffix).encode("utf-8")
 
 
-def write_case(case: Case, check: bool) -> bool:
-    directory = CORPUS_ROOT / kebab(case.category) / kebab(case.method)
+def write_case(case: Case, dotnet_only: dict[str, dict[str, str]], check: bool) -> bool:
+    relative_path = Path("Extracted") / kebab(case.category) / kebab(case.method)
+    is_dotnet_only = relative_path.as_posix() in dotnet_only
+    directory = COMPATIBILITY_ROOT / ("DotNetOnly" if is_dotnet_only else "") / relative_path
+    legacy_directory = COMPATIBILITY_ROOT / relative_path
     files = {
         "CMakeLists.txt": (
             "INCLUDE(AddLolTest)\n"
@@ -152,7 +163,10 @@ def write_case(case: Case, check: bool) -> bool:
     if case.stdin is not None:
         files["test.in"] = case.stdin.encode()
 
-    stale = False
+    stale = legacy_directory != directory and legacy_directory.exists()
+    if stale and not check:
+        shutil.rmtree(legacy_directory)
+
     for name, content in files.items():
         target = directory / name
         if target.exists() and target.read_bytes() == content:
@@ -170,17 +184,31 @@ def main() -> int:
     args = parser.parse_args()
 
     cases: list[Case] = []
+    dotnet_only = classifications()
     inventory = 0
     for category, filename in FILES.items():
         extracted, total = extract(category, TEST_ROOT / filename)
         cases.extend(extracted)
         inventory += total
 
-    stale = [case for case in cases if write_case(case, args.check)]
+    extracted_paths = {
+        (Path("Extracted") / kebab(case.category) / kebab(case.method)).as_posix()
+        for case in cases
+    }
+    unknown = sorted(set(dotnet_only) - extracted_paths - {"Language/1.2/Boolean/truthiness"})
+    if unknown:
+        raise ValueError(f"Unknown classified extracted fixtures: {', '.join(unknown)}")
+
+    stale = [case for case in cases if write_case(case, dotnet_only, args.check)]
     retained = inventory - len(cases)
+    shared = len(cases) - sum(
+        (Path("Extracted") / kebab(case.category) / kebab(case.method)).as_posix() in dotnet_only
+        for case in cases
+    )
     print(
         f"Inline HAI/KTHXBYE inventory: {inventory}; "
-        f"portable fixtures: {len(cases)}; retained: {retained}."
+        f"shared fixtures: {shared}; dotnet-only fixtures: {len(cases) - shared}; "
+        f"retained: {retained}."
     )
     if args.check and stale:
         print("Stale generated compatibility fixtures:", file=sys.stderr)

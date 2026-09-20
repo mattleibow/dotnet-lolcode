@@ -43,7 +43,22 @@ internal static class CompatibilityCorpus
     private static IReadOnlyList<LciTestRegistration> LoadRegistrations() =>
         LciRegistrationParser.Discover(
             Path.Combine(AppContext.BaseDirectory, "Compatibility"),
-            "compatibility");
+            "shared compatibility",
+            excludedDirectoryNames: new HashSet<string>(StringComparer.Ordinal) { "DotNetOnly" });
+}
+
+/// <summary>Discovers repository-owned fixtures that are intentionally dotnet-lolcode-only.</summary>
+internal static class DotNetOnlyCompatibilityCorpus
+{
+    private static readonly Lazy<IReadOnlyList<LciTestRegistration>> RegistrationsValue =
+        new(LoadRegistrations);
+
+    internal static IReadOnlyList<LciTestRegistration> Registrations => RegistrationsValue.Value;
+
+    private static IReadOnlyList<LciTestRegistration> LoadRegistrations() =>
+        LciRegistrationParser.Discover(
+            Path.Combine(AppContext.BaseDirectory, "Compatibility", "DotNetOnly"),
+            "dotnet-only compatibility");
 }
 
 /// <summary>
@@ -53,7 +68,10 @@ internal static class CompatibilityCorpus
 /// </summary>
 internal static partial class LciRegistrationParser
 {
-    internal static IReadOnlyList<LciTestRegistration> Discover(string root, string corpusName)
+    internal static IReadOnlyList<LciTestRegistration> Discover(
+        string root,
+        string corpusName,
+        IReadOnlySet<string>? excludedDirectoryNames = null)
     {
         if (!Directory.Exists(root))
             throw new DirectoryNotFoundException($"The {corpusName} corpus was not copied to '{root}'.");
@@ -62,6 +80,10 @@ internal static partial class LciRegistrationParser
         foreach (string cmakePath in Directory.EnumerateFiles(
                      root, "CMakeLists.txt", SearchOption.AllDirectories))
         {
+            string relativePath = Path.GetRelativePath(root, cmakePath);
+            if (excludedDirectoryNames?.Contains(relativePath.Split(Path.DirectorySeparatorChar)[0]) == true)
+                continue;
+
             string cmake = File.ReadAllText(cmakePath);
             foreach (Match match in RegistrationRegex().Matches(cmake))
             {

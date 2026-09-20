@@ -1,0 +1,64 @@
+{
+  "dotnetOnly": {
+    "Extracted/boolean/all-of": {
+      "category": "adopted-spec-semantic-difference",
+      "reason": "Pinned lci uses different primitive truthiness for ALL OF."
+    },
+    "Extracted/boolean/any-of": {
+      "category": "pinned-lci-parser-gap",
+      "reason": "Pinned lci rejects the bare NOOB expression used by the fixture."
+    },
+    "Extracted/boolean/either-of": {
+      "category": "adopted-spec-semantic-difference",
+      "reason": "Pinned lci uses different primitive truthiness for EITHER OF."
+    },
+    "Extracted/boolean/not": {
+      "category": "adopted-spec-semantic-difference",
+      "reason": "Pinned lci uses different primitive and string truthiness for NOT."
+    },
+    "Extracted/casting/casting-rules-matrix": {
+      "category": "pinned-lci-parser-gap",
+      "reason": "Pinned lci rejects the bare NOOB expression in the control-flow portion."
+    },
+    "Extracted/casting/maek-troof": {
+      "category": "adopted-spec-semantic-difference",
+      "reason": "Pinned lci has different primitive and string-to-TROOF behavior."
+    },
+    "Extracted/casting/noob-explicit-cast": {
+      "category": "pinned-lci-parser-gap",
+      "reason": "Pinned lci rejects the NOOB cast form accepted by dotnet-lolcode."
+    },
+    "Extracted/edge-case/it-across-control-flow": {
+      "category": "unsafe-native-behavior",
+      "reason": "Pinned lci can bus-error and otherwise differs for IT across control flow."
+    },
+    "Extracted/expression/assignment-no-it": {
+      "category": "adopted-spec-semantic-difference",
+      "reason": "Pinned lci has different IT assignment persistence behavior."
+    },
+    "Extracted/expression/chained-expressions": {
+      "category": "adopted-spec-semantic-difference",
+      "reason": "Pinned lci produces different chained bare-expression IT results."
+    },
+    "Extracted/expression/it-persists": {
+      "category": "adopted-spec-semantic-difference",
+      "reason": "Pinned lci has different IT persistence behavior."
+    },
+    "Extracted/math/large-number-arithmetic": {
+      "category": "host-runtime-difference",
+      "reason": "Pinned lci uses a different integer width and overflow result."
+    },
+    "Extracted/string/smoosh": {
+      "category": "pinned-lci-parser-gap",
+      "reason": "Pinned lci rejects the optional-at-end-of-line SMOOSH MKAY form."
+    },
+    "Extracted/variables/it-not-set-by-assignment": {
+      "category": "adopted-spec-semantic-difference",
+      "reason": "Pinned lci has different IT assignment persistence behavior."
+    },
+    "Language/1.2/Boolean/truthiness": {
+      "category": "adopted-spec-semantic-difference",
+      "reason": "Pinned lci has different primitive and string truthiness behavior."
+    }
+  }
+}
