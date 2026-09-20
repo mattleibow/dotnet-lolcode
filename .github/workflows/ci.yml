@@ -110,6 +110,43 @@ jobs:
 
           dotnet build samples/project-based/hello-world/hello-world.lolproj --verbosity quiet
 
+  compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install pinned lci prerequisites
+        run: sudo apt-get update && sudo apt-get install --yes libncurses-dev libreadline-dev
+
+      - name: Build pinned lci
+        run: cmake -S externals/lci -B artifacts/lci-build -DCMAKE_POLICY_VERSION_MINIMUM=3.5 && cmake --build artifacts/lci-build --parallel
+
+      - name: Run compatibility corpus on both engines
+        env:
+          LCI_PATH: ${{ github.workspace }}/artifacts/lci-build/lci
+          REQUIRE_LCI: '1'
+        run: >-
+          dotnet test tests/Lolcode.EndToEnd.Tests/Lolcode.EndToEnd.Tests.csproj
+          --logger "trx;LogFileName=compatibility-results.trx"
+          --filter "FullyQualifiedName~CompatibilityCorpusTests|FullyQualifiedName~PinnedLciConformanceTests"
+
+      - name: Check generated flattened fixtures
+        run: dotnet run --project tools/Lolcode.Compatibility.Flatten/Lolcode.Compatibility.Flatten.csproj -- --check
+
+      - name: Upload compatibility results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compatibility-results
+          path: '**/compatibility-results.trx'
+
   pack:
     runs-on: ubuntu-latest
     needs: [build-and-test, version]
