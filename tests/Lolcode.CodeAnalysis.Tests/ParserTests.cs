@@ -22,6 +22,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_MinimalProgram()
     {
         var tree = Parse("HAI 1.2\nKTHXBYE");
@@ -31,6 +32,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_HaiWithoutVersion_ReportsDiagnostic()
     {
         ParseWithDiagnostics("HAI\nKTHXBYE", out var diagnostics);
@@ -39,6 +41,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_VariableDeclaration_NoInit()
     {
         var tree = Parse("HAI 1.2\nI HAS A x\nKTHXBYE");
@@ -48,6 +51,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_VariableDeclaration_WithInit()
     {
         var tree = Parse("HAI 1.2\nI HAS A x ITZ 42\nKTHXBYE");
@@ -58,6 +62,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_Assignment()
     {
         var tree = Parse("HAI 1.2\nI HAS A x\nx R 10\nKTHXBYE");
@@ -66,6 +71,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_Visible_SingleArg()
     {
         var tree = Parse("HAI 1.2\nVISIBLE \"hello\"\nKTHXBYE");
@@ -76,6 +82,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_Visible_MultipleArgs()
     {
         var tree = Parse("HAI 1.2\nVISIBLE \"a\" \"b\" \"c\"\nKTHXBYE");
@@ -85,6 +92,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_Visible_SuppressNewline()
     {
         var tree = Parse("HAI 1.2\nVISIBLE \"hello\"!\nKTHXBYE");
@@ -94,6 +102,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_Invisible_UsesStandardError()
     {
         var tree = ParseWithDiagnostics(
@@ -111,6 +120,7 @@ public class ParserTests
     [Theory]
     [InlineData("CAN HAS STDIO", false)]
     [InlineData("CAN HAS STDIO?", true)]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_Import_OptionalQuestionMark(string statement, bool hasQuestionMark)
     {
         var tree = ParseWithDiagnostics(
@@ -125,6 +135,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_Import_SupportsSrsIdentifier()
     {
         var tree = ParseWithDiagnostics(
@@ -138,6 +149,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_SystemCommand_AcceptsExpression()
     {
         var tree = ParseWithDiagnostics(
@@ -152,6 +164,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_HasAn_AndRNoob_AcceptDirectSrsAndSlots()
     {
         var tree = ParseWithDiagnostics(
@@ -175,6 +188,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_VisibleWithoutArguments_ReportsDiagnostic()
     {
         ParseWithDiagnostics("HAI 1.3\nVISIBLE\nKTHXBYE", out var diagnostics);
@@ -188,6 +202,7 @@ public class ParserTests
     [InlineData("NUMBR")]
     [InlineData("NUMBAR")]
     [InlineData("YARN")]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_TypedDefaultInitialization(string type)
     {
         var tree = ParseWithDiagnostics(
@@ -202,6 +217,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_EmptyFunction_HasValidSourceSpan()
     {
         var tree = ParseWithDiagnostics(
@@ -216,6 +232,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_EscapedInterpolationPrefix_RemainsLiteral()
     {
         var tree = ParseWithDiagnostics(
@@ -230,6 +247,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_Gimmeh()
     {
         var tree = Parse("HAI 1.2\nI HAS A x\nGIMMEH x\nKTHXBYE");
@@ -240,6 +258,7 @@ public class ParserTests
     [Theory]
     [InlineData("GIMMEH SRS targetName", true)]
     [InlineData("GIMMEH box'Z value", false)]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_Gimmeh_FullIdentifier(string statement, bool isDynamic)
     {
         var tree = ParseWithDiagnostics(
@@ -256,6 +275,7 @@ public class ParserTests
     [Theory]
     [InlineData("SRS targetName IS NOW A NUMBR", true)]
     [InlineData("box'Z value IS NOW A NUMBR", false)]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_IsNowA_FullIdentifier(string statement, bool isDynamic)
     {
         var tree = ParseWithDiagnostics(
@@ -270,6 +290,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_ArticlelessDynamicDeclaration()
     {
         var tree = ParseWithDiagnostics(
@@ -283,6 +304,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_DynamicFunctionCallScope_StopsAtEnclosingIz()
     {
         var tree = ParseWithDiagnostics(
@@ -309,6 +331,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_ArticlelessDirectDeclaration_ReportsDiagnostic()
     {
         ParseWithDiagnostics(
@@ -319,6 +342,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_MathExpression()
     {
         var tree = Parse("HAI 1.2\nSUM OF 1 AN 2\nKTHXBYE");
@@ -328,6 +352,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_NestedMathExpression()
     {
         var tree = Parse("HAI 1.2\nSUM OF PRODUKT OF 2 AN 3 AN 4\nKTHXBYE");
@@ -338,6 +363,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_BothSaem_Comparison()
     {
         var tree = Parse("HAI 1.2\nBOTH SAEM 1 AN 1\nKTHXBYE");
@@ -347,6 +373,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_NotExpression()
     {
         var tree = Parse("HAI 1.2\nNOT WIN\nKTHXBYE");
@@ -356,6 +383,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_Smoosh()
     {
         var tree = Parse("HAI 1.2\nSMOOSH \"a\" AN \"b\" MKAY\nKTHXBYE");
@@ -366,6 +394,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_IfStatement()
     {
         var tree = Parse("""
@@ -384,6 +413,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_IfStatement_WithMebbe()
     {
         var tree = Parse("""
@@ -405,6 +435,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_SwitchStatement()
     {
         var tree = Parse("""
@@ -427,6 +458,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_Loop()
     {
         var tree = Parse("""
@@ -443,6 +475,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_LoopWithReferenceStyleCustomOperation()
     {
         var tree = Parse("""
@@ -458,6 +491,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_FunctionDeclaration()
     {
         var tree = Parse("""
@@ -474,6 +508,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_FunctionCall()
     {
         var tree = Parse("""
@@ -490,6 +525,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_CastExpression()
     {
         var tree = Parse("HAI 1.2\nMAEK 42 A YARN\nKTHXBYE");
@@ -499,6 +535,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_CastStatement()
     {
         var tree = Parse("HAI 1.2\nI HAS A x ITZ 42\nx IS NOW A YARN\nKTHXBYE");
@@ -506,6 +543,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_GtfoStatement()
     {
         var tree = Parse("""
@@ -522,6 +560,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_AllOf()
     {
         var tree = Parse("HAI 1.2\nALL OF WIN AN WIN AN WIN MKAY\nKTHXBYE");
@@ -532,6 +571,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_AnyOf()
     {
         var tree = Parse("HAI 1.2\nANY OF FAIL AN WIN MKAY\nKTHXBYE");
@@ -541,6 +581,7 @@ public class ParserTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Parse_Diffrint()
     {
         var tree = Parse("HAI 1.2\nDIFFRINT 1 AN 2\nKTHXBYE");

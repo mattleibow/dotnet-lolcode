@@ -150,6 +150,7 @@ public class LexerTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Lex_Keywords_CorrectKinds()
     {
         var tokens = Lex("HAI KTHXBYE VISIBLE GIMMEH");
@@ -212,6 +213,7 @@ public class LexerTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Lex_Newline_ReturnsEndOfLine()
     {
         var tokens = Lex("HAI\nKTHXBYE");
@@ -221,6 +223,7 @@ public class LexerTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Lex_Comma_ReturnsEndOfLine()
     {
         var tokens = Lex("HAI,KTHXBYE");
@@ -392,6 +395,7 @@ public class LexerTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Lex_LeadingByteOrderMark_IsTrivia()
     {
         var tokens = LexWithDiagnostics("\uFEFFHAI 1.3\nKTHXBYE", out var diagnostics);

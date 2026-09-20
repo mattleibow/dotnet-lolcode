@@ -8,6 +8,7 @@ namespace Lolcode.CodeAnalysis.Tests;
 public class BindingTests
 {
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void BindSwitch_AllowsEqualValuesOfDifferentLiteralTypes()
     {
         var diagnostics = GetDiagnostics("""
@@ -26,6 +27,7 @@ public class BindingTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void BindSwitch_RejectsDuplicateLiteralWithSameTypeAndValue()
     {
         var diagnostics = GetDiagnostics("""
@@ -42,6 +44,7 @@ public class BindingTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void BindSwitch_RejectsDuplicateYarnValuesAfterEscapeResolution()
     {
         var diagnostics = GetDiagnostics("""

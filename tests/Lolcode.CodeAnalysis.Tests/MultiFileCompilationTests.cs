@@ -12,6 +12,7 @@ public sealed class MultiFileCompilationTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void CrossFileFunctionCalls_AreIndependentOfSourceFileOrder(bool calleeFirst)
     {
         var caller = Tree(
@@ -42,6 +43,7 @@ public sealed class MultiFileCompilationTests
     [Theory]
     [InlineData("1.3")]
     [InlineData("1.4")]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void CrossFileRuntimeFunctionCalls_AreHoistedBeforeTopLevelExecution(string version)
     {
         var caller = Tree(
@@ -70,6 +72,7 @@ public sealed class MultiFileCompilationTests
     [Theory]
     [InlineData("1.3")]
     [InlineData("1.4")]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void CrossFileRuntimeFunctionValues_AreHoistedBeforeTheyCanBeReferenced(string version)
     {
         var declaration = Tree(
@@ -99,6 +102,7 @@ public sealed class MultiFileCompilationTests
     [Theory]
     [InlineData("1.3")]
     [InlineData("1.4")]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void SingleFileRuntimeFunctionCalls_KeepTextualDeclarationOrder(string version)
     {
         var compilation = LolcodeCompilation.Create(Tree(
@@ -120,6 +124,7 @@ public sealed class MultiFileCompilationTests
     [Theory]
     [InlineData("1.3")]
     [InlineData("1.4")]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void CrossFileRuntimeFunctionReplacement_IsNotResetAtOriginalDeclarationPosition(string version)
     {
         var replacement = Tree(
@@ -150,6 +155,7 @@ public sealed class MultiFileCompilationTests
     [Theory]
     [InlineData("1.3")]
     [InlineData("1.4")]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void CrossFileRuntimeFunctions_SupportMutualRecursion(string version)
     {
         var first = Tree(
@@ -185,6 +191,7 @@ public sealed class MultiFileCompilationTests
     [Theory]
     [InlineData("1.3")]
     [InlineData("1.4")]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void CrossFileDynamicFunctionDeclarations_KeepTextualOrder(string version)
     {
         var caller = Tree(
@@ -214,6 +221,7 @@ public sealed class MultiFileCompilationTests
     [Theory]
     [InlineData("1.3")]
     [InlineData("1.4")]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void CrossFileObjectMethods_KeepTextualOrderAndObjectScope(string version)
     {
         var caller = Tree(
@@ -253,6 +261,7 @@ public sealed class MultiFileCompilationTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void CrossFileVariables_RespectSyntaxTreeOrder()
     {
         var declaringTree = Tree(
@@ -273,6 +282,7 @@ public sealed class MultiFileCompilationTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void CrossFileDuplicateDeclarations_ReportTheDuplicateFile()
     {
         var duplicateFunction = LolcodeCompilation.Create(
@@ -289,6 +299,7 @@ public sealed class MultiFileCompilationTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void CrossFileVersions_MustMatch()
     {
         var matching = LolcodeCompilation.Create(
@@ -306,6 +317,7 @@ public sealed class MultiFileCompilationTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void CrossFileSyntaxDiagnostics_AreAggregated()
     {
         var diagnostics = LolcodeCompilation.Create(
@@ -320,6 +332,7 @@ public sealed class MultiFileCompilationTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void SourceTextConstruction_PreservesEffectiveFileNamesInSyntaxAndBinderDiagnostics()
     {
         string loadPath = Path.Combine(
@@ -357,6 +370,7 @@ public sealed class MultiFileCompilationTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void SourceTextConstruction_PreservesEffectiveFileNamesInVersionDiagnostics()
     {
         string loadPath = Path.Combine(
@@ -386,6 +400,7 @@ public sealed class MultiFileCompilationTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void DuplicateFunctions_KeepTheirOwnParametersWhileCallsUseTheWinner()
     {
         const string source = """
@@ -410,6 +425,7 @@ public sealed class MultiFileCompilationTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void CrossFileDuplicateFunctions_KeepWinnerArityAndLocations()
     {
         var diagnostics = LolcodeCompilation.Create(
@@ -428,6 +444,7 @@ public sealed class MultiFileCompilationTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void DuplicateFunctionParameters_ReportTheDuplicateParameterWithoutThrowing()
     {
         var diagnostics = LolcodeCompilation.Create(Tree(

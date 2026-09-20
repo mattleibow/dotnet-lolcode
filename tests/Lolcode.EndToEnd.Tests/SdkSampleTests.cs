@@ -327,7 +327,7 @@ public class SdkSampleTests
             File.WriteAllText(
                 Path.Combine(projectDirectory, "Program.cs"),
                 $"using System;{Environment.NewLine}{Environment.NewLine}"
-                + $"Console.WriteLine(InteropSamples.{expectedTypeName}.WELCOME());");
+                + $"Console.WriteLine(InteropSamples.{expectedTypeName}.WELCOME(\"DOTNET\", 3));");
 
             var (consumerExitCode, consumerStdOut, consumerStdErr) = RunDotnet(
                 $"run --project \"{consumerProject}\"",
@@ -335,7 +335,7 @@ public class SdkSampleTests
             consumerExitCode.Should().Be(
                 0,
                 $"C# consumer build failed:\n{consumerStdErr}\n{consumerStdOut}");
-            consumerStdOut.Trim().Should().Be("HAI");
+            consumerStdOut.Trim().Should().Be("HAI DOTNET, U CAN HAZ 3 CHEEZBURGERZ!");
         }
         finally
         {

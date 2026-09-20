@@ -9,6 +9,7 @@ namespace Lolcode.CodeAnalysis.Tests;
 public class DebuggerSmokeTests
 {
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Verify_Pdb_Generation_And_Content()
     {
         // 1. Arrange: Simple LOLCODE program with variables and multiple lines

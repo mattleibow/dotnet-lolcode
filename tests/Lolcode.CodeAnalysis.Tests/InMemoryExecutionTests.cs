@@ -11,6 +11,8 @@ namespace Lolcode.CodeAnalysis.Tests;
 public sealed class InMemoryExecutionTests
 {
     private static string HelloProgram => FixtureSource("in-memory-hello", "test.lol");
+    private static string UndeclaredVariableProgram =>
+        CompatibilityFixtureSource("Shared", "1.2", "Errors", "undeclared-variable", "test.lol");
 
     private static string FixtureSource(params string[] path) =>
         File.ReadAllText(Path.Combine([AppContext.BaseDirectory, "Compatibility", "DotNet", "1.2", "CodeAnalysis", .. path]));
@@ -183,6 +185,7 @@ public sealed class InMemoryExecutionTests
     [InlineData(6, "ABCDE", false)]
     [InlineData(5, "ABCDE", false)]
     [InlineData(4, "ABCD", true)]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Run_BoundsCapturedStandardOutputBytes(
         int maximumStandardOutputBytes,
         string expectedOutput,
@@ -207,6 +210,7 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Run_BoundsStandardStreamsIndependentlyAndUsesReplacementForPartialUtf8()
     {
         var state = LolcodeScript.Run(
@@ -250,6 +254,7 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Run_CapturesStandardOutputAndStandardErrorIndependently()
     {
         var state = LolcodeScript.Run(
@@ -279,6 +284,7 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Run_RoutesSourceBomToScopedStandardOutput()
     {
         var state = LolcodeScript.Run(
@@ -290,6 +296,7 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Run_SuppliesInputToGimmeh()
     {
         var state = LolcodeScript.Run(
@@ -312,12 +319,7 @@ public sealed class InMemoryExecutionTests
     [Fact]
     public void Run_CompilationDiagnosticsPreventExecution()
     {
-        var script = LolcodeScript.Create(
-            """
-            HAI 1.2
-              VISIBLE missing
-            KTHXBYE
-            """);
+        var script = LolcodeScript.Create(UndeclaredVariableProgram);
 
         var diagnostics = script.Compile();
         var state = script.Run();
@@ -333,6 +335,7 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Run_UnwrapsRuntimeExceptions()
     {
         var state = LolcodeScript.Run(
@@ -351,6 +354,7 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Run_ExecutesFunctionsAndControlFlow()
     {
         var state = LolcodeScript.Run(
@@ -487,6 +491,7 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public async Task Run_ParallelExecutionsKeepInputAndStandardStreamsScoped()
     {
         const string program = """

@@ -104,6 +104,7 @@ public sealed class LolcodeCodeRunnerTests
     [Theory]
     [InlineData(CodeRunnerLimits.MaxStandardStreamBytes, false)]
     [InlineData(CodeRunnerLimits.MaxStandardStreamBytes + 1, true)]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public async Task RunAsync_BoundsCapturedOutputDuringExecution(
         int outputLength,
         bool shouldBeTruncated)
@@ -134,6 +135,7 @@ public sealed class LolcodeCodeRunnerTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public async Task RunAsync_CapturesAndBoundsStandardErrorIndependently()
     {
         var result = await _runner.RunAsync(
@@ -158,6 +160,7 @@ public sealed class LolcodeCodeRunnerTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public async Task RunAsync_MapsCompilerDiagnosticLocation()
     {
         var result = await _runner.RunAsync(
@@ -180,7 +183,7 @@ public sealed class LolcodeCodeRunnerTests
     public async Task RunAsync_MapsRuntimeDiagnosticLocation()
     {
         var result = await _runner.RunAsync(
-            new CodeRunRequest(RuntimeErrorProgram, string.Empty));
+            new CodeRunRequest(GetRuntimeErrorProgram(), string.Empty));
 
         result.Success.Should().BeFalse();
         result.Executed.Should().BeTrue();
@@ -194,7 +197,7 @@ public sealed class LolcodeCodeRunnerTests
     [Fact]
     public void FindPortablePdbLocation_MapsRuntimeFrame()
     {
-        var script = CreateScript(RuntimeErrorProgram);
+        var script = CreateScript(GetRuntimeErrorProgram());
         var state = script.Run();
         var compilation = state.Script.GetCompilation();
 
@@ -226,10 +229,14 @@ public sealed class LolcodeCodeRunnerTests
             FilePath = "Program.lol",
         });
 
-    private const string RuntimeErrorProgram = """
-        HAI 1.2
-          I HAS A value
-          VISIBLE SUM OF value AN 1
-        KTHXBYE
-        """;
+    [InlineLolcodeProgramException("The runtime diagnostic test requires a precise failing source location.")]
+    private static string GetRuntimeErrorProgram()
+    {
+        return """
+            HAI 1.2
+              I HAS A value
+              VISIBLE SUM OF value AN 1
+            KTHXBYE
+            """;
+    }
 }

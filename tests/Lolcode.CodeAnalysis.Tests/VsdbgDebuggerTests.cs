@@ -57,6 +57,7 @@ public sealed class VsdbgDebuggerTests : IDisposable
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public async Task Vsdbg_StopAtEntry_ReportsCorrectSourceFile()
     {
         if (!CanRunDebuggerTests(out var reason)) { _output.WriteLine($"SKIP: {reason}"); return; }
@@ -94,6 +95,7 @@ public sealed class VsdbgDebuggerTests : IDisposable
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public async Task Vsdbg_BreakpointHit_StopsAtCorrectLine()
     {
         if (!CanRunDebuggerTests(out var reason)) { _output.WriteLine($"SKIP: {reason}"); return; }
@@ -134,6 +136,7 @@ public sealed class VsdbgDebuggerTests : IDisposable
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public async Task Vsdbg_LocalVariables_VisibleInDebugger()
     {
         if (!CanRunDebuggerTests(out var reason)) { _output.WriteLine($"SKIP: {reason}"); return; }
@@ -184,6 +187,7 @@ public sealed class VsdbgDebuggerTests : IDisposable
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public async Task Vsdbg_StepOver_AdvancesToNextLine()
     {
         if (!CanRunDebuggerTests(out var reason)) { _output.WriteLine($"SKIP: {reason}"); return; }
@@ -225,6 +229,7 @@ public sealed class VsdbgDebuggerTests : IDisposable
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public async Task Vsdbg_FunctionCall_StepInShowsCorrectSource()
     {
         if (!CanRunDebuggerTests(out var reason)) { _output.WriteLine($"SKIP: {reason}"); return; }

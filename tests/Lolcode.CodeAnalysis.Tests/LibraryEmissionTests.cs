@@ -9,9 +9,13 @@ namespace Lolcode.CodeAnalysis.Tests;
 /// <summary>Tests CLR class library emission and the public LOLCODE function ABI.</summary>
 public class LibraryEmissionTests
 {
+    private static string CompatibilityFixtureSource(params string[] path) =>
+        File.ReadAllText(Path.Combine([AppContext.BaseDirectory, "Compatibility", .. path]));
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void LibraryEmission_MultipleParameterlessWrappersInitializeObjectsIndependently(bool emitPdb)
     {
         string assemblyName = $"library-wrappers-{Guid.NewGuid():N}";
@@ -83,13 +87,7 @@ public class LibraryEmissionTests
         try
         {
             var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(
-                """
-                HAI 1.4
-                HOW IZ I WELCOME YR name AN YR cheezburgerz
-                    FOUND YR SMOOSH "HAI " AN name AN ", U CAN HAZ " AN cheezburgerz AN " CHEEZBURGERZ!" MKAY
-                IF U SAY SO
-                KTHXBYE
-                """,
+                CompatibilityFixtureSource("DotNet", "1.4", "Sdk", "library-welcome", "test.lol"),
                 "Welcome.lol"));
 
             var result = compilation.Emit(
@@ -166,6 +164,7 @@ public class LibraryEmissionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void LibraryEmission_UsesSuppliedTargetFrameworkReferenceAssemblies()
     {
         string outputPath = Path.Combine(AppContext.BaseDirectory, $"library-{Guid.NewGuid():N}.dll");
@@ -218,6 +217,7 @@ public class LibraryEmissionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void LibraryEmission_ExportsFunctionsDeclaredInMultipleSourceFiles()
     {
         string outputPath = Path.Combine(AppContext.BaseDirectory, $"multifile-library-{Guid.NewGuid():N}.dll");
@@ -257,6 +257,7 @@ public class LibraryEmissionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void LibraryEmission_HoistsRuntimeFunctionValuesBeforeWrapperInitialization()
     {
         string outputPath = Path.Combine(
@@ -339,6 +340,7 @@ public class LibraryEmissionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void LibraryEmission_RemovesExistingRuntimeConfigAsPartOfArtifactCommit()
     {
         string outputDirectory = Path.Combine(

@@ -13,27 +13,6 @@ public sealed class PortablePdbTests : IDisposable
 {
     private const int HiddenSequencePointLine = 0xFEEFEE;
 
-    private const string PdbSampleSource = """
-HAI 1.2
-  I HAS A x ITZ 42
-  I HAS A name ITZ "LOLCODE"
-  VISIBLE x
-  VISIBLE name
-  HOW IZ I add YR a AN YR b
-    I HAS A result ITZ SUM OF a AN b
-    FOUND YR result
-  IF U SAY SO
-  VISIBLE I IZ add YR 3 AN YR 4 MKAY
-KTHXBYE
-""";
-
-    private const string StackTraceSource = """
-HAI 1.2
-  I HAS A x ITZ NOOB
-  VISIBLE SUM OF x AN 1
-KTHXBYE
-""";
-
     private readonly string _tempDir;
     private readonly string _runtimeDll;
 
@@ -45,6 +24,35 @@ KTHXBYE
         _runtimeDll = Path.Combine(AppContext.BaseDirectory, "Lolcode.Runtime.dll");
         if (!File.Exists(_runtimeDll))
             throw new FileNotFoundException($"Runtime DLL not found at: {_runtimeDll}");
+    }
+
+    [InlineLolcodeProgramException("PDB tests require source text with exact sequence-point locations.")]
+    private static string GetPdbSampleSource()
+    {
+        return """
+            HAI 1.2
+              I HAS A x ITZ 42
+              I HAS A name ITZ "LOLCODE"
+              VISIBLE x
+              VISIBLE name
+              HOW IZ I add YR a AN YR b
+                I HAS A result ITZ SUM OF a AN b
+                FOUND YR result
+              IF U SAY SO
+              VISIBLE I IZ add YR 3 AN YR 4 MKAY
+            KTHXBYE
+            """;
+    }
+
+    [InlineLolcodeProgramException("PDB tests require a runtime error at a precise source location.")]
+    private static string GetStackTraceSource()
+    {
+        return """
+            HAI 1.2
+              I HAS A x ITZ NOOB
+              VISIBLE SUM OF x AN 1
+            KTHXBYE
+            """;
     }
 
     public void Dispose()
@@ -219,7 +227,7 @@ KTHXBYE
     [Fact]
     public void Pdb_ContainsDocument_ForLolSourceFile()
     {
-        var (dllPath, pdbPath, sourcePath) = CompileToTempDir(PdbSampleSource, "pdb_sample.lol");
+        var (dllPath, pdbPath, sourcePath) = CompileToTempDir(GetPdbSampleSource(), "pdb_sample.lol");
 
         File.Exists(dllPath).Should().BeTrue();
         File.Exists(pdbPath).Should().BeTrue("Emit should produce a .pdb next to the emitted DLL");
@@ -235,7 +243,7 @@ KTHXBYE
     [Fact]
     public void Pdb_ContainsExpectedSequencePointLines_ForMainAndAdd()
     {
-        var (dllPath, pdbPath, sourcePath) = CompileToTempDir(PdbSampleSource, "pdb_seqpoints.lol");
+        var (dllPath, pdbPath, sourcePath) = CompileToTempDir(GetPdbSampleSource(), "pdb_seqpoints.lol");
         File.Exists(pdbPath).Should().BeTrue();
 
         using var readers = PeAndPdb.Open(dllPath, pdbPath);
@@ -266,6 +274,7 @@ KTHXBYE
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Pdb_ContainsAllSourceDocuments_AndMapsSequencePointsToTheirOwningFiles()
     {
         string firstPath = Path.Combine(_tempDir, "First.lol");
@@ -310,7 +319,7 @@ KTHXBYE
     [Fact]
     public void Pdb_ContainsExpectedLocals_ForMainAndAdd()
     {
-        var (dllPath, pdbPath, _) = CompileToTempDir(PdbSampleSource, "pdb_locals.lol");
+        var (dllPath, pdbPath, _) = CompileToTempDir(GetPdbSampleSource(), "pdb_locals.lol");
         File.Exists(pdbPath).Should().BeTrue();
 
         using var readers = PeAndPdb.Open(dllPath, pdbPath);
@@ -331,7 +340,7 @@ KTHXBYE
     [Fact]
     public void Pdb_DoesNotExposeCompilerTemps_AsNamedLocals()
     {
-        var (dllPath, pdbPath, _) = CompileToTempDir(PdbSampleSource, "pdb_no_temps.lol");
+        var (dllPath, pdbPath, _) = CompileToTempDir(GetPdbSampleSource(), "pdb_no_temps.lol");
         File.Exists(pdbPath).Should().BeTrue();
 
         using var readers = PeAndPdb.Open(dllPath, pdbPath);
@@ -354,7 +363,7 @@ KTHXBYE
     [Fact]
     public void RuntimeException_StackTrace_IncludesLolFileAndLine()
     {
-        var (dllPath, pdbPath, sourcePath) = CompileToTempDir(StackTraceSource, "pdb_stacktrace.lol");
+        var (dllPath, pdbPath, sourcePath) = CompileToTempDir(GetStackTraceSource(), "pdb_stacktrace.lol");
         File.Exists(pdbPath).Should().BeTrue("PDB must exist for file:line stack traces");
 
         var (exitCode, stderr) = RunDotNet(dllPath);
