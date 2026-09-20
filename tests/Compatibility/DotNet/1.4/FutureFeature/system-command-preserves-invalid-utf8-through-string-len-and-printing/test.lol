@@ -1,0 +1,6 @@
+HAI 1.4
+CAN HAS STRING?
+I HAS A result ITZ I DUZ "{{command}}"
+VISIBLE I IZ STRING'Z LEN YR result MKAY
+VISIBLE result!
+KTHXBYE
