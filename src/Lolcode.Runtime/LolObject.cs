@@ -96,7 +96,8 @@ internal sealed record LolcodeLibraryDescriptor(
         string AssemblyName,
         string ExportTypeName,
         bool IsReserved,
-        int ContractVersion)
+        int ContractVersion,
+        string? StaticFactoryTypeName = null)
     {
         internal const int CurrentContractVersion = 1;
         internal static readonly IReadOnlyDictionary<string, LolcodeLibraryDescriptor> Official =
@@ -108,12 +109,72 @@ internal sealed record LolcodeLibraryDescriptor(
                 ["SOCKS"] = new("SOCKS", "Lolcode.Runtime.Socks", "Lolcode.Runtime.Socks.SocksLibrary", true, CurrentContractVersion),
             };
 
+        internal static bool TryParse(string value, out LolcodeLibraryDescriptor? descriptor)
+        {
+            string[] fields = value.Split('|');
+            if ((fields.Length == 5 || fields.Length == 6) &&
+                !fields.Take(3).Any(string.IsNullOrWhiteSpace) &&
+                bool.TryParse(fields[3], out bool reserved) &&
+                int.TryParse(fields[4], out int version))
+            {
+                descriptor = new(
+                    fields[0],
+                    fields[1],
+                    fields[2],
+                    reserved,
+                    version,
+                    fields.Length == 6 && !string.IsNullOrWhiteSpace(fields[5]) ? fields[5] : null);
+                return true;
+            }
+
+            descriptor = null;
+            return false;
+        }
     }
 
 internal sealed class LolcodeLibraryRegistry
     {
         private readonly Dictionary<string, LolcodeLibraryDescriptor> _descriptors =
             new(StringComparer.Ordinal);
+        private readonly Dictionary<string, LolcodeLibraryRegistration> _registrations =
+            new(StringComparer.Ordinal);
+
+        internal void Configure(IEnumerable<string> descriptors)
+        {
+            foreach (string encoded in descriptors)
+            {
+                if (!LolcodeLibraryDescriptor.TryParse(encoded, out LolcodeLibraryDescriptor? descriptor))
+                    throw new LolRuntimeException($"Invalid LOLCODE library descriptor: {encoded}");
+                LolcodeLibraryDescriptor parsed = descriptor
+                        ?? throw new LolRuntimeException($"Invalid LOLCODE library descriptor: {encoded}");
+                if (parsed.ContractVersion != LolcodeLibraryDescriptor.CurrentContractVersion)
+                {
+                        throw new LolRuntimeException(
+                        $"Unsupported LOLCODE library contract version: {parsed.ContractVersion}");
+                }
+                if (LolcodeLibraryDescriptor.Official.TryGetValue(parsed.LolName, out var official) &&
+                    (parsed.LolName != official.LolName ||
+                     parsed.AssemblyName != official.AssemblyName ||
+                     parsed.ExportTypeName != official.ExportTypeName ||
+                     parsed.IsReserved != official.IsReserved ||
+                     parsed.ContractVersion != official.ContractVersion))
+                {
+                    throw new LolRuntimeException(
+                        $"Reserved LOLCODE library descriptor does not match the official '{parsed.LolName}' contract.");
+                }
+                if (_descriptors.TryGetValue(parsed.LolName, out var existing))
+                {
+                    if (HasSameDynamicContract(existing, parsed))
+                        continue;
+                    throw new LolRuntimeException(
+                            $"Ambiguous LOLCODE library descriptor: {parsed.LolName}");
+                }
+                _descriptors.Add(parsed.LolName, parsed);
+            }
+        }
+
+        internal bool TryGet(string name, out LolcodeLibraryDescriptor descriptor) =>
+            _descriptors.TryGetValue(name, out descriptor!);
 
         internal void Register(
             string lolName,
@@ -122,42 +183,51 @@ internal sealed class LolcodeLibraryRegistry
             bool isBuiltIn,
             int contractVersion)
         {
-            if (string.IsNullOrWhiteSpace(lolName) ||
-                string.IsNullOrWhiteSpace(assemblyName) ||
-                string.IsNullOrWhiteSpace(exportTypeName))
-            {
-                throw new LolRuntimeException("Invalid LOLCODE library provider registration.");
-            }
-
-            var provider = new LolcodeLibraryDescriptor(
+            var descriptor = new LolcodeLibraryDescriptor(
                 lolName,
                 assemblyName,
                 exportTypeName,
                 isBuiltIn,
                 contractVersion);
-            if (provider.ContractVersion != LolcodeLibraryDescriptor.CurrentContractVersion)
-            {
-                throw new LolRuntimeException(
-                    $"Unsupported LOLCODE library contract version: {provider.ContractVersion}");
-            }
-            if (LolcodeLibraryDescriptor.Official.TryGetValue(provider.LolName, out var official) &&
-                provider != official)
-            {
-                throw new LolRuntimeException(
-                    $"Reserved LOLCODE library provider does not match the official '{provider.LolName}' contract.");
-            }
-            if (_descriptors.TryGetValue(provider.LolName, out var existing))
-            {
-                if (existing == provider)
-                    return;
-                throw new LolRuntimeException(
-                    $"Ambiguous LOLCODE library provider: {provider.LolName}");
-            }
-            _descriptors.Add(provider.LolName, provider);
+            Configure([Encode(descriptor)]);
         }
 
-        internal bool TryGet(string name, out LolcodeLibraryDescriptor descriptor) =>
-            _descriptors.TryGetValue(name, out descriptor!);
+        internal void Register(IEnumerable<LolcodeLibraryRegistration> registrations)
+        {
+            foreach (LolcodeLibraryRegistration registration in registrations)
+            {
+                if (_registrations.TryGetValue(registration.Name, out LolcodeLibraryRegistration? existing))
+                {
+                    if (existing.Factory == registration.Factory)
+                        continue;
+                    throw new LolRuntimeException(
+                        $"Ambiguous statically registered LOLCODE library: {registration.Name}");
+                }
+
+                _registrations.Add(registration.Name, registration);
+            }
+        }
+
+        internal bool TryGetRegistration(string name, out LolcodeLibraryRegistration registration) =>
+            _registrations.TryGetValue(name, out registration!);
+
+        private static bool HasSameDynamicContract(
+            LolcodeLibraryDescriptor left,
+            LolcodeLibraryDescriptor right) =>
+            left.LolName == right.LolName &&
+            left.AssemblyName == right.AssemblyName &&
+            left.ExportTypeName == right.ExportTypeName &&
+            left.IsReserved == right.IsReserved &&
+            left.ContractVersion == right.ContractVersion;
+
+        private static string Encode(LolcodeLibraryDescriptor descriptor) =>
+            string.Join(
+                "|",
+                descriptor.LolName,
+                descriptor.AssemblyName,
+                descriptor.ExportTypeName,
+                descriptor.IsReserved,
+                descriptor.ContractVersion);
 }
 
 /// <summary>Represents a LOLCODE BUKKIT and its prototype chain.</summary>

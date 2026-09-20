@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reflection;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace Lolcode.Runtime;
@@ -8,9 +9,14 @@ internal sealed record LolByteYarn(byte[] Bytes);
 
 internal static class YarnByteSink
 {
-    internal static void Write(TextWriter writer, byte[] bytes, bool suppressNewline)
+    internal static void Write(
+        TextWriter writer,
+        Stream? byteStream,
+        byte[] bytes,
+        bool suppressNewline)
     {
-        if (TryGetStream(writer, out Stream stream))
+        Stream? stream = byteStream ?? (writer as StreamWriter)?.BaseStream;
+        if (stream is not null)
         {
             writer.Flush();
             stream.Write(bytes);
@@ -27,28 +33,6 @@ internal static class YarnByteSink
             writer.WriteLine(text);
     }
 
-    private static bool TryGetStream(TextWriter writer, out Stream stream)
-    {
-        var visited = new HashSet<TextWriter>(ReferenceEqualityComparer.Instance);
-        TextWriter? current = writer;
-        while (current is not null && visited.Add(current))
-        {
-            if (current is StreamWriter streamWriter)
-            {
-                stream = streamWriter.BaseStream;
-                return true;
-            }
-
-            current = current.GetType()
-                .GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
-                .Where(static field => typeof(TextWriter).IsAssignableFrom(field.FieldType))
-                .Select(field => field.GetValue(current) as TextWriter)
-                .FirstOrDefault(static nested => nested is not null);
-        }
-
-        stream = null!;
-        return false;
-    }
 }
 
 /// <summary>
@@ -62,6 +46,12 @@ public static class LolRuntime
 {
     private sealed record YarnLiteral(string Value);
     private static readonly AsyncLocal<IoContext?> CurrentIo = new();
+    private static readonly TextWriter InitialStandardOutput = Console.Out;
+    private static readonly TextWriter InitialStandardError = Console.Error;
+    private static readonly Lazy<Stream> StandardOutputBytes =
+        new(Console.OpenStandardOutput);
+    private static readonly Lazy<Stream> StandardErrorBytes =
+        new(Console.OpenStandardError);
     private static readonly IReadOnlyDictionary<string, LolcodeLibraryDescriptor> OfficialDescriptors =
         LolcodeLibraryDescriptor.Official;
 
@@ -121,9 +111,96 @@ public static class LolRuntime
     }
 
     /// <summary>
+    /// Adds package-supplied library descriptors to a scope before it imports libraries.
+    /// </summary>
+    public static void ConfigureLibraries(LolScope scope, string[] descriptors) =>
+        scope.Libraries.Configure(descriptors);
+
+    /// <summary>
+    /// Registers direct, static library factories for a scope. This path performs no
+    /// assembly loading, filesystem probing, or member discovery.
+    /// </summary>
+    /// <param name="scope">The scope that owns the registration closure.</param>
+    /// <param name="registrations">The direct provider and module factories.</param>
+    public static void RegisterLibraries(
+        LolScope scope,
+        IReadOnlyList<LolcodeLibraryRegistration> registrations)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentNullException.ThrowIfNull(registrations);
+        scope.Libraries.Register(registrations);
+    }
+
+    /// <summary>
+    /// Imports a library previously registered with <see cref="RegisterLibraries"/>.
+    /// This path performs no dynamic-library fallback.
+    /// </summary>
+    /// <param name="scope">The importing scope.</param>
+    /// <param name="name">The LOLCODE library name.</param>
+    public static void ImportRegisteredLibrary(LolScope scope, string name)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (scope.Values.ContainsKey(name))
+            return;
+        if (!scope.Libraries.TryGetRegistration(name, out LolcodeLibraryRegistration registration))
+        {
+            throw new LolRuntimeException(
+                $"Static LOLCODE library '{name}' was not declared by this application.");
+        }
+
+        LolObject library = registration.Factory(scope)
+            ?? throw new LolRuntimeException(
+                $"Static LOLCODE library '{name}' returned no module.");
+        scope.Values.Add(name, library);
+    }
+
+    /// <summary>
+    /// Imports a module created by a generated direct static factory.
+    /// </summary>
+    /// <param name="scope">The importing scope.</param>
+    /// <param name="name">The LOLCODE import name.</param>
+    /// <param name="library">The module returned by the direct factory.</param>
+    public static void ImportStaticLibrary(LolScope scope, string name, LolObject library)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(library);
+        if (!scope.Values.ContainsKey(name))
+            scope.Values.Add(name, library);
+    }
+
+    /// <summary>
+    /// Lazily imports a module through a direct static factory. The factory is not invoked
+    /// when the scope already contains the imported name.
+    /// </summary>
+    /// <param name="scope">The importing scope.</param>
+    /// <param name="name">The LOLCODE import name.</param>
+    /// <param name="factory">The direct module factory.</param>
+    public static void ImportStaticLibrary(
+        LolScope scope,
+        string name,
+        LolcodeLibraryFactory factory)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(factory);
+        if (scope.Values.ContainsKey(name))
+            return;
+
+        LolObject library = factory(scope)
+            ?? throw new LolRuntimeException(
+                $"Static LOLCODE library '{name}' returned no module.");
+        scope.Values.Add(name, library);
+    }
+
+    /// <summary>
     /// Loads a named registered or local managed library into the current scope.
     /// Registered libraries take precedence. Unknown names and duplicate imports are ignored.
     /// </summary>
+    [RequiresUnreferencedCode("Dynamic LOLCODE library loading discovers provider members through reflection.")]
+    [RequiresAssemblyFiles("Dynamic LOLCODE library loading probes adjacent managed assemblies.")]
+    [RequiresDynamicCode("Dynamic LOLCODE library loading activates types discovered at runtime.")]
     public static void LoadLibrary(LolScope scope, string name)
     {
         if (scope.Values.ContainsKey(name))
@@ -136,7 +213,10 @@ public static class LolRuntime
 
     /// <summary>Registers a compiler-discovered untrusted friendly module alias.</summary>
     public static void RegisterLibrary(
-        LolScope scope, string alias, string assemblyName, string typeName) =>
+        LolScope scope,
+        string alias,
+        string assemblyName,
+        string typeName) =>
         scope.Libraries.Register(
             alias,
             assemblyName,
@@ -144,6 +224,7 @@ public static class LolRuntime
             isBuiltIn: false,
             LolcodeLibraryDescriptor.CurrentContractVersion);
 
+    [RequiresUnreferencedCode("Dynamic LOLCODE library loading discovers provider members through reflection.")]
     private static LolObject? LoadRegisteredLibrary(LolScope scope, string name)
     {
         if (!scope.Libraries.TryGet(name, out LolcodeLibraryDescriptor descriptor) &&
@@ -161,9 +242,7 @@ public static class LolRuntime
                 throw new LolRuntimeException(
                     $"Registered LOLCODE library '{name}' does not contain '{descriptor.ExportTypeName}'.");
             }
-            return type.IsDefined(typeof(LolcodeLibraryAttribute), inherit: false)
-                ? CreateGeneratedLolcodeLibrary(scope, type)
-                : CreateManagedLibrary(scope, type, allowContext: descriptor.IsReserved);
+            return CreateManagedLibrary(scope, type, allowContext: true);
         }
         catch (LolRuntimeException)
         {
@@ -177,6 +256,8 @@ public static class LolRuntime
         }
     }
 
+    [RequiresUnreferencedCode("Dynamic LOLCODE library loading discovers provider members through reflection.")]
+    [RequiresAssemblyFiles("Dynamic LOLCODE library loading probes adjacent managed assemblies.")]
     private static LolObject? LoadManagedLibrary(LolScope scope, string name)
     {
         if (!TryGetManagedLibraryPath(name, out string path))
@@ -216,18 +297,16 @@ public static class LolRuntime
         return CreateManagedLibrary(scope, type, allowContext: false);
     }
 
+    [RequiresUnreferencedCode("Generated LOLCODE library factories are discovered through reflection.")]
     private static LolObject CreateGeneratedLolcodeLibrary(LolScope scope, Type type)
     {
-        MethodInfo[] factories = type.GetMethods(
-                BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
-            .Where(method => method.Name == "__CreateLolcodeLibrary")
-            .ToArray();
-        if (factories is not [var factory] ||
-            factory.IsGenericMethodDefinition ||
-            factory.ContainsGenericParameters ||
-            factory.ReturnType != typeof(LolObject) ||
-            factory.GetParameters() is not [{ ParameterType: var parameterType }] ||
-            parameterType != typeof(LolScope))
+        MethodInfo? factory = type.GetMethod(
+            "__CreateLolcodeLibrary",
+            BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly,
+            binder: null,
+            [typeof(LolScope)],
+            modifiers: null);
+        if (factory?.ReturnType != typeof(LolObject))
         {
             throw new LolRuntimeException(
                 $"Generated LOLCODE library '{type.FullName}' does not expose a valid module factory.");
@@ -244,6 +323,7 @@ public static class LolRuntime
         }
     }
 
+    [RequiresUnreferencedCode("Managed LOLCODE library methods are discovered through reflection.")]
     private static LolObject CreateManagedLibrary(LolScope scope, Type type, bool allowContext)
     {
         var library = new LolObject(scope, scope.Caller);
@@ -1488,13 +1568,39 @@ public static class LolRuntime
     /// LOLCODE programs use <see cref="Console.In"/>, <see cref="Console.Out"/>, and <see cref="Console.Error"/>.
     /// </remarks>
     public static IDisposable PushIo(TextReader input, TextWriter standardOutput, TextWriter standardError)
+        => PushIo(input, standardOutput, standardError, standardOutputBytes: null, standardErrorBytes: null);
+
+    /// <summary>
+    /// Temporarily overrides the program's I/O streams and optional raw-byte sinks.
+    /// </summary>
+    /// <param name="input">The reader used by <c>GIMMEH</c>.</param>
+    /// <param name="standardOutput">The text writer used by <c>VISIBLE</c>.</param>
+    /// <param name="standardError">The text writer used by <c>INVISIBLE</c> and command errors.</param>
+    /// <param name="standardOutputBytes">The explicit raw-byte sink for standard output.</param>
+    /// <param name="standardErrorBytes">The explicit raw-byte sink for standard error.</param>
+    /// <returns>A scope that restores the previous I/O when disposed.</returns>
+    /// <remarks>
+    /// Supply byte sinks when a host wraps a <see cref="TextWriter"/> and must preserve
+    /// byte YARNs that are not valid UTF-8 text. The caller retains ownership of all streams.
+    /// </remarks>
+    public static IDisposable PushIo(
+        TextReader input,
+        TextWriter standardOutput,
+        TextWriter standardError,
+        Stream? standardOutputBytes,
+        Stream? standardErrorBytes)
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(standardOutput);
         ArgumentNullException.ThrowIfNull(standardError);
 
         var previous = CurrentIo.Value;
-        var current = new IoContext(input, standardOutput, standardError);
+        var current = new IoContext(
+            input,
+            standardOutput,
+            standardError,
+            standardOutputBytes,
+            standardErrorBytes);
         CurrentIo.Value = current;
         return new IoScope(previous, current);
     }
@@ -1510,13 +1616,23 @@ public static class LolRuntime
     /// </summary>
     public static void Print(object?[] args, bool suppressNewline, bool standardError)
     {
+        IoContext? io = CurrentIo.Value;
         TextWriter writer = standardError
-            ? CurrentIo.Value?.StandardError ?? Console.Error
-            : CurrentIo.Value?.StandardOutput ?? Console.Out;
+            ? io?.StandardError ?? Console.Error
+            : io?.StandardOutput ?? Console.Out;
         if (args.Any(static arg => arg is LolByteYarn))
         {
             byte[] bytes = GetYarnBytes(ConcatenateYarns(args));
-            YarnByteSink.Write(writer, bytes, suppressNewline);
+            Stream? byteStream = io is null
+                ? GetConsoleByteStream(writer, standardError)
+                : standardError
+                    ? io.StandardErrorBytes
+                    : io.StandardOutputBytes;
+            YarnByteSink.Write(
+                writer,
+                byteStream,
+                bytes,
+                suppressNewline);
             return;
         }
 
@@ -1565,10 +1681,17 @@ public static class LolRuntime
             byte[] outputBytes = output.GetAwaiter().GetResult();
             byte[] errorBytes = error.GetAwaiter().GetResult();
             if (errorBytes.Length > 0)
+            {
+                IoContext? io = CurrentIo.Value;
+                TextWriter errorWriter = io?.StandardError ?? Console.Error;
                 YarnByteSink.Write(
-                    CurrentIo.Value?.StandardError ?? Console.Error,
+                    errorWriter,
+                    io is null
+                        ? GetConsoleByteStream(errorWriter, standardError: true)
+                        : io.StandardErrorBytes,
                     errorBytes,
                     suppressNewline: true);
+            }
             return new LolByteYarn(outputBytes);
         }
         catch (LolRuntimeException)
@@ -1588,6 +1711,20 @@ public static class LolRuntime
         using var result = new MemoryStream();
         await stream.CopyToAsync(result);
         return result.ToArray();
+    }
+
+    private static Stream? GetConsoleByteStream(TextWriter writer, bool standardError)
+    {
+        if (standardError)
+        {
+            return ReferenceEquals(writer, InitialStandardError)
+                ? StandardErrorBytes.Value
+                : null;
+        }
+
+        return ReferenceEquals(writer, InitialStandardOutput)
+            ? StandardOutputBytes.Value
+            : null;
     }
 
     private static string DecodeProcessOutput(byte[] bytes)
@@ -1612,7 +1749,9 @@ public static class LolRuntime
     private sealed record IoContext(
         TextReader Input,
         TextWriter StandardOutput,
-        TextWriter StandardError);
+        TextWriter StandardError,
+        Stream? StandardOutputBytes,
+        Stream? StandardErrorBytes);
 
     private sealed class IoScope(IoContext? previous, IoContext current) : IDisposable
     {

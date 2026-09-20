@@ -19,7 +19,20 @@
     <LolcodeRuntimeStdioAssemblyPath Condition=" '$(LolcodeRuntimeStdioAssemblyPath)' == '' ">$(_LolcodeBuildTasksDir)Lolcode.Runtime.Stdio.dll</LolcodeRuntimeStdioAssemblyPath>
     <LolcodeRuntimeSocksAssemblyPath Condition=" '$(LolcodeRuntimeSocksAssemblyPath)' == '' ">$(_LolcodeBuildTasksDir)Lolcode.Runtime.Socks.dll</LolcodeRuntimeSocksAssemblyPath>
     <_LolcodeCompilerOptionsFile>$(IntermediateOutputPath)Lolcode.CompilerOptions.cache</_LolcodeCompilerOptionsFile>
+    <_LolcodeStaticDeployment Condition="'$(PublishAot)' == 'true' or '$(PublishTrimmed)' == 'true' or '$(PublishSingleFile)' == 'true' or '$(IsAotCompatible)' == 'true' or '$(IsTrimmable)' == 'true'">true</_LolcodeStaticDeployment>
+    <_LolcodeEffectiveLibraryResolution Condition="'$(LolcodeLibraryResolution)' == 'Auto' and '$(_LolcodeStaticDeployment)' == 'true'">Static</_LolcodeEffectiveLibraryResolution>
+    <_LolcodeEffectiveLibraryResolution Condition="'$(LolcodeLibraryResolution)' == 'Auto' and '$(_LolcodeStaticDeployment)' != 'true'">Dynamic</_LolcodeEffectiveLibraryResolution>
+    <_LolcodeEffectiveLibraryResolution Condition="'$(LolcodeLibraryResolution)' != 'Auto'">$(LolcodeLibraryResolution)</_LolcodeEffectiveLibraryResolution>
+    <GenerateRuntimeConfigurationFiles Condition="'$(OutputType)' != 'Library' and '$(GenerateRuntimeConfigurationFiles)' == ''">true</GenerateRuntimeConfigurationFiles>
+    <_CorePublishTargets>_ValidateLolcodeDeploymentOptions;_ValidateLolcodeDeploymentOutput;$(_CorePublishTargets)</_CorePublishTargets>
+    <_PublishNoBuildAlternativeDependsOn>_ValidateLolcodeDeploymentOptions;_ValidateLolcodeDeploymentOutput;$(_PublishNoBuildAlternativeDependsOn)</_PublishNoBuildAlternativeDependsOn>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(_LolcodeEffectiveLibraryResolution)' == 'Static'">
+    <ProjectReference Update="@(ProjectReference)">
+      <AdditionalProperties>%(AdditionalProperties);LolcodeLibraryResolution=Static</AdditionalProperties>
+    </ProjectReference>
+  </ItemGroup>
 
   <!-- Register the compiler task -->
   <UsingTask TaskName="Lolcode.Build.Lolc"
@@ -28,8 +41,10 @@
              AssemblyFile="$(_LolcodeBuildTasksDir)Lolcode.Build.dll" />
   <UsingTask TaskName="Lolcode.Build.NormalizeClrNamespace"
              AssemblyFile="$(_LolcodeBuildTasksDir)Lolcode.Build.dll" />
+  <UsingTask TaskName="Lolcode.Build.ValidateLolcodeDeployment"
+             AssemblyFile="$(_LolcodeBuildTasksDir)Lolcode.Build.dll" />
 
-  <!-- SDK-bundled runtime providers stay runtime assets, not consumer packages. -->
+  <!-- SDK-bundled providers remain normal runtime/reference assets. -->
   <ItemGroup>
     <Reference Include="Lolcode.Runtime">
       <HintPath>$(LolcodeRuntimeAssemblyPath)</HintPath>
@@ -51,6 +66,10 @@
       <HintPath>$(LolcodeRuntimeSocksAssemblyPath)</HintPath>
       <Private>true</Private>
     </Reference>
+    <LolcodeLibrary Include="STRING|Lolcode.Runtime.String|Lolcode.Runtime.String.StringLibrary|true|1|Lolcode.Runtime.String.StringLibraryFactory" />
+    <LolcodeLibrary Include="STDLIB|Lolcode.Runtime.Stdlib|Lolcode.Runtime.Stdlib.StdlibLibrary|true|1|Lolcode.Runtime.Stdlib.StdlibLibraryFactory" />
+    <LolcodeLibrary Include="STDIO|Lolcode.Runtime.Stdio|Lolcode.Runtime.Stdio.StdioLibrary|true|1|Lolcode.Runtime.Stdio.StdioLibraryFactory" />
+    <LolcodeLibrary Include="SOCKS|Lolcode.Runtime.Socks|Lolcode.Runtime.Socks.SocksLibrary|true|1|Lolcode.Runtime.Socks.SocksLibraryFactory" />
   </ItemGroup>
 
   <!--
@@ -59,8 +78,19 @@
   -->
   <Target Name="CreateManifestResourceNames" />
 
-  <Target Name="_PrepareLolcodeLibraryTypeName"
+  <Target Name="_ValidateLolcodeDeploymentOptions"
           BeforeTargets="CoreCompile">
+    <Error Condition="'$(_LolcodeEffectiveLibraryResolution)' != 'Dynamic' and '$(_LolcodeEffectiveLibraryResolution)' != 'Static'"
+           Text="LolcodeLibraryResolution must be Auto, Dynamic, or Static." />
+    <Error Condition="('$(PublishAot)' == 'true' or '$(PublishTrimmed)' == 'true') and '$(_LolcodeEffectiveLibraryResolution)' == 'Dynamic'"
+           Code="LOL3005"
+           Text="Dynamic LOLCODE library resolution is incompatible with PublishTrimmed or PublishAot. Set LolcodeLibraryResolution=Static or remove the deployment property." />
+    <Error Condition="'$(PublishSingleFile)' == 'true' and '$(_LolcodeEffectiveLibraryResolution)' == 'Dynamic' and '@(LolcodeLibrary)' != ''"
+           Code="LOL3005"
+           Text="Dynamic registered providers cannot be bundled with PublishSingleFile. Set LolcodeLibraryResolution=Static, or remove registered providers and deploy explicit dynamic sidecars." />
+  </Target>
+
+  <Target Name="_PrepareLolcodeLibraryTypeName">
     <MakeValidClrIdentifier Condition="'$(OutputType)' == 'Library' and '$(LolcodeLibraryTypeName)' == ''"
                             Input="$(AssemblyName)">
       <Output TaskParameter="Identifier" PropertyName="LolcodeLibraryTypeName" />
@@ -90,11 +120,22 @@
           Condition="'$(_LolcodeLibraryFullTypeName)' == ''">$(LolcodeLibraryTypeName)</_LolcodeLibraryFullTypeName>
     </PropertyGroup>
 
+    <PropertyGroup>
+      <_LolcodeLibraryDescriptorStamp>@(LolcodeLibrary, ';')</_LolcodeLibraryDescriptorStamp>
+    </PropertyGroup>
+
     <MakeDir Directories="$(IntermediateOutputPath)" />
     <WriteLinesToFile File="$(_LolcodeCompilerOptionsFile)"
-                      Lines="OutputType=$(OutputType);AssemblyName=$(AssemblyName);RootNamespace=$(_LolcodeSanitizedRootNamespace);LolcodeLibraryTypeName=$(LolcodeLibraryTypeName);LolcodeLibraryFullTypeName=$(_LolcodeLibraryFullTypeName)"
+                      Lines="OutputType=$(OutputType);AssemblyName=$(AssemblyName);RootNamespace=$(_LolcodeSanitizedRootNamespace);LolcodeLibraryTypeName=$(LolcodeLibraryTypeName);LolcodeLibraryFullTypeName=$(_LolcodeLibraryFullTypeName);LolcodeLibraries=$(_LolcodeLibraryDescriptorStamp);LolcodeLibraryResolution=$(_LolcodeEffectiveLibraryResolution);PublishAot=$(PublishAot);PublishTrimmed=$(PublishTrimmed);PublishSingleFile=$(PublishSingleFile);RuntimeIdentifier=$(RuntimeIdentifier)"
                       Overwrite="true"
                       WriteOnlyWhenDifferent="true" />
+  </Target>
+
+  <Target Name="_ValidateLolcodeDeploymentOutput"
+          Condition="'$(_LolcodeStaticDeployment)' == 'true'">
+    <ValidateLolcodeDeployment
+        AssemblyPath="$(IntermediateOutputPath)$(TargetName)$(TargetExt)"
+        ExpectedLibraryResolution="$(_LolcodeEffectiveLibraryResolution)" />
   </Target>
 
   <!--
@@ -106,7 +147,7 @@
   -->
   <Target Name="CoreCompile"
           Condition=" '@(Compile)' != '' "
-          DependsOnTargets="$(CoreCompileDependsOn)"
+          DependsOnTargets="_PrepareLolcodeLibraryTypeName;$(CoreCompileDependsOn)"
           Inputs="@(Compile);@(CustomAdditionalCompileInputs);@(ReferencePathWithRefAssemblies);$(MSBuildAllProjects);$(_LolcodeCompilerOptionsFile)"
           Outputs="@(IntermediateAssembly)">
 
@@ -122,8 +163,24 @@
           OutputType="$(OutputType)"
           AssemblyName="$(AssemblyName)"
           LolcodeLibraryTypeName="$(_LolcodeLibraryFullTypeName)"
+          LolcodeLibraries="@(LolcodeLibrary)"
+          LibraryResolution="$(_LolcodeEffectiveLibraryResolution)"
+          RuntimeConfigOwnedByHost="true"
           SkipCompilerExecution="$(SkipCompilerExecution)" />
 
+  </Target>
+
+  <Target Name="_ValidateLolcodeSingleBinaryPublish"
+          AfterTargets="Publish"
+          Condition="'$(LolcodeRequireSingleBinary)' == 'true'">
+    <ItemGroup>
+      <_LolcodeManagedPublishSidecar Include="$(PublishDir)**/*.dll" />
+      <_LolcodeManagedPublishSidecar Include="$(PublishDir)**/*.deps.json" />
+      <_LolcodeManagedPublishSidecar Include="$(PublishDir)**/*.runtimeconfig.json" />
+    </ItemGroup>
+    <Error Condition="'@(_LolcodeManagedPublishSidecar)' != ''"
+           Code="LOL3008"
+           Text="LolcodeRequireSingleBinary requires no managed DLL, deps.json, or runtimeconfig.json publish sidecars. Found: @(_LolcodeManagedPublishSidecar)." />
   </Target>
 
   <!-- Support dotnet watch by monitoring .lol files -->

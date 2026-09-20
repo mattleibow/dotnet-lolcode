@@ -157,6 +157,32 @@ public static class DiagnosticDescriptors
         "This source file uses LOLCODE {1}, but the compilation uses LOLCODE {0}.",
         "Binder");
 
+    // --- Deployment/static linking ---
+
+    /// <summary>A static import does not have a declared direct factory.</summary>
+    public static readonly DiagnosticDescriptor StaticImportNotResolved = new(
+        "LOL3001", "Static import cannot be resolved",
+        "Static LOLCODE import '{0}' is not declared by the resolved project references.",
+        "Deployment");
+
+    /// <summary>A static import descriptor does not expose a usable factory.</summary>
+    public static readonly DiagnosticDescriptor StaticFactoryUnavailable = new(
+        "LOL3003", "Static factory is unavailable",
+        "Static LOLCODE library '{0}' does not provide a compatible public factory. Rebuild or reference a provider with the static import contract.",
+        "Deployment");
+
+    /// <summary>Dynamic library resolution cannot be used for the requested deployment.</summary>
+    public static readonly DiagnosticDescriptor DynamicResolutionNotSupported = new(
+        "LOL3005", "Dynamic resolution is not publish compatible",
+        "Dynamic LOLCODE library resolution cannot be used with trimming, single-file imports, or NativeAOT. Use LolcodeLibraryResolution=Static.",
+        "Deployment");
+
+    /// <summary>A runtime-selected import does not have a closed static candidate set.</summary>
+    public static readonly DiagnosticDescriptor DynamicImportWithoutCandidates = new(
+        "LOL3007", "Dynamic import has no static candidate set",
+        "Dynamic LOLCODE import requires a declared static provider candidate set.",
+        "Deployment");
+
     // --- Internal ---
 
     /// <summary>Internal compiler error.</summary>

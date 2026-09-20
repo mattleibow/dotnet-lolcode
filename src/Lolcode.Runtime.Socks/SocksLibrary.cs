@@ -73,10 +73,12 @@ internal static class SocksLibrary
             return address?.ToString()
                 ?? throw new LolRuntimeException($"Unable to resolve host: {host}");
         }
+
         catch (SocketException ex)
         {
             throw new LolRuntimeException($"Unable to resolve host: {host}", ex);
         }
+
     }
 
     public static object BIND(LolcodeLibraryContext context, string addressText, int port)
@@ -92,6 +94,7 @@ internal static class SocksLibrary
             socket = null;
             return blob;
         }
+
         catch (Exception ex) when (ex is SocketException or ArgumentException or NotSupportedException)
         {
             socket?.Dispose();
@@ -168,5 +171,38 @@ internal static class SocksLibrary
         return addresses.FirstOrDefault(static candidate => candidate.AddressFamily == AddressFamily.InterNetwork)
             ?? addresses.FirstOrDefault()
             ?? throw new LolRuntimeException($"Unable to resolve host: {address}");
+    }
+}
+
+/// <summary>Creates the official SOCKS provider for static LOLCODE imports.</summary>
+public static class SocksLibraryFactory
+{
+    /// <summary>Creates a scope-bound SOCKS module without runtime discovery.</summary>
+    /// <param name="scope">The importing LOLCODE scope.</param>
+    /// <returns>The SOCKS module.</returns>
+    public static LolObject Create(LolScope scope)
+    {
+        var builder = new LolcodeLibraryBuilder(scope);
+        builder.AddFunction("RESOLV", 1, static (_, arguments) =>
+            SocksLibrary.RESOLV(LolRuntime.CastToYarn(arguments[0])));
+        builder.AddFunction("BIND", 2, static (context, arguments) =>
+            SocksLibrary.BIND(
+                context,
+                LolRuntime.CastToYarn(arguments[0]),
+                LolRuntime.CastToNumbr(arguments[1])));
+        builder.AddFunction("LISTN", 1, static (context, arguments) =>
+            SocksLibrary.LISTN(context, arguments[0]!));
+        builder.AddFunction("KONN", 3, static (context, arguments) =>
+            SocksLibrary.KONN(
+                context,
+                arguments[0]!,
+                LolRuntime.CastToYarn(arguments[1]),
+                LolRuntime.CastToNumbr(arguments[2])));
+        builder.AddFunction("CLOSE", 1, static (_, arguments) => SocksLibrary.CLOSE(arguments[0]!));
+        builder.AddFunction("PUT", 3, static (_, arguments) =>
+            SocksLibrary.PUT(arguments[0]!, arguments[1]!, arguments[2]!));
+        builder.AddFunction("GET", 3, static (_, arguments) =>
+            SocksLibrary.GET(arguments[0]!, arguments[1]!, LolRuntime.CastToNumbr(arguments[2])));
+        return builder.Build();
     }
 }

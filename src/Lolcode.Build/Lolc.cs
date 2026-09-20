@@ -42,6 +42,20 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
     /// </summary>
     public string LolcodeLibraryTypeName { get; set; } = "";
 
+    /// <summary>Encoded descriptors supplied by runtime-library packages.</summary>
+    public ITaskItem[] LolcodeLibraries { get; set; } = [];
+
+    /// <summary>
+    /// Library-resolution mode selected by the SDK: <c>Dynamic</c> or <c>Static</c>.
+    /// </summary>
+    public string LibraryResolution { get; set; } = nameof(LolcodeLibraryResolution.Dynamic);
+
+    /// <summary>
+    /// Gets or sets whether the MSBuild host creates runtime configuration and publish
+    /// artifacts instead of the compatibility path-based emitter.
+    /// </summary>
+    public bool RuntimeConfigOwnedByHost { get; set; }
+
     /// <summary>
     /// When true, skip actual compilation (design-time builds).
     /// Visual Studio calls this during design-time to gather metadata without compiling.
@@ -72,8 +86,32 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
 
         Log.LogMessage(MessageImportance.Normal,
             "Lolc: Compiling {0} source file(s) to {1}", Sources.Length, outputPath);
+        Log.LogMessage(
+            MessageImportance.Normal,
+            "Lolc: Using {0} registered library descriptor(s).",
+            GetLibraryDescriptors().Length);
+
         try
         {
+            if (!Enum.TryParse(LibraryResolution, ignoreCase: true, out LolcodeLibraryResolution resolution))
+            {
+                Log.LogError(
+                    subcategory: null, errorCode: "LOL3005", helpKeyword: null,
+                    file: null, lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0,
+                    message: "LolcodeLibraryResolution must be Dynamic or Static.");
+                return false;
+            }
+
+            if (resolution == LolcodeLibraryResolution.Static &&
+                GetLibraryDescriptors().Any(descriptor => descriptor.Split('|').Length != 6))
+            {
+                Log.LogError(
+                    subcategory: null, errorCode: "LOL3003", helpKeyword: null,
+                    file: null, lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0,
+                    message: "Static LOLCODE resolution requires a provider descriptor with a public factory contract.");
+                return false;
+            }
+
             // Parse all source files
             var trees = new SyntaxTree[Sources.Length];
             for (int i = 0; i < Sources.Length; i++)
@@ -99,8 +137,14 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
                 outputPath,
                 RuntimeAssemblyPath,
                 ReferencePath.Select(reference => reference.ItemSpec),
+                new LolcodeEmitOptions
+                {
+                    LibraryResolution = resolution,
+                    RuntimeConfigOwnedByHost = RuntimeConfigOwnedByHost,
+                },
                 OutputType,
-                LolcodeLibraryTypeName);
+                LolcodeLibraryTypeName,
+                GetLibraryDescriptors());
 
             // Report diagnostics in MSBuild format
             foreach (var diagnostic in result.Diagnostics)
@@ -151,6 +195,11 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
             return false;
         }
     }
+
+    private string[] GetLibraryDescriptors() =>
+        LolcodeLibraries
+            .Select(library => library.ItemSpec)
+            .ToArray();
 }
 
 /// <summary>
