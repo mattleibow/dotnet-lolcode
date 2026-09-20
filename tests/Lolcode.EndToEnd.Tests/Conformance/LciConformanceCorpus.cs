@@ -15,25 +15,63 @@ internal static partial class LciConformanceCorpus
     private static string CorpusRoot =>
         Path.Combine(AppContext.BaseDirectory, "Conformance", "lci");
 
-    private static IReadOnlyList<LciTestRegistration> LoadRegistrations()
-    {
-        string testRoot = Path.Combine(CorpusRoot, "upstream", "test");
-        var registrations = new List<LciTestRegistration>();
+    private static IReadOnlyList<LciTestRegistration> LoadRegistrations() =>
+        LciRegistrationParser.Discover(
+            Path.Combine(CorpusRoot, "upstream", "test"),
+            "upstream");
 
+}
+
+internal sealed record LciTestRegistration(
+    string Id,
+    string UpstreamName,
+    string SourcePath,
+    string? ExpectedOutputPath,
+    string? InputPath,
+    string? ExpectedErrorPath,
+    bool ExpectError,
+    string? WorkingDirectoryPath);
+
+/// <summary>Discovers the repository-owned, portable compatibility fixtures.</summary>
+internal static class CompatibilityCorpus
+{
+    private static readonly Lazy<IReadOnlyList<LciTestRegistration>> RegistrationsValue =
+        new(LoadRegistrations);
+
+    internal static IReadOnlyList<LciTestRegistration> Registrations => RegistrationsValue.Value;
+
+    private static IReadOnlyList<LciTestRegistration> LoadRegistrations() =>
+        LciRegistrationParser.Discover(
+            Path.Combine(AppContext.BaseDirectory, "Compatibility"),
+            "compatibility");
+}
+
+/// <summary>
+/// Parses the deliberately small, proven <c>ADD_LOL_TEST</c> vocabulary used by lci.
+/// The parser is shared by upstream and repository-owned fixture trees so their
+/// interpretation cannot drift.
+/// </summary>
+internal static partial class LciRegistrationParser
+{
+    internal static IReadOnlyList<LciTestRegistration> Discover(string root, string corpusName)
+    {
+        if (!Directory.Exists(root))
+            throw new DirectoryNotFoundException($"The {corpusName} corpus was not copied to '{root}'.");
+
+        var registrations = new List<LciTestRegistration>();
         foreach (string cmakePath in Directory.EnumerateFiles(
-                     testRoot, "CMakeLists.txt", SearchOption.AllDirectories))
+                     root, "CMakeLists.txt", SearchOption.AllDirectories))
         {
             string cmake = File.ReadAllText(cmakePath);
-            MatchCollection matches = RegistrationRegex().Matches(cmake);
-            if (matches.Count == 0)
-                continue;
-
-            foreach (Match match in matches)
+            foreach (Match match in RegistrationRegex().Matches(cmake))
             {
                 string directory = Path.GetDirectoryName(cmakePath)!;
-                string id = Path.GetRelativePath(testRoot, directory).Replace('\\', '/');
                 string[] arguments = WhitespaceRegex()
-                    .Split(match.Groups["arguments"].Value.Trim());
+                    .Split(match.Groups["arguments"].Value.Trim())
+                    .Where(argument => argument.Length > 0)
+                    .ToArray();
+                if (arguments.Length == 0)
+                    throw new InvalidDataException($"ADD_LOL_TEST has no test name in {cmakePath}.");
 
                 string source = Path.Combine(directory, "test.lol");
                 string? expectedOutput = null;
@@ -46,13 +84,13 @@ internal static partial class LciConformanceCorpus
                     switch (arguments[index])
                     {
                         case "LOLCODE":
-                            source = ResolveArgumentPath(directory, arguments, ref index);
+                            source = ResolveArgumentPath(directory, arguments, ref index, cmakePath);
                             break;
                         case "OUTPUT":
-                            expectedOutput = ResolveArgumentPath(directory, arguments, ref index);
+                            expectedOutput = ResolveArgumentPath(directory, arguments, ref index, cmakePath);
                             break;
                         case "INPUT":
-                            input = ResolveArgumentPath(directory, arguments, ref index);
+                            input = ResolveArgumentPath(directory, arguments, ref index, cmakePath);
                             break;
                         case "ERROR":
                             expectError = true;
@@ -68,12 +106,12 @@ internal static partial class LciConformanceCorpus
 
                 string expectedError = Path.Combine(directory, "test.err");
                 registrations.Add(new LciTestRegistration(
-                    id,
+                    Path.GetRelativePath(root, directory).Replace('\\', '/'),
                     arguments[0],
                     source,
                     expectedOutput,
                     input,
-                    expectError ? expectedError : null,
+                    expectError && File.Exists(expectedError) ? expectedError : null,
                     expectError,
                     useWorkingDirectory ? directory : null));
             }
@@ -85,11 +123,15 @@ internal static partial class LciConformanceCorpus
     private static string ResolveArgumentPath(
         string directory,
         IReadOnlyList<string> arguments,
-        ref int index)
+        ref int index,
+        string cmakePath)
     {
         index++;
         if (index >= arguments.Count)
-            throw new InvalidDataException("ADD_LOL_TEST metadata is missing a path argument.");
+        {
+            throw new InvalidDataException(
+                $"ADD_LOL_TEST metadata is missing a path argument in {cmakePath}.");
+        }
 
         return Path.Combine(directory, arguments[index]);
     }
@@ -102,13 +144,3 @@ internal static partial class LciConformanceCorpus
     [GeneratedRegex(@"\s+")]
     private static partial Regex WhitespaceRegex();
 }
-
-internal sealed record LciTestRegistration(
-    string Id,
-    string UpstreamName,
-    string SourcePath,
-    string? ExpectedOutputPath,
-    string? InputPath,
-    string? ExpectedErrorPath,
-    bool ExpectError,
-    string? WorkingDirectoryPath);
