@@ -143,6 +143,19 @@ jobs:
       - name: Check extracted compatibility fixtures
         run: python3 tools/extract-e2e-compatibility.py --check
 
+      - name: Verify compatibility contracts with autocrlf enabled
+        shell: bash
+        run: |
+          git clone --no-local . artifacts/autocrlf-compatibility
+          cd artifacts/autocrlf-compatibility
+          git config core.autocrlf true
+          git config core.eol crlf
+          git rm --cached -r . >/dev/null
+          git reset --hard HEAD
+          python3 tools/extract-e2e-compatibility.py --check
+          dotnet run --project tools/Lolcode.Compatibility.Flatten/Lolcode.Compatibility.Flatten.csproj -- --check
+          git diff --check
+
       - name: Upload compatibility results
         if: always()
         uses: actions/upload-artifact@v4

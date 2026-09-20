@@ -132,7 +132,7 @@ public static class FixtureFlattener
             Scope: { DirectToken: not null, Slot: null, NameExpression: null } scope,
             Identifier: { DirectToken: not null, Slot: null, NameExpression: null },
         } &&
-        string.Equals(scope.DirectToken.Text, "I", StringComparison.OrdinalIgnoreCase);
+        string.Equals(scope.DirectToken.Text, "I", StringComparison.Ordinal);
 
     private static TextRange FindLogicalStatement(
         IReadOnlyList<SyntaxToken> tokens,

@@ -1,5 +1,8 @@
-# Fixture output bytes are the contract, including trailing whitespace.
-tests/Compatibility/**/test.out -whitespace
-
-# Flattened compatibility fixtures are generated with LF line endings.
-tests/Compatibility/**/*.lol text eol=lf
+# Compatibility registrations and fixture inputs/outputs are byte contracts.
+# Do not subject them to checkout conversion (including core.autocrlf).
+tests/Compatibility/**/CMakeLists.txt -text
+tests/Compatibility/**/sources.txt -text
+tests/Compatibility/**/mismatch.sources.txt -text
+tests/Compatibility/**/test.in -text
+tests/Compatibility/**/test.out -text
+tests/Compatibility/**/*.lol -text

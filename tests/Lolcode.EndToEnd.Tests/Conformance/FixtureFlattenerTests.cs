@@ -52,6 +52,25 @@ public sealed class FixtureFlattenerTests
     }
 
     [Fact]
+    public void Lowercase_object_receiver_is_not_hoisted()
+    {
+        string directory = Path.Combine(
+            AppContext.BaseDirectory,
+            "Compatibility",
+            "DotNetOnly",
+            "ProjectFlatten",
+            "lowercase-receiver-not-hoisted");
+        string source = FixtureFlattener.Flatten(FixtureFlattener.ReadManifest(directory));
+
+        source.IndexOf("O HAI IM box", StringComparison.Ordinal)
+            .Should()
+            .BeLessThan(source.IndexOf("HOW IZ i deferred", StringComparison.Ordinal));
+        source.IndexOf("HOW IZ i deferred", StringComparison.Ordinal)
+            .Should()
+            .BeLessThan(source.IndexOf("VISIBLE \"after object\"", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Mismatched_versions_are_rejected()
     {
         string directory = Path.Combine(
