@@ -201,6 +201,8 @@ internal static class CompatibilityProcessRunner
             child = os.fork()
             if child == 0:
                 try:
+                    os.close(read_pipe)
+                    os.close(write_pipe)
                     os.execvpe(sys.argv[1], sys.argv[1:], os.environ)
                 except OSError as error:
                     os.write(2, f"{error}\n".encode())
@@ -370,12 +372,15 @@ internal static class WindowsJobProcess
                 throw CreateWin32Exception("ResumeThread");
             }
 
-            return new WindowsOwnedProcess(
+            var ownedProcess = new WindowsOwnedProcess(
                 processHandle,
                 job,
                 new FileStream(parentInput, FileAccess.Write, bufferSize: 4096, isAsync: true),
                 new FileStream(parentOutput, FileAccess.Read, bufferSize: 81920, isAsync: true),
                 new FileStream(parentError, FileAccess.Read, bufferSize: 81920, isAsync: true));
+            childOutput.Dispose();
+            childError.Dispose();
+            return ownedProcess;
         }
         catch
         {
@@ -383,6 +388,8 @@ internal static class WindowsJobProcess
             parentInput.Dispose();
             parentOutput.Dispose();
             parentError.Dispose();
+            childOutput.Dispose();
+            childError.Dispose();
             throw;
         }
     }
@@ -581,7 +588,7 @@ internal static class WindowsJobProcess
             WaitForExit();
             if (!GetExitCodeProcess(_process, out uint exitCode))
                 throw CreateWin32Exception("GetExitCodeProcess");
-            Stop();
+            CloseJob();
             return unchecked((int)exitCode);
         });
 
@@ -589,8 +596,7 @@ internal static class WindowsJobProcess
 
         internal void Stop()
         {
-            SafeFileHandle? job = Interlocked.Exchange(ref _job, null);
-            job?.Dispose();
+            CloseJob();
             StandardInput.Dispose();
             StandardOutput.Dispose();
             StandardError.Dispose();
@@ -606,6 +612,12 @@ internal static class WindowsJobProcess
         {
             if (WaitForSingleObject(_process, Infinite) != WaitObject0)
                 throw CreateWin32Exception("WaitForSingleObject");
+        }
+
+        private void CloseJob()
+        {
+            SafeFileHandle? job = Interlocked.Exchange(ref _job, null);
+            job?.Dispose();
         }
     }
 

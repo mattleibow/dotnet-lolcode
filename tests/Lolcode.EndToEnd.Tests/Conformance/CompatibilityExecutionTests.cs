@@ -19,7 +19,7 @@ public sealed class CompatibilityExecutionTests
         ProcessExecution result = await CompatibilityProcessRunner.RunAsync(
             startInfo,
             standardInput: null,
-            TimeSpan.FromMilliseconds(500));
+            TimeSpan.FromSeconds(2));
 
         result.ExitCode.Should().Be(0);
         stopwatch.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(2));

@@ -1,8 +1,3 @@
-# Compatibility registrations and fixture inputs/outputs are byte contracts.
-# Do not subject them to checkout conversion (including core.autocrlf).
-tests/Compatibility/**/CMakeLists.txt -text
-tests/Compatibility/**/sources.txt -text
-tests/Compatibility/**/mismatch.sources.txt -text
-tests/Compatibility/**/test.in -text
-tests/Compatibility/**/test.out -text
-tests/Compatibility/**/*.lol -text
+# Compatibility registrations, source, data, and expected-output files are
+# byte contracts. Do not subject any fixture files to checkout conversion.
+tests/Compatibility/** -text
