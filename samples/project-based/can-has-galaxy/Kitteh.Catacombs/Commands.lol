@@ -1,9 +1,8 @@
 HAI 1.4
 
-CAN HAS TerminalUi?
-
 BTW CATLOOK renders a room description through the shared terminal panel widget.
 HOW IZ I CATLOOK YR session
+  CAN HAS TerminalUi?
   I HAS A room ITZ session'Z room
   room
   WTF?

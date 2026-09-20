@@ -11,15 +11,5 @@
     <ProjectReference Include="..\Lolcode.GameEngine\Lolcode.GameEngine.lolproj" />
     <ProjectReference Include="..\Lolcode.TerminalUi\Lolcode.TerminalUi.lolproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Remove="**/*.lol" />
-    <Compile Include="01-Model.lol" />
-    <Compile Include="02-Navigation.lol" />
-    <Compile Include="03-Economy.lol" />
-    <Compile Include="04-Combat.lol" />
-    <Compile Include="05-Story.lol" />
-    <Compile Include="06-Persistence.lol" />
-    <Compile Include="07-Views.lol" />
-  </ItemGroup>
   <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.targets" />
 </Project>

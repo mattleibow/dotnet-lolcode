@@ -1,10 +1,9 @@
 HAI 1.4
 
-CAN HAS GameEngine?
-CAN HAS TerminalUi?
-
 BTW RUNCATACOMBS registers first-class functions and runs a finite portable input loop.
 HOW IZ I RUNCATACOMBS
+  CAN HAS GameEngine?
+  CAN HAS TerminalUi?
   BTW session is Catacombs-only state passed through the generic router.
   I HAS A session ITZ A BUKKIT
   session HAS A room ITZ 0
