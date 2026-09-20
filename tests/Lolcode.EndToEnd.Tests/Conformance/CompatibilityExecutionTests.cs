@@ -6,7 +6,7 @@ namespace Lolcode.EndToEnd.Tests;
 public sealed class CompatibilityExecutionTests
 {
     [Fact]
-    public async Task Timeout_includes_pipe_drains_after_parent_exits()
+    public async Task Parent_exit_with_descendant_pipes_does_not_hang_drains()
     {
         if (OperatingSystem.IsWindows() || !File.Exists("/bin/sh"))
             return;
@@ -16,12 +16,12 @@ public sealed class CompatibilityExecutionTests
         startInfo.ArgumentList.Add("sleep 0.1; sleep 30 &");
         var stopwatch = Stopwatch.StartNew();
 
-        Func<Task> run = () => CompatibilityProcessRunner.RunAsync(
+        ProcessExecution result = await CompatibilityProcessRunner.RunAsync(
             startInfo,
             standardInput: null,
             TimeSpan.FromMilliseconds(500));
 
-        await run.Should().ThrowAsync<TimeoutException>();
+        result.ExitCode.Should().Be(0);
         stopwatch.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(2));
     }
 

@@ -32,10 +32,10 @@ internal static class CompatibilityProcessRunner
         startInfo.RedirectStandardError = true;
         startInfo.RedirectStandardInput = standardInput is not null;
         startInfo.Environment["DOTNET_CLI_DO_NOT_USE_MSBUILD_SERVER"] = "1";
+        ConfigureUnixProcessGroup(startInfo);
 
         using Process process = Process.Start(startInfo)
             ?? throw new InvalidOperationException($"Could not start '{startInfo.FileName}'.");
-        int? processGroupId = UnixProcessGroups.TryCreate(process.Id);
         using var cancellation = new CancellationTokenSource();
         Task<byte[]> outputTask = ReadAllBytesAsync(
             process.StandardOutput.BaseStream, "stdout", cancellation.Token);
@@ -63,14 +63,14 @@ internal static class CompatibilityProcessRunner
         catch (TimeoutException)
         {
             await StopAndDrainAsync(
-                process, processGroupId, cancellation, outputTask, errorTask, inputTask);
+                process, cancellation, outputTask, errorTask, inputTask);
             throw new TimeoutException(
                 $"'{startInfo.FileName}' did not complete within {timeout.TotalSeconds:0} seconds.");
         }
         catch (OutputLimitExceededException exception)
         {
             await StopAndDrainAsync(
-                process, processGroupId, cancellation, outputTask, errorTask, inputTask);
+                process, cancellation, outputTask, errorTask, inputTask);
             throw new InvalidOperationException(
                 $"'{startInfo.FileName}' exceeded the {MaximumCapturedBytes:N0}-byte " +
                 $"{exception.StreamName} capture limit.",
@@ -79,7 +79,7 @@ internal static class CompatibilityProcessRunner
         catch
         {
             await StopAndDrainAsync(
-                process, processGroupId, cancellation, outputTask, errorTask, inputTask);
+                process, cancellation, outputTask, errorTask, inputTask);
             throw;
         }
     }
@@ -98,14 +98,13 @@ internal static class CompatibilityProcessRunner
 
     private static async Task StopAndDrainAsync(
         Process process,
-        int? processGroupId,
         CancellationTokenSource cancellation,
         Task<byte[]> outputTask,
         Task<byte[]> errorTask,
         Task inputTask)
     {
         cancellation.Cancel();
-        UnixProcessGroups.TryKill(processGroupId);
+        UnixProcessGroups.TryKill(process.Id);
         try
         {
             process.Kill(entireProcessTree: true);
@@ -173,26 +172,63 @@ internal static class CompatibilityProcessRunner
         internal string StreamName { get; } = streamName;
     }
 
+    private static void ConfigureUnixProcessGroup(ProcessStartInfo startInfo)
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+
+        string executable = startInfo.FileName;
+        string[] arguments = startInfo.ArgumentList.ToArray();
+        startInfo.FileName = "python3";
+        startInfo.ArgumentList.Clear();
+        startInfo.ArgumentList.Add("-c");
+        startInfo.ArgumentList.Add(
+            """
+            import os
+            import signal
+            import sys
+
+            os.setsid()
+            process_group = os.getpgrp()
+            child = os.fork()
+            if child == 0:
+                try:
+                    os.execvpe(sys.argv[1], sys.argv[1:], os.environ)
+                except OSError as error:
+                    os.write(2, f"{error}\n".encode())
+                    os._exit(127)
+
+            _, status = os.waitpid(child, 0)
+            read_pipe, write_pipe = os.pipe()
+            helper = os.fork()
+            if helper == 0:
+                os.close(write_pipe)
+                os.read(read_pipe, 1)
+                os.close(read_pipe)
+                os.setpgrp()
+                os.killpg(process_group, signal.SIGKILL)
+                os._exit(0)
+            os.close(read_pipe)
+            os.close(write_pipe)
+            exit_code = os.waitstatus_to_exitcode(status)
+            os._exit(exit_code if exit_code >= 0 else 128 - exit_code)
+            """);
+        startInfo.ArgumentList.Add(executable);
+        foreach (string argument in arguments)
+            startInfo.ArgumentList.Add(argument);
+    }
+
     private static class UnixProcessGroups
     {
         private const int SigKill = 9;
 
-        internal static int? TryCreate(int processId)
+        internal static void TryKill(int processId)
         {
             if (OperatingSystem.IsWindows())
-                return null;
+                return;
 
-            return setpgid(processId, processId) == 0 ? processId : null;
+            _ = kill(-processId, SigKill);
         }
-
-        internal static void TryKill(int? processGroupId)
-        {
-            if (processGroupId is int groupId)
-                _ = kill(-groupId, SigKill);
-        }
-
-        [DllImport("libc", SetLastError = true)]
-        private static extern int setpgid(int pid, int pgid);
 
         [DllImport("libc", SetLastError = true)]
         private static extern int kill(int pid, int signal);
