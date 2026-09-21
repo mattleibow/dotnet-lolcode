@@ -10,25 +10,29 @@ first file's version. The header is a compatibility declaration, not a strict
 feature gate: it does not promise that every proposal associated with that
 number is present. See [versions and support](../language/versions.md).
 
-The SDK normally globs `**/*.lol`. When top-level initialization has a
-dependency, declare the order explicitly:
+The SDK normally globs `**/*.lol`. File-based execution suppresses that glob,
+so adjacent files do not silently join a `dotnet run --file` build. In a
+project, when top-level initialization has a dependency, declare the order
+explicitly:
 
 ```xml
 <ItemGroup>
   <Compile Remove="**/*.lol" />
-  <Compile Include="02-Formatting.lol" />
-  <Compile Include="01-State.lol" />
+  <Compile Include="Welcome.lol" />
+  <Compile Include="Greeting.lol" />
 </ItemGroup>
 ```
 
 This is the order used by the
 [LOLCODE-head library sample](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples/project-based/lolcode-head-lolcode-library).
-Top-level statements run in `Compile` order. Consequently, a top-level
-variable must be declared before a later file uses it, and a 1.3/1.4
-runtime-function value must be initialized before it is called.
+Variables, imports, I/O, side effects, and other normal initialization run in
+`Compile` order. Consequently, a top-level variable must be declared before a
+later ordered initializer uses it.
 
-Function declarations are collected across every syntax tree, so ordinary
-function calls work regardless of file order:
+When a compilation contains more than one syntax tree, direct top-level
+`HOW IZ I` declarations are installed before all normal initialization in
+1.2, 1.3, and 1.4. Ordinary cross-file calls therefore work regardless of file
+order:
 
 ```lolcode
 BTW Caller.lol
@@ -46,11 +50,16 @@ IF U SAY SO
 KTHXBYE
 ```
 
-Duplicate functions and variables still diagnose the later declaration. The
-compiler retains per-file paths for parser, binding, and version diagnostics,
-and MSBuild makes `CoreCompile` incremental from the selected `Compile` items,
-references, project files, and compiler options. Changing one input rebuilds
-the emitted assembly; unchanged inputs let MSBuild skip the target.
+This hoist does not include SRS/dynamic declarations, nested functions, or
+object methods. In single-file 1.3/1.4 programs, textual declaration and
+replacement order remains dynamic. Duplicate declarations still follow the
+applicable version rules.
+
+The compiler retains per-file paths for parser, binding, and version
+diagnostics. MSBuild makes the ordered `Compile` item list, references, project
+files, and compiler options incremental inputs. Editing, adding, deleting, or
+reordering a source rebuilds the one emitted assembly; unchanged inputs let
+MSBuild skip the target.
 
 The canonical runtime and header rules live in the
 [implementation profile](../reference/implementation-profile.md).

@@ -1,10 +1,42 @@
-- name: Learning path
+order: 100
+items:
+- name: Learning home
   href: index.md
-- name: Foundations
-  href: foundations.md
-- name: Values and decisions
-  href: values-and-decisions.md
-- name: Repetition and text
-  href: repetition-and-text.md
-- name: Functions and an application
-  href: functions-and-app.md
+- name: Getting started
+  href: ../getting-started/toc.yml
+  topicHref: ../getting-started/index.md
+- name: Beginner course
+  href: course.md
+  items:
+  - name: 01 Your first program
+    href: first-program.md
+  - name: 02 Values, output, variables
+    href: foundations.md
+  - name: 03 Input and calculations
+    href: values-and-decisions.md
+  - name: 04 Decisions and program flow
+    href: decisions.md
+  - name: 05 Repetition and text
+    href: repetition-and-text.md
+  - name: 06 Functions and a guessing game
+    href: functions-and-app.md
+  - name: 07 Finding errors and testing
+    href: debugging-and-tests.md
+  - name: 08 Planning a complete program
+    href: planning-programs.md
+  - name: 09 Objects and program state
+    href: objects-and-state.md
+  - name: 10 Growing into a .NET project
+    href: project-workflow.md
+  - name: 11 Libraries, files, and resources
+    href: files-and-libraries.md
+  - name: 12 Build and share an application
+    href: capstone.md
+- name: For .NET developers
+  href: dotnet/toc.yml
+  topicHref: dotnet/index.md
+- name: Tutorials and walkthroughs
+  href: ../tutorials/toc.yml
+  topicHref: ../tutorials/index.md
+- name: Samples
+  href: ../language/samples.md

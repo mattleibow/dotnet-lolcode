@@ -16,7 +16,7 @@ The source-tree example is
 [`samples/project-based/hello-world/Program.lol`](../../../samples/project-based/hello-world/Program.lol).
 
 ```xml
-<Project Sdk="Lolcode.NET.Sdk">
+<Project Sdk="Lolcode.NET.Sdk/0.2.0">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>

@@ -20,9 +20,12 @@ marked for later LOLCODE imports.
 
 `AssemblyName` controls the DLL name. `RootNamespace` and
 `LolcodeLibraryTypeName` compose the generated export type, here
-`InteropSamples.LolcatExports`. If no type name is set, the SDK derives a valid
-CLR identifier from the assembly name. Type names must be simple CLR
-identifiers; namespace components are normalized separately.
+`InteropSamples.LolcatExports`. If the type name is omitted, the SDK derives
+and sanitizes it from `AssemblyName`. An explicit type name must be a simple,
+non-keyword C# identifier without dots. Every `RootNamespace` segment is
+sanitized independently and repeated segments are retained. Setting
+`RootNamespace` explicitly empty emits the type in the global namespace;
+otherwise the .NET SDK's assembly-derived default applies.
 
 ## C# calls LOLCODE
 
@@ -34,10 +37,16 @@ Console.WriteLine(InteropSamples.LolcatExports.WELCOME("DOTNET", 3));
 Console.WriteLine(InteropSamples.LolcatExports.MEOWLEN());
 ```
 
-Each public wrapper initializes a fresh LOLCODE module object. Public wrapper
-results transfer any returned BLOB ownership to the managed caller, which must
-dispose the handle when appropriate. See [providers](providers.md) for BLOB
-lifetime details.
+Each public wrapper initializes a fresh LOLCODE module object. Its generated
+initializer executes only initializer-safe direct top-level forms: imports,
+declarations, object definitions, and function definitions. Assignment, I/O,
+control flow, and arbitrary executable statements are skipped. Only direct
+top-level `HOW IZ I` functions become public wrappers; parameters and results
+use `object`.
+
+Public wrapper results detach the complete returned BLOB graph from program
+cleanup and transfer ownership to the managed caller, which must dispose
+handles when appropriate. See [providers](providers.md) for lifetime details.
 
 ## LOLCODE calls LOLCODE
 
@@ -52,10 +61,10 @@ KTHXBYE
 ```
 
 Generated libraries are selected by their single `[LolcodeLibrary]` export
-type, not by its CLR namespace or type name. Functions can be declared across
-multiple source files, while their top-level initialization still follows the
-explicit project `Compile` order.
+type, not by ordinary managed-import class-name rules. Functions can be
+declared across multiple source files; direct top-level functions are hoisted
+before initializer-safe ordered initialization.
 
-This export and import support is part of the source-checkout `0.3.0-local`
-development surface. Do not infer that it ships in the published `0.2.0` SDK
-just because that version appears in simple project examples.
+The repository version is `0.3.0`. Check
+[versions and availability](../language/versions.md) before assuming a package
+has been published to the feed you use.

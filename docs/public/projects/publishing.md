@@ -11,17 +11,24 @@ dotnet publish MyApp.lolproj --runtime linux-x64 --self-contained false
 ```
 
 Deploy the complete publish directory, not only the application DLL. The
-generated executable needs its `.runtimeconfig.json`, `.deps.json`, the
-`Lolcode.Runtime.dll` copied by the SDK, and any provider or managed-library
-assemblies that it imports. Project references arrange these files through
-normal .NET resolution; a manually copied `CAN HAS` library must still sit in
-the application's base directory under its simple assembly name.
+generated executable needs its normal `.runtimeconfig.json`, `.deps.json`,
+runtime, and resolved assets. Framework-dependent publish copies registered
+providers through normal .NET assets. Project references arrange their files
+the same way; a dynamic managed `CAN HAS` assembly remains external beside the
+host under its simple assembly name.
 
-`LolcodeCompilation.Emit` writes path-based outputs transactionally and emits a
-portable PDB when source file paths are available. Executable output includes
-runtime configuration; library output has no entry point and does not retain an
-executable runtime configuration. The compiler course covers the details in
-[assemblies, scripts, and tooling](../compiler-course/tooling.md).
+`PublishSingleFile` is a .NET bundle, not a merged assembly. Registered
+providers are bundled and load through the default runtime context. Deliberate
+dynamic managed DLL imports remain external beside the host. Dynamic managed
+imports are unsupported with trimming and NativeAOT.
+
+`LolcodeCompilation.Emit` path output coordinates DLL, optional PDB, and
+runtime configuration as one path operation. If optional PDB staging or
+serialization fails, it can still emit PE without symbols. Stream emission
+creates no files, accepts caller-owned writable PE/PDB streams, needs no
+runtime DLL path, and propagates PDB write failures. Neither API wildcard-copies
+provider DLLs; deployment belongs to SDK and resolved assets. The compiler
+course covers the details in [assemblies, scripts, and tooling](../compiler-course/tooling.md).
 
 File-based apps are best for a local, small program. For repeatable deployment,
 versioning, references, and provider selection, convert the source to a

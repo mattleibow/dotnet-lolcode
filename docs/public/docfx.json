@@ -57,6 +57,9 @@
           "toc.yml",
           "**.md",
           "**/toc.yml"
+        ],
+        "exclude": [
+          "_api/**"
         ]
       },
       {

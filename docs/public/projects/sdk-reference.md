@@ -19,23 +19,25 @@ collect metadata without compilation.
 
 ## Provider package controls
 
-The SDK adds the four official providers by default. Set
-`LolcodeUseDefaultLibraries=false` to opt out, or give
-`LolcodeRuntimePackageVersion` a version to replace the SDK's default provider
-version. An explicit `PackageReference` to a provider wins over the implicit
-one. `LolcodeUseSourceLibraries=true` removes package defaults so a source
-checkout can use project references and matching descriptors instead.
+The SDK adds the four official providers as implicit `PackageReference` items.
+Their default version follows `LolcodeRuntimePackageVersion`. A project can use
+`PackageReference Update="..."` to change version/metadata or an explicit
+provider reference to replace the implicit item. `LolcodeUseDefaultLibraries=false`
+and `LolcodeUseSourceLibraries=true` remove only SDK-marked implicit defaults;
+they do not remove explicit project references.
 
 ## File or project?
 
 Use `dotnet run --file hello.lol` for an app with a shebang and `#:sdk`
-directive. That workflow resolves the published SDK named in the directive.
+directive. That workflow resolves the SDK named in the directive and
+suppresses the project `**/*.lol` glob, so adjacent files do not join.
 Use a `.lolproj` for references, explicit file ordering, a library output, or
 publish. In this repository, `samples/Directory.Build.props` redirects both
 file-based and `.lolproj` samples to source-built task binaries and source
 provider projects. Build the solution first; it deliberately does not silently
 fall back to a package compiler.
 
-The source tree builds as `0.3.0-local`; the file samples deliberately name
-the published `Lolcode.NET.Sdk@0.2.0`. They are different availability facts,
-not interchangeable promises.
+The repository `VersionPrefix` is `0.3.0`, but the latest published SDK is
+`0.2.0`. Consumer and file-based quick starts use the published version. The
+advanced behavior on this page is validated from the source revision and
+requires a source checkout or locally packed feed until `0.3.0` is published.

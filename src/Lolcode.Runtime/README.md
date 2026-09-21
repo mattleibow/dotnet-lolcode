@@ -2,6 +2,9 @@
 
 Runtime support library for compiled **LOLCODE** programs. This package is automatically referenced when building `.lolproj` projects with the `Lolcode.NET.Sdk`.
 
+The usage example uses the latest published `0.2.0` SDK. The repository's
+modular provider and interop work is on the unpublished `0.3.0` source line.
+
 ## What This Package Does
 
 When the LOLCODE compiler generates .NET assemblies from your `.lol` source files, the compiled code calls into this runtime library for:

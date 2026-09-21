@@ -294,8 +294,8 @@ dotnet test --filter "StringTests"
 
 ## Documentation
 
-The complete documentation site is the [Trail Map](docs/public/index.md): a newcomer
-learning route, language/history/reference area, and compiler-building course.
+The complete [documentation portal](docs/public/index.md) gives newcomers a
+learning route, a language/SDK reference area, and a compiler-building course.
 Build and preview it with the repository-pinned DocFX tool:
 
 ```bash

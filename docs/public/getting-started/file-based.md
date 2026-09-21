@@ -19,10 +19,12 @@ dotnet run --file hello.lol
 ```
 
 The shebang is useful on systems that honor it; the `#:sdk` directive selects
-the SDK. The lexer treats both as trivia, not LOLCODE statements. When running
-samples from a source checkout, first run `dotnet build dotnet-lolcode.slnx`;
-the sample configuration deliberately uses the freshly built local compiler.
+the SDK. The lexer treats both as trivia, not LOLCODE statements. File-based
+execution suppresses the project `**/*.lol` glob, so adjacent source files do
+not join this program. When deliberately running samples from a source
+checkout, first build the solution; repository configuration uses the freshly
+built compiler.
 
 Try `samples/basics/hello-world/hello.lol`, then continue with
-[values and variables](../learn/values-and-decisions.md). For a growing program
+[values and variables](../learn/foundations.md). For a growing program
 with build settings, use a [project](project-based.md).

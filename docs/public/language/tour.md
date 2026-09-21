@@ -1,8 +1,8 @@
 # Language tour
 
 LOLCODE programs are delimited by `HAI` and `KTHXBYE`. Values include NUMBR,
-NUMBAR, YARN, TROOF, and NOOB. Statements set the implicit `IT` value, which
-feeds constructs such as `O RLY?` and `WTF?`.
+NUMBAR, YARN, TROOF, and NOOB. Bare expression statements set the implicit
+`IT` value; assignments do not. `O RLY?` and `WTF?` consume `IT`.
 
 ```lolcode
 HAI 1.2
@@ -23,4 +23,6 @@ through unless `GTFO` exits.
 
 This is orientation, not a complete grammar. Follow the [learning route](../learn/index.md)
 for programming ideas, or open the [reference hub](reference.md) when writing
-real code.
+real code. `IT` is per function/scope, but control-flow propagation differs
+between the 1.2 and 1.3/1.4 profiles; see
+[Everyday runtime behavior](implementation.md).

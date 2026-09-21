@@ -1,37 +1,18 @@
-- name: Learn
-  href: learn/index.md
-  items:
-    - name: Get started
-      href: getting-started/index.md
-    - name: Fundamentals
-      href: learn/foundations.md
-    - name: Tutorials
-      href: tutorials/index.md
-    - name: Samples
-      href: language/samples.md
-- name: Language
-  href: language/index.md
-  items:
-    - name: Language reference
-      href: language/reference.md
-    - name: Versions and support
-      href: language/versions.md
-- name: .NET projects
-  href: projects/index.md
-  items:
-    - name: Multiple files
-      href: projects/multiple-files.md
-    - name: Class libraries
-      href: projects/class-libraries.md
-    - name: Managed imports
-      href: projects/managed-imports.md
-    - name: Providers
-      href: projects/providers.md
-    - name: SDK reference
-      href: projects/sdk-reference.md
-    - name: Publishing
-      href: projects/publishing.md
-- name: Compiler
-  href: compiler-course/index.md
-- name: API
-  uid: Lolcode.CodeAnalysis
+order: -100
+items:
+- name: Learn LOLCODE
+  href: learn/toc.yml
+  topicHref: learn/index.md
+  expanded: false
+- name: Language & .NET SDK
+  href: language/toc.yml
+  topicHref: language/index.md
+  expanded: false
+- name: Build a compiler
+  href: compiler-course/toc.yml
+  topicHref: compiler-course/index.md
+  expanded: false
+- name: API reference
+  href: _api/toc.yml
+  topicHref: api.md
+  expanded: false

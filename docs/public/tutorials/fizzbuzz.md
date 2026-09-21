@@ -1,39 +1,106 @@
-# FizzBuzz: a small app with a plan
+# Build FizzBuzz in stages
 
-FizzBuzz prints numbers from 1 to 100, except multiples of 3 say `Fizz`,
-multiples of 5 say `Buzz`, and multiples of both say `FizzBuzz`. It is a small
-program with an important habit: write the rules before the syntax.
+**You need:** variables, loops, remainder, and decisions.
 
-1. Let the `UPPIN` loop create its loop-local `i` at 0 and stop before 100.
-2. Turn that counter into `number` by adding 1, so the visible range is 1..100.
-3. Create an empty `out` for every number.
-4. Add `Fizz` and `Buzz` for the appropriate remainders.
-5. Print the number only when `out` stayed empty.
+**You will build:** a stable 1.2 program that prints 1–100, replacing multiples
+of 3 and 5 with words.
+
+## 1. Write the rules before code
+
+For each number:
+
+1. start with empty output;
+2. append `Fizz` when divisible by 3;
+3. append `Buzz` when divisible by 5;
+4. print the number only when output stayed empty.
+
+This order naturally handles 15: both words are appended.
+
+## 2. Produce exactly 1 through 100
+
+A LOLCODE loop counter starts at zero. Convert it to the visible number:
 
 ```lolcode
 IM IN YR fizzbuzz UPPIN YR i TIL BOTH SAEM i AN 100
   I HAS A number ITZ SUM OF i AN 1
-  I HAS A out ITZ ""
-  BOTH SAEM MOD OF number AN 3 AN 0
-  O RLY?
-    YA RLY, out R "Fizz"
-  OIC
-  BOTH SAEM MOD OF number AN 5 AN 0
-  O RLY?
-    YA RLY, out R SMOOSH out AN "Buzz" MKAY
-  OIC
-  BOTH SAEM out AN ""
-  O RLY?
-    YA RLY, VISIBLE number
-    NO WAI, VISIBLE out
-  OIC
+  VISIBLE number
 IM OUTTA YR fizzbuzz
 ```
 
-This is the maintained
-[`samples/programs/fizzbuzz/fizzbuzz.lol`](../../../samples/programs/fizzbuzz/fizzbuzz.lol).
-`UPPIN YR i` creates a fresh loop-local counter at 0; it does not preserve an
-outer variable's initializer. Run the maintained sample, inspect the first,
-third, fifteenth, and hundredth output lines, then change the range to 20. Next,
-add a third rule for multiples of 7 or refactor the print choice into a
-function after reading [functions](../learn/functions-and-app.md).
+Run it now. Check the first and last lines before adding rules. If the last line
+is 99 or 101, repair the range before continuing.
+
+## 3. Detect one divisor
+
+`MOD OF number AN 3` is zero exactly when 3 divides the number:
+
+```lolcode
+BOTH SAEM MOD OF number AN 3 AN 0
+O RLY?
+  YA RLY, VISIBLE "Fizz"
+  NO WAI, VISIBLE number
+OIC
+```
+
+Test 2, 3, and 6 mentally, then run a shortened 1–10 loop.
+
+## 4. Compose both rules
+
+Use an output YARN rather than printing immediately:
+
+```lolcode
+I HAS A out ITZ ""
+
+BOTH SAEM MOD OF number AN 3 AN 0
+O RLY?
+  YA RLY, out R "Fizz"
+OIC
+
+BOTH SAEM MOD OF number AN 5 AN 0
+O RLY?
+  YA RLY, out R SMOOSH out AN "Buzz" MKAY
+OIC
+```
+
+The second rule appends instead of replacing, so 15 becomes `FizzBuzz`.
+
+## 5. Choose number or word
+
+```lolcode
+BOTH SAEM out AN ""
+O RLY?
+  YA RLY, VISIBLE number
+  NO WAI, VISIBLE out
+OIC
+```
+
+Put all stages together or compare with the maintained
+[`fizzbuzz.lol`](../../../samples/programs/fizzbuzz/fizzbuzz.lol).
+
+## Verify before extending
+
+| Number | Expected |
+| ---: | --- |
+| 1 | 1 |
+| 3 | Fizz |
+| 5 | Buzz |
+| 15 | FizzBuzz |
+| 98 | 98 |
+| 99 | Fizz |
+| 100 | Buzz |
+
+Modify the stop value to 20 while debugging. Then restore 100.
+
+<details>
+<summary>Extension: add multiples of 7</summary>
+
+Append `Pop` when `MOD OF number AN 7` is zero. Predict 21, 35, and 105 before
+running. The existing empty-output decision requires no change because the new
+rule participates in the same composition.
+</details>
+
+## What this walkthrough teaches
+
+Plan rules, prove the range, add one condition, compose conditions, then test
+boundaries. That staged method matters more than FizzBuzz itself. Continue with
+the [calculator](calculator.md) for input and function boundaries.

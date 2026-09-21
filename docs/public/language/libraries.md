@@ -21,12 +21,12 @@ standard.
 
 ## Official libraries
 
-| Library | Common use |
-| --- | --- |
-| `STRING` | Byte-oriented `LEN` and `AT` operations |
-| `STDLIB` | Deterministic seeding and bounded random values |
-| `STDIO` | `OPEN`, read/write, close, and failure-state file BLOBs |
-| `SOCKS` | TCP bind/listen/connect/accept/send/receive BLOBs |
+| Library | Common use | Slot reference |
+| --- | --- | --- |
+| `STRING` | Byte-oriented `LEN` and `AT` operations | [STRING](libraries/string.md) |
+| `STDLIB` | Deterministic seeding and bounded random values | [STDLIB](libraries/stdlib.md) |
+| `STDIO` | Open/read/write/rewind/close and failure-state file BLOBs | [STDIO](libraries/stdio.md) |
+| `SOCKS` | TCP resolve/bind/listen/connect/send/receive BLOBs | [SOCKS](libraries/socks.md) |
 
 The project SDK provides these through modular provider packages in the
 development surface. `CAN HAS` can also import a regular managed assembly that
@@ -39,6 +39,8 @@ Do not treat it as a 1.4 library or a planned dependency.
 
 Provider descriptors, package selection, per-import state, byte-backed YARN
 behavior, and BLOB cleanup are documented in
-[runtime providers](../projects/providers.md). Package availability is separate
+[runtime providers](../projects/providers.md). Authors extending the registry
+should read [custom provider authoring](../projects/custom-providers.md).
+Package availability is separate
 from language support; use [versions and support](versions.md) when choosing a
 published SDK versus the source checkout.

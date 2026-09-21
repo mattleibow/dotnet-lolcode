@@ -1,4 +1,8 @@
-# Tutorials
+# Tutorials and walkthroughs
+
+These walkthroughs build programs in stages: state the behavior, prove one
+small part, add the next rule, and verify boundaries. They are construction
+guides, not commentary on finished samples.
 
 Tutorials turn individual language pieces into finished outcomes. Read the
 learning path first if `O RLY?` and `IM IN YR` are still new.

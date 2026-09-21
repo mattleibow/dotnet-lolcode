@@ -13,8 +13,11 @@ later phases can be simple and diagnostics can identify the right concern.
 | Generation | `CodeGen/CodeGenerator.cs` | Write CIL for a real .NET assembly. |
 
 `LolcodeCompilation` owns one or more syntax trees, aggregates diagnostics,
-and invokes the internal pipeline. Tree order is preserved for top-level
-initialization; functions are declared across the compilation before generation.
+and invokes the internal pipeline. Tree order is preserved for variables,
+imports, side effects, and normal initialization. With more than one syntax
+tree, direct top-level functions are hoisted before that initialization for all
+supported header versions; dynamic/SRS declarations, nested functions, and
+object methods remain ordered. Single-file 1.3/1.4 replacement remains dynamic.
 The library targets `net10.0`; `Lolcode.Runtime` centralizes dynamic
 operations while compiler locals are emitted as `System.Object`. Runtime
 identifier paths preserve SRS and BUKKIT lookup segments for evaluation rather

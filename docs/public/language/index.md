@@ -1,18 +1,22 @@
 ---
-title: Language and reference
+title: Language and .NET SDK
 ---
-# Language, history, and reference
+# Language and .NET SDK
 
 LOLCODE is an esoteric programming language whose surface language draws on
 the "lolcat" meme style. It is still programming: syntax represents data,
-control flow, and reusable operations. This site treats the language and its
-community with care while documenting exactly what this compiler implements.
+control flow, and reusable operations. This section separates stable language
+rules, pinned future-reference behavior, .NET project tooling, libraries, and
+package availability so readers can tell which contract they are using.
 
 | Looking for | Start here |
 | --- | --- |
 | Context, origins, and primary historical material | [What is LOLCODE?](what-is-lolcode.md) |
 | A quick orientation | [Language tour](tour.md) |
+| Everyday value, scope, and runtime behavior | [Everyday runtime behavior](implementation.md) |
 | Exact syntax and implementation behavior | [Reference hub](reference.md) |
+| Project, interop, and publish workflow | [.NET projects](../projects/index.md) |
+| Official provider slots | [Libraries and providers](libraries.md) |
 | Compiler messages | [Diagnostics](diagnostics.md) |
 | Runnable programs | [Sample gallery](samples.md) |
 

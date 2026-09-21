@@ -34,13 +34,13 @@ appears in an archived document.
 
 | Delivery | What it means |
 | --- | --- |
-| `Lolcode.NET.Sdk/0.2.0` | Published SDK used by the simple file-based and hello-world examples. |
-| `0.3.0-local` source checkout | Development revision built from this repository; it is where the project, interop, and provider documentation is validated. |
+| `Lolcode.NET.Sdk/0.2.0` | Latest published package and the pin used by consumer quick starts and file-based samples. |
+| `0.3.0` repository VersionPrefix | Current source feature/version line. Multi-file interop, modular providers, and the other development features documented here require a source checkout or locally packed feed until `0.3.0` is published. |
 | .NET host | Projects target `net10.0`; file-based apps need a compatible `dotnet` host and SDK resolution. |
 
-Do not infer that a development-only interop or provider feature ships in
-published `0.2.0`. Conversely, package availability does not alter the
-language provenance of a feature.
+Do not infer package publication merely from a source version. Conversely,
+package availability does not alter language provenance or the current
+repository's tested behavior.
 
 ## Reading badges
 

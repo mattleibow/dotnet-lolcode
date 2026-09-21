@@ -1,8 +1,10 @@
-- name: Tutorials
+order: 100
+items:
+- name: Walkthroughs
   href: index.md
-- name: FizzBuzz
+- name: Build FizzBuzz
   href: fizzbuzz.md
-- name: Calculator
+- name: Build a calculator
   href: calculator.md
-- name: Adventure game
+- name: Build an adventure game
   href: adventure.md

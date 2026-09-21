@@ -1,3 +1,5 @@
+order: 100
+items:
 - name: Course overview
   href: index.md
 - name: Repository and pipeline
@@ -10,5 +12,5 @@
   href: runtime-il.md
 - name: Assemblies, scripts, and tooling
   href: tooling.md
-- name: Quality and new-language roadmap
+- name: Quality, compatibility, and roadmap
   href: quality-roadmap.md

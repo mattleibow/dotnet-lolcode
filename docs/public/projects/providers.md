@@ -31,18 +31,26 @@ KTHXBYE
 
 One import creates its own `LolcodeLibraryContext`. Its mutable state is shared
 by calls through that import but not by another import; `STDLIB` therefore has
-a per-import PRNG. A context is recreated for each invocation only as a view
-over that import's state and the caller's resource tracker.
+a per-import PRNG. Each invocation combines that retained state with the
+**invoking caller scope's** resource tracker. Ownership does not follow the
+import/module scope: an escaped module can retain provider and lexical state,
+while handles allocated by later calls belong to each invoking caller.
 
-Providers register a returned `LolBlob` with
-`LolcodeLibraryContext.RegisterResource`. `STDIO` and `SOCKS` handles are
-idempotently closed by `CLOSE` and are also cleaned up when the program scope
-ends. A BLOB returned from a public class-library wrapper is detached and
-becomes the managed caller's responsibility.
+Providers register returned `LolBlob` values with
+`LolcodeLibraryContext.RegisterResource`. Close and unregister are idempotent.
+Lexical blocks and function calls share the invoking execution's tracker, so a
+handle is not automatically released merely because an ordinary scope or
+function returns. The generated executable or public-wrapper `finally` path
+releases remaining handles when that root invocation completes; use explicit
+`CLOSE` for earlier release. A public class-library wrapper detaches the
+complete returned BLOB graph, which then becomes the managed caller's
+responsibility. SOCKS alias BLOBs share a lease; the underlying socket closes
+only after all leases close.
 
 `STRING` indexes UTF-8 bytes, not Unicode scalar values. `LEN` reports byte
 count and `AT` returns a byte-backed YARN. Those bytes survive string
 composition, file/socket I/O, and output until text decoding is necessary.
 Read the [implementation profile](../reference/implementation-profile.md) for
 the complete library and security behavior, especially `I DUZ`, `STDIO`, and
-`SOCKS`.
+`SOCKS`. Provider authors should continue to
+[custom provider authoring](custom-providers.md).

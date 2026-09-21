@@ -1,4 +1,6 @@
-- name: Overview
+order: 100
+items:
+- name: Setup overview
   href: index.md
 - name: Browser playground
   href: playground.md

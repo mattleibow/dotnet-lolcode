@@ -16,11 +16,11 @@ imports the base SDK and replaces its compile step.
 </Project>
 ```
 
-The published `0.2.0` examples are intentionally small. Features documented
-here for providers, managed imports, and library exports describe the
-source-checkout development revision (`0.3.0-local`) unless a package release
-explicitly includes them. See [versions and support](../language/versions.md)
-before selecting a package version.
+`0.2.0` is the latest published SDK and supports the basic project workflow
+above. This section also documents the repository's `0.3.0` source features,
+including multi-file interop and modular providers. Use a source checkout or a
+locally packed feed for those features until `0.3.0` is published. See
+[versions and support](../language/versions.md).
 
 ## Choose a project task
 
@@ -35,6 +35,8 @@ before selecting a package version.
 - [SDK reference](sdk-reference.md) lists the props, targets, task inputs, and
   source-checkout behavior.
 - [Publishing](publishing.md) covers deployment artifacts and runtime files.
+- [Embedding and scripting](embedding.md) covers syntax, diagnostics, stream
+  emission, path emission, and in-memory execution.
 
 For a single `.lol` file without a project, use the
 [file-based workflow](../getting-started/file-based.md).

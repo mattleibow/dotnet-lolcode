@@ -46,32 +46,41 @@ version; every tree in a multi-file compilation must instead be a complete
 
 ## Compilation, Interop, and Availability Profile
 
-One compilation can contain multiple syntax trees. Function declarations are
-available across trees regardless of item order, but top-level statements,
-variables, and 1.3/1.4 runtime-function initialization execute in syntax-tree
-order. The SDK passes its `Compile` items in that order, so explicit item lists
-are the way to control initialization. All trees must be complete units with
-one matching `HAI` header.
+One compilation can contain multiple syntax trees. When there is more than one
+tree, direct top-level `HOW IZ I` declarations are hoisted before all normal
+initialization for 1.2, 1.3, and 1.4. SRS/dynamic declarations, nested
+functions, and object methods are not hoisted. Single-file 1.3/1.4 programs
+retain textual dynamic declaration/replacement behavior. Variables, imports,
+I/O, side effects, and other initialization execute in syntax-tree order. The
+SDK passes `Compile` items in that order, so explicit item lists control
+initialization. Every tree must be a complete unit with the same `HAI` version.
 
 `OutputType=Library` emits a public static CLR export container marked
-`LolcodeLibraryAttribute`; its namespace and name derive from
-`RootNamespace` and `LolcodeLibraryTypeName`. A C# consumer calls its public
-function wrappers. A LOLCODE program can import the generated assembly with
-`CAN HAS`; a generated marked type is selected independently of its assembly
-or CLR type name.
+`LolcodeLibraryAttribute`. An omitted type name derives and sanitizes from
+`AssemblyName`; an explicit type name must be a simple non-keyword C#
+identifier. `RootNamespace` segments are sanitized independently with repeated
+segments retained, while an explicitly empty namespace emits globally. Only
+direct top-level `HOW IZ I` functions become object-parameter/object-result wrappers.
+Wrapper/factory initialization executes only initializer-safe top-level
+imports, declarations, object definitions, and function definitions; it skips
+assignment, I/O, control flow, and arbitrary executable statements.
 
 An ordinary managed import is restricted to an application-base-directory
-simple assembly name and a selected public non-nested static class. It exports
-unique method names with `object`, `string`, `int`, `double`, `bool`, or
-`void` signatures; generic, `ref`/`out`, decimal, and overloaded methods are
-not slots. This compiler also supports the four registered provider
-descriptors, with registered providers taking precedence over local assemblies.
+simple assembly name and a selected public non-nested static class. Only
+methods declared directly on that type participate. It exports unique method
+names with `object`, `string`, `int`, `double`, `bool`, or `void` signatures;
+generic, `ref`/`out`, decimal, and any overload group are not slots, even when
+one overload would otherwise qualify. Generated `[LolcodeLibrary]` selection
+uses its factory contract instead of ordinary class-name selection. Registered
+providers take precedence over local assemblies.
 
-The source checkout identifies itself as `0.3.0-local`; simple file-based and
-hello-world examples reference the published `Lolcode.NET.Sdk/0.2.0`.
-Provider, generated-library, and managed-import behavior is documented as
-development availability unless a released package specifically carries it.
-This availability fact is distinct from language provenance and support.
+The repository `VersionPrefix` is `0.3.0`, but that package is not published
+yet. Consumer quick starts and file-based samples therefore use the published
+`Lolcode.NET.Sdk/0.2.0` package. The interop, provider, multi-file, and
+publishing behavior documented here is validated from the `0.3.0` source
+revision and requires a source checkout or a locally packed `0.3.0` feed until
+that release is available. Package availability remains distinct from language
+provenance and tested repository behavior.
 
 ## .NET Value Representation
 
@@ -146,6 +155,13 @@ The function must take exactly one argument; its return value becomes the next l
 | Zero divisor | Integer and floating division/modulo raise `LolRuntimeException` |
 | `GTFO` nesting | Applies to the innermost enclosing loop or switch; in a function it returns NOOB |
 
+### Scope and invocation matrix
+
+| Profile | Conditional/switch | Loop body | Invocation details |
+| --- | --- | --- | --- |
+| 1.2 | declarations and `IT` remain in the enclosing program/function scope | each iteration is a child scope; final `IT` propagates, while zero iterations preserve the prior `IT` | ordinary functions remain isolated from outer variables |
+| 1.3/1.4 | each body is a child scope; declarations and `IT` do not leak | each body is a child scope; declarations and `IT` do not leak | dynamic calls can resolve caller lexical bindings; receiverless calls preserve ambient `ME`; receiver slots require `ME'Z` |
+
 ## Implemented 1.3 Object Choices
 
 - `I HAS A x ITZ A BUKKIT` creates a BUKKIT whose fallback namespace is the
@@ -196,12 +212,14 @@ pointers and undefined double-close/use-after-close behavior without changing
 successful library calls.
 
 Each `CAN HAS` import owns a `LolcodeLibraryContext`: mutable provider state is
-shared by calls through that import and isolated from a separate import. The
-context registers BLOB resources with the enclosing scope tracker. Generated
-public library wrappers detach returned BLOBs, transferring ownership to the
-managed caller. Descriptors contain a name, assembly, export type, reservation
-flag, and contract version; malformed, ambiguous, incompatible, or replacement
-official descriptors are rejected.
+shared by calls through that import and isolated from a separate import.
+Resource ownership follows the invoking caller scope, not the import/module
+scope. Escaped modules retain provider and lexical state while handles created
+by later calls register with each caller's tracker. Close/unregister is
+idempotent. Generated public wrappers detach complete returned BLOB graphs,
+transferring ownership to the managed caller. Descriptors contain a name,
+assembly, export type, reservation flag, and contract version; malformed,
+ambiguous, incompatible, or replacement official descriptors are rejected.
 
 - `STDIO` maps the six C modes to `FileStream`, shares open files sufficiently
   for lci's repeated-open fixture, encodes ordinary YARNs as UTF-8, and preserves
@@ -210,9 +228,10 @@ official descriptors are rejected.
   or I/O failures; `DIAF` reports failed, faulted, or closed handles. Other
   operations reject invalid handles explicitly.
 - `SOCKS` uses managed TCP sockets. `ANY` maps to `IPAddress.Any`, name lookup
-  prefers IPv4 to preserve the `localhost` fixture, `GET` maps EOF and receive
-  errors to an empty YARN, and all accepted/connected sockets join the same
-  cleanup tracker. Accept and receive retain lci's blocking behavior.
+  prefers IPv4 to preserve the `localhost` fixture, and `GET` maps EOF and
+  receive errors to an empty YARN. Socket aliases use shared leases, so the
+  underlying socket closes only when all leases close. Accept and receive
+  retain lci's blocking behavior.
 - `STDLIB` uses a per-import managed PRNG, avoiding process-global races while
   preserving bounded values, deterministic reseeding, and `BLOW 0 == 0`.
 - `STRING` indexes UTF-8 encoded bytes. `LEN` is the byte count; `AT` returns an
@@ -249,15 +268,26 @@ These constraints are implementation guidance, not additions to the language del
 
 ## `lci/future` Validation Notes
 
-The pinned interpreter corpus contains 325 registrations and the compiler runs
-all 325 unconditionally with no skip manifest. Three source fixtures omitted
-from upstream CMake registration are also run: the seeded and unseeded STDLIB
-programs use portable range/reseeding assertions, and the SOCKS accept program
-uses a bounded coordinated client. Direct probes cover behavior not represented
-by exact-output registrations, including TYPE rejection, loop ordering, custom
-loop functions, NUMBAR truncation, invalid numeric casts, every library slot,
-optional `CAN HAS` punctuation, alternate library calls, `INVISIBLE`, `I DUZ`,
-safe handle cleanup, and the nonfunctional BRAINZ claim.
+The repository-owned compatibility tree currently has 189 `Shared`
+registrations: 188 conventional `test.lol` fixtures and one custom-source
+registration. They run on dotnet-lolcode and, when configured, the pinned lci
+engine. The tree also has 41 documented pinned-lci divergences that are
+target-only and 31 .NET/compiler-host fixture sources. Fixture-local
+`README.md` files record the evidence and category for divergences.
+
+The pinned-lci runner discovers all 325 upstream registrations and runs them
+when `LCI_PATH` is configured. `[LciTheory]` skips those engine comparisons
+when that environment variable is absent. Three additional specialized
+upstream fixture tests cover two STDLIB programs and the coordinated SOCKS
+accept scenario that upstream CMake does not register. This evidence is
+stronger and more explicit than claiming dotnet-lolcode simply runs all 325
+upstream cases under one unconditional path.
+
+Direct probes cover behavior not represented by exact-output registrations,
+including TYPE rejection, loop ordering, custom loop functions, NUMBAR
+truncation, invalid numeric casts, library slots, optional `CAN HAS`
+punctuation, alternate library calls, `INVISIBLE`, `I DUZ`, safe handle
+cleanup, and the nonfunctional BRAINZ claim.
 
 The February 2026 `lci` changes mostly fix safety and edge cases. They do not establish
 a new formal language version. BRAINZ exists only in README text at the pinned commit

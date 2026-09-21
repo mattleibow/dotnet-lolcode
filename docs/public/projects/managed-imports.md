@@ -27,12 +27,15 @@ simple type-name match to the import/assembly name is required. A single type
 marked `[LolcodeLibrary]` wins regardless of the names; multiple marked types,
 ambiguous names, and nested types are ignored.
 
-Only unique public static method names with supported signatures become LOLCODE
-slots. `object`, `string`, `int`, `double`, and `bool` parameters and return
-values map to LOLCODE values; `void` becomes NOOB. Arguments are converted at
-the call boundary. Generic methods, `ref`/`out` parameters, decimal values,
-and overload groups are not exported. A provider may additionally accept one
-first `LolcodeLibraryContext` parameter; ordinary C# imports cannot.
+Only public static methods declared directly on the selected type participate;
+inherited static methods do not. A method name becomes a slot only when its
+entire group contains exactly one method. Any overload group is excluded, even
+when one overload would otherwise have an eligible signature. `object`,
+`string`, `int`, `double`, and `bool` parameters and return values map to
+LOLCODE values; `void` becomes NOOB. Arguments are converted at the call
+boundary. Generic methods, `ref`/`out` parameters, and decimal values are not
+exported. A provider may additionally accept one first
+`LolcodeLibraryContext` parameter; ordinary managed imports cannot.
 
 An import name is an assembly *simple name*, not a path. Empty names, path
 separators, rooted paths, drive-qualified names, and `.` or `..` are rejected,
@@ -40,6 +43,9 @@ so an import cannot escape the application base directory. Registered
 providers take precedence over a same-named DLL. Unknown imports and duplicate
 imports leave no new binding, matching the reference behavior.
 
-This is a development-revision feature. Check the package's release notes and
-[versions and support](../language/versions.md) before using it outside a
-source checkout.
+Generated LOLCODE libraries marked with `[LolcodeLibrary]` use their generated
+factory selection path, distinct from ordinary managed class and method
+selection. Managed imports work from emitted CLR shape, not source language:
+Visual Basic modules and F# modules may require a C# adapter when signatures
+are overloaded, curried, by-reference, or framework-specific. Check
+[versions and support](../language/versions.md) before deployment.

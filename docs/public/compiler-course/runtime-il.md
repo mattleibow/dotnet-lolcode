@@ -14,12 +14,17 @@ two-decimal representation, and invalid NOOB/non-numeric arithmetic
 raises the runtime's defined error behavior. The [implementation profile](../language/implementation.md)
 is the contract to preserve when changing either layer.
 
-`LolcodeCompilation.Emit` creates a PE and, where appropriate, a PDB. Its
-path-based overload coordinates DLL, PDB, and `.runtimeconfig.json` writing so
-a runnable output has compatible runtime metadata. Stream emission supports
-hosts such as scripting and the playground; path emission stages artifacts so
-failed writes do not leave a partial output. Library output gets a library
-header and public wrappers instead of an entry point.
+`LolcodeCompilation.Emit` creates a PE and, where appropriate, a PDB.
+Caller-owned stream emission creates no files, accepts writable PE and optional
+PDB streams, resolves the already loaded runtime without a runtime DLL path,
+and propagates PDB write failures. A zero-tree executable is valid.
+
+Path emission stages and coordinates DLL, optional PDB, and
+`.runtimeconfig.json` output. If optional PDB staging or serialization fails,
+it can still commit a PE without symbols and remove stale PDB state. Library
+output gets a library header and direct-top-level public wrappers instead of an
+entry point. Neither path nor stream emission wildcard-copies provider DLLs;
+SDK, NuGet, and project assets own deployment.
 
 **Exercise:** Find the code-generation branch for a `VisibleStatementSyntax`
 after it becomes bound/lowered. Identify the `LolRuntime` helper it calls and

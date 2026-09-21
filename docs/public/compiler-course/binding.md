@@ -25,6 +25,15 @@ variables share dynamic scope-aware bindings. Static checks still catch names
 that can be known at compile time; runtime lookup is used only where a program
 asks for a runtime name.
 
+Scope is versioned behavior, not one universal “block scope” rule. In 1.2,
+conditional and switch declarations plus `IT` remain in the enclosing
+program/function scope. Loop iterations use child scopes, propagate their final
+`IT`, and preserve the previous `IT` when the body never runs. In 1.3/1.4,
+conditional, switch, and loop bodies are child scopes whose declarations and
+`IT` do not leak. Dynamic calls can resolve caller lexical bindings;
+receiverless calls preserve ambient `ME`, while receiver slots require
+`ME'Z`.
+
 **Checkpoint:** Trace an undefined variable from Binder reporting through
 `LolcodeCompilation.GetDiagnostics`. Then follow a loop from its bound node
 into `CodeGenerator` and identify the emitted branch points. Consult [diagnostics](../language/diagnostics.md)
