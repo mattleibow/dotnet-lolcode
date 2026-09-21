@@ -1,4 +1,4 @@
-order: 100
+order: -100
 items:
 - name: Course overview
   href: index.md

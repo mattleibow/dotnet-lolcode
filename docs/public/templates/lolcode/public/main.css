@@ -216,7 +216,7 @@ body > header {
   border-color: var(--lol-amber);
 }
 
-.toc-offcanvas .toc a {
+.toc-offcanvas #toc a {
   display: block;
   padding: .34rem .56rem;
   color: var(--lol-muted);
@@ -225,23 +225,23 @@ body > header {
   border-radius: .35rem;
 }
 
-.toc-offcanvas .toc a:hover,
-.toc-offcanvas .toc li.active > a {
+.toc-offcanvas #toc a:hover,
+.toc-offcanvas #toc li.active > a {
   color: var(--lol-ink);
   background: var(--lol-panel);
 }
 
-.toc-offcanvas .toc li.active > a {
+.toc-offcanvas #toc li.active > a {
   box-shadow: inset 2px 0 0 var(--lol-amber);
 }
 
-.toc-offcanvas .toc > ul > li > a {
+.toc-offcanvas #toc > .flex-fill > ul > li > a {
   padding-block: .58rem;
   color: var(--lol-ink);
   font-weight: 800;
 }
 
-.toc-offcanvas .toc ul ul {
+.toc-offcanvas #toc ul ul {
   margin-left: .32rem;
   padding-left: .62rem;
   border-left: 1px solid var(--lol-border);
@@ -651,7 +651,10 @@ summary {
     max-width: 100%;
   }
 
-  .toc-offcanvas {
+  #docs-sidebar,
+  .toc-offcanvas > .offcanvas-md {
+    --bs-offcanvas-width: min(22rem, 90vw);
+    width: var(--bs-offcanvas-width);
     color: var(--lol-ink);
     background: var(--lol-bg);
   }

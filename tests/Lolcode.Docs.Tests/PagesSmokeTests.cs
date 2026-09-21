@@ -4,12 +4,53 @@ namespace Lolcode.Docs.Tests;
 
 public sealed class PagesSmokeTests : IAsyncLifetime
 {
-    private static readonly string[] RootGroups =
+    private static readonly string[] PortalSections =
     [
         "Learn LOLCODE",
         "Language & .NET SDK",
         "Build a compiler",
         "API reference",
+    ];
+
+    private static readonly string[] LearnSections =
+    [
+        "Learning home",
+        "Getting started",
+        "Beginner course",
+        "For .NET developers",
+        "Tutorials and walkthroughs",
+        "Samples",
+    ];
+
+    private static readonly string[] ProjectSections =
+    [
+        "Projects and SDK overview",
+        "Multiple source files",
+        "Class libraries",
+        "Managed imports",
+        "SDK and MSBuild reference",
+        "Publishing",
+        "Embedding and scripting",
+    ];
+
+    private static readonly string[] SpecificationSections =
+    [
+        "Stable LOLCODE 1.2",
+        "Canonical implementation profile",
+        "LOLCODE 1.3 draft",
+        "LOLCODE 1.4 reference behavior",
+        "Historical specifications",
+    ];
+
+    private static readonly string[] CompilerSections =
+    [
+        "Course overview",
+        "Repository and pipeline",
+        "Source text, tokens, and parsing",
+        "Diagnostics, symbols, and binding",
+        "Bound tree, runtime, and IL",
+        "Assemblies, scripts, and tooling",
+        "Quality, compatibility, and roadmap",
     ];
 
     private IPlaywright? _playwright;
@@ -39,7 +80,7 @@ public sealed class PagesSmokeTests : IAsyncLifetime
     }
 
     [SiteTestFact]
-    public async Task Desktop_docs_use_one_shared_sidebar_and_utility_header()
+    public async Task Desktop_docs_use_sectioned_sidebars_and_utility_header()
     {
         await using var context = await _browser!.NewContextAsync(new BrowserNewContextOptions
         {
@@ -57,12 +98,12 @@ public sealed class PagesSmokeTests : IAsyncLifetime
 
         var destinations = new[]
         {
-            new Destination("docs/", "dotnet-lolcode :3", null, null),
-            new Destination("docs/learn/first-program.html", "01 Your first program", "Learn LOLCODE", "01 Your first program"),
-            new Destination("docs/projects/multiple-files.html", "Multiple source files", "Language & .NET SDK", "Multiple source files"),
-            new Destination("docs/reference/language-spec.html", "LOLCODE 1.2 Language Specification", "Language & .NET SDK", "Stable LOLCODE 1.2"),
-            new Destination("docs/compiler-course/index.html", "Build your own .NET language compiler", "Build a compiler", "Course overview"),
-            new Destination("docs/api/Lolcode.CodeAnalysis.html", null, "API reference", "Lolcode.CodeAnalysis"),
+            new Destination("docs/", "dotnet-lolcode :3", PortalSections, null),
+            new Destination("docs/learn/first-program.html", "01 Your first program", LearnSections, "01 Your first program"),
+            new Destination("docs/projects/multiple-files.html", "Multiple source files", ProjectSections, "Multiple source files"),
+            new Destination("docs/reference/language-spec.html", "LOLCODE 1.2 Language Specification", SpecificationSections, "Stable LOLCODE 1.2"),
+            new Destination("docs/compiler-course/index.html", "Build your own .NET language compiler", CompilerSections, "Course overview"),
+            new Destination("docs/api/Lolcode.CodeAnalysis.html", null, null, "Lolcode.CodeAnalysis"),
         };
 
         foreach (Destination destination in destinations)
@@ -76,18 +117,19 @@ public sealed class PagesSmokeTests : IAsyncLifetime
                 await ExpectVisible(page.Locator("main"));
 
             await AssertUtilityHeader(page);
-            await AssertSharedRoots(page);
             await ExpectVisible(page.Locator(".toc-offcanvas"));
             await AssertNoHorizontalOverflow(page);
 
-            if (destination.ActiveRoot is not null)
-            {
-                await ExpectVisible(page.Locator("#toc li.active > a", new() { HasText = destination.ActiveRoot }).First);
-                await ExpectVisible(page.Locator("#toc li.active > a", new() { HasText = destination.ActiveLeaf! }).Last);
-            }
+            if (destination.ExpectedRoots is not null)
+                await AssertSidebarRoots(page, destination.ExpectedRoots);
+            else
+                await AssertApiSidebar(page);
+
+            if (destination.ActiveLeaf is not null)
+                await ExpectVisible(page.Locator("#toc li.active > a", new() { HasText = destination.ActiveLeaf }).Last);
         }
 
-        await Screenshot(page, "api-shared-navigation.png");
+        await Screenshot(page, "api-section-navigation.png");
 
         var redirectPage = await context.NewPageAsync();
         await redirectPage.GotoAsync(new Uri(new Uri(_baseUrl), "docs/api/index.html").ToString());
@@ -126,11 +168,15 @@ public sealed class PagesSmokeTests : IAsyncLifetime
         await ExpectVisible(page.Locator(".lol-utility-links a", new() { HasText = "GitHub" }));
         await headerToggle.ClickAsync();
 
-        var tocToggle = page.Locator(".lol-toc-toggle");
+        var tocToggle = page.Locator(
+            ".lol-toc-toggle, button[data-bs-toggle='offcanvas'][data-bs-target='#tocOffcanvas']");
         await ExpectVisible(tocToggle);
         await tocToggle.ClickAsync();
-        await AssertSharedRoots(page);
+        await AssertSidebarRoots(page, LearnSections);
         await ExpectVisible(page.Locator("#toc > .flex-fill > ul > li > a").First);
+        var tocPanel = page.Locator("#tocOffcanvas");
+        (await tocPanel.BoundingBoxAsync()).Should().NotBeNull();
+        (await tocPanel.BoundingBoxAsync())!.Width.Should().BeGreaterThanOrEqualTo(300);
         await AssertNoHorizontalOverflow(page);
         await Screenshot(page, "docs-mobile-navigation.png", fullPage: true);
         browserErrors.Should().BeEmpty();
@@ -165,7 +211,7 @@ public sealed class PagesSmokeTests : IAsyncLifetime
         (await page.Locator(".navbar .navbar-nav > li > a").CountAsync()).Should().Be(0);
     }
 
-    private static async Task AssertSharedRoots(IPage page)
+    private static async Task AssertSidebarRoots(IPage page, IReadOnlyCollection<string> expectedRoots)
     {
         await page.Locator("#toc").WaitForAsync(new LocatorWaitForOptions
         {
@@ -178,7 +224,22 @@ public sealed class PagesSmokeTests : IAsyncLifetime
             State = WaitForSelectorState.Attached,
             Timeout = 30_000,
         });
-        (await roots.AllTextContentsAsync()).Select(static text => text.Trim()).Should().Equal(RootGroups);
+        (await roots.AllTextContentsAsync()).Select(static text => text.Trim()).Should().Equal(expectedRoots);
+    }
+
+    private static async Task AssertApiSidebar(IPage page)
+    {
+        var roots = page.Locator("#toc > .flex-fill > ul > li > a");
+        await roots.First.WaitForAsync(new LocatorWaitForOptions
+        {
+            State = WaitForSelectorState.Attached,
+            Timeout = 30_000,
+        });
+        var rootNames = (await roots.AllTextContentsAsync()).Select(static text => text.Trim()).ToArray();
+        rootNames.Should().Contain("Lolcode.CodeAnalysis");
+        rootNames.Should().Contain("Lolcode.Runtime");
+        foreach (string portalSection in PortalSections)
+            rootNames.Should().NotContain(portalSection);
     }
 
     private static async Task ExpectVisible(ILocator locator)
@@ -204,7 +265,11 @@ public sealed class PagesSmokeTests : IAsyncLifetime
             FullPage = fullPage,
         });
 
-    private sealed record Destination(string Path, string? Heading, string? ActiveRoot, string? ActiveLeaf);
+    private sealed record Destination(
+        string Path,
+        string? Heading,
+        IReadOnlyCollection<string>? ExpectedRoots,
+        string? ActiveLeaf);
 }
 
 public sealed class SiteTestFactAttribute : FactAttribute

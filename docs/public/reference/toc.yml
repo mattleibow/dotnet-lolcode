@@ -1,4 +1,4 @@
-order: 100
+order: -100
 items:
 - name: Stable LOLCODE 1.2
   href: language-spec.md
