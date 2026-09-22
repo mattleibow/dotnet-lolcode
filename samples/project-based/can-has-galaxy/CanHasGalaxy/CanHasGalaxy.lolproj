@@ -1,0 +1,16 @@
+<Project>
+  <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.props" />
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>CanHasGalaxy</AssemblyName>
+    <RootNamespace>CanHasGalaxy</RootNamespace>
+    <LolcodeLibraryTypeName>GalaxyExports</LolcodeLibraryTypeName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Lolcode.GameEngine\Lolcode.GameEngine.lolproj" />
+    <ProjectReference Include="..\Lolcode.TerminalUi\Lolcode.TerminalUi.lolproj" />
+  </ItemGroup>
+  <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.targets" />
+</Project>

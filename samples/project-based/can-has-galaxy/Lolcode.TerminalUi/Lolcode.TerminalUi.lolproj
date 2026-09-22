@@ -1,0 +1,12 @@
+<Project>
+  <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.props" />
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>TerminalUi</AssemblyName>
+    <RootNamespace>TerminalUi</RootNamespace>
+    <LolcodeLibraryTypeName>UiExports</LolcodeLibraryTypeName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.targets" />
+</Project>

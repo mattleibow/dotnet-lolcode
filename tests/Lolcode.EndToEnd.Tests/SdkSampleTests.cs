@@ -14,7 +14,6 @@ namespace Lolcode.EndToEnd.Tests;
 public class SdkSampleTests
 {
     private static readonly string RepoRoot = FindRepoRoot();
-
     private static string FindRepoRoot()
     {
         string dir = AppContext.BaseDirectory;
@@ -183,7 +182,8 @@ public class SdkSampleTests
     {
         var (exitCode, stdout, stderr) = RunDotnet(
             $"run --project \"{projectFile}\"",
-            RepoRoot);
+            RepoRoot,
+            string.Empty);
 
         exitCode.Should().Be(0, $"dotnet run --project failed for {projectFile}:\n{stderr}\n{stdout}");
     }
@@ -213,11 +213,14 @@ public class SdkSampleTests
     }
 
     private static void AssertProjectOutput(string projectFile, string expectedOutput)
+        => AssertCommandOutput($"run --project \"{projectFile}\"", expectedOutput);
+
+    private static void AssertCommandOutput(string command, string expectedOutput)
     {
         var (exitCode, stdout, stderr) = RunDotnet(
-            $"run --project \"{projectFile}\"",
+            command,
             RepoRoot);
-        exitCode.Should().Be(0, $"dotnet run --project failed for {projectFile}:\n{stderr}\n{stdout}");
+        exitCode.Should().Be(0, $"dotnet command failed ({command}):\n{stderr}\n{stdout}");
         var output = stdout.Replace("\r\n", "\n").TrimEnd('\n');
         output.Should().Be(expectedOutput);
     }
