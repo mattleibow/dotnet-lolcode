@@ -143,6 +143,28 @@ namespace Lolcode.CodeAnalysis.Tests
         }
 
         [Fact]
+        public void CustomAlias_DoesNotReceiveTrustedLibraryContext()
+        {
+            var scope = LolRuntime.CreateScope();
+            Type type = typeof(CustomProviderFixture.CustomLibrary);
+            scope.Libraries.Register(
+                "CUSTOM_ALIAS",
+                type.Assembly.GetName().Name!,
+                type.FullName!,
+                isBuiltIn: false,
+                1);
+
+            LolRuntime.LoadLibrary(scope, "CUSTOM_ALIAS");
+
+            LolRuntime.Invoke(scope, ["CUSTOM_ALIAS"], ["ECHO"], ["HAI"])
+                .Should().Be("CUSTOM HAI");
+            FluentActions.Invoking(() =>
+                    LolRuntime.Invoke(scope, ["CUSTOM_ALIAS"], ["CONTEXT"], []))
+                .Should().Throw<LolRuntimeException>()
+                .WithMessage("Binding does not exist: CONTEXT");
+        }
+
+        [Fact]
         public void ManagedLibraryPath_AcceptsSimpleAssemblyNamesWithinBaseDirectory()
         {
             LolRuntime.TryGetManagedLibraryPath("Managed.Text-Package", out string path)

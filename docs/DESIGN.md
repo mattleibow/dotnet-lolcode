@@ -124,9 +124,12 @@ MSBuild SDK package, not implicit consumer package references. `LolRuntime`
 owns the single trusted built-in mapping. `CAN HAS` is the runtime import/load
 boundary, so provider code is not initialized merely by building a program.
 Custom managed imports retain their assembly-name and static-export-type
-convention through normal `ProjectReference`/`Reference` copying; aliases are
-not supported. Normal publishing currently includes all built-in assemblies;
-trimming unused providers is deferred.
+convention through normal `ProjectReference`/`Reference` copying. An optional
+assembly-level `LolcodeModule` attribute maps a friendly import alias to one
+explicit export type; the compiler reads the attribute through metadata-only
+reference inspection and emits an untrusted runtime registration. Normal
+publishing currently includes all built-in assemblies; trimming unused
+providers is deferred.
 
 ### Multi-file project compilations
 

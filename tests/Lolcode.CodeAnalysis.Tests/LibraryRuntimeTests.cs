@@ -560,7 +560,7 @@ public class LibraryRuntimeTests
             "SCOPE",
             assemblyName,
             typeName,
-            isBuiltIn: false,
+            isBuiltIn: true,
             1);
         var module = LolRuntime.CreateLibraryObject(importingScope);
         module.Values["moduleState"] = "from module";

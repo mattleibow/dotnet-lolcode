@@ -148,8 +148,11 @@ unused providers is a future optimization.
 
 For a custom managed import, reference the assembly normally and use its
 assembly name in `CAN HAS`. The runtime resolves the copied assembly using the
-existing convention and selects a suitable static export type. Aliases are not
-supported; the four reserved built-in names cannot be replaced.
+existing convention and selects a suitable static export type. To use a
+friendlier module name or select one type explicitly, add
+`[assembly: LolcodeModule("FRIENDLY", typeof(MyStaticLibrary))]`. The compiler
+discovers aliases from resolved reference metadata; the four reserved built-in
+names cannot be replaced.
 
 ## Requirements
 

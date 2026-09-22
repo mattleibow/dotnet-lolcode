@@ -198,9 +198,10 @@ These constraints are implementation guidance, not additions to the language del
   directive. Their assemblies are included by normal build and publish today.
   Future publish trimming may remove unused providers, but does not yet do so.
 - A custom managed import is a normal referenced .NET assembly. `CAN HAS` uses
-  its assembly name and the existing static-export-type convention; aliases are
-  not supported. Built-in availability is language-version behavior, not
-  provider assembly metadata.
+  its assembly name and the existing static-export-type convention by default.
+  An optional assembly-level `LolcodeModule` attribute supplies a friendly
+  import alias and explicit export type. Built-in availability is
+  language-version behavior, not provider assembly metadata.
 - 1.3's global/local `IT` statements contradict one another and require a language
   decision beyond pinned `lci`'s per-scope `IT`.
 - `I DUZ`, SOCKS, and STDIO intentionally expose process, network, and filesystem

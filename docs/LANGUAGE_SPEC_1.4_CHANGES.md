@@ -29,7 +29,7 @@ KTHXBYE
 
 ### Overview
 
-LOLCODE 1.4 reuses the `CAN HAS` phrase found in the sparse 1.0 inclusion/requirement proposal. In `lci/future`, it loads named built-in libraries exposed through BUKKIT semantics. In the .NET compiler, the official `STRING`, `STDLIB`, `STDIO`, and `SOCKS` libraries are modular provider assemblies registered by package metadata, not hardcoded runtime implementations.
+LOLCODE 1.4 reuses the `CAN HAS` phrase found in the sparse 1.0 inclusion/requirement proposal. In `lci/future`, it loads named built-in libraries exposed through BUKKIT semantics. In the .NET compiler, the official `STRING`, `STDLIB`, `STDIO`, and `SOCKS` implementations remain modular assemblies, but they are bundled with the SDK and resolved through a trusted runtime mapping rather than consumer package metadata. Custom managed modules use the referenced assembly name by convention, or an optional assembly-level `LolcodeModule` alias.
 
 ### Syntax
 

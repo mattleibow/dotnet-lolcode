@@ -155,7 +155,11 @@ built-ins. Trimming unused providers is intentionally deferred.
 Custom managed imports retain the existing convention: add a normal
 `ProjectReference` or `Reference`, then use its assembly name in `CAN HAS`.
 The runtime loads the copied assembly and selects its single suitable static
-export type. Aliasing an assembly to another LOLCODE import name is not supported.
+export type. A referenced assembly can opt into a friendlier import name with
+`[assembly: LolcodeModule("FRIENDLY", typeof(MyStaticLibrary))]`; the compiler
+reads that metadata without executing the referenced assembly. The imported
+name becomes a BUKKIT containing the selected type's supported public static
+methods—it does not add those methods directly to the global scope.
 
 ## Browser Playground
 

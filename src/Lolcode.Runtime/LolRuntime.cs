@@ -136,9 +136,13 @@ public static class LolRuntime
 
     /// <summary>Registers a compiler-discovered untrusted friendly module alias.</summary>
     public static void RegisterLibrary(
-        LolScope scope, string alias, string assemblyName, string typeName,
-        bool trusted, int contractVersion) =>
-        scope.Libraries.Register(alias, assemblyName, typeName, trusted, contractVersion);
+        LolScope scope, string alias, string assemblyName, string typeName) =>
+        scope.Libraries.Register(
+            alias,
+            assemblyName,
+            typeName,
+            isBuiltIn: false,
+            LolcodeLibraryDescriptor.CurrentContractVersion);
 
     private static LolObject? LoadRegisteredLibrary(LolScope scope, string name)
     {
@@ -214,13 +218,16 @@ public static class LolRuntime
 
     private static LolObject CreateGeneratedLolcodeLibrary(LolScope scope, Type type)
     {
-        MethodInfo? factory = type.GetMethod(
-            "__CreateLolcodeLibrary",
-            BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly,
-            binder: null,
-            [typeof(LolScope)],
-            modifiers: null);
-        if (factory?.ReturnType != typeof(LolObject))
+        MethodInfo[] factories = type.GetMethods(
+                BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(method => method.Name == "__CreateLolcodeLibrary")
+            .ToArray();
+        if (factories is not [var factory] ||
+            factory.IsGenericMethodDefinition ||
+            factory.ContainsGenericParameters ||
+            factory.ReturnType != typeof(LolObject) ||
+            factory.GetParameters() is not [{ ParameterType: var parameterType }] ||
+            parameterType != typeof(LolScope))
         {
             throw new LolRuntimeException(
                 $"Generated LOLCODE library '{type.FullName}' does not expose a valid module factory.");

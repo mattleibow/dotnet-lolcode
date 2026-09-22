@@ -389,6 +389,25 @@ public sealed class LolcodeCompilation
         Stream peStream,
         Stream? pdbStream = null,
         CancellationToken cancellationToken = default)
+        => Emit(peStream, pdbStream, referenceAssemblyPaths: null, cancellationToken);
+
+    /// <summary>
+    /// Emits to caller-provided streams and discovers friendly module aliases from
+    /// resolved reference assembly metadata.
+    /// </summary>
+    /// <param name="peStream">A writable stream that receives the portable executable.</param>
+    /// <param name="pdbStream">An optional writable stream that receives portable PDB symbols.</param>
+    /// <param name="referenceAssemblyPaths">
+    /// Resolved target reference assembly paths. Supply the complete target reference set
+    /// when referenced assemblies use <see cref="LolcodeModuleAttribute"/>.
+    /// </param>
+    /// <param name="cancellationToken">A token checked at compilation and emission boundaries.</param>
+    /// <returns>The result of the emission.</returns>
+    public EmitResult Emit(
+        Stream peStream,
+        Stream? pdbStream,
+        IEnumerable<string>? referenceAssemblyPaths,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ValidateOutputStream(peStream, nameof(peStream));
@@ -411,7 +430,8 @@ public sealed class LolcodeCompilation
             outputPath: null,
             pdbPath: null,
             pdbFileName: pdbStream == null ? null : $"{_inMemoryAssemblyName}.pdb",
-            cancellationToken: cancellationToken);
+            cancellationToken: cancellationToken,
+            referenceAssemblyPaths: referenceAssemblyPaths);
     }
 
     private EmitResult EmitCore(
@@ -432,6 +452,15 @@ public sealed class LolcodeCompilation
         cancellationToken.ThrowIfCancellationRequested();
         var bindingResult = EnsureBound();
         cancellationToken.ThrowIfCancellationRequested();
+        ModuleAliasDiscoveryResult aliasDiscovery = ModuleAliasDiscovery.Discover(
+            referenceAssemblyPaths,
+            runtimeAssemblyPath);
+        ImmutableArray<Diagnostic> emitDiagnostics = diagnostics.AddRange(aliasDiscovery.Diagnostics);
+        if (aliasDiscovery.Diagnostics.Any(diagnostic =>
+            diagnostic.Severity == DiagnosticSeverity.Error))
+        {
+            return new EmitResult(false, emitDiagnostics, null);
+        }
         var generator = new CodeGenerator(
             bindingResult.BoundTree,
             assemblyName,
@@ -440,7 +469,8 @@ public sealed class LolcodeCompilation
             SyntaxTrees,
             bindingResult.SyntaxTrees,
             isLibrary: isLibrary,
-            libraryTypeName: libraryTypeName);
+            libraryTypeName: libraryTypeName,
+            moduleAliases: aliasDiscovery.Aliases);
         var pdbEmitted = false;
         if (toleratePdbFailure && pdbStream != null && pdbFileName != null)
             pdbEmitted = generator.EmitWithOptionalPdb(peStream, pdbStream, pdbFileName, cancellationToken);
@@ -451,7 +481,7 @@ public sealed class LolcodeCompilation
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        return new EmitResult(true, diagnostics, outputPath, pdbEmitted ? pdbPath : null);
+        return new EmitResult(true, emitDiagnostics, outputPath, pdbEmitted ? pdbPath : null);
     }
 
     private static void ValidateOutputStream(Stream stream, string parameterName)

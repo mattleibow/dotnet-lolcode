@@ -49,12 +49,15 @@ until it is imported.
 Custom referenced assemblies retain the existing managed `CAN HAS` convention:
 a normal `ProjectReference` or `Reference` copies the assembly, and the runtime
 resolves its assembly name and suitable static export type at import time.
-Aliases and built-in replacement are not supported.
+An optional assembly-level `LolcodeModule` attribute maps a friendly import
+alias to an explicit export type. The compiler discovers this metadata from
+resolved references; built-in replacement is not supported.
 
-Registered providers use the same typed managed invocation path as ordinary
-managed assemblies. They may receive a first, exact `LolcodeLibraryContext`
+Built-in providers use the same typed managed invocation path as ordinary
+managed assemblies and may receive a first, exact `LolcodeLibraryContext`
 parameter for scope-bound BLOB cleanup or per-import state; no mutable global
-runtime context is used. Ordinary plugins cannot receive that parameter.
+runtime context is used. Ordinary convention or aliased plugins cannot receive
+that parameter.
 
 ## Publishing
 

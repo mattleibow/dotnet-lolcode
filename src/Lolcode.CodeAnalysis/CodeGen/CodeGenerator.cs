@@ -29,6 +29,7 @@ internal sealed class CodeGenerator
     private readonly IReadOnlyList<string> _referenceAssemblyPaths;
     private readonly bool _isLibrary;
     private readonly string? _libraryTypeName;
+    private readonly IReadOnlyList<ModuleAlias> _moduleAliases;
     private readonly IReadOnlyList<SyntaxTree> _syntaxTrees;
     private readonly bool _hoistTopLevelFunctions;
     private readonly IReadOnlyDictionary<SyntaxNode, SyntaxTree> _syntaxTreeOwners;
@@ -136,7 +137,8 @@ internal sealed class CodeGenerator
         IReadOnlyList<SyntaxTree>? syntaxTrees = null,
         IReadOnlyDictionary<SyntaxNode, SyntaxTree>? syntaxTreeOwners = null,
         bool isLibrary = false,
-        string? libraryTypeName = null)
+        string? libraryTypeName = null,
+        IEnumerable<ModuleAlias>? moduleAliases = null)
     {
         _boundTree = boundTree;
         _assemblyName = assemblyName;
@@ -147,6 +149,7 @@ internal sealed class CodeGenerator
         _syntaxTreeOwners = syntaxTreeOwners ?? new Dictionary<SyntaxNode, SyntaxTree>();
         _isLibrary = isLibrary;
         _libraryTypeName = libraryTypeName;
+        _moduleAliases = moduleAliases?.ToArray() ?? [];
     }
 
     /// <summary>
@@ -461,7 +464,7 @@ internal sealed class CodeGenerator
         _loadLibraryMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.LoadLibrary));
         _registerLibraryMethod = GetRequiredRuntimeMethod(
             runtimeType, nameof(LolRuntime.RegisterLibrary),
-            [_scopeType, _stringType, _stringType, _stringType, _booleanType, _int32Type]);
+            [_scopeType, _stringType, _stringType, _stringType]);
         _executeSystemCommandMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ExecuteSystemCommandValue));
         _disposeScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.DisposeScope));
         _transferPublicLibraryResultMethod = GetRequiredRuntimeMethod(
@@ -521,27 +524,13 @@ internal sealed class CodeGenerator
 
     private void EmitLibraryConfiguration()
     {
-        using MetadataLoadContext context = CreateMetadataLoadContext();
-        var aliases = new HashSet<string>(StringComparer.Ordinal);
-        foreach (string path in _referenceAssemblyPaths)
+        foreach (ModuleAlias alias in _moduleAliases)
         {
-            Assembly assembly = context.LoadFromAssemblyPath(path);
-            foreach (CustomAttributeData attribute in assembly.GetCustomAttributesData().Where(a =>
-                a.AttributeType.FullName == "Lolcode.Runtime.LolcodeModuleAttribute"))
-            {
-                if (attribute.ConstructorArguments.Count != 2 ||
-                    attribute.ConstructorArguments[0].Value is not string alias ||
-                    attribute.ConstructorArguments[1].Value is not Type type ||
-                    !aliases.Add(alias) || type.FullName is null)
-                    throw new InvalidOperationException("Invalid or duplicate LOLCODE module alias.");
-                _il.Emit(OpCodes.Ldloc, _scopeLocal);
-                _il.Emit(OpCodes.Ldstr, alias);
-                _il.Emit(OpCodes.Ldstr, assembly.GetName().Name!);
-                _il.Emit(OpCodes.Ldstr, type.FullName);
-                _il.Emit(OpCodes.Ldc_I4_0);
-                _il.Emit(OpCodes.Ldc_I4_1);
-                _il.Emit(OpCodes.Call, _registerLibraryMethod);
-            }
+            _il.Emit(OpCodes.Ldloc, _scopeLocal);
+            _il.Emit(OpCodes.Ldstr, alias.Name);
+            _il.Emit(OpCodes.Ldstr, alias.AssemblyName);
+            _il.Emit(OpCodes.Ldstr, alias.TypeName);
+            _il.Emit(OpCodes.Call, _registerLibraryMethod);
         }
     }
 
