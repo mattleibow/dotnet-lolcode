@@ -18,23 +18,39 @@ public sealed class SyntaxTree
     /// <summary>All diagnostics from lexing and parsing.</summary>
     public ImmutableArray<Diagnostic> Diagnostics { get; }
 
+    /// <summary>All non-trivia tokens in source order, including statement separators and EOF.</summary>
+    public ImmutableArray<SyntaxToken> Tokens { get; }
+
     /// <summary>Optional file path for this syntax tree.</summary>
     public string? FilePath { get; }
 
-    private SyntaxTree(SourceText text, CompilationUnitSyntax root,
-                       ImmutableArray<Diagnostic> diagnostics, string? filePath)
+    private SyntaxTree(
+        SourceText text,
+        CompilationUnitSyntax root,
+        ImmutableArray<Diagnostic> diagnostics,
+        ImmutableArray<SyntaxToken> tokens,
+        string? filePath)
     {
         Text = text;
         Root = root;
         Diagnostics = diagnostics;
+        Tokens = tokens;
         FilePath = filePath;
     }
 
     /// <summary>Parse source text into a syntax tree.</summary>
+    /// <param name="text">The source text to parse.</param>
+    /// <param name="filePath">
+    /// The source path used for diagnostics and symbols, or the source text's file name when omitted.
+    /// </param>
     public static SyntaxTree ParseText(SourceText text, string? filePath = null)
     {
+        ArgumentNullException.ThrowIfNull(text);
+        string effectiveFilePath = filePath ?? text.FileName;
+        if (!string.Equals(text.FileName, effectiveFilePath, StringComparison.Ordinal))
+            text = SourceText.From(text.ToString(), effectiveFilePath);
         var lexer = new Lexer(text);
-        var tokens = lexer.Tokenize();
+        ImmutableArray<SyntaxToken> tokens = lexer.Tokenize().ToImmutableArray();
 
         var parser = new Parser(tokens, text);
         var root = parser.Parse();
@@ -43,14 +59,14 @@ public sealed class SyntaxTree
             .Concat(parser.Diagnostics)
             .ToImmutableArray();
 
-        return new SyntaxTree(text, root, diagnostics, filePath);
+        return new SyntaxTree(text, root, diagnostics, tokens, effectiveFilePath);
     }
 
     /// <summary>Parse source code string into a syntax tree.</summary>
     public static SyntaxTree ParseText(string text, string? filePath = null) =>
-        ParseText(SourceText.From(text), filePath);
+        ParseText(SourceText.From(text, filePath ?? ""), filePath);
 
-    /// <summary>Load and parse a source file.</summary>
+    /// <summary>Load and parse a source file, preserving its path on the source text and syntax tree.</summary>
     public static SyntaxTree Load(string path) =>
-        ParseText(SourceText.From(File.ReadAllText(path)), path);
+        ParseText(SourceText.From(File.ReadAllText(path), path), path);
 }

@@ -1,0 +1,4 @@
+HAI 1.2
+  VISIBLE "é"!
+  INVISIBLE "é"!
+KTHXBYE

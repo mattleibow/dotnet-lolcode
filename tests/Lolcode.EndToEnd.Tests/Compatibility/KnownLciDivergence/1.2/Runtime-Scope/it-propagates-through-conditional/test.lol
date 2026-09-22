@@ -1,0 +1,9 @@
+HAI 1.2
+"before"
+O RLY?
+  YA RLY
+    VISIBLE IT
+    "after"
+OIC
+VISIBLE IT
+KTHXBYE

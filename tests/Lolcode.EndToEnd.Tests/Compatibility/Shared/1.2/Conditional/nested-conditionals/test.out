@@ -1,0 +1,3 @@
+OUTER: X >= 3
+  INNER: Y <= 15
+    INNERMOST: X == 5

@@ -6,11 +6,8 @@ namespace Lolcode.Web.Tests;
 
 public sealed class LolcodeCodeRunnerTests
 {
-    private const string HelloProgram = """
-        HAI 1.2
-          VISIBLE "HAI"
-        KTHXBYE
-        """;
+    private static string HelloProgram => File.ReadAllText(Path.Combine(
+        AppContext.BaseDirectory, "Compatibility", "DotNet", "1.2", "Web", "code-runner-hello", "test.lol"));
 
     private readonly LolcodeCodeRunner _runner = new();
 
@@ -72,6 +69,18 @@ public sealed class LolcodeCodeRunnerTests
     }
 
     [Fact]
+    public async Task RunAsync_UsesCurrentRuntimeAssembliesWithoutRuntimePathDiagnostics()
+    {
+        var result = await _runner.RunAsync(new CodeRunRequest(HelloProgram, string.Empty));
+
+        result.Success.Should().BeTrue();
+        result.Executed.Should().BeTrue();
+        result.StandardOutput.Should().Be("HAI" + Environment.NewLine);
+        result.Diagnostics.Should().NotContain(diagnostic =>
+            diagnostic.Message.Contains("System.Runtime", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void AppendTruncationMarker_MarksOnlyTruncatedStreams()
     {
         LolcodeCodeRunner.AppendTruncationMarker(
@@ -95,6 +104,7 @@ public sealed class LolcodeCodeRunnerTests
     [Theory]
     [InlineData(CodeRunnerLimits.MaxStandardStreamBytes, false)]
     [InlineData(CodeRunnerLimits.MaxStandardStreamBytes + 1, true)]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public async Task RunAsync_BoundsCapturedOutputDuringExecution(
         int outputLength,
         bool shouldBeTruncated)
@@ -129,14 +139,14 @@ public sealed class LolcodeCodeRunnerTests
     {
         var result = await _runner.RunAsync(
             new CodeRunRequest(
-                """
-                HAI 1.2
-                  VISIBLE "stdout"!
-                  IM IN YR loop UPPIN YR i TIL BOTH SAEM i AN 128001
-                    INVISIBLE "E"!
-                  IM OUTTA YR loop
-                KTHXBYE
-                """,
+                File.ReadAllText(Path.Combine(
+                    AppContext.BaseDirectory,
+                    "Compatibility",
+                    "DotNet",
+                    "1.2",
+                    "Web",
+                    "code-runner-standard-error",
+                    "test.lol")),
                 string.Empty));
 
         result.Success.Should().BeTrue();
@@ -149,6 +159,7 @@ public sealed class LolcodeCodeRunnerTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public async Task RunAsync_MapsCompilerDiagnosticLocation()
     {
         var result = await _runner.RunAsync(
@@ -171,7 +182,7 @@ public sealed class LolcodeCodeRunnerTests
     public async Task RunAsync_MapsRuntimeDiagnosticLocation()
     {
         var result = await _runner.RunAsync(
-            new CodeRunRequest(RuntimeErrorProgram, string.Empty));
+            new CodeRunRequest(GetRuntimeErrorProgram(), string.Empty));
 
         result.Success.Should().BeFalse();
         result.Executed.Should().BeTrue();
@@ -185,7 +196,7 @@ public sealed class LolcodeCodeRunnerTests
     [Fact]
     public void FindPortablePdbLocation_MapsRuntimeFrame()
     {
-        var script = CreateScript(RuntimeErrorProgram);
+        var script = CreateScript(GetRuntimeErrorProgram());
         var state = script.Run();
         var compilation = state.Script.GetCompilation();
 
@@ -217,10 +228,14 @@ public sealed class LolcodeCodeRunnerTests
             FilePath = "Program.lol",
         });
 
-    private const string RuntimeErrorProgram = """
-        HAI 1.2
-          I HAS A value
-          VISIBLE SUM OF value AN 1
-        KTHXBYE
-        """;
+    [InlineLolcodeProgramException("The runtime diagnostic test requires a precise failing source location.")]
+    private static string GetRuntimeErrorProgram()
+    {
+        return """
+            HAI 1.2
+              I HAS A value
+              VISIBLE SUM OF value AN 1
+            KTHXBYE
+            """;
+    }
 }

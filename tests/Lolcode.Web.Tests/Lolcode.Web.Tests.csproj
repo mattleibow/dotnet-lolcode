@@ -22,4 +22,10 @@
     <Using Include="FluentAssertions" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="../Lolcode.EndToEnd.Tests/Compatibility/**/*"
+          Link="Compatibility/%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

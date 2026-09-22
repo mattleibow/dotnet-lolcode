@@ -34,8 +34,14 @@ foreach (var diagnostic in compilation.GetDiagnostics())
 
 ## Emit an assembly
 
-`Emit` requires the path to `Lolcode.Runtime.dll`, which is available from the
-[Lolcode.Runtime](https://www.nuget.org/packages/Lolcode.Runtime) package.
+Path-based `Emit` requires the path to `Lolcode.Runtime.dll`, which is available
+from the [Lolcode.Runtime](https://www.nuget.org/packages/Lolcode.Runtime)
+package. The public stream overload resolves the runtime from the currently
+loaded compiler/runtime assemblies and supports hosts that load them from
+memory or a bundle. Path-based emission writes only the PE, optional PDB, and
+runtime configuration; callers deploying directly with this API must copy
+runtime and provider dependencies from their resolved assets. SDK, NuGet, and
+project-reference builds deploy those assets normally.
 
 ```csharp
 var result = compilation.Emit("hello.dll", runtimeAssemblyPath);

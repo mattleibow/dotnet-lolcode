@@ -14,10 +14,14 @@ namespace Lolcode.CodeAnalysis.Binding;
 internal sealed class Binder
 {
     private readonly DiagnosticBag _diagnostics = new();
-    private readonly SourceText _text;
+    private readonly Dictionary<SyntaxNode, SyntaxTree> _syntaxTrees = [];
+    private readonly Dictionary<FunctionDeclarationSyntax, FunctionSymbol> _functionSymbols =
+        new(ReferenceEqualityComparer.Instance);
+    private SourceText _text;
     private BoundScope _scope;
     private readonly Stack<ControlFlowContext> _contextStack = new();
     private bool _runtimeIdentifiers;
+    private SyntaxTree? _currentTree;
 
     /// <summary>
     /// Gets the diagnostics produced during binding.
@@ -42,23 +46,82 @@ internal sealed class Binder
         return BindBlock(compilationUnit.Program.Statements);
     }
 
+    /// <summary>
+    /// Binds all compilation units into one compilation-wide top-level scope.
+    /// Top-level functions are declared before any body is bound so calls can cross
+    /// source-file boundaries independently of source-file order.
+    /// </summary>
+    public BinderResult BindCompilationUnits(ImmutableArray<SyntaxTree> syntaxTrees)
+    {
+        if (syntaxTrees.IsEmpty)
+            return new BinderResult(
+                new BoundBlockStatement([]),
+                _diagnostics.ToImmutableArray(),
+                _syntaxTrees.ToImmutableDictionary());
+
+        _scope = new BoundScope();
+        string? compilationVersion = syntaxTrees[0].Root.Program.VersionToken?.Text;
+        _runtimeIdentifiers = compilationVersion is "1.3" or "1.4";
+
+        foreach (SyntaxTree tree in syntaxTrees)
+        {
+            SetCurrentTree(tree);
+            CollectFunctions(tree.Root.Program.Statements);
+        }
+
+        var statements = ImmutableArray.CreateBuilder<BoundStatement>();
+        for (int index = 0; index < syntaxTrees.Length; index++)
+        {
+            SyntaxTree tree = syntaxTrees[index];
+            SetCurrentTree(tree);
+            if (index > 0 &&
+                !string.Equals(
+                    tree.Root.Program.VersionToken?.Text,
+                    compilationVersion,
+                    StringComparison.Ordinal))
+            {
+                SyntaxToken token = tree.Root.Program.VersionToken
+                    ?? tree.Root.Program.HaiKeyword;
+                var location = TextLocation.FromSpan(_text, token.Span);
+                _diagnostics.ReportMismatchedLanguageVersion(
+                    location,
+                    compilationVersion ?? "<missing>",
+                    tree.Root.Program.VersionToken?.Text ?? "<missing>");
+            }
+
+            foreach (StatementSyntax statement in tree.Root.Program.Statements)
+            {
+                var bound = BindStatement(statement);
+                if (bound is not null)
+                    statements.Add(bound);
+            }
+        }
+
+        return new BinderResult(
+            new BoundBlockStatement(statements.ToImmutable()),
+            _diagnostics.ToImmutableArray(),
+            _syntaxTrees.ToImmutableDictionary());
+    }
+
+    private void SetCurrentTree(SyntaxTree tree)
+    {
+        _currentTree = tree;
+        _text = tree.Text;
+    }
+
     private void CollectFunctions(ImmutableArray<StatementSyntax> statements)
     {
         foreach (var statement in statements)
         {
             if (statement is FunctionDeclarationSyntax funcDecl)
             {
+                FunctionSymbol function = GetOrCreateFunctionSymbol(funcDecl);
                 if (funcDecl.Scope.DirectToken?.Text != "I" ||
                     funcDecl.Identifier.DirectToken is null ||
                     funcDecl.Identifier.Slot is not null)
                     continue;
 
                 string name = funcDecl.Identifier.DirectToken.Text;
-                var parameters = funcDecl.Parameters.Select((p, i) =>
-                    new ParameterSymbol(p.DirectToken?.Text ?? $"arg{i}", i)).ToImmutableArray();
-
-                var function = new FunctionSymbol(name, parameters);
-
                 if (!_scope.TryDeclareFunction(function))
                 {
                     var location = TextLocation.FromSpan(_text, funcDecl.NameToken.Span);
@@ -66,6 +129,19 @@ internal sealed class Binder
                 }
             }
         }
+    }
+
+    private FunctionSymbol GetOrCreateFunctionSymbol(FunctionDeclarationSyntax syntax)
+    {
+        if (_functionSymbols.TryGetValue(syntax, out FunctionSymbol? function))
+            return function;
+
+        string name = syntax.NameToken.Text;
+        var parameters = syntax.Parameters.Select((parameter, index) =>
+            new ParameterSymbol(parameter.DirectToken?.Text ?? $"arg{index}", index)).ToImmutableArray();
+        function = new FunctionSymbol(name, parameters);
+        _functionSymbols.Add(syntax, function);
+        return function;
     }
 
     private BoundBlockStatement BindBlock(ImmutableArray<StatementSyntax> statements)
@@ -83,8 +159,31 @@ internal sealed class Binder
         return new BoundBlockStatement(boundStatements.ToImmutable());
     }
 
-    private BoundBlockStatement BindNestedBlock(ImmutableArray<StatementSyntax> statements)
+    private BoundBlockStatement BindNestedBlock(
+        ImmutableArray<StatementSyntax> statements,
+        bool createsIterationScope = false)
     {
+        // LOLCODE 1.2 clauses execute in their enclosing program/function
+        // scope. This applies to declarations as well as the implicit IT.
+        // Later object-model versions introduce lexical child scopes.
+        if (!_runtimeIdentifiers)
+        {
+            if (createsIterationScope)
+            {
+                var iterationOuter = _scope;
+                _scope = new BoundScope(iterationOuter, inheritsVariables: true, inheritsIt: true);
+                var iteration = BindBlock(statements);
+                _scope = iterationOuter;
+                return new BoundBlockStatement(
+                    iteration.Statements,
+                    createsScope: true,
+                    propagatesItToParent: true);
+            }
+
+            BoundBlockStatement block = BindBlock(statements);
+            return new BoundBlockStatement(block.Statements, createsScope: false);
+        }
+
         var outer = _scope;
         _scope = new BoundScope(outer, inheritsVariables: true);
         var result = BindBlock(statements);
@@ -94,6 +193,9 @@ internal sealed class Binder
 
     private BoundStatement? BindStatement(StatementSyntax statement)
     {
+        if (_currentTree is not null)
+            _syntaxTrees[statement] = _currentTree;
+
         return statement switch
         {
             VariableDeclarationSyntax s => BindVariableDeclaration(s),
@@ -116,6 +218,14 @@ internal sealed class Binder
             _ => null,
         };
     }
+
+    /// <summary>
+    /// The immutable result of binding a LOLCODE compilation.
+    /// </summary>
+    internal sealed record BinderResult(
+        BoundBlockStatement BoundTree,
+        ImmutableArray<Diagnostic> Diagnostics,
+        ImmutableDictionary<SyntaxNode, SyntaxTree> SyntaxTrees);
 
     private BoundScopedDeclaration BindScopedDeclaration(ScopedDeclarationSyntax syntax)
     {
@@ -311,7 +421,10 @@ internal sealed class Binder
         VariableSymbol? loopVariable = null;
         BoundFunctionCallExpression? operationCall = null;
         var outerScope = _scope;
-        _scope = new BoundScope(outerScope, inheritsVariables: true);
+        _scope = new BoundScope(
+            outerScope,
+            inheritsVariables: true,
+            inheritsIt: !_runtimeIdentifiers);
 
         if (variableName != null)
         {
@@ -334,7 +447,7 @@ internal sealed class Binder
             BoundBlockStatement body;
             try
             {
-                body = BindNestedBlock(syntax.Body.Statements);
+                body = BindNestedBlock(syntax.Body.Statements, createsIterationScope: true);
             }
             finally
             {
@@ -343,7 +456,8 @@ internal sealed class Binder
 
             return new BoundLoopStatement(
                 label, operation, operationCall, loopVariable,
-                isTil, condition, body, syntax: syntax);
+                isTil, condition, body, syntax: syntax,
+                propagatesItToParent: !_runtimeIdentifiers);
         }
         finally
         {
@@ -370,15 +484,7 @@ internal sealed class Binder
 
     private BoundFunctionDeclaration BindFunctionDeclaration(FunctionDeclarationSyntax syntax)
     {
-        string name = syntax.NameToken.Text;
-
-        if (!_scope.TryLookupLocalFunction(name, out var function))
-        {
-            // Should have been collected in first pass; create a placeholder
-            var parameters = syntax.Parameters.Select((p, i) =>
-                new ParameterSymbol(p.DirectToken?.Text ?? $"arg{i}", i)).ToImmutableArray();
-            function = new FunctionSymbol(name, parameters);
-        }
+        FunctionSymbol function = GetOrCreateFunctionSymbol(syntax);
 
         // Create a new scope for the function (chained to global for function visibility)
         var outerScope = _scope;

@@ -117,6 +117,44 @@ Source Text (.lol)
   EmitResult (Success, Diagnostics)
 ```
 
+## LOLCODE libraries
+
+`STRING`, `STDLIB`, `STDIO`, and `SOCKS` are public attributed library types in
+the one runtime assembly carried by the SDK. `CAN HAS NAME?` creates a library
+instance, library BUKKIT and library function slots in the importing scope.
+Every importable CLR type explicitly declares `[LolcodeLibrary("NAME")]`; the
+compiler reads this metadata without executing references. There is no
+assembly-name or filename fallback. Repeated imports in a scope are no-ops and
+separate scopes create isolated instances. Normal publishing includes one
+runtime DLL. Reflection-based trimming support requires a future rooting policy.
+
+### Multi-file project compilations
+
+Multi-file support is a compiler/project feature; it does not add LOLCODE source
+syntax. Every `.lol` source in a project is still a complete compilation unit
+with its own `HAI <version>` header and `KTHXBYE` footer. `LolcodeCompilation`
+binds its ordered `SyntaxTrees` into one top-level namespace and emits one
+assembly (and, for libraries, one export type).
+
+For multi-file projects, direct top-level `HOW IZ I <name>` declarations are
+installed before normal top-level initialization, in deterministic
+`SyntaxTrees`/MSBuild `@(Compile)` order. This makes declarations file-order
+independent in every supported language version while preserving 1.3/1.4
+first-class function replacement: calls still resolve the current runtime slot.
+Single-file compilation retains lci-compatible textual declaration behavior.
+All other top-level work—including variables, imports, executable statements,
+and side effects—remains ordered by `@(Compile)`, so variables are available
+only after their declaration is processed. This is analogous to declaration
+order for C#/VB methods versus ordered F# values: dotnet-lolcode hoists direct
+function declarations only, never general values. Library wrapper initialization
+evaluates only supported import and declaration forms, never arbitrary
+top-level executable statements. All source units in a compilation must use the
+same `HAI` version; a mismatching later file produces `LOL2011`.
+
+Portable PDB emission preserves this ownership: one document is emitted for
+each source path, and statement and function sequence points use the document
+for the tree that owns their syntax.
+
 ## Component Details
 
 ### 1. Lexer (Tokenizer)

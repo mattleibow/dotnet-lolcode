@@ -11,13 +11,14 @@ public class DebuggerSmokeTests
     [Fact]
     public void Verify_Pdb_Generation_And_Content()
     {
-        // 1. Arrange: Simple LOLCODE program with variables and multiple lines
-        var source = @"
-HAI 1.2
-  I HAS A var ITZ 123
-  VISIBLE var
-KTHXBYE
-";
+        var source = File.ReadAllText(Path.Combine(
+            AppContext.BaseDirectory,
+            "Compatibility",
+            "DotNet",
+            "1.2",
+            "CodeAnalysis",
+            "debugger-smoke",
+            "test.lol"));
         var outputDir = Path.Combine(Path.GetTempPath(), "LolcodeDebuggerTest_" + Guid.NewGuid());
         Directory.CreateDirectory(outputDir);
 

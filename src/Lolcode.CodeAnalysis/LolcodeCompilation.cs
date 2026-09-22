@@ -80,9 +80,7 @@ public sealed class LolcodeCompilation
         return builder.ToImmutable();
     }
 
-    /// <summary>
-    /// Emits the compiled assembly to disk and writes a runtime configuration file next to it.
-    /// </summary>
+    /// <summary>Emits the compiled assembly to disk.</summary>
     /// <param name="outputPath">The output assembly path.</param>
     /// <param name="runtimeAssemblyPath">
     /// The path to the compatible <c>Lolcode.Runtime</c> assembly referenced by the output.
@@ -90,19 +88,81 @@ public sealed class LolcodeCompilation
     /// </param>
     /// <returns>The result of the emission.</returns>
     /// <remarks>
-    /// The DLL, optional PDB, and runtime configuration are replaced as one coordinated
-    /// operation. If optional symbols cannot be produced or persisted, emission succeeds
-    /// without a PDB and <see cref="EmitResult.PdbPath"/> is <see langword="null"/>. An
-    /// unremovable stale PDB is left unreferenced by the PE and reported as a warning.
+    /// Executables write a runtime configuration file next to the assembly. Libraries do
+    /// not have an entry point or runtime configuration file.
     /// </remarks>
     public EmitResult Emit(string outputPath, string runtimeAssemblyPath)
         => Emit(outputPath, runtimeAssemblyPath, PhysicalPathEmitFileSystem.Instance);
+
+    /// <summary>
+    /// Emits a compiled executable or class library to disk.
+    /// </summary>
+    /// <param name="outputPath">The output assembly path.</param>
+    /// <param name="runtimeAssemblyPath">The path to <c>Lolcode.Runtime.dll</c>.</param>
+    /// <param name="outputType">
+    /// The MSBuild output type. Specify <c>Library</c> to emit a class library; all other
+    /// values emit an executable.
+    /// </param>
+    /// <param name="libraryTypeName">
+    /// The fully qualified CLR type name for a library export container. When omitted,
+    /// libraries use <c>LolcodeExports</c>; executables always use <c>Program</c>.
+    /// </param>
+    /// <returns>The result of the emission.</returns>
+    public EmitResult Emit(
+        string outputPath,
+        string runtimeAssemblyPath,
+        string outputType,
+        string? libraryTypeName = null)
+        => Emit(
+            outputPath,
+            runtimeAssemblyPath,
+            referenceAssemblyPaths: null,
+            outputType: outputType,
+            libraryTypeName: libraryTypeName);
+
+    /// <summary>
+    /// Emits a compiled executable or class library using the supplied target reference assemblies.
+    /// </summary>
+    /// <param name="outputPath">The output assembly path.</param>
+    /// <param name="runtimeAssemblyPath">The path to <c>Lolcode.Runtime.dll</c>.</param>
+    /// <param name="referenceAssemblyPaths">Resolved target framework reference assembly paths.</param>
+    /// <param name="outputType">
+    /// The MSBuild output type. Specify <c>Library</c> to emit a class library; all other
+    /// values emit an executable.
+    /// </param>
+    /// <param name="libraryTypeName">
+    /// The fully qualified CLR type name for a library export container. When omitted,
+    /// libraries use <c>LolcodeExports</c>; executables always use <c>Program</c>.
+    /// </param>
+    /// <param name="libraryName">
+    /// The explicit LOLCODE library name. When omitted it derives from the assembly name.
+    /// </param>
+    /// <returns>The result of the emission.</returns>
+    public EmitResult Emit(
+        string outputPath,
+        string runtimeAssemblyPath,
+        IEnumerable<string>? referenceAssemblyPaths,
+        string outputType = "Exe",
+        string? libraryTypeName = null,
+        string? libraryName = null)
+        => Emit(
+            outputPath,
+            runtimeAssemblyPath,
+            PhysicalPathEmitFileSystem.Instance,
+            referenceAssemblyPaths: referenceAssemblyPaths,
+            outputType: outputType,
+            libraryTypeName: libraryTypeName,
+            libraryName: libraryName);
 
     internal EmitResult Emit(
         string outputPath,
         string runtimeAssemblyPath,
         IPathEmitFileSystem fileSystem,
-        Func<Stream>? pdbStreamFactory = null)
+        Func<Stream>? pdbStreamFactory = null,
+        IEnumerable<string>? referenceAssemblyPaths = null,
+        string outputType = "Exe",
+        string? libraryTypeName = null,
+        string? libraryName = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(runtimeAssemblyPath);
@@ -119,9 +179,8 @@ public sealed class LolcodeCompilation
                 ? outputPath
                 : Path.ChangeExtension(outputPath, ".dll");
             var assemblyName = Path.GetFileNameWithoutExtension(dllPath);
-            var runtimeAssembly = System.Reflection.Assembly.LoadFrom(runtimeAssemblyPath);
-            var runtimeType = runtimeAssembly.GetType(typeof(LolRuntime).FullName!, throwOnError: true)!;
-            var emitPdb = !string.IsNullOrEmpty(SyntaxTrees[0].FilePath);
+            bool isLibrary = string.Equals(outputType, "Library", StringComparison.OrdinalIgnoreCase);
+            var emitPdb = SyntaxTrees.Any(tree => !string.IsNullOrEmpty(tree.FilePath));
             var pdbPath = Path.ChangeExtension(dllPath, ".pdb");
             var runtimeConfigPath = Path.ChangeExtension(dllPath, ".runtimeconfig.json");
 
@@ -132,13 +191,19 @@ public sealed class LolcodeCompilation
             var result = EmitCore(
                 peStream,
                 pdbStream,
-                runtimeType,
+                runtimeAssemblyPath,
                 assemblyName,
                 diagnostics,
                 dllPath,
                 emitPdb ? pdbPath : null,
                 emitPdb ? Path.GetFileName(pdbPath) : null,
-                toleratePdbFailure: true);
+                toleratePdbFailure: true,
+                referenceAssemblyPaths: referenceAssemblyPaths,
+                isLibrary: isLibrary,
+                libraryTypeName: libraryTypeName,
+                libraryName: libraryName);
+            if (!result.Success)
+                return result;
 
             var outputDirectory = Path.GetDirectoryName(dllPath);
             if (!string.IsNullOrEmpty(outputDirectory))
@@ -173,18 +238,26 @@ public sealed class LolcodeCompilation
                         TrackStagingArtifacts(ex);
                         result = EmitPeWithoutSymbols(
                             peStream,
-                            runtimeType,
+                            runtimeAssemblyPath,
                             assemblyName,
                             diagnostics,
-                            dllPath);
+                            dllPath,
+                            referenceAssemblyPaths,
+                            isLibrary,
+                            libraryTypeName,
+                            libraryName);
                     }
                 }
 
-                var stagedRuntimeConfigPath = StageText(
-                    fileSystem,
-                    GetRuntimeConfigContents(),
-                    runtimeConfigPath);
-                stagedPaths.Add(stagedRuntimeConfigPath);
+                string? stagedRuntimeConfigPath = null;
+                if (!isLibrary)
+                {
+                    stagedRuntimeConfigPath = StageText(
+                        fileSystem,
+                        GetRuntimeConfigContents(),
+                        runtimeConfigPath);
+                    stagedPaths.Add(stagedRuntimeConfigPath);
+                }
 
                 var stagedPePath = StageStream(fileSystem, peStream, dllPath);
                 stagedPaths.Add(stagedPePath);
@@ -193,10 +266,14 @@ public sealed class LolcodeCompilation
                 {
                     result = EmitPeWithoutSymbols(
                         peStream,
-                        runtimeType,
+                        runtimeAssemblyPath,
                         assemblyName,
                         diagnostics,
-                        dllPath);
+                        dllPath,
+                        referenceAssemblyPaths,
+                        isLibrary,
+                        libraryTypeName,
+                        libraryName);
                     var fallbackPath = StageStream(fileSystem, peStream, dllPath);
                     stagedPaths.Add(fallbackPath);
                     return fallbackPath;
@@ -277,22 +354,30 @@ public sealed class LolcodeCompilation
 
     private EmitResult EmitPeWithoutSymbols(
         MemoryStream peStream,
-        Type runtimeType,
+        string runtimeAssemblyPath,
         string assemblyName,
         ImmutableArray<Diagnostic> diagnostics,
-        string dllPath)
+        string dllPath,
+        IEnumerable<string>? referenceAssemblyPaths,
+        bool isLibrary,
+        string? libraryTypeName,
+        string? libraryName)
     {
         peStream.SetLength(0);
         peStream.Position = 0;
         return EmitCore(
             peStream,
             null,
-            runtimeType,
+            runtimeAssemblyPath,
             assemblyName,
             diagnostics,
             dllPath,
             pdbPath: null,
-            pdbFileName: null);
+            pdbFileName: null,
+            referenceAssemblyPaths: referenceAssemblyPaths,
+            isLibrary: isLibrary,
+            libraryTypeName: libraryTypeName,
+            libraryName: libraryName);
     }
 
     /// <summary>
@@ -307,12 +392,32 @@ public sealed class LolcodeCompilation
     /// <remarks>
     /// The caller owns both streams. Their positions are advanced but they are not closed.
     /// Runtime references are resolved from the <c>Lolcode.Runtime</c> assembly already
-    /// referenced by this compiler. Cancellation does not interrupt parser or binder internals,
+    /// referenced by this compiler, including when that assembly has no file location.
+    /// Cancellation does not interrupt parser or binder internals,
     /// but is checked before and after binding and throughout code emission.
     /// </remarks>
     public EmitResult Emit(
         Stream peStream,
         Stream? pdbStream = null,
+        CancellationToken cancellationToken = default)
+        => Emit(peStream, pdbStream, referenceAssemblyPaths: null, cancellationToken);
+
+    /// <summary>
+    /// Emits to caller-provided streams and discovers explicitly opted-in LOLCODE
+    /// libraries from resolved reference assembly metadata.
+    /// </summary>
+    /// <param name="peStream">A writable stream that receives the portable executable.</param>
+    /// <param name="pdbStream">An optional writable stream that receives portable PDB symbols.</param>
+    /// <param name="referenceAssemblyPaths">
+    /// Resolved target reference assembly paths. Supply the complete target reference set
+    /// when referenced assemblies contain LOLCODE libraries.
+    /// </param>
+    /// <param name="cancellationToken">A token checked at compilation and emission boundaries.</param>
+    /// <returns>The result of the emission.</returns>
+    public EmitResult Emit(
+        Stream peStream,
+        Stream? pdbStream,
+        IEnumerable<string>? referenceAssemblyPaths,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -330,37 +435,55 @@ public sealed class LolcodeCompilation
         return EmitCore(
             peStream,
             pdbStream,
-            typeof(LolRuntime),
+            runtimeAssemblyPath: null,
             _inMemoryAssemblyName,
             diagnostics,
             outputPath: null,
             pdbPath: null,
             pdbFileName: pdbStream == null ? null : $"{_inMemoryAssemblyName}.pdb",
-            cancellationToken: cancellationToken);
+            cancellationToken: cancellationToken,
+            referenceAssemblyPaths: referenceAssemblyPaths);
     }
 
     private EmitResult EmitCore(
         Stream peStream,
         Stream? pdbStream,
-        Type runtimeType,
+        string? runtimeAssemblyPath,
         string assemblyName,
         ImmutableArray<Diagnostic> diagnostics,
         string? outputPath,
         string? pdbPath,
         string? pdbFileName,
         bool toleratePdbFailure = false,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IEnumerable<string>? referenceAssemblyPaths = null,
+        bool isLibrary = false,
+        string? libraryTypeName = null,
+        string? libraryName = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var bindingResult = EnsureBound();
         cancellationToken.ThrowIfCancellationRequested();
-        var tree = SyntaxTrees[0];
+        LibraryDiscoveryResult libraryDiscovery = LibraryDiscovery.Discover(
+            referenceAssemblyPaths,
+            runtimeAssemblyPath);
+        ImmutableArray<Diagnostic> emitDiagnostics = diagnostics.AddRange(libraryDiscovery.Diagnostics);
+        if (libraryDiscovery.Diagnostics.Any(diagnostic =>
+            diagnostic.Severity == DiagnosticSeverity.Error))
+        {
+            return new EmitResult(false, emitDiagnostics, null);
+        }
         var generator = new CodeGenerator(
             bindingResult.BoundTree,
             assemblyName,
-            runtimeType,
-            sourceText: tree.Text,
-            sourceFilePath: tree.FilePath);
+            runtimeAssemblyPath,
+            referenceAssemblyPaths,
+            SyntaxTrees,
+            bindingResult.SyntaxTrees,
+            isLibrary: isLibrary,
+            libraryTypeName: libraryTypeName,
+            libraryName: libraryName,
+            libraryDefinitions: libraryDiscovery.Definitions);
         var pdbEmitted = false;
         if (toleratePdbFailure && pdbStream != null && pdbFileName != null)
             pdbEmitted = generator.EmitWithOptionalPdb(peStream, pdbStream, pdbFileName, cancellationToken);
@@ -371,7 +494,7 @@ public sealed class LolcodeCompilation
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        return new EmitResult(true, diagnostics, outputPath, pdbEmitted ? pdbPath : null);
+        return new EmitResult(true, emitDiagnostics, outputPath, pdbEmitted ? pdbPath : null);
     }
 
     private static void ValidateOutputStream(Stream stream, string parameterName)
@@ -466,13 +589,16 @@ public sealed class LolcodeCompilation
         IPathEmitFileSystem fileSystem,
         string dllPath,
         string pdbPath,
-        string runtimeConfigPath,
+        string? runtimeConfigPath,
         string stagedPePath,
         string? stagedPdbPath,
-        string stagedRuntimeConfigPath,
+        string? stagedRuntimeConfigPath,
         Func<string> stagePeWithoutSymbols)
     {
-        var targetPaths = new[] { runtimeConfigPath, pdbPath, dllPath };
+        var primaryTargetPaths = runtimeConfigPath is null
+            ? new[] { pdbPath, dllPath }
+            : new[] { runtimeConfigPath, pdbPath, dllPath };
+        var targetPaths = primaryTargetPaths;
         var originallyExisted = targetPaths.ToDictionary(
             path => path,
             fileSystem.FileExists,
@@ -522,7 +648,8 @@ public sealed class LolcodeCompilation
                 }
             }
 
-            fileSystem.MoveFile(stagedRuntimeConfigPath, runtimeConfigPath, overwrite: false);
+            if (stagedRuntimeConfigPath is not null && runtimeConfigPath is not null)
+                fileSystem.MoveFile(stagedRuntimeConfigPath, runtimeConfigPath, overwrite: false);
 
             if (stagedPdbPath != null)
             {
@@ -705,19 +832,23 @@ public sealed class LolcodeCompilation
             if (_bindingResult is not null)
                 return _bindingResult;
 
-            // LOLCODE is single-file, so use first tree
-            var tree = SyntaxTrees[0];
-            var binder = new Binder(tree.Text);
-            var boundTree = binder.BindCompilationUnit(tree.Root);
-            var diagnostics = binder.Diagnostics.ToImmutableArray();
+            var binder = new Binder(
+                SyntaxTrees.IsEmpty ? Text.SourceText.From("") : SyntaxTrees[0].Text);
+            var binding = binder.BindCompilationUnits(SyntaxTrees);
 
             // Lower the bound tree (simplify for code generation)
-            _bindingResult = new BindingResult(Lowerer.Lower(boundTree), diagnostics);
+            _bindingResult = new BindingResult(
+                Lowerer.Lower(binding.BoundTree),
+                binding.Diagnostics,
+                binding.SyntaxTrees);
             return _bindingResult;
         }
     }
 
-    private sealed record BindingResult(BoundBlockStatement BoundTree, ImmutableArray<Diagnostic> Diagnostics);
+    private sealed record BindingResult(
+        BoundBlockStatement BoundTree,
+        ImmutableArray<Diagnostic> Diagnostics,
+        ImmutableDictionary<SyntaxNode, SyntaxTree> SyntaxTrees);
 }
 
 internal interface IPathEmitFileSystem

@@ -81,8 +81,24 @@ internal abstract class BoundStatement : BoundNode
 internal sealed class BoundBlockStatement : BoundStatement
 {
     public ImmutableArray<BoundStatement> Statements { get; }
-    public BoundBlockStatement(ImmutableArray<BoundStatement> statements, SyntaxNode? syntax = null)
-        : base(syntax) => Statements = statements;
+
+    /// <summary>Whether code generation creates a runtime child scope for this block.</summary>
+    public bool CreatesScope { get; }
+
+    /// <summary>Whether the block's final IT value is copied to its enclosing scope.</summary>
+    public bool PropagatesItToParent { get; }
+
+    public BoundBlockStatement(
+        ImmutableArray<BoundStatement> statements,
+        SyntaxNode? syntax = null,
+        bool createsScope = true,
+        bool propagatesItToParent = false)
+        : base(syntax)
+    {
+        Statements = statements;
+        CreatesScope = createsScope;
+        PropagatesItToParent = propagatesItToParent;
+    }
     public override BoundKind Kind => BoundKind.BlockStatement;
 }
 
@@ -241,10 +257,14 @@ internal sealed class BoundLoopStatement : BoundStatement
 
     public BoundBlockStatement Body { get; }
 
+    /// <summary>Whether the loop's final IT value is copied to its enclosing scope.</summary>
+    public bool PropagatesItToParent { get; }
+
     public BoundLoopStatement(
         string label, string? operation, BoundFunctionCallExpression? operationCall, VariableSymbol? variable,
         bool? isTil, BoundExpression? condition, BoundBlockStatement body,
-        SyntaxNode? syntax = null) : base(syntax)
+        SyntaxNode? syntax = null,
+        bool propagatesItToParent = false) : base(syntax)
     {
         Label = label;
         Operation = operation;
@@ -253,6 +273,7 @@ internal sealed class BoundLoopStatement : BoundStatement
         IsTil = isTil;
         Condition = condition;
         Body = body;
+        PropagatesItToParent = propagatesItToParent;
     }
     public override BoundKind Kind => BoundKind.LoopStatement;
 }

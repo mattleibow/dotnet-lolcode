@@ -113,6 +113,25 @@ All LOLCODE programs must be opened with the command `HAI`. `HAI` must then be f
 
 A LOLCODE file is closed by the keyword `KTHXBYE` which closes the `HAI` code-block.
 
+## .NET project compilation units
+
+The .NET compiler may compile several `.lol` files into one project assembly.
+This is a project feature, not additional LOLCODE syntax: every participating
+file must independently contain `HAI <version>` and `KTHXBYE`. Their top-level
+names share one project namespace. In a multi-file compilation, direct
+top-level `HOW IZ I <name>` declarations are installed before normal
+initialization, so they are independent of file order for every supported
+version. In 1.3/1.4, calls still dynamically resolve the current function slot,
+so later replacements remain effective. Single-file compilation retains
+lci-compatible textual declaration behavior. Variables, imports, executable
+statements, and other initialization retain the project's `Compile` order, so
+a top-level variable is available only after its declaring file is processed.
+This matches C#/VB declaration-order-independent methods while retaining
+F#-style ordered values; dotnet-lolcode hoists only direct function
+declarations, not general values. Generated class-library wrappers evaluate
+only supported import and declaration forms, not arbitrary top-level executable
+statements. All files in one compilation must use the same `HAI` version.
+
 ```lolcode
 HAI 1.2
   BTW your code here
@@ -128,6 +147,11 @@ KTHXBYE
 *(The archived source marks this area for later refinement.)*
 
 All variable scope, as of this version, is local to the enclosing function or to the main program block. Variables are only accessible after declaration, and there is no global scope.
+
+In 1.2, declarations in `O RLY?` clauses and `WTF?` cases belong to that
+enclosing program or function scope. A loop body is evaluated in a fresh
+iteration scope, so its declarations (including the loop counter) are not
+available after `IM OUTTA YR`.
 
 ### Naming
 
@@ -766,3 +790,10 @@ VISIBLE IT                         BTW prints 8
 | `,` | Statement separator (soft-command-break) |
 | `...` / `…` | Line continuation |
 | `!` | Suppress newline (after VISIBLE) |
+
+### `IT` and control flow in 1.2
+
+LOLCODE 1.2 has one implicit `IT` binding for the main program or function body.
+Expressions evaluated in `O RLY?` clauses, loops, and `WTF?` cases update that enclosing
+binding; it remains visible after `OIC` or `IM OUTTA YR`. The separate lexical `IT` used by
+runtime object/block scopes is a 1.3+ behavior.

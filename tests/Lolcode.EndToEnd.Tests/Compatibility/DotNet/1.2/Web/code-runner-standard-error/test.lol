@@ -1,0 +1,6 @@
+HAI 1.2
+  VISIBLE "stdout"!
+  IM IN YR loop UPPIN YR i TIL BOTH SAEM i AN 128001
+    INVISIBLE "E"!
+  IM OUTTA YR loop
+KTHXBYE

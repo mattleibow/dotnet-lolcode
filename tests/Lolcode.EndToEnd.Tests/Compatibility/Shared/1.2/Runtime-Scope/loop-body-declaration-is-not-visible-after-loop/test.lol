@@ -1,0 +1,6 @@
+HAI 1.2
+IM IN YR once UPPIN YR i TIL BOTH SAEM i AN 1
+  I HAS A loopLocal ITZ i
+IM OUTTA YR once
+VISIBLE loopLocal
+KTHXBYE

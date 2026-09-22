@@ -14,13 +14,17 @@
   <PropertyGroup>
     <_LolcodeBuildTasksDir Condition=" '$(_LolcodeBuildTasksDir)' == '' ">$(MSBuildThisFileDirectory)..\tools\net10.0\</_LolcodeBuildTasksDir>
     <LolcodeRuntimeAssemblyPath Condition=" '$(LolcodeRuntimeAssemblyPath)' == '' ">$(_LolcodeBuildTasksDir)Lolcode.Runtime.dll</LolcodeRuntimeAssemblyPath>
+    <_LolcodeCompilerOptionsFile>$(IntermediateOutputPath)Lolcode.CompilerOptions.cache</_LolcodeCompilerOptionsFile>
   </PropertyGroup>
 
   <!-- Register the compiler task -->
   <UsingTask TaskName="Lolcode.Build.Lolc"
              AssemblyFile="$(_LolcodeBuildTasksDir)Lolcode.Build.dll" />
+  <UsingTask TaskName="Lolcode.Build.MakeValidClrIdentifier"
+             AssemblyFile="$(_LolcodeBuildTasksDir)Lolcode.Build.dll" />
+  <UsingTask TaskName="Lolcode.Build.NormalizeClrNamespace"
+             AssemblyFile="$(_LolcodeBuildTasksDir)Lolcode.Build.dll" />
 
-  <!-- Add Lolcode.Runtime as a reference so it appears in deps.json and gets copied -->
   <ItemGroup>
     <Reference Include="Lolcode.Runtime">
       <HintPath>$(LolcodeRuntimeAssemblyPath)</HintPath>
@@ -34,6 +38,64 @@
   -->
   <Target Name="CreateManifestResourceNames" />
 
+  <Target Name="_PrepareLolcodeLibraryTypeName"
+          BeforeTargets="CoreCompile">
+    <MakeValidClrIdentifier Condition="'$(OutputType)' == 'Library' and '$(LolcodeLibraryTypeName)' == ''"
+                            Input="$(AssemblyName)">
+      <Output TaskParameter="Identifier" PropertyName="LolcodeLibraryTypeName" />
+    </MakeValidClrIdentifier>
+
+    <MakeValidClrIdentifier Condition="'$(OutputType)' == 'Library'"
+                            Input="$(LolcodeLibraryTypeName)">
+      <Output TaskParameter="Identifier" PropertyName="_LolcodeValidatedLibraryTypeName" />
+    </MakeValidClrIdentifier>
+
+    <Error Condition="'$(OutputType)' == 'Library' and '$(_LolcodeValidatedLibraryTypeName)' != '$(LolcodeLibraryTypeName)'"
+           Text="LolcodeLibraryTypeName must be a simple, non-keyword CLR/C# identifier without dots. Set RootNamespace to the desired namespace." />
+
+    <PropertyGroup Condition="'$(OutputType)' == 'Library'">
+      <_LolcodeExplicitLibraryName Condition="'$(LolcodeLibraryName)' != ''">$(LolcodeLibraryName)</_LolcodeExplicitLibraryName>
+      <_LolcodeEffectiveRootNamespace Condition="'$(RootNamespace)' != ''">$(RootNamespace)</_LolcodeEffectiveRootNamespace>
+    </PropertyGroup>
+
+    <MakeValidClrIdentifier Condition="'$(OutputType)' == 'Library'"
+                            Input="$(AssemblyName)"
+                            Lolcode="true">
+      <Output TaskParameter="Identifier" PropertyName="_LolcodeDefaultLibraryName" />
+    </MakeValidClrIdentifier>
+
+    <PropertyGroup Condition="'$(OutputType)' == 'Library'">
+      <LolcodeLibraryName Condition="'$(LolcodeLibraryName)' == ''">$(_LolcodeDefaultLibraryName)</LolcodeLibraryName>
+    </PropertyGroup>
+
+    <MakeValidClrIdentifier Condition="'$(OutputType)' == 'Library'"
+                            Input="$(LolcodeLibraryName)"
+                            Lolcode="true">
+      <Output TaskParameter="Identifier" PropertyName="_LolcodeValidatedLibraryName" />
+    </MakeValidClrIdentifier>
+
+    <Error Condition="'$(OutputType)' == 'Library' and '$(_LolcodeExplicitLibraryName)' != '' and '$(_LolcodeValidatedLibraryName)' != '$(LolcodeLibraryName)'"
+           Text="LolcodeLibraryName must be a direct LOLCODE identifier starting with a letter and containing only letters, digits, or underscores." />
+
+    <NormalizeClrNamespace Condition="'$(OutputType)' == 'Library' and '$(_LolcodeEffectiveRootNamespace)' != ''"
+                           Input="$(_LolcodeEffectiveRootNamespace)">
+      <Output TaskParameter="NormalizedNamespace" PropertyName="_LolcodeSanitizedRootNamespace" />
+    </NormalizeClrNamespace>
+
+    <PropertyGroup Condition="'$(OutputType)' == 'Library'">
+      <_LolcodeLibraryFullTypeName
+          Condition="'$(_LolcodeSanitizedRootNamespace)' != ''">$(_LolcodeSanitizedRootNamespace).$(LolcodeLibraryTypeName)</_LolcodeLibraryFullTypeName>
+      <_LolcodeLibraryFullTypeName
+          Condition="'$(_LolcodeLibraryFullTypeName)' == ''">$(LolcodeLibraryTypeName)</_LolcodeLibraryFullTypeName>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(IntermediateOutputPath)" />
+    <WriteLinesToFile File="$(_LolcodeCompilerOptionsFile)"
+                      Lines="OutputType=$(OutputType);AssemblyName=$(AssemblyName);RootNamespace=$(_LolcodeSanitizedRootNamespace);LolcodeLibraryTypeName=$(LolcodeLibraryTypeName);LolcodeLibraryFullTypeName=$(_LolcodeLibraryFullTypeName);LolcodeLibraryName=$(LolcodeLibraryName)"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true" />
+  </Target>
+
   <!--
     Override CoreCompile — this is the target called by the .NET SDK to compile source code.
     We replace the default C# Csc task with our Lolc task.
@@ -44,7 +106,7 @@
   <Target Name="CoreCompile"
           Condition=" '@(Compile)' != '' "
           DependsOnTargets="$(CoreCompileDependsOn)"
-          Inputs="@(Compile);@(ReferencePathWithRefAssemblies);$(MSBuildAllProjects)"
+          Inputs="@(Compile);@(CustomAdditionalCompileInputs);@(ReferencePathWithRefAssemblies);$(MSBuildAllProjects);$(_LolcodeCompilerOptionsFile)"
           Outputs="@(IntermediateAssembly)">
 
     <!-- Filter out any non-.lol files (e.g., auto-generated .cs files from file-based apps) -->
@@ -58,6 +120,8 @@
           RuntimeAssemblyPath="$(LolcodeRuntimeAssemblyPath)"
           OutputType="$(OutputType)"
           AssemblyName="$(AssemblyName)"
+          LolcodeLibraryTypeName="$(_LolcodeLibraryFullTypeName)"
+          LolcodeLibraryName="$(LolcodeLibraryName)"
           SkipCompilerExecution="$(SkipCompilerExecution)" />
 
   </Target>

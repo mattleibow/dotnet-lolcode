@@ -5,7 +5,9 @@ using System.Reflection.Emit;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text;
 using Lolcode.CodeAnalysis.Binding;
 using Lolcode.CodeAnalysis.BoundTree;
 using Lolcode.CodeAnalysis.Symbols;
@@ -24,10 +26,17 @@ internal sealed class CodeGenerator
 {
     private readonly BoundBlockStatement _boundTree;
     private readonly string _assemblyName;
-    private readonly Type _runtimeType;
-    private readonly Text.SourceText? _sourceText;
-    private readonly string? _sourceFilePath;
-    private ISymbolDocumentWriter? _document;
+    private readonly string? _runtimeAssemblyPath;
+    private readonly IReadOnlyList<string> _referenceAssemblyPaths;
+    private readonly bool _isLibrary;
+    private readonly string? _libraryTypeName;
+    private readonly string? _libraryName;
+    private readonly IReadOnlyList<LibraryDefinition> _libraryDefinitions;
+    private readonly IReadOnlyList<SyntaxTree> _syntaxTrees;
+    private readonly bool _hoistTopLevelFunctions;
+    private readonly IReadOnlyDictionary<SyntaxNode, SyntaxTree> _syntaxTreeOwners;
+    private readonly Dictionary<string, ISymbolDocumentWriter> _documents =
+        new(StringComparer.Ordinal);
 
     private TypeBuilder _typeBuilder = null!;
     private ILGenerator _il = null!;
@@ -47,6 +56,16 @@ internal sealed class CodeGenerator
     private Type _functionTargetType = null!;
     private Type _identifierResolverType = null!;
     private Type _resolvedSlotType = null!;
+    private Type _systemObjectType = null!;
+    private Type _voidType = null!;
+    private Type _stringType = null!;
+    private Type _booleanType = null!;
+    private Type _int32Type = null!;
+    private Type _doubleType = null!;
+    private Type _intPtrType = null!;
+    private Type _exceptionType = null!;
+    private Type _libraryAttributeType = null!;
+    private Type _disposableType = null!;
 
     private readonly record struct ControlFlowTarget(Label Label, int ExceptionDepth);
 
@@ -60,8 +79,12 @@ internal sealed class CodeGenerator
     // Runtime method references
     private MethodInfo _printMethod = null!;
     private MethodInfo _loadLibraryMethod = null!;
+    private MethodInfo _registerLibraryDefinitionMethod = null!;
+    private MethodInfo _registerGeneratedLibraryInstanceMethod = null!;
     private MethodInfo _executeSystemCommandMethod = null!;
     private MethodInfo _disposeScopeMethod = null!;
+    private MethodInfo _throwIfDisposedMethod = null!;
+    private MethodInfo _transferPublicLibraryResultMethod = null!;
     private MethodInfo _writeByteOrderMarkMethod = null!;
     private MethodInfo _createYarnLiteralMethod = null!;
     private MethodInfo _interpolateYarnMethod = null!;
@@ -89,6 +112,7 @@ internal sealed class CodeGenerator
     private MethodInfo _explicitCastMethod = null!;
     private MethodInfo _createScopeMethod = null!;
     private MethodInfo _createChildScopeMethod = null!;
+    private MethodInfo _createLibraryObjectMethod = null!;
     private MethodInfo _createInvocationScopeMethod = null!;
     private MethodInfo _createObjectMethod = null!;
     private MethodInfo _invokeResolvedMethod = null!;
@@ -107,18 +131,35 @@ internal sealed class CodeGenerator
     private MethodInfo _declareParameterMethod = null!;
     private MethodInfo _assignResolvedValueMethod = null!;
     private MethodInfo _resolveFunctionSlotMethod = null!;
+    private FieldBuilder? _libraryScopeField;
+    private FieldBuilder? _libraryObjectField;
 
     /// <summary>
     /// Creates a new emitter.
     /// </summary>
-    public CodeGenerator(BoundBlockStatement boundTree, string assemblyName, Type runtimeType,
-        Text.SourceText? sourceText = null, string? sourceFilePath = null)
+    public CodeGenerator(
+        BoundBlockStatement boundTree,
+        string assemblyName,
+        string? runtimeAssemblyPath,
+        IEnumerable<string>? referenceAssemblyPaths = null,
+        IReadOnlyList<SyntaxTree>? syntaxTrees = null,
+        IReadOnlyDictionary<SyntaxNode, SyntaxTree>? syntaxTreeOwners = null,
+        bool isLibrary = false,
+        string? libraryTypeName = null,
+        string? libraryName = null,
+        IEnumerable<LibraryDefinition>? libraryDefinitions = null)
     {
         _boundTree = boundTree;
         _assemblyName = assemblyName;
-        _runtimeType = runtimeType;
-        _sourceText = sourceText;
-        _sourceFilePath = sourceFilePath;
+        _runtimeAssemblyPath = runtimeAssemblyPath;
+        _referenceAssemblyPaths = referenceAssemblyPaths?.ToArray() ?? [];
+        _syntaxTrees = syntaxTrees ?? [];
+        _hoistTopLevelFunctions = _syntaxTrees.Count > 1;
+        _syntaxTreeOwners = syntaxTreeOwners ?? new Dictionary<SyntaxNode, SyntaxTree>();
+        _isLibrary = isLibrary;
+        _libraryTypeName = libraryTypeName;
+        _libraryName = libraryName;
+        _libraryDefinitions = libraryDefinitions?.ToArray() ?? [];
     }
 
     /// <summary>
@@ -151,7 +192,21 @@ internal sealed class CodeGenerator
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var runtimeAssembly = _runtimeType.Assembly;
+        using MetadataLoadContext? metadataLoadContext = _runtimeAssemblyPath is null
+            ? null
+            : CreateMetadataLoadContext();
+        Assembly runtimeAssembly = metadataLoadContext is null
+            ? typeof(LolRuntime).Assembly
+            : metadataLoadContext.LoadFromAssemblyPath(_runtimeAssemblyPath!);
+        Assembly coreAssembly = metadataLoadContext?.CoreAssembly ?? typeof(object).Assembly;
+        _systemObjectType = GetCoreType(coreAssembly, "System.Object");
+        _voidType = GetCoreType(coreAssembly, "System.Void");
+        _stringType = GetCoreType(coreAssembly, "System.String");
+        _booleanType = GetCoreType(coreAssembly, "System.Boolean");
+        _int32Type = GetCoreType(coreAssembly, "System.Int32");
+        _doubleType = GetCoreType(coreAssembly, "System.Double");
+        _intPtrType = GetCoreType(coreAssembly, "System.IntPtr");
+        _exceptionType = GetCoreType(coreAssembly, "System.Exception");
         _scopeType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolScope));
         _objectType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolObject));
         _functionType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolFunction));
@@ -160,27 +215,54 @@ internal sealed class CodeGenerator
         _functionTargetType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolFunctionTarget));
         _identifierResolverType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolIdentifierResolver));
         _resolvedSlotType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolResolvedSlot));
+        _libraryAttributeType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolcodeLibraryAttribute));
+        _disposableType = GetCoreType(coreAssembly, "System.IDisposable");
 
-        ResolveRuntimeMethods(_runtimeType);
+        var runtimeType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolRuntime));
+        ResolveRuntimeMethods(runtimeType);
 
         var assemblyBuilder = new PersistedAssemblyBuilder(
             new AssemblyName(_assemblyName),
-            typeof(object).Assembly);
+            coreAssembly);
 
         var moduleBuilder = assemblyBuilder.DefineDynamicModule(_assemblyName);
 
-        // PDB: define document for source file
-        if (_sourceText != null && !string.IsNullOrEmpty(_sourceFilePath))
+        var lolcodeLanguageGuid = new Guid("4C4F4C43-4F44-4500-0000-000000000001");
+        foreach (SyntaxTree syntaxTree in _syntaxTrees)
         {
-            var lolcodeLanguageGuid = new Guid("4C4F4C43-4F44-4500-0000-000000000001");
-            _document = moduleBuilder.DefineDocument(
-                Path.GetFullPath(_sourceFilePath), lolcodeLanguageGuid,
-                SymLanguageVendor.Microsoft, SymDocumentType.Text);
+            if (string.IsNullOrEmpty(syntaxTree.FilePath))
+                continue;
+
+            string documentPath = Path.GetFullPath(syntaxTree.FilePath);
+            if (!_documents.ContainsKey(documentPath))
+            {
+                _documents.Add(
+                    documentPath,
+                    moduleBuilder.DefineDocument(
+                        documentPath,
+                        lolcodeLanguageGuid,
+                        SymLanguageVendor.Microsoft,
+                        SymDocumentType.Text));
+            }
         }
 
         _typeBuilder = moduleBuilder.DefineType(
-            "Program",
-            TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Abstract | TypeAttributes.Sealed);
+            _isLibrary ? _libraryTypeName ?? "LolcodeExports" : "Program",
+            TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Sealed |
+            (_isLibrary ? TypeAttributes.BeforeFieldInit : TypeAttributes.Abstract));
+        if (_isLibrary)
+        {
+            ConstructorInfo libraryAttributeConstructor = _libraryAttributeType.GetConstructor([_stringType])
+                ?? throw new MissingMethodException(_libraryAttributeType.FullName, ".ctor");
+            _typeBuilder.SetCustomAttribute(
+                libraryAttributeConstructor,
+                EncodeLibraryAttribute(_libraryName ?? _assemblyName));
+            _typeBuilder.AddInterfaceImplementation(_disposableType);
+            _libraryScopeField = _typeBuilder.DefineField(
+                "_scope", _scopeType, FieldAttributes.Private | FieldAttributes.InitOnly);
+            _libraryObjectField = _typeBuilder.DefineField(
+                "_library", _objectType, FieldAttributes.Private | FieldAttributes.InitOnly);
+        }
 
         int functionIndex = 0;
         var emittedNames = new HashSet<string>(StringComparer.Ordinal);
@@ -201,8 +283,8 @@ internal sealed class CodeGenerator
             var method = _typeBuilder.DefineMethod(
                 emittedName,
                 MethodAttributes.Private | MethodAttributes.Static,
-                typeof(object),
-                [_scopeType, _objectType, typeof(object[]), _resolvedSlotType.MakeArrayType()]);
+                _systemObjectType,
+                [_scopeType, _objectType, _systemObjectType.MakeArrayType(), _resolvedSlotType.MakeArrayType()]);
             _functionMethods[funcDecl] = method;
             _functionDeclarations[funcDecl.Function] = funcDecl;
             var parameterResolvers = ImmutableArray.CreateBuilder<MethodBuilder>();
@@ -219,12 +301,13 @@ internal sealed class CodeGenerator
             _parameterResolverMethods[funcDecl] = parameterResolvers.ToImmutable();
         }
 
-        // Define Main entry point
-        var mainMethod = _typeBuilder.DefineMethod(
-            "Main",
-            MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig,
-            typeof(void),
-            Type.EmptyTypes);
+        MethodBuilder? mainMethod = _isLibrary
+            ? null
+            : _typeBuilder.DefineMethod(
+                "Main",
+                MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig,
+                _voidType,
+                []);
 
         // Emit function bodies
         foreach (var pair in _functionMethods)
@@ -241,43 +324,54 @@ internal sealed class CodeGenerator
             }
         }
 
-        // Emit Main body
-        _il = mainMethod.GetILGenerator();
-        _locals.Clear();
-
-        _il.BeginScope();
-
-        if (_sourceText is { Length: > 0 } && _sourceText[0] == '\uFEFF')
-            _il.Emit(OpCodes.Call, _writeByteOrderMarkMethod);
-
-        _scopeLocal = _il.DeclareLocal(_scopeType);
-        _il.Emit(OpCodes.Call, _createScopeMethod);
-        _il.Emit(OpCodes.Stloc, _scopeLocal);
-        var mainIt = _il.DeclareLocal(typeof(object));
-        _locals["IT"] = mainIt;
-        SetLocalSymInfo(mainIt, "IT");
-        _il.Emit(OpCodes.Ldnull);
-        _il.Emit(OpCodes.Stloc, mainIt);
-
-        _il.BeginExceptionBlock();
-        foreach (var statement in _boundTree.Statements)
+        if (_isLibrary)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            EmitStatement(statement);
+            EmitGeneratedLibraryConstructor();
+            EmitGeneratedLibraryMembers();
         }
-        _il.BeginFinallyBlock();
-        _il.Emit(OpCodes.Ldloc, _scopeLocal);
-        _il.Emit(OpCodes.Call, _disposeScopeMethod);
-        _il.EndExceptionBlock();
+        EmitPublicFunctionWrappers();
 
-        _il.EndScope();
-        _il.Emit(OpCodes.Ret);
+        if (mainMethod is not null)
+        {
+            _il = mainMethod.GetILGenerator();
+            _locals.Clear();
+
+            _il.BeginScope();
+
+            if (_syntaxTrees.FirstOrDefault()?.Text is { Length: > 0 } firstSourceText &&
+                firstSourceText[0] == '\uFEFF')
+                _il.Emit(OpCodes.Call, _writeByteOrderMarkMethod);
+
+            _scopeLocal = _il.DeclareLocal(_scopeType);
+            _il.Emit(OpCodes.Call, _createScopeMethod);
+            _il.Emit(OpCodes.Stloc, _scopeLocal);
+            EmitLibraryConfiguration();
+            var mainIt = _il.DeclareLocal(_systemObjectType);
+            _locals["IT"] = mainIt;
+            SetLocalSymInfo(mainIt, "IT");
+            _il.Emit(OpCodes.Ldnull);
+            _il.Emit(OpCodes.Stloc, mainIt);
+
+            _il.BeginExceptionBlock();
+            EmitTopLevelInitializer(
+                static _ => true,
+                cancellationToken);
+            _il.BeginFinallyBlock();
+            _il.Emit(OpCodes.Ldloc, _scopeLocal);
+            _il.Emit(OpCodes.Call, _disposeScopeMethod);
+            _il.EndExceptionBlock();
+
+            _il.EndScope();
+            _il.Emit(OpCodes.Ret);
+        }
 
         _typeBuilder.CreateType();
 
         cancellationToken.ThrowIfCancellationRequested();
         var metadataBuilder = assemblyBuilder.GenerateMetadata(out var ilStream, out var mappedFieldData, out MetadataBuilder pdbBuilder);
-        var entryPointHandle = MetadataTokens.MethodDefinitionHandle(mainMethod.MetadataToken);
+        var entryPointHandle = mainMethod is null
+            ? default(MethodDefinitionHandle)
+            : MetadataTokens.MethodDefinitionHandle(mainMethod.MetadataToken);
         DebugDirectoryBuilder? debugDirectoryBuilder = null;
         var pdbEmitted = false;
 
@@ -314,9 +408,7 @@ internal sealed class CodeGenerator
         }
 
         var peBuilder = new ManagedPEBuilder(
-            header: new PEHeaderBuilder(
-                imageCharacteristics: Characteristics.ExecutableImage,
-                subsystem: Subsystem.WindowsCui),
+            header: CreatePeHeader(),
             metadataRootBuilder: new MetadataRootBuilder(metadataBuilder),
             ilStream: ilStream,
             mappedFieldData: mappedFieldData,
@@ -342,23 +434,104 @@ internal sealed class CodeGenerator
             System.Security.Cryptography.CryptographicException;
     }
 
-    private void ResolveRuntimeMethods(Type runtimeType)
+    private MetadataLoadContext CreateMetadataLoadContext()
     {
-        if (runtimeType != typeof(LolRuntime)
-            && !string.Equals(runtimeType.FullName, typeof(LolRuntime).FullName, StringComparison.Ordinal))
+        IEnumerable<string> referencePaths = _referenceAssemblyPaths.Count > 0
+            ? _referenceAssemblyPaths
+            : GetTrustedPlatformAssemblyPaths();
+        var resolverPaths = referencePaths
+            .Append(_runtimeAssemblyPath)
+            .Where(static path => !string.IsNullOrEmpty(path))
+            .Select(static path => path!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (!resolverPaths.Any(path =>
+            string.Equals(
+                Path.GetFileName(path),
+                "System.Runtime.dll",
+                StringComparison.OrdinalIgnoreCase)))
         {
-            throw new ArgumentException(
-                $"Runtime type must be {typeof(LolRuntime).FullName}.",
-                nameof(runtimeType));
+            throw new InvalidOperationException(
+                "The target reference assemblies do not contain System.Runtime.dll.");
         }
 
+        return new MetadataLoadContext(
+            new PathAssemblyResolver(resolverPaths),
+            coreAssemblyName: "System.Runtime");
+    }
+
+    private static IEnumerable<string> GetTrustedPlatformAssemblyPaths() =>
+        AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") is string trustedPlatformAssemblies
+            ? trustedPlatformAssemblies.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            : [];
+
+    private static byte[] EncodeLibraryAttribute(string name)
+    {
+        byte[] nameBytes = Encoding.UTF8.GetBytes(name);
+        var blob = new List<byte> { 1, 0 };
+        AppendCompressedUnsignedInteger(blob, checked((uint)nameBytes.Length));
+        blob.AddRange(nameBytes);
+        blob.Add(0);
+        blob.Add(0);
+        return blob.ToArray();
+    }
+
+    private static void AppendCompressedUnsignedInteger(List<byte> blob, uint value)
+    {
+        if (value <= 0x7F)
+            blob.Add((byte)value);
+        else if (value <= 0x3FFF)
+        {
+            blob.Add((byte)((value >> 8) | 0x80));
+            blob.Add((byte)value);
+        }
+        else if (value <= 0x1FFFFFFF)
+        {
+            blob.Add((byte)((value >> 24) | 0xC0));
+            blob.Add((byte)(value >> 16));
+            blob.Add((byte)(value >> 8));
+            blob.Add((byte)value);
+        }
+        else
+        {
+            throw new ArgumentOutOfRangeException(nameof(value));
+        }
+    }
+
+    private static Type GetCoreType(Assembly coreAssembly, string fullName) =>
+        coreAssembly.GetType(fullName)
+        ?? throw new InvalidOperationException(
+            $"Could not find core type '{fullName}' in '{coreAssembly.FullName}'.");
+
+    private PEHeaderBuilder CreatePeHeader() =>
+        _isLibrary
+            ? PEHeaderBuilder.CreateLibraryHeader()
+            : new PEHeaderBuilder(
+                imageCharacteristics: Characteristics.ExecutableImage,
+                subsystem: Subsystem.WindowsCui);
+
+    private void ResolveRuntimeMethods(Type runtimeType)
+    {
         _printMethod = GetRequiredRuntimeMethod(
             runtimeType,
             nameof(LolRuntime.Print),
-            [typeof(object[]), typeof(bool), typeof(bool)]);
+            [_systemObjectType.MakeArrayType(), _booleanType, _booleanType]);
         _loadLibraryMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.LoadLibrary));
+        _registerLibraryDefinitionMethod = GetRequiredRuntimeMethod(
+            runtimeType, nameof(LolRuntime.RegisterLibraryDefinition),
+            [_scopeType, _stringType, _stringType, _stringType]);
+        _registerGeneratedLibraryInstanceMethod = GetRequiredRuntimeMethod(
+            runtimeType,
+            nameof(LolRuntime.RegisterGeneratedLibraryInstance),
+            [_systemObjectType, _objectType]);
         _executeSystemCommandMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ExecuteSystemCommandValue));
         _disposeScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.DisposeScope));
+        _throwIfDisposedMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ThrowIfDisposed));
+        _transferPublicLibraryResultMethod = GetRequiredRuntimeMethod(
+            runtimeType,
+            nameof(LolRuntime.TransferPublicLibraryResult),
+            [_scopeType, _systemObjectType]);
         _writeByteOrderMarkMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.WriteByteOrderMark));
         _createYarnLiteralMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CreateYarnLiteral));
         _interpolateYarnMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.InterpolateYarnValue));
@@ -386,6 +559,10 @@ internal sealed class CodeGenerator
         _explicitCastMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ExplicitCast));
         _createScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CreateScope));
         _createChildScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CreateChildScope));
+        _createLibraryObjectMethod = GetRequiredRuntimeMethod(
+            runtimeType,
+            nameof(LolRuntime.CreateLibraryObject),
+            [_scopeType]);
         _createInvocationScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CreateInvocationScope));
         _createObjectMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.CreateObject));
         _invokeResolvedMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.InvokeResolved));
@@ -404,6 +581,18 @@ internal sealed class CodeGenerator
         _declareParameterMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.DeclareParameter));
         _assignResolvedValueMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.AssignResolvedValue));
         _resolveFunctionSlotMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ResolveFunctionSlot));
+    }
+
+    private void EmitLibraryConfiguration()
+    {
+        foreach (LibraryDefinition definition in _libraryDefinitions)
+        {
+            _il.Emit(OpCodes.Ldloc, _scopeLocal);
+            _il.Emit(OpCodes.Ldstr, definition.Name);
+            _il.Emit(OpCodes.Ldstr, definition.AssemblyName);
+            _il.Emit(OpCodes.Ldstr, definition.TypeName);
+            _il.Emit(OpCodes.Call, _registerLibraryDefinitionMethod);
+        }
     }
 
     private static Type GetRequiredRuntimeType(Assembly runtimeAssembly, Type expectedType)
@@ -427,6 +616,212 @@ internal sealed class CodeGenerator
                 modifiers: null)
             ?? throw new MissingMethodException(runtimeType.FullName, methodName);
     }
+
+    private void EmitPublicFunctionWrappers()
+    {
+        if (!_isLibrary)
+            return;
+
+        foreach (var declaration in _boundTree.Statements
+            .OfType<BoundFunctionDeclaration>()
+            .Where(IsDirectTopLevelFunctionDeclaration))
+        {
+            string name = declaration.Identifier!.DirectName!;
+
+            MethodBuilder wrapper = _typeBuilder.DefineMethod(
+                name,
+                MethodAttributes.Public | MethodAttributes.HideBySig,
+                _systemObjectType,
+                Enumerable.Repeat(_systemObjectType, declaration.Function.Parameters.Length).ToArray());
+            _il = wrapper.GetILGenerator();
+            _locals.Clear();
+            _loopBreakTargets.Clear();
+            _switchBreakTargets.Clear();
+            _exceptionDepth = 0;
+            _functionReturnValue = null;
+            _il.BeginScope();
+            var module = _il.DeclareLocal(_objectType);
+            var arguments = _il.DeclareLocal(_systemObjectType.MakeArrayType());
+            var parameterSlots = _il.DeclareLocal(_resolvedSlotType.MakeArrayType());
+            var result = _il.DeclareLocal(_systemObjectType);
+
+            _il.Emit(OpCodes.Ldarg_0);
+            _il.Emit(OpCodes.Ldfld, _libraryScopeField!);
+            _il.Emit(OpCodes.Call, _throwIfDisposedMethod);
+            _il.Emit(OpCodes.Ldarg_0);
+            _il.Emit(OpCodes.Ldfld, _libraryObjectField!);
+            _il.Emit(OpCodes.Stloc, module);
+            _scopeLocal = module;
+            var wrapperIt = _il.DeclareLocal(_systemObjectType);
+            _locals["IT"] = wrapperIt;
+            SetLocalSymInfo(wrapperIt, "IT");
+            _il.Emit(OpCodes.Ldnull);
+            _il.Emit(OpCodes.Stloc, wrapperIt);
+            _il.Emit(OpCodes.Ldc_I4, declaration.Function.Parameters.Length);
+            _il.Emit(OpCodes.Newarr, _systemObjectType);
+            for (int index = 0; index < declaration.Function.Parameters.Length; index++)
+            {
+                _il.Emit(OpCodes.Dup);
+                _il.Emit(OpCodes.Ldc_I4, index);
+                _il.Emit(OpCodes.Ldarg, index + 1);
+                _il.Emit(OpCodes.Stelem_Ref);
+            }
+            _il.Emit(OpCodes.Stloc, arguments);
+
+            var target = _il.DeclareLocal(_functionTargetType);
+            EmitResolvedSlot(declaration.Identifier!, module);
+            _il.Emit(OpCodes.Ldc_I4, declaration.Function.Parameters.Length);
+            _il.Emit(OpCodes.Call, _resolveFunctionSlotMethod);
+            _il.Emit(OpCodes.Stloc, target);
+
+            _il.Emit(OpCodes.Ldc_I4, declaration.Function.Parameters.Length);
+            _il.Emit(OpCodes.Newarr, _resolvedSlotType);
+            _il.Emit(OpCodes.Stloc, parameterSlots);
+            for (int index = 0; index < declaration.Function.Parameters.Length; index++)
+            {
+                _il.Emit(OpCodes.Ldloc, parameterSlots);
+                _il.Emit(OpCodes.Ldc_I4, index);
+                _il.Emit(OpCodes.Ldarg_0);
+                _il.Emit(OpCodes.Ldfld, _libraryScopeField!);
+                _il.Emit(OpCodes.Ldloc, target);
+                _il.Emit(OpCodes.Ldc_I4, index);
+                _il.Emit(OpCodes.Call, _resolveParameterNameMethod);
+                _il.Emit(OpCodes.Stelem_Ref);
+            }
+
+            _il.Emit(OpCodes.Ldarg_0);
+            _il.Emit(OpCodes.Ldfld, _libraryScopeField!);
+            _il.Emit(OpCodes.Ldloc, target);
+            _il.Emit(OpCodes.Ldloc, parameterSlots);
+            _il.Emit(OpCodes.Ldloc, arguments);
+            _il.Emit(OpCodes.Call, _invokeResolvedMethod);
+            _il.Emit(OpCodes.Stloc, result);
+            _il.Emit(OpCodes.Ldarg_0);
+            _il.Emit(OpCodes.Ldfld, _libraryScopeField!);
+            _il.Emit(OpCodes.Ldloc, result);
+            _il.Emit(OpCodes.Call, _transferPublicLibraryResultMethod);
+            _il.EndScope();
+            _il.Emit(OpCodes.Ret);
+        }
+    }
+
+    private void EmitGeneratedLibraryConstructor()
+    {
+        ConstructorBuilder constructor = _typeBuilder.DefineConstructor(
+            MethodAttributes.Public, CallingConventions.Standard, Type.EmptyTypes);
+        _il = constructor.GetILGenerator();
+        _il.Emit(OpCodes.Ldarg_0);
+        _il.Emit(OpCodes.Call, _systemObjectType.GetConstructor(Type.EmptyTypes)!);
+        _il.Emit(OpCodes.Ldarg_0);
+        _il.Emit(OpCodes.Call, _createScopeMethod);
+        _il.Emit(OpCodes.Stfld, _libraryScopeField!);
+        _il.BeginExceptionBlock();
+        var module = _il.DeclareLocal(_objectType);
+        _il.Emit(OpCodes.Ldarg_0);
+        _il.Emit(OpCodes.Ldfld, _libraryScopeField!);
+        _il.Emit(OpCodes.Call, _createLibraryObjectMethod);
+        _il.Emit(OpCodes.Stloc, module);
+        _il.Emit(OpCodes.Ldarg_0);
+        _il.Emit(OpCodes.Ldloc, module);
+        _il.Emit(OpCodes.Stfld, _libraryObjectField!);
+        _scopeLocal = module;
+        _locals.Clear();
+        EmitLibraryConfiguration();
+        var moduleIt = _il.DeclareLocal(_systemObjectType);
+        _locals["IT"] = moduleIt;
+        _il.Emit(OpCodes.Ldnull);
+        _il.Emit(OpCodes.Stloc, moduleIt);
+        EmitLibraryInitializer();
+        _il.Emit(OpCodes.Ldarg_0);
+        _il.Emit(OpCodes.Ldloc, module);
+        _il.Emit(OpCodes.Call, _registerGeneratedLibraryInstanceMethod);
+        Label complete = _il.DefineLabel();
+        _il.Emit(OpCodes.Leave_S, complete);
+        _il.BeginCatchBlock(_exceptionType);
+        _il.Emit(OpCodes.Ldarg_0);
+        _il.Emit(OpCodes.Ldfld, _libraryScopeField!);
+        _il.Emit(OpCodes.Call, _disposeScopeMethod);
+        _il.Emit(OpCodes.Rethrow);
+        _il.EndExceptionBlock();
+        _il.MarkLabel(complete);
+        _il.Emit(OpCodes.Ret);
+    }
+
+    private void EmitGeneratedLibraryMembers()
+    {
+        MethodBuilder getter = _typeBuilder.DefineMethod(
+            "get_Library",
+            MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.Final |
+            MethodAttributes.HideBySig | MethodAttributes.SpecialName,
+            _objectType,
+            Type.EmptyTypes);
+        _il = getter.GetILGenerator();
+        _il.Emit(OpCodes.Ldarg_0);
+        _il.Emit(OpCodes.Ldfld, _libraryObjectField!);
+        _il.Emit(OpCodes.Ret);
+        _typeBuilder.DefineProperty(
+            "Library",
+            PropertyAttributes.None,
+            _objectType,
+            Type.EmptyTypes).SetGetMethod(getter);
+
+        MethodBuilder dispose = _typeBuilder.DefineMethod(
+            nameof(IDisposable.Dispose),
+            MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.Final |
+            MethodAttributes.HideBySig,
+            _voidType,
+            Type.EmptyTypes);
+        _il = dispose.GetILGenerator();
+        _il.Emit(OpCodes.Ldarg_0);
+        _il.Emit(OpCodes.Ldfld, _libraryScopeField!);
+        _il.Emit(OpCodes.Call, _disposeScopeMethod);
+        _il.Emit(OpCodes.Ret);
+    }
+
+    private void EmitLibraryInitializer()
+    {
+        EmitTopLevelInitializer(IsLibraryInitializationStatement);
+    }
+
+    private void EmitTopLevelInitializer(
+        Func<BoundStatement, bool> include,
+        CancellationToken cancellationToken = default)
+    {
+        if (_hoistTopLevelFunctions)
+        {
+            foreach (BoundStatement statement in _boundTree.Statements)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (include(statement) && IsDirectTopLevelFunctionDeclaration(statement))
+                    EmitStatement(statement);
+            }
+        }
+
+        foreach (BoundStatement statement in _boundTree.Statements)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (include(statement) &&
+                !(_hoistTopLevelFunctions && IsDirectTopLevelFunctionDeclaration(statement)))
+                EmitStatement(statement);
+        }
+    }
+
+    private static bool IsLibraryInitializationStatement(BoundStatement statement) =>
+        statement is
+            BoundImportStatement or
+            BoundVariableDeclaration or
+            BoundScopedDeclaration or
+            BoundObjectDefinition or
+            BoundFunctionDeclaration;
+
+    private static bool IsDirectTopLevelFunctionDeclaration(BoundStatement statement) =>
+        statement is BoundFunctionDeclaration
+        {
+            Scope.DirectName: "I",
+            Scope.Slot: null,
+            Identifier.DirectName: not null,
+            Identifier.Slot: null,
+        };
 
     private static IEnumerable<BoundFunctionDeclaration> EnumerateFunctions(BoundBlockStatement block)
     {
@@ -486,7 +881,7 @@ internal sealed class CodeGenerator
         _il.Emit(OpCodes.Ldarg_1);
         _il.Emit(OpCodes.Call, _createInvocationScopeMethod);
         _il.Emit(OpCodes.Stloc, _scopeLocal);
-        var functionIt = _il.DeclareLocal(typeof(object));
+        var functionIt = _il.DeclareLocal(_systemObjectType);
         _locals["IT"] = functionIt;
         SetLocalSymInfo(functionIt, "IT");
         _il.Emit(OpCodes.Ldnull);
@@ -495,7 +890,7 @@ internal sealed class CodeGenerator
         // Parameters are accessible by name
         for (int i = 0; i < decl.Function.Parameters.Length; i++)
         {
-            var parameterLocal = _il.DeclareLocal(typeof(object));
+            var parameterLocal = _il.DeclareLocal(_systemObjectType);
             _locals[decl.Function.Parameters[i].Name] = parameterLocal;
             SetLocalSymInfo(parameterLocal, decl.Function.Parameters[i].Name);
             _il.Emit(OpCodes.Ldloc, _scopeLocal);
@@ -512,7 +907,7 @@ internal sealed class CodeGenerator
 
         // Return handling
         _functionReturnTarget = new ControlFlowTarget(_il.DefineLabel(), _exceptionDepth);
-        _functionReturnValue = _il.DeclareLocal(typeof(object));
+        _functionReturnValue = _il.DeclareLocal(_systemObjectType);
         _il.Emit(OpCodes.Ldnull);
         _il.Emit(OpCodes.Stloc, _functionReturnValue);
 
@@ -556,17 +951,17 @@ internal sealed class CodeGenerator
                 break;
             case BoundIfStatement s:
                 if (s.Syntax is IfStatementSyntax ifSyntax)
-                    EmitSequencePointForToken(ifSyntax.ORlyKeyword);
+                    EmitSequencePointForToken(ifSyntax.ORlyKeyword, ifSyntax);
                 EmitIf(s);
                 break;
             case BoundSwitchStatement s:
                 if (s.Syntax is SwitchStatementSyntax switchSyntax)
-                    EmitSequencePointForToken(switchSyntax.WtfKeyword);
+                    EmitSequencePointForToken(switchSyntax.WtfKeyword, switchSyntax);
                 EmitSwitch(s);
                 break;
             case BoundLoopStatement s:
                 if (s.Syntax is LoopStatementSyntax loopSyntax)
-                    EmitSequencePointForToken(loopSyntax.ImInKeyword);
+                    EmitSequencePointForToken(loopSyntax.ImInKeyword, loopSyntax);
                 EmitLoop(s);
                 break;
             case BoundGtfoStatement s:
@@ -606,7 +1001,7 @@ internal sealed class CodeGenerator
 
     private void EmitVariableDeclaration(BoundVariableDeclaration decl)
     {
-        var local = _il.DeclareLocal(typeof(object));
+        var local = _il.DeclareLocal(_systemObjectType);
         var slot = _il.DeclareLocal(_resolvedSlotType);
         _locals[decl.Variable.Name] = local;
         SetLocalSymInfo(local, decl.Variable.Name);
@@ -622,7 +1017,7 @@ internal sealed class CodeGenerator
 
     private void EmitAssignment(BoundAssignment assignment)
     {
-        var value = _il.DeclareLocal(typeof(object));
+        var value = _il.DeclareLocal(_systemObjectType);
         EmitExpression(assignment.Expression);
         _il.Emit(OpCodes.Stloc, value);
         EmitResolvedSlot(new BoundIdentifier(assignment.Variable.Name, null, null));
@@ -651,7 +1046,7 @@ internal sealed class CodeGenerator
 
     private void EmitIdentifierAssignment(BoundIdentifierAssignment assignment)
     {
-        var value = _il.DeclareLocal(typeof(object));
+        var value = _il.DeclareLocal(_systemObjectType);
         EmitExpression(assignment.Expression);
         _il.Emit(OpCodes.Stloc, value);
         EmitResolvedSlot(assignment.Target);
@@ -671,13 +1066,13 @@ internal sealed class CodeGenerator
         _il.Emit(OpCodes.Ldc_I4, declaration.Function.Parameters.Length);
         _il.Emit(OpCodes.Ldnull);
         _il.Emit(OpCodes.Ldftn, _functionMethods[declaration]);
-        ConstructorInfo delegateConstructor = _functionBodyType.GetConstructor([typeof(object), typeof(IntPtr)])!;
+        ConstructorInfo delegateConstructor = _functionBodyType.GetConstructor([_systemObjectType, _intPtrType])!;
         _il.Emit(OpCodes.Newobj, delegateConstructor);
         ImmutableArray<MethodBuilder> parameterResolvers = _parameterResolverMethods[declaration];
         _il.Emit(OpCodes.Ldc_I4, parameterResolvers.Length);
         _il.Emit(OpCodes.Newarr, _parameterNameResolverType);
         ConstructorInfo resolverConstructor =
-            _parameterNameResolverType.GetConstructor([typeof(object), typeof(IntPtr)])!;
+            _parameterNameResolverType.GetConstructor([_systemObjectType, _intPtrType])!;
         for (int index = 0; index < parameterResolvers.Length; index++)
         {
             _il.Emit(OpCodes.Dup);
@@ -688,7 +1083,7 @@ internal sealed class CodeGenerator
             _il.Emit(OpCodes.Stelem_Ref);
         }
         ConstructorInfo functionConstructor = _functionType.GetConstructor(
-            [typeof(int), _functionBodyType, _parameterNameResolverType.MakeArrayType()])!;
+            [_int32Type, _functionBodyType, _parameterNameResolverType.MakeArrayType()])!;
         _il.Emit(OpCodes.Newobj, functionConstructor);
         _il.Emit(OpCodes.Call, _declareResolvedValueMethod);
     }
@@ -710,7 +1105,7 @@ internal sealed class CodeGenerator
             EmitResolvedValue(definition.Parent);
         }
         _il.Emit(OpCodes.Ldc_I4, definition.Mixins.Length);
-        _il.Emit(OpCodes.Newarr, typeof(object));
+        _il.Emit(OpCodes.Newarr, _systemObjectType);
         for (int index = 0; index < definition.Mixins.Length; index++)
         {
             _il.Emit(OpCodes.Dup);
@@ -740,7 +1135,7 @@ internal sealed class CodeGenerator
     private void EmitVisible(BoundVisibleStatement visible)
     {
         _il.Emit(OpCodes.Ldc_I4, visible.Arguments.Length);
-        _il.Emit(OpCodes.Newarr, typeof(object));
+        _il.Emit(OpCodes.Newarr, _systemObjectType);
 
         for (int i = 0; i < visible.Arguments.Length; i++)
         {
@@ -772,7 +1167,7 @@ internal sealed class CodeGenerator
 
     private void EmitGimmeh(BoundGimmehStatement gimmeh)
     {
-        var input = _il.DeclareLocal(typeof(string));
+        var input = _il.DeclareLocal(_stringType);
         _il.Emit(OpCodes.Call, _readLineMethod);
         _il.Emit(OpCodes.Stloc, input);
         EmitResolvedSlot(gimmeh.Target);
@@ -840,7 +1235,7 @@ internal sealed class CodeGenerator
         var endLabel = _il.DefineLabel();
         _switchBreakTargets.Push(new ControlFlowTarget(endLabel, _exceptionDepth));
 
-        var matched = _il.DeclareLocal(typeof(bool));
+        var matched = _il.DeclareLocal(_booleanType);
         _il.Emit(OpCodes.Ldc_I4_0);
         _il.Emit(OpCodes.Stloc, matched);
 
@@ -893,6 +1288,15 @@ internal sealed class CodeGenerator
         _il.Emit(OpCodes.Ldloc, outerScope);
         _il.Emit(OpCodes.Call, _createChildScopeMethod);
         _il.Emit(OpCodes.Stloc, _scopeLocal);
+        if (loop.PropagatesItToParent)
+        {
+            // A 1.2 loop has a local loop-variable namespace, but shares the
+            // enclosing program/function IT for its control-flow body.
+            _il.Emit(OpCodes.Ldloc, _scopeLocal);
+            _il.Emit(OpCodes.Ldloc, outerScope);
+            _il.Emit(OpCodes.Call, _getItMethod);
+            _il.Emit(OpCodes.Call, _setItMethod);
+        }
 
         _il.BeginExceptionBlock();
         _exceptionDepth++;
@@ -903,7 +1307,7 @@ internal sealed class CodeGenerator
         {
             EmitResolvedDeclarationSlot(new BoundIdentifier(varName, null, null));
             _il.Emit(OpCodes.Ldc_I4_0);
-            _il.Emit(OpCodes.Box, typeof(int));
+            _il.Emit(OpCodes.Box, _int32Type);
             _il.Emit(OpCodes.Call, _declareResolvedValueMethod);
         }
 
@@ -944,7 +1348,7 @@ internal sealed class CodeGenerator
             else if (loop.OperationCall is not null)
             {
                 EmitFunctionCall(loop.OperationCall);
-                var updated = _il.DeclareLocal(typeof(object));
+                var updated = _il.DeclareLocal(_systemObjectType);
                 _il.Emit(OpCodes.Stloc, updated);
                 EmitResolvedSlot(new BoundIdentifier(varName, null, null));
                 _il.Emit(OpCodes.Ldloc, updated);
@@ -959,6 +1363,13 @@ internal sealed class CodeGenerator
         _loopBreakTargets.Pop();
 
         _il.BeginFinallyBlock();
+        if (loop.PropagatesItToParent)
+        {
+            _il.Emit(OpCodes.Ldloc, outerScope);
+            _il.Emit(OpCodes.Ldloc, _scopeLocal);
+            _il.Emit(OpCodes.Call, _getItMethod);
+            _il.Emit(OpCodes.Call, _setItMethod);
+        }
         _il.Emit(OpCodes.Ldloc, outerScope);
         _il.Emit(OpCodes.Stloc, _scopeLocal);
         _il.EndExceptionBlock();
@@ -1034,17 +1445,37 @@ internal sealed class CodeGenerator
 
     private void EmitBlock(BoundBlockStatement block)
     {
+        if (!block.CreatesScope)
+        {
+            EmitStatements(block);
+            return;
+        }
+
         var outerScope = _il.DeclareLocal(_scopeType);
         _il.Emit(OpCodes.Ldloc, _scopeLocal);
         _il.Emit(OpCodes.Stloc, outerScope);
         _il.Emit(OpCodes.Ldloc, outerScope);
         _il.Emit(OpCodes.Call, _createChildScopeMethod);
         _il.Emit(OpCodes.Stloc, _scopeLocal);
+        if (block.PropagatesItToParent)
+        {
+            _il.Emit(OpCodes.Ldloc, _scopeLocal);
+            _il.Emit(OpCodes.Ldloc, outerScope);
+            _il.Emit(OpCodes.Call, _getItMethod);
+            _il.Emit(OpCodes.Call, _setItMethod);
+        }
 
         _il.BeginExceptionBlock();
         _exceptionDepth++;
         EmitStatements(block);
         _il.BeginFinallyBlock();
+        if (block.PropagatesItToParent)
+        {
+            _il.Emit(OpCodes.Ldloc, outerScope);
+            _il.Emit(OpCodes.Ldloc, _scopeLocal);
+            _il.Emit(OpCodes.Call, _getItMethod);
+            _il.Emit(OpCodes.Call, _setItMethod);
+        }
         _il.Emit(OpCodes.Ldloc, outerScope);
         _il.Emit(OpCodes.Stloc, _scopeLocal);
         _il.EndExceptionBlock();
@@ -1077,7 +1508,7 @@ internal sealed class CodeGenerator
             case BoundUnaryExpression e:
                 EmitExpression(e.Operand);
                 _il.Emit(OpCodes.Call, _notMethod);
-                _il.Emit(OpCodes.Box, typeof(bool));
+                _il.Emit(OpCodes.Box, _booleanType);
                 break;
             case BoundBinaryExpression e:
                 EmitBinary(e);
@@ -1124,7 +1555,7 @@ internal sealed class CodeGenerator
     private void EmitStringArray(ImmutableArray<string> values)
     {
         _il.Emit(OpCodes.Ldc_I4, values.Length);
-        _il.Emit(OpCodes.Newarr, typeof(string));
+        _il.Emit(OpCodes.Newarr, _stringType);
         for (int index = 0; index < values.Length; index++)
         {
             _il.Emit(OpCodes.Dup);
@@ -1144,7 +1575,7 @@ internal sealed class CodeGenerator
             EmitResolvedValue(creation.Parent);
         }
         _il.Emit(OpCodes.Ldc_I4, creation.Mixins.Length);
-        _il.Emit(OpCodes.Newarr, typeof(object));
+        _il.Emit(OpCodes.Newarr, _systemObjectType);
         for (int index = 0; index < creation.Mixins.Length; index++)
         {
             _il.Emit(OpCodes.Dup);
@@ -1164,11 +1595,11 @@ internal sealed class CodeGenerator
                 break;
             case int i:
                 _il.Emit(OpCodes.Ldc_I4, i);
-                _il.Emit(OpCodes.Box, typeof(int));
+                _il.Emit(OpCodes.Box, _int32Type);
                 break;
             case double d:
                 _il.Emit(OpCodes.Ldc_R8, d);
-                _il.Emit(OpCodes.Box, typeof(double));
+                _il.Emit(OpCodes.Box, _doubleType);
                 break;
             case string s:
                 _il.Emit(OpCodes.Ldstr, s);
@@ -1180,7 +1611,7 @@ internal sealed class CodeGenerator
                 break;
             case bool b:
                 _il.Emit(b ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
-                _il.Emit(OpCodes.Box, typeof(bool));
+                _il.Emit(OpCodes.Box, _booleanType);
                 break;
         }
     }
@@ -1212,14 +1643,14 @@ internal sealed class CodeGenerator
             or BoundBinaryOperatorKind.LogicalOr
             or BoundBinaryOperatorKind.LogicalXor)
         {
-            _il.Emit(OpCodes.Box, typeof(bool));
+            _il.Emit(OpCodes.Box, _booleanType);
         }
     }
 
     private void EmitSmoosh(BoundSmooshExpression smoosh)
     {
         _il.Emit(OpCodes.Ldc_I4, smoosh.Operands.Length);
-        _il.Emit(OpCodes.Newarr, typeof(object));
+        _il.Emit(OpCodes.Newarr, _systemObjectType);
 
         for (int i = 0; i < smoosh.Operands.Length; i++)
         {
@@ -1251,7 +1682,7 @@ internal sealed class CodeGenerator
         _il.Emit(OpCodes.Ldc_I4_0);
 
         _il.MarkLabel(endLabel);
-        _il.Emit(OpCodes.Box, typeof(bool));
+        _il.Emit(OpCodes.Box, _booleanType);
     }
 
     private void EmitAnyOf(BoundAnyOfExpression anyOf)
@@ -1273,7 +1704,7 @@ internal sealed class CodeGenerator
         _il.Emit(OpCodes.Ldc_I4_1);
 
         _il.MarkLabel(endLabel);
-        _il.Emit(OpCodes.Box, typeof(bool));
+        _il.Emit(OpCodes.Box, _booleanType);
     }
 
     private void EmitComparison(BoundComparisonExpression cmp)
@@ -1286,7 +1717,7 @@ internal sealed class CodeGenerator
         else
             _il.Emit(OpCodes.Call, _diffrintMethod);
 
-        _il.Emit(OpCodes.Box, typeof(bool));
+        _il.Emit(OpCodes.Box, _booleanType);
     }
 
     private void EmitCast(BoundCastExpression cast)
@@ -1308,12 +1739,12 @@ internal sealed class CodeGenerator
                 out BoundFunctionDeclaration? declaration))
         {
             var directParameterNames = _il.DeclareLocal(_resolvedSlotType.MakeArrayType());
-            var directArguments = _il.DeclareLocal(typeof(object[]));
+            var directArguments = _il.DeclareLocal(_systemObjectType.MakeArrayType());
             _il.Emit(OpCodes.Ldc_I4, call.Arguments.Length);
             _il.Emit(OpCodes.Newarr, _resolvedSlotType);
             _il.Emit(OpCodes.Stloc, directParameterNames);
             _il.Emit(OpCodes.Ldc_I4, call.Arguments.Length);
-            _il.Emit(OpCodes.Newarr, typeof(object));
+            _il.Emit(OpCodes.Newarr, _systemObjectType);
             _il.Emit(OpCodes.Stloc, directArguments);
 
             ImmutableArray<MethodBuilder> resolvers = _parameterResolverMethods[declaration];
@@ -1351,12 +1782,12 @@ internal sealed class CodeGenerator
         _il.Emit(OpCodes.Stloc, target);
 
         var parameterNames = _il.DeclareLocal(_resolvedSlotType.MakeArrayType());
-        var arguments = _il.DeclareLocal(typeof(object[]));
+        var arguments = _il.DeclareLocal(_systemObjectType.MakeArrayType());
         _il.Emit(OpCodes.Ldc_I4, call.Arguments.Length);
         _il.Emit(OpCodes.Newarr, _resolvedSlotType);
         _il.Emit(OpCodes.Stloc, parameterNames);
         _il.Emit(OpCodes.Ldc_I4, call.Arguments.Length);
-        _il.Emit(OpCodes.Newarr, typeof(object));
+        _il.Emit(OpCodes.Newarr, _systemObjectType);
         _il.Emit(OpCodes.Stloc, arguments);
         for (int index = 0; index < call.Arguments.Length; index++)
         {
@@ -1399,7 +1830,7 @@ internal sealed class CodeGenerator
 
     private void EmitStoreLocal(string name)
     {
-        var value = _il.DeclareLocal(typeof(object));
+        var value = _il.DeclareLocal(_systemObjectType);
         _il.Emit(OpCodes.Stloc, value);
         EmitResolvedSlot(new BoundIdentifier(name, null, null));
         _il.Emit(OpCodes.Ldloc, value);
@@ -1470,22 +1901,30 @@ internal sealed class CodeGenerator
 
     private void EmitSequencePoint(BoundNode node)
     {
-        if (_document == null || _sourceText == null) return;
         if (node.Syntax is null || node.Syntax.Span.Length == 0) return;
-        EmitSequencePointForSpan(node.Syntax.Span);
+        EmitSequencePointForSpan(node.Syntax.Span, node.Syntax);
     }
 
-    private void EmitSequencePointForToken(SyntaxToken token)
+    private void EmitSequencePointForToken(SyntaxToken token, SyntaxNode containingSyntax)
     {
-        if (_document == null || _sourceText == null) return;
         if (token.Span.Length == 0) return;
-        EmitSequencePointForSpan(token.Span);
+        EmitSequencePointForSpan(token.Span, containingSyntax);
     }
 
-    private void EmitSequencePointForSpan(TextSpan span)
+    private void EmitSequencePointForSpan(TextSpan span, SyntaxNode owningSyntax)
     {
-        var loc = TextLocation.FromSpan(_sourceText!, span);
-        _il.MarkSequencePoint(_document!,
+        if (!_syntaxTreeOwners.TryGetValue(owningSyntax, out SyntaxTree? syntaxTree) ||
+            string.IsNullOrEmpty(syntaxTree.FilePath))
+        {
+            return;
+        }
+
+        string documentPath = Path.GetFullPath(syntaxTree.FilePath);
+        if (!_documents.TryGetValue(documentPath, out ISymbolDocumentWriter? document))
+            return;
+
+        var loc = TextLocation.FromSpan(syntaxTree.Text, span);
+        _il.MarkSequencePoint(document,
             loc.StartLine + 1,       // 0-based → 1-based
             loc.StartCharacter + 1,  // 0-based → 1-based
             loc.EndLine + 1,         // 0-based → 1-based
@@ -1494,7 +1933,7 @@ internal sealed class CodeGenerator
 
     private void SetLocalSymInfo(LocalBuilder local, string name)
     {
-        if (_document != null)
+        if (_documents.Count > 0)
             local.SetLocalSymInfo(name);
     }
 

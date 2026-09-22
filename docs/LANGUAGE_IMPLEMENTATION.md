@@ -193,6 +193,15 @@ successful library calls.
 
 These constraints are implementation guidance, not additions to the language deltas:
 
+- `STRING`, `STDLIB`, `STDIO`, and `SOCKS` are SDK-bundled LOLCODE libraries
+  in one runtime assembly. `CAN HAS` creates a library instance and library
+  BUKKIT; it is not a package-install directive. Reflection trimming is
+  deferred pending an explicit rooting policy.
+- A custom managed library is a normal referenced .NET assembly with a public
+  sealed instance type marked `[LolcodeLibrary("NAME")]`. The compiler reads
+  only resolved-reference metadata; no assembly-name, filename or unaware-DLL
+  fallback exists. A library instance owns its state and is isolated per import
+  scope.
 - 1.3's global/local `IT` statements contradict one another and require a language
   decision beyond pinned `lci`'s per-scope `IT`.
 - `I DUZ`, SOCKS, and STDIO intentionally expose process, network, and filesystem

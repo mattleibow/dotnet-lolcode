@@ -1,0 +1,7 @@
+HAI 1.2
+HOW IZ I answerer
+FOUND YR 42
+IF U SAY SO
+I HAS A answer ITZ I IZ answerer MKAY
+VISIBLE answer
+KTHXBYE

@@ -10,11 +10,15 @@ namespace Lolcode.CodeAnalysis.Tests;
 
 public sealed class InMemoryExecutionTests
 {
-    private const string HelloProgram = """
-        HAI 1.2
-          VISIBLE "HAI FROM MEMORY"
-        KTHXBYE
-        """;
+    private static string HelloProgram => FixtureSource("in-memory-hello", "test.lol");
+    private static string UndeclaredVariableProgram =>
+        CompatibilityFixtureSource("Shared", "1.2", "Errors", "undeclared-variable", "test.lol");
+
+    private static string FixtureSource(params string[] path) =>
+        File.ReadAllText(Path.Combine([AppContext.BaseDirectory, "Compatibility", "DotNet", "1.2", "CodeAnalysis", .. path]));
+
+    private static string CompatibilityFixtureSource(params string[] path) =>
+        File.ReadAllText(Path.Combine([AppContext.BaseDirectory, "Compatibility", .. path]));
 
     [Fact]
     public void Emit_ToStreams_CreatesNoFiles()
@@ -58,6 +62,92 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("The byte-loaded runtime discovery test emits a focused in-memory program.")]
+    public void Emit_ToStreams_WorksWhenCompilerAndRuntimeAreLoadedFromBytes()
+    {
+        const string source = """
+            HAI 1.4
+            CAN HAS STRING?
+            VISIBLE I IZ STRING'Z LEN YR "HAI" MKAY
+            KTHXBYE
+            """;
+        byte[] compilerImage = File.ReadAllBytes(typeof(LolcodeCompilation).Assembly.Location);
+        byte[] runtimeImage = File.ReadAllBytes(typeof(LolRuntime).Assembly.Location);
+        var loadContext = new AssemblyLoadContext(
+            $"InMemoryCompiler_{Guid.NewGuid():N}",
+            isCollectible: true);
+        Assembly runtimeAssembly;
+
+        try
+        {
+            using (var runtimeStream = new MemoryStream(runtimeImage, writable: false))
+                runtimeAssembly = loadContext.LoadFromStream(runtimeStream);
+            loadContext.Resolving += (_, assemblyName) =>
+                AssemblyName.ReferenceMatchesDefinition(assemblyName, runtimeAssembly.GetName())
+                    ? runtimeAssembly
+                    : null;
+
+            Assembly compilerAssembly;
+            using (var compilerStream = new MemoryStream(compilerImage, writable: false))
+                compilerAssembly = loadContext.LoadFromStream(compilerStream);
+
+            compilerAssembly.Location.Should().BeEmpty();
+            runtimeAssembly.Location.Should().BeEmpty();
+
+            Type syntaxTreeType = compilerAssembly.GetType(
+                "Lolcode.CodeAnalysis.Syntax.SyntaxTree",
+                throwOnError: true)!;
+            object syntaxTree = syntaxTreeType.GetMethod(
+                "ParseText",
+                [typeof(string), typeof(string)])!
+                .Invoke(null, [source, "memory.lol"])!;
+            Array trees = Array.CreateInstance(syntaxTreeType, 1);
+            trees.SetValue(syntaxTree, 0);
+
+            Type compilationType = compilerAssembly.GetType(
+                "Lolcode.CodeAnalysis.LolcodeCompilation",
+                throwOnError: true)!;
+            object compilation = compilationType.GetMethod("Create")!
+                .Invoke(null, [trees])!;
+            using var peStream = new MemoryStream();
+            using var pdbStream = new MemoryStream();
+            object result = compilationType.GetMethod(
+                "Emit",
+                [typeof(Stream), typeof(Stream), typeof(CancellationToken)])!
+                .Invoke(compilation, [peStream, pdbStream, CancellationToken.None])!;
+
+            result.GetType().GetProperty("Success")!.GetValue(result).Should().Be(true);
+            peStream.Length.Should().BeGreaterThan(0);
+            pdbStream.Length.Should().BeGreaterThan(0);
+            ((System.Collections.IEnumerable)result.GetType()
+                    .GetProperty("Diagnostics")!
+                    .GetValue(result)!)
+                .Cast<object>()
+                .Should()
+                .BeEmpty();
+
+            using var emittedStream = new MemoryStream(peStream.ToArray(), writable: false);
+            Assembly emittedAssembly = loadContext.LoadFromStream(emittedStream);
+            var output = new StringWriter();
+            TextWriter originalOutput = Console.Out;
+            try
+            {
+                Console.SetOut(output);
+                emittedAssembly.GetType("Program")!.GetMethod("Main")!.Invoke(null, null);
+            }
+            finally
+            {
+                Console.SetOut(originalOutput);
+            }
+            output.ToString().Should().Be($"3{Environment.NewLine}");
+        }
+        finally
+        {
+            loadContext.Unload();
+        }
+    }
+
+    [Fact]
     public void Run_CreatesNoFiles()
     {
         var tempDirectory = CreateTempDirectory();
@@ -71,7 +161,7 @@ public sealed class InMemoryExecutionTests
 
             var state = script.Run();
 
-            state.Success.Should().BeTrue();
+            state.Success.Should().BeTrue(state.Exception?.ToString());
             state.Script.Should().BeSameAs(script);
             Directory.EnumerateFileSystemEntries(tempDirectory).Should().BeEmpty();
         }
@@ -122,12 +212,7 @@ public sealed class InMemoryExecutionTests
         string expectedOutput,
         bool expectedTruncated)
     {
-        var script = LolcodeScript.Create(
-            """
-            HAI 1.2
-              VISIBLE "ABCDE"!
-            KTHXBYE
-            """);
+        var script = LolcodeScript.Create(FixtureSource("in-memory-bounds-output", "test.lol"));
 
         var state = script.Run(new LolcodeScriptExecutionOptions
         {
@@ -144,12 +229,7 @@ public sealed class InMemoryExecutionTests
     public void Run_BoundsStandardStreamsIndependentlyAndUsesReplacementForPartialUtf8()
     {
         var state = LolcodeScript.Run(
-            """
-            HAI 1.2
-              VISIBLE "é"!
-              INVISIBLE "é"!
-            KTHXBYE
-            """,
+            FixtureSource("in-memory-bounded-streams", "test.lol"),
             executionOptions: new LolcodeScriptExecutionOptions
             {
                 MaximumStandardOutputBytes = 1,
@@ -186,13 +266,7 @@ public sealed class InMemoryExecutionTests
     [Fact]
     public void Run_CapturesStandardOutputAndStandardErrorIndependently()
     {
-        var state = LolcodeScript.Run(
-            """
-            HAI 1.2
-              VISIBLE "stdout"!
-              INVISIBLE "stderr"!
-            KTHXBYE
-            """);
+        var state = LolcodeScript.Run(FixtureSource("in-memory-standard-streams", "test.lol"));
 
         state.Success.Should().BeTrue();
         state.StandardOutput.Should().Be("stdout");
@@ -202,18 +276,10 @@ public sealed class InMemoryExecutionTests
     [Fact]
     public void Run_PreservesRawYarnBytesOnBothStandardStreams()
     {
-        var state = LolcodeScript.Run(
-            """
-            HAI 1.4
-              CAN HAS STRING?
-              I HAS A first ITZ I IZ STRING'Z AT YR "é" AN YR 0 MKAY
-              I HAS A second ITZ I IZ STRING'Z AT YR "é" AN YR 1 MKAY
-              VISIBLE first!
-              INVISIBLE second!
-            KTHXBYE
-            """);
+        var state = LolcodeScript.Run(CompatibilityFixtureSource(
+            "DotNet/1.4/FutureFeature/visible-and-invisible-write-selected-raw-bytes-to-process-streams/test.lol"));
 
-        state.Success.Should().BeTrue();
+        state.Success.Should().BeTrue(state.Exception?.ToString());
         state.StandardOutputBytes.Should().Equal(0xC3);
         state.StandardErrorBytes.Should().Equal(0xA9);
         state.StandardOutput.Should().Be("\uFFFD");
@@ -221,6 +287,7 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("This test constructs source text to exercise the targeted compiler behavior.")]
     public void Run_RoutesSourceBomToScopedStandardOutput()
     {
         var state = LolcodeScript.Run(
@@ -235,13 +302,7 @@ public sealed class InMemoryExecutionTests
     public void Run_SuppliesInputToGimmeh()
     {
         var state = LolcodeScript.Run(
-            """
-            HAI 1.2
-              I HAS A name
-              GIMMEH name
-              VISIBLE "HAI, " name "!"
-            KTHXBYE
-            """,
+            FixtureSource("in-memory-gimmeh", "test.lol"),
             executionOptions: new LolcodeScriptExecutionOptions
             {
                 StandardInput = $"LOLCAT{Environment.NewLine}",
@@ -254,12 +315,7 @@ public sealed class InMemoryExecutionTests
     [Fact]
     public void Run_CompilationDiagnosticsPreventExecution()
     {
-        var script = LolcodeScript.Create(
-            """
-            HAI 1.2
-              VISIBLE missing
-            KTHXBYE
-            """);
+        var script = LolcodeScript.Create(UndeclaredVariableProgram);
 
         var diagnostics = script.Compile();
         var state = script.Run();
@@ -278,12 +334,7 @@ public sealed class InMemoryExecutionTests
     public void Run_UnwrapsRuntimeExceptions()
     {
         var state = LolcodeScript.Run(
-            """
-            HAI 1.2
-              I HAS A value
-              VISIBLE SUM OF value AN 1
-            KTHXBYE
-            """);
+            CompatibilityFixtureSource("Shared", "1.2", "Errors", "noob-in-arithmetic-throws-error", "test.lol"));
 
         state.Success.Should().BeFalse();
         state.Executed.Should().BeTrue();
@@ -296,20 +347,7 @@ public sealed class InMemoryExecutionTests
     public void Run_ExecutesFunctionsAndControlFlow()
     {
         var state = LolcodeScript.Run(
-            """
-            HAI 1.2
-              HOW IZ I factorial YR n
-                BOTH SAEM n AN 0
-                O RLY?
-                  YA RLY
-                    FOUND YR 1
-                OIC
-                FOUND YR PRODUKT OF n AN I IZ factorial YR DIFF OF n AN 1 MKAY
-              IF U SAY SO
-
-              VISIBLE I IZ factorial YR 5 MKAY
-            KTHXBYE
-            """);
+            CompatibilityFixtureSource("Shared", "1.2", "Functions", "recursive-function", "test.lol"));
 
         state.Success.Should().BeTrue();
         state.StandardOutput.Should().Be($"120{Environment.NewLine}");
@@ -431,16 +469,7 @@ public sealed class InMemoryExecutionTests
     [Fact]
     public async Task Run_ParallelExecutionsKeepInputAndStandardStreamsScoped()
     {
-        const string program = """
-            HAI 1.2
-              I HAS A value
-              GIMMEH value
-              VISIBLE value
-              INVISIBLE value
-            KTHXBYE
-            """;
-
-        var script = LolcodeScript.Create(program);
+        var script = LolcodeScript.Create(FixtureSource("in-memory-parallel-streams", "test.lol"));
         var executions = Enumerable.Range(0, 12)
             .Select(index => Task.Run(() => script.Run(new LolcodeScriptExecutionOptions
             {
@@ -478,6 +507,29 @@ public sealed class InMemoryExecutionTests
             File.Exists(outputPath).Should().BeTrue();
             File.Exists(Path.ChangeExtension(outputPath, ".pdb")).Should().BeTrue();
             File.Exists(Path.ChangeExtension(outputPath, ".runtimeconfig.json")).Should().BeTrue();
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Emit_ToPath_DoesNotDeployAdjacentProviderAssemblies()
+    {
+        var tempDirectory = CreateTempDirectory();
+
+        try
+        {
+            var outputPath = Path.Combine(tempDirectory, "program.dll");
+            var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(HelloProgram));
+
+            var result = compilation.Emit(outputPath, typeof(LolRuntime).Assembly.Location);
+
+            result.Success.Should().BeTrue();
+            Directory.EnumerateFiles(tempDirectory, "Lolcode.Runtime.*.dll")
+                .Should()
+                .BeEmpty("API consumers deploy resolved provider assets explicitly");
         }
         finally
         {

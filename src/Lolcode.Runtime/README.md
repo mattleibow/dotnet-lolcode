@@ -37,6 +37,55 @@ KTHXBYE
 dotnet run    # The runtime is automatically available
 ```
 
+## LOLCODE libraries
+
+`Lolcode.Runtime` supplies the shared values, scopes, BUKKITs, invocation and
+resource lifetime support. `STRING`, `STDLIB`, `STDIO`, and `SOCKS` are public
+sealed, explicitly opted-in LOLCODE library types in this one assembly.
+
+Each importable library has one type-level declaration:
+
+```csharp
+[LolcodeLibrary("COUNTER")]
+public sealed class CounterLibrary : IDisposable
+{
+    private int counter;
+    public int NEXT() => ++counter;
+    public void Dispose() { }
+}
+```
+
+The compiler reads reference metadata without executing target code. `CAN HAS
+COUNTER?` constructs one library instance, projects its direct public instance
+methods into one library BUKKIT, and binds that BUKKIT in the importing scope.
+A repeated import in that scope is a no-op; separate scopes receive isolated
+instances. There is no filename fallback or unaware-DLL import.
+
+When a library implements `IDisposable`, the importing scope disposes it.
+Returned open `LolBlob` values are automatically adopted by the calling scope;
+closed values are not adopted. Direct C# callers retain normal .NET ownership.
+
+## Publishing
+
+Normal framework-dependent publishing copies the one SDK-bundled runtime
+assembly with the host, including when that host reaches a LOLCODE class
+library through a normal C# `ProjectReference`. `PublishSingleFile` produces an
+executable bundle rather than a merged DLL; on current .NET SDKs it is
+self-contained. Trimming is deliberately deferred because reflection-based library discovery
+needs an explicit future rooting policy.
+
+## Multiple source files
+
+A compilation can contain multiple complete `.lol` files. The compiler discovers
+top-level declarations across the complete source set. In a multi-file project,
+direct top-level functions are installed before other top-level initialization,
+so their file order does not matter even though 1.3/1.4 calls still resolve the
+current replaceable function value at runtime. Dynamic/SRS declarations,
+variables, imports, and other initialization remain ordered. Single-file
+1.3/1.4 programs retain textual declaration behavior. Library wrapper
+initialization runs only supported import and declaration forms; it does not run
+arbitrary top-level executable statements.
+
 ## Requirements
 
 - .NET 10

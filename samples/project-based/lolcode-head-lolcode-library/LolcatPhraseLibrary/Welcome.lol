@@ -1,0 +1,12 @@
+HAI 1.4
+I HAS A counter ITZ 0
+I HAS A greeting ITZ I IZ GREETING MKAY
+HOW IZ I WELCOME
+    FOUND YR greeting
+IF U SAY SO
+
+HOW IZ I NEXT
+    ME'Z counter R SUM OF ME'Z counter AN 1
+    FOUND YR ME'Z counter
+IF U SAY SO
+KTHXBYE

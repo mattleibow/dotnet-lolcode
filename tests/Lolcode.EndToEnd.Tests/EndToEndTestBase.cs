@@ -19,6 +19,10 @@ public abstract class EndToEndTestBase : IDisposable
     /// <summary>Gets the isolated directory used by the current test.</summary>
     protected string TestDirectory => _tempDir;
 
+    /// <summary>Loads a canonical compatibility fixture copied beside the test assembly.</summary>
+    protected static string FixtureSource(string relativePath)
+        => CompatibilityFixtures.ReadSource(relativePath);
+
     /// <summary>Captured output and process status from an emitted program.</summary>
     protected sealed record ExecutionResult(
         int ExitCode,
@@ -116,9 +120,7 @@ public abstract class EndToEndTestBase : IDisposable
             throw new InvalidOperationException($"Compilation failed:\n{errors}");
         }
 
-        string runtimeDest = Path.Combine(Path.GetDirectoryName(result.OutputPath!)!, "Lolcode.Runtime.dll");
-        if (!File.Exists(runtimeDest))
-            File.Copy(_runtimeDll, runtimeDest, overwrite: true);
+        CopyRuntimeDependencies(Path.GetDirectoryName(result.OutputPath!)!);
         return result.OutputPath!;
     }
 
@@ -148,9 +150,7 @@ public abstract class EndToEndTestBase : IDisposable
             throw new InvalidOperationException($"Compilation failed (expected runtime error instead):\n{errors}");
         }
 
-        string runtimeDest = Path.Combine(Path.GetDirectoryName(result.OutputPath!)!, "Lolcode.Runtime.dll");
-        if (!File.Exists(runtimeDest))
-            File.Copy(_runtimeDll, runtimeDest, overwrite: true);
+        CopyRuntimeDependencies(Path.GetDirectoryName(result.OutputPath!)!);
 
         var psi = new ProcessStartInfo
         {
@@ -205,10 +205,30 @@ public abstract class EndToEndTestBase : IDisposable
         return TimeSpan.FromSeconds(DefaultProgramTimeoutSeconds);
     }
 
+    private void CopyRuntimeDependencies(string outputDirectory)
+    {
+        File.Copy(
+            _runtimeDll,
+            Path.Combine(outputDirectory, "Lolcode.Runtime.dll"),
+            overwrite: true);
+    }
+
     private static async Task<byte[]> ReadAllBytesAsync(Stream stream)
     {
         using var result = new MemoryStream();
         await stream.CopyToAsync(result);
         return result.ToArray();
+    }
+}
+
+internal static class CompatibilityFixtures
+{
+    internal static string ReadSource(string relativePath)
+    {
+        string path = Path.Combine(
+            AppContext.BaseDirectory,
+            "Compatibility",
+            relativePath.Replace('/', Path.DirectorySeparatorChar));
+        return File.ReadAllText(path, Encoding.UTF8);
     }
 }

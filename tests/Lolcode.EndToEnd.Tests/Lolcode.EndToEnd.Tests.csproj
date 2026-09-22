@@ -15,8 +15,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Lolcode.Build\Lolcode.Build.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\src\Lolcode.NET.Sdk\Lolcode.NET.Sdk.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\src\Lolcode.CodeAnalysis\Lolcode.CodeAnalysis.csproj" />
     <ProjectReference Include="..\..\src\Lolcode.Runtime\Lolcode.Runtime.csproj" />
+    <ProjectReference Include="..\CustomProviderFixture\CustomProviderFixture.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,6 +27,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Compatibility/**/*"
+          CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../externals/lci/COPYING"
           Link="Conformance/lci/upstream/COPYING"
           CopyToOutputDirectory="PreserveNewest" />

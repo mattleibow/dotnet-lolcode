@@ -1,0 +1,3 @@
+# Compatibility registrations, source, data, and expected-output files are
+# byte contracts. Do not subject any fixture files to checkout conversion.
+tests/Lolcode.EndToEnd.Tests/Compatibility/** -text

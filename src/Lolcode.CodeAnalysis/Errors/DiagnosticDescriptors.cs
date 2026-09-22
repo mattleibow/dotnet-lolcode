@@ -151,6 +151,12 @@ public static class DiagnosticDescriptors
         "Function '{0}' has already been declared.",
         "Binder");
 
+    /// <summary>All source files in one compilation must have the same HAI version.</summary>
+    public static readonly DiagnosticDescriptor MismatchedLanguageVersion = new(
+        "LOL2011", "Mismatched language version",
+        "This source file uses LOLCODE {1}, but the compilation uses LOLCODE {0}.",
+        "Binder");
+
     // --- Internal ---
 
     /// <summary>Internal compiler error.</summary>
@@ -165,4 +171,10 @@ public static class DiagnosticDescriptors
         "Could not remove obsolete output artifact '{0}': {1}",
         "Internal",
         DiagnosticSeverity.Warning);
+
+    /// <summary>A referenced provider assembly has invalid metadata.</summary>
+    public static readonly DiagnosticDescriptor InvalidLibraryProvider = new(
+        "LOL9003", "Invalid library provider",
+        "{0}",
+        "Compiler");
 }

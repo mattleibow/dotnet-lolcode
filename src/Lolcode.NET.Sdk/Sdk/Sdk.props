@@ -31,7 +31,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="**/*.lol" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
+    <Compile Include="**/*.lol"
+             Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)"
+             Condition="'$(FileBasedProgram)' != 'true'" />
   </ItemGroup>
 
   <!-- Make .lol files visible in Solution Explorer with correct build action -->

@@ -1,0 +1,12 @@
+HAI 1.2
+2
+WTF?
+OMG 1
+VISIBLE "one"
+OMG 2
+VISIBLE "two"
+OMG 3
+VISIBLE "three"
+GTFO
+OIC
+KTHXBYE

@@ -46,7 +46,7 @@ if (!result.Success)
 
 ## Features
 
-- 🐱 **LOLCODE 1.2 + pinned future behavior** — including BUKKIT/SRS, built-in libraries, `INVISIBLE`, and `I DUZ`
+- 🐱 **LOLCODE 1.2 + pinned future behavior** — including BUKKIT/SRS, LOLCODE libraries, `INVISIBLE`, and `I DUZ`
 - 🎯 **Compiles to .NET IL** — produces real .NET assemblies (not interpreted)
 - 📦 **MSBuild SDK** — `dotnet build` and `dotnet run` for `.lolproj` projects
 - 🚀 **File-based apps** — `dotnet build hello.lol` and `dotnet run --file hello.lol` with no project needed
@@ -118,6 +118,23 @@ dotnet publish  # Publish for deployment
 dotnet watch    # Recompile on .lol file changes
 ```
 
+### Multiple `.lol` files
+
+A `.lolproj` can compile multiple complete LOLCODE files into one assembly.
+Each file still needs its own `HAI <version>` and `KTHXBYE`; this is compiler
+project composition, not new source syntax. Files share top-level functions and
+variables. In 1.2, direct function calls are statically bound and may target
+declarations in any project file. In multi-file projects, direct top-level
+functions are installed before other top-level initialization for every
+supported language version, so their file order does not matter. Dynamic/SRS
+function declarations, variables, imports, and other top-level side effects
+still follow MSBuild `Compile` order. Single-file 1.3/1.4 programs retain their
+textual declaration behavior. Keep initialization-sensitive non-function files
+explicitly ordered with `Compile` items, and use one `HAI` language version for
+the whole project. Generated class-library
+wrappers evaluate only supported import and declaration forms; they do not run
+arbitrary top-level executable statements.
+
 Create a new project from template:
 ```bash
 dotnet new install Lolcode.NET.Templates
@@ -126,6 +143,30 @@ cd MyApp && dotnet run
 ```
 
 See [samples/project-based/hello-world](samples/project-based/hello-world/) for a complete example.
+
+### Built-in `CAN HAS` libraries
+
+`STRING`, `STDLIB`, `STDIO`, and `SOCKS` are BCL-like LOLCODE libraries in the
+single `Lolcode.Runtime.dll` bundled by `Lolcode.NET.Sdk`. `CAN HAS` constructs
+one library instance, creates its library BUKKIT and installs its library
+function slots in the importing scope. Normal build and publish include only
+that runtime DLL; trimming reflection-discovered library types is deferred.
+
+Custom C# libraries use a normal `ProjectReference` and explicit type-level
+opt-in:
+
+```csharp
+[LolcodeLibrary("COUNTER")]
+public sealed class CounterLibrary
+{
+    private int _value;
+    public int NEXT() => ++_value;
+}
+```
+
+The compiler discovers attributes from resolved reference metadata without
+executing them. There is no assembly-name, filename, alias, or unaware-DLL
+fallback. Imports in different LOLCODE scopes create isolated instances.
 
 ## Browser Playground
 

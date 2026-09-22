@@ -21,11 +21,16 @@ internal sealed class BoundScope
     public VariableSymbol ItVariable { get; }
 
     /// <summary>Creates a new scope, optionally nested under a parent.</summary>
-    public BoundScope(BoundScope? parent = null, bool inheritsVariables = false)
+    public BoundScope(
+        BoundScope? parent = null,
+        bool inheritsVariables = false,
+        bool inheritsIt = false)
     {
         Parent = parent;
         _inheritsVariables = inheritsVariables;
-        ItVariable = new VariableSymbol("IT", isImplicit: true);
+        ItVariable = inheritsIt && parent is not null
+            ? parent.ItVariable
+            : new VariableSymbol("IT", isImplicit: true);
     }
 
     /// <summary>Declares a variable in this scope. Returns false if already declared.</summary>

@@ -1,0 +1,5 @@
+HAI 1.4
+HOW IZ I ADD YR left AN YR right
+    FOUND YR SUM OF left AN right
+IF U SAY SO
+KTHXBYE

@@ -83,6 +83,32 @@ that traditional `.lolproj` applications remain supported:
 dotnet run --project samples/project-based/hello-world/hello-world.lolproj
 ```
 
+The [C# head with a LOLCODE library](project-based/csharp-head-lolcode-library/)
+sample shows a normal C# `ProjectReference` constructing and disposing the
+public `InteropSamples.LolcatExports` instance API emitted by a LOLCODE class
+library. Calls on the same instance preserve the same library state as one
+LOLCODE `CAN HAS` import:
+
+```bash
+dotnet run --project samples/project-based/csharp-head-lolcode-library/CSharpHead/CSharpHead.csproj
+```
+
+The [LOLCODE head with a C# library](project-based/lolcode-head-csharp-library/)
+sample demonstrates a LOLCODE executable importing an explicitly attributed
+C# class library with `CAN HAS`.
+
+The [LOLCODE head with a LOLCODE library](project-based/lolcode-head-lolcode-library/)
+sample imports a generated LOLCODE class library by assembly name. Its generated
+CLR export type is deliberately namespaced differently from that assembly name.
+Its library intentionally uses two complete `.lol` compilation units: the
+caller/state file initializes `greeting` by calling `GREETING` before the later
+`Greeting.lol` declaration file. The explicit `Compile` order (`Welcome.lol`,
+then `Greeting.lol`) intentionally proves that direct top-level functions in a
+multi-file project are declaration-order independent, including for 1.4
+function values. Variables, imports, and other top-level side effects remain
+in that explicit order. Every file must have its own `HAI`/`KTHXBYE`, and all
+files must use one language version.
+
 ## Local Development
 
 The `#:sdk Lolcode.NET.Sdk@0.2.0` directive restores the SDK's MSBuild props and
@@ -90,3 +116,8 @@ targets. `samples/Directory.Build.props` always redirects compiler execution to
 the source-built `Lolcode.Build.dll`, so build the solution before running any
 sample. Missing local compiler binaries are an error and never fall back to the
 compiler contained in the package.
+
+Built-in `STRING`, `STDLIB`, `STDIO`, and `SOCKS` assemblies are supplied by the
+SDK for every sample; they are not sample package dependencies. `CAN HAS` is
+the runtime import point. Normal source builds and publish include these assets;
+provider trimming is not implemented yet.

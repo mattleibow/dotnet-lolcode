@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using Lolcode.CodeAnalysis;
 using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.CodeAnalysis.Text;
@@ -34,6 +36,16 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
     public string OutputType { get; set; } = "Exe";
 
     /// <summary>
+    /// Fully qualified CLR type name for a library's LOLCODE export container,
+    /// as composed by the SDK from <c>RootNamespace</c> and
+    /// <c>LolcodeLibraryTypeName</c>. Ignored for executable output.
+    /// </summary>
+    public string LolcodeLibraryTypeName { get; set; } = "";
+
+    /// <summary>LOLCODE <c>CAN HAS</c> name for generated library output.</summary>
+    public string LolcodeLibraryName { get; set; } = "";
+
+    /// <summary>
     /// When true, skip actual compilation (design-time builds).
     /// Visual Studio calls this during design-time to gather metadata without compiling.
     /// </summary>
@@ -63,7 +75,6 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
 
         Log.LogMessage(MessageImportance.Normal,
             "Lolc: Compiling {0} source file(s) to {1}", Sources.Length, outputPath);
-
         try
         {
             // Parse all source files
@@ -87,7 +98,13 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
 
             // Compile
             var compilation = LolcodeCompilation.Create(trees);
-            var result = compilation.Emit(outputPath, RuntimeAssemblyPath);
+            var result = compilation.Emit(
+                outputPath,
+                RuntimeAssemblyPath,
+                ReferencePath.Select(reference => reference.ItemSpec),
+                OutputType,
+                LolcodeLibraryTypeName,
+                LolcodeLibraryName);
 
             // Report diagnostics in MSBuild format
             foreach (var diagnostic in result.Diagnostics)
@@ -118,6 +135,7 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
                     Log.LogMessage(MessageImportance.Normal,
                         "{0}({1},{2}): {3}: {4}", file, line, col, diagnostic.Id, diagnostic.Message);
                 }
+
             }
 
             if (result.Success)
@@ -137,4 +155,137 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
             return false;
         }
     }
+}
+
+/// <summary>
+/// Converts an assembly name into a valid, non-keyword CLR identifier for use
+/// as a generated C#-consumable type name.
+/// </summary>
+public sealed class MakeValidClrIdentifier : Microsoft.Build.Utilities.Task
+{
+    private static readonly HashSet<string> CSharpKeywords = new(StringComparer.Ordinal)
+        {
+            "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char",
+            "checked", "class", "const", "continue", "decimal", "default", "delegate", "do",
+            "double", "else", "enum", "event", "explicit", "extern", "false", "finally",
+            "fixed", "float", "for", "foreach", "goto", "if", "implicit", "in", "int",
+            "interface", "internal", "is", "lock", "long", "namespace", "new", "null",
+            "object", "operator", "out", "override", "params", "private", "protected", "public",
+            "readonly", "ref", "return", "sbyte", "sealed", "short", "sizeof", "stackalloc",
+            "static", "string", "struct", "switch", "this", "throw", "true", "try", "typeof",
+            "uint", "ulong", "unchecked", "unsafe", "ushort", "using", "virtual", "void",
+            "volatile", "while",
+        };
+
+    /// <summary>Assembly name to convert.</summary>
+    [Required]
+    public string Input { get; set; } = "";
+
+    /// <summary>Converted valid CLR identifier.</summary>
+    [Output]
+    public string Identifier { get; private set; } = "";
+
+    /// <summary>Whether to generate a direct LOLCODE identifier instead of a CLR identifier.</summary>
+    public bool Lolcode { get; set; }
+
+    /// <inheritdoc/>
+    public override bool Execute()
+    {
+        Identifier = Lolcode ? NormalizeLolcode(Input) : Normalize(Input);
+        return true;
+    }
+
+    internal static string Normalize(string input)
+    {
+        var builder = new StringBuilder();
+        var isFirst = true;
+        foreach (Rune rune in input.EnumerateRunes())
+        {
+            if (isFirst)
+            {
+                if (IsIdentifierStart(rune))
+                {
+                    builder.Append(rune.ToString());
+                }
+                else
+                {
+                    builder.Append('_');
+                    if (IsIdentifierPart(rune))
+                        builder.Append(rune.ToString());
+                }
+
+                isFirst = false;
+            }
+            else if (IsIdentifierPart(rune))
+            {
+                builder.Append(rune.ToString());
+            }
+            else
+            {
+                builder.Append('_');
+            }
+        }
+
+        string identifier = builder.Length == 0 ? "_" : builder.ToString();
+        if (CSharpKeywords.Contains(identifier))
+            return $"_{identifier}";
+
+        return identifier;
+    }
+
+    private static bool IsIdentifierStart(Rune rune) =>
+        rune.Value <= char.MaxValue &&
+        (rune.Value == '_' || Rune.GetUnicodeCategory(rune) is
+            UnicodeCategory.UppercaseLetter or
+            UnicodeCategory.LowercaseLetter or
+            UnicodeCategory.TitlecaseLetter or
+            UnicodeCategory.ModifierLetter or
+            UnicodeCategory.OtherLetter or
+            UnicodeCategory.LetterNumber);
+
+    private static bool IsIdentifierPart(Rune rune) =>
+        rune.Value <= char.MaxValue &&
+        (IsIdentifierStart(rune) || Rune.GetUnicodeCategory(rune) is
+            UnicodeCategory.DecimalDigitNumber or
+            UnicodeCategory.ConnectorPunctuation or
+            UnicodeCategory.NonSpacingMark or
+            UnicodeCategory.SpacingCombiningMark);
+
+    internal static string NormalizeLolcode(string input)
+    {
+        var builder = new StringBuilder();
+        foreach (char character in input)
+            builder.Append(char.IsLetterOrDigit(character) || character == '_' ? character : '_');
+
+        if (builder.Length == 0)
+            return "Library";
+        if (!char.IsLetter(builder[0]))
+            builder.Insert(0, "L_");
+        return builder.ToString();
+    }
+}
+
+/// <summary>
+/// Converts every dot-separated namespace segment to a valid, non-keyword CLR
+/// identifier while preserving its original order and repetitions.
+/// </summary>
+public sealed class NormalizeClrNamespace : Microsoft.Build.Utilities.Task
+{
+    /// <summary>Namespace to normalize.</summary>
+    [Required]
+    public string Input { get; set; } = "";
+
+    /// <summary>Namespace with every segment normalized for CLR consumption.</summary>
+    [Output]
+    public string NormalizedNamespace { get; private set; } = "";
+
+    /// <inheritdoc/>
+    public override bool Execute()
+    {
+        NormalizedNamespace = string.Join(
+            ".",
+            Input.Split('.', StringSplitOptions.None).Select(MakeValidClrIdentifier.Normalize));
+        return true;
+    }
+
 }

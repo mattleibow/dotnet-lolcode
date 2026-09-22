@@ -1,0 +1,8 @@
+BTW DIFF OF tests: includes negative results and type promotion
+HAI 1.2
+  VISIBLE DIFF OF 10 AN 3
+  VISIBLE DIFF OF 3 AN 10
+  VISIBLE DIFF OF 5.5 AN 2
+  VISIBLE DIFF OF 5 AN 2.5
+  VISIBLE DIFF OF 2.5 AN 5
+KTHXBYE

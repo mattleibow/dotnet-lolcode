@@ -56,14 +56,20 @@ public partial class LciConformanceCorpusTests
                     .Should().BeTrue($"{test.Id} must preserve its upstream test.err fixture");
             }
 
+            if (test.ExpectedDiagnosticPath is not null)
+            {
+                File.Exists(test.ExpectedDiagnosticPath)
+                    .Should().BeTrue($"{test.Id} must preserve its diagnostic fixture");
+            }
+
             if (test.WorkingDirectoryPath is not null)
             {
                 Directory.Exists(test.WorkingDirectoryPath)
                     .Should().BeTrue($"{test.Id} must have its working directory fixture");
             }
 
-            (test.ExpectError ^ test.ExpectedOutputPath is not null)
-                .Should().BeTrue($"{test.Id} must assert either failure or exact stdout");
+            (test.ExpectError || test.ExpectedOutputPath is not null)
+                .Should().BeTrue($"{test.Id} must assert failure and/or exact stdout");
         }
     }
 

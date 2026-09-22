@@ -1,0 +1,11 @@
+NESTED SWITCH INSIDE LOOP:
+LOOP iteration 0
+  switch case 2
+  back in loop after switch
+LOOP iteration 1
+  switch case 2
+  back in loop after switch
+LOOP iteration 2
+  switch case 2
+  back in loop after switch
+ALL DONE

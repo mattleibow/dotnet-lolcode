@@ -1,0 +1,7 @@
+HAI 1.2
+I HAS A x
+x R 10
+VISIBLE x
+x R SUM OF x AN 5
+VISIBLE x
+KTHXBYE

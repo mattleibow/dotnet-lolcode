@@ -25,17 +25,7 @@ public class LciAdditionalFixtureTests : EndToEndTestBase
         if (relativePath.Contains("1-srand", StringComparison.Ordinal))
         {
             string reseeded = CompileAndRun(
-                """
-                HAI 1.4
-                CAN HAS STDLIB?
-                I IZ STDLIB'Z MIX YR 42 MKAY
-                I HAS A first ITZ I IZ STDLIB'Z BLOW YR 1000 MKAY
-                I IZ STDLIB'Z MIX YR 42 MKAY
-                I HAS A second ITZ I IZ STDLIB'Z BLOW YR 1000 MKAY
-                VISIBLE first
-                VISIBLE second
-                KTHXBYE
-                """);
+                FixtureSource("DotNet/1.4/LciHarness/reseeded-random/test.lol"));
             string[] values = reseeded.Replace("\r\n", "\n")
                 .Split('\n', StringSplitOptions.RemoveEmptyEntries);
             values.Should().HaveCount(2);

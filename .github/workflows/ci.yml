@@ -110,6 +110,52 @@ jobs:
 
           dotnet build samples/project-based/hello-world/hello-world.lolproj --verbosity quiet
 
+  compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install pinned lci prerequisites
+        run: sudo apt-get update && sudo apt-get install --yes libncurses-dev libreadline-dev
+
+      - name: Build pinned lci
+        run: cmake -S externals/lci -B artifacts/lci-build -DCMAKE_POLICY_VERSION_MINIMUM=3.5 && cmake --build artifacts/lci-build --parallel
+
+      - name: Run compatibility corpus on both engines
+        env:
+          LCI_PATH: ${{ github.workspace }}/artifacts/lci-build/lci
+          REQUIRE_LCI: '1'
+        run: >-
+          dotnet test tests/Lolcode.EndToEnd.Tests/Lolcode.EndToEnd.Tests.csproj
+          --logger "trx;LogFileName=compatibility-results.trx"
+          --filter "FullyQualifiedName~.CompatibilityCorpusTests.|FullyQualifiedName~.KnownLciDivergenceCompatibilityCorpusTests.|FullyQualifiedName~.PinnedLciConformanceTests.|FullyQualifiedName~.CompatibilityFixtureValidationTests.|FullyQualifiedName~.FixtureFlattenerTests."
+
+      - name: Verify compatibility contracts with autocrlf enabled
+        shell: bash
+        run: |
+          git clone --no-local --recurse-submodules . artifacts/autocrlf-compatibility
+          cd artifacts/autocrlf-compatibility
+          git config core.autocrlf true
+          git config core.eol crlf
+          git rm --cached -r . >/dev/null
+          git reset --hard HEAD
+          LCI_PATH="$PWD/../lci-build/lci" REQUIRE_LCI=1 dotnet test tests/Lolcode.EndToEnd.Tests/Lolcode.EndToEnd.Tests.csproj --filter "FullyQualifiedName~CompatibilityCorpusTests.Pinned_lci_matches_registered_fixture|FullyQualifiedName~CompatibilityFixtureValidationTests|FullyQualifiedName~FixtureFlattenerTests" --logger "console;verbosity=minimal"
+          git diff --check
+
+      - name: Upload compatibility results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compatibility-results
+          path: '**/compatibility-results.trx'
+
   pack:
     runs-on: ubuntu-latest
     needs: [build-and-test, version]
@@ -130,9 +176,25 @@ jobs:
         run: |
           echo "📦 Packages:"
           ls -la artifacts/*.nupkg
-          COUNT=$(ls artifacts/*.nupkg | wc -l)
-          [ "$COUNT" -eq 4 ] || { echo "❌ Expected 4 packages, got $COUNT"; exit 1; }
-          echo "✅ Pack produced 4 packages"
+          expected=(
+            Lolcode.CodeAnalysis
+            Lolcode.Runtime
+            Lolcode.NET.Sdk
+            Lolcode.NET.Templates
+          )
+          actual=$(find artifacts -maxdepth 1 -name '*.nupkg' -printf '%f\n' | sed -E 's/\.[0-9][^ ]*\.nupkg$//' | sort)
+          expected_sorted=$(printf '%s\n' "${expected[@]}" | sort)
+          [ "$actual" = "$expected_sorted" ] || {
+            echo "❌ Unexpected package IDs"; printf 'Actual:\n%s\nExpected:\n%s\n' "$actual" "$expected_sorted"; exit 1;
+          }
+          SDK_PKG=$(ls artifacts/Lolcode.NET.Sdk.*.nupkg | head -1)
+          unzip -l "$SDK_PKG" | grep -q "tools/net10.0/Lolcode.Runtime.dll" || {
+            echo "❌ SDK package is missing Lolcode.Runtime.dll"; exit 1;
+          }
+          ! unzip -l "$SDK_PKG" | grep -q "tools/net10.0/Lolcode.Runtime.\\(String\\|Stdlib\\|Stdio\\|Socks\\).dll" || {
+            echo "❌ SDK package contains retired provider assemblies"; exit 1;
+          }
+          echo "✅ Pack produced the expected runtime payload"
 
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v4
@@ -212,7 +274,11 @@ jobs:
           test -f hello.lol
           grep -q '^#!/usr/bin/env -S dotnet run --file$' hello.lol
           grep -q "#:sdk Lolcode.NET.Sdk@$VERSION" hello.lol
-          OUTPUT=$(dotnet run --file hello.lol)
+          if ! dotnet run --file hello.lol > hello.out; then
+            cat hello.out
+            exit 1
+          fi
+          OUTPUT=$(cat hello.out)
           [ "$OUTPUT" = "OH HAI!" ] || { echo "❌ Unexpected file-based output: $OUTPUT"; exit 1; }
           echo "✅ File-based template builds and runs"
 
