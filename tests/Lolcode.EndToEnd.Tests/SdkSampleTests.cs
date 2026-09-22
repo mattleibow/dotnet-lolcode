@@ -543,7 +543,13 @@ public class SdkSampleTests
             using var peReader = new PEReader(stream);
             peReader.PEHeaders.CoffHeader.Characteristics.Should().NotHaveFlag(Characteristics.Dll);
             peReader.PEHeaders.CorHeader!.EntryPointTokenOrRelativeVirtualAddress.Should().NotBe(0);
-            File.Exists(Path.ChangeExtension(outputAssembly, ".runtimeconfig.json")).Should().BeTrue();
+            string runtimeConfig = Path.Combine(
+                projectDirectory,
+                "bin",
+                "Debug",
+                "net10.0",
+                $"{assemblyName}.runtimeconfig.json");
+            File.Exists(runtimeConfig).Should().BeTrue();
         }
         finally
         {

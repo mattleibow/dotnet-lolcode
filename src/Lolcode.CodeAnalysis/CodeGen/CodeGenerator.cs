@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Lolcode.CodeAnalysis.Binding;
 using Lolcode.CodeAnalysis.BoundTree;
+using Lolcode.CodeAnalysis.Errors;
 using Lolcode.CodeAnalysis.Symbols;
 using Lolcode.CodeAnalysis.Syntax;
 using Lolcode.CodeAnalysis.Text;
@@ -30,6 +31,8 @@ internal sealed class CodeGenerator
     private readonly bool _isLibrary;
     private readonly string? _libraryTypeName;
     private readonly IReadOnlyList<ModuleAlias> _moduleAliases;
+    private readonly IReadOnlyList<string> _libraryDescriptors;
+    private readonly LolcodeLibraryResolution _libraryResolution;
     private readonly IReadOnlyList<SyntaxTree> _syntaxTrees;
     private readonly bool _hoistTopLevelFunctions;
     private readonly IReadOnlyDictionary<SyntaxNode, SyntaxTree> _syntaxTreeOwners;
@@ -62,6 +65,8 @@ internal sealed class CodeGenerator
     private Type _doubleType = null!;
     private Type _intPtrType = null!;
     private Type _libraryAttributeType = null!;
+    private Type _libraryFactoryType = null!;
+    private Type _staticLibraryAttributeType = null!;
 
     private readonly record struct ControlFlowTarget(Label Label, int ExceptionDepth);
 
@@ -76,6 +81,13 @@ internal sealed class CodeGenerator
     private MethodInfo _printMethod = null!;
     private MethodInfo _loadLibraryMethod = null!;
     private MethodInfo _registerLibraryMethod = null!;
+    private MethodInfo _configureLibrariesMethod = null!;
+    private MethodInfo _importStaticLibraryMethod = null!;
+    private IReadOnlyList<StaticLibraryFactory> _staticLibraryFactories = [];
+
+    private sealed record StaticLibraryFactory(
+        string Name,
+        MethodInfo CreateMethod);
     private MethodInfo _executeSystemCommandMethod = null!;
     private MethodInfo _disposeScopeMethod = null!;
     private MethodInfo _transferPublicLibraryResultMethod = null!;
@@ -138,7 +150,9 @@ internal sealed class CodeGenerator
         IReadOnlyDictionary<SyntaxNode, SyntaxTree>? syntaxTreeOwners = null,
         bool isLibrary = false,
         string? libraryTypeName = null,
-        IEnumerable<ModuleAlias>? moduleAliases = null)
+        IEnumerable<ModuleAlias>? moduleAliases = null,
+        IEnumerable<string>? libraryDescriptors = null,
+        LolcodeLibraryResolution libraryResolution = LolcodeLibraryResolution.Dynamic)
     {
         _boundTree = boundTree;
         _assemblyName = assemblyName;
@@ -150,6 +164,8 @@ internal sealed class CodeGenerator
         _isLibrary = isLibrary;
         _libraryTypeName = libraryTypeName;
         _moduleAliases = moduleAliases?.ToArray() ?? [];
+        _libraryDescriptors = libraryDescriptors?.ToArray() ?? [];
+        _libraryResolution = libraryResolution;
     }
 
     /// <summary>
@@ -205,13 +221,19 @@ internal sealed class CodeGenerator
         _identifierResolverType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolIdentifierResolver));
         _resolvedSlotType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolResolvedSlot));
         _libraryAttributeType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolcodeLibraryAttribute));
+        _libraryFactoryType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolcodeLibraryFactory));
+        _staticLibraryAttributeType = GetRequiredRuntimeType(
+            runtimeAssembly,
+            typeof(LolcodeStaticLibraryAttribute));
 
         var runtimeType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolRuntime));
         ResolveRuntimeMethods(runtimeType);
+        _staticLibraryFactories = ResolveStaticLibraryFactories(metadataLoadContext);
 
         var assemblyBuilder = new PersistedAssemblyBuilder(
             new AssemblyName(_assemblyName),
             coreAssembly);
+        EmitStaticLibraryMetadata(assemblyBuilder);
 
         var moduleBuilder = assemblyBuilder.DefineDynamicModule(_assemblyName);
 
@@ -416,8 +438,8 @@ internal sealed class CodeGenerator
         IEnumerable<string> referencePaths = _referenceAssemblyPaths.Count > 0
             ? _referenceAssemblyPaths
             : GetTrustedPlatformAssemblyPaths();
-        var resolverPaths = referencePaths
-            .Append(_runtimeAssemblyPath)
+        var resolverPaths = new[] { _runtimeAssemblyPath }
+            .Concat(referencePaths)
             .Where(static path => !string.IsNullOrEmpty(path))
             .Select(static path => path!)
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -463,8 +485,17 @@ internal sealed class CodeGenerator
             [_systemObjectType.MakeArrayType(), _booleanType, _booleanType]);
         _loadLibraryMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.LoadLibrary));
         _registerLibraryMethod = GetRequiredRuntimeMethod(
-            runtimeType, nameof(LolRuntime.RegisterLibrary),
+            runtimeType,
+            nameof(LolRuntime.RegisterLibrary),
             [_scopeType, _stringType, _stringType, _stringType]);
+        _configureLibrariesMethod = GetRequiredRuntimeMethod(
+            runtimeType,
+            nameof(LolRuntime.ConfigureLibraries),
+            [_scopeType, _stringType.MakeArrayType()]);
+        _importStaticLibraryMethod = GetRequiredRuntimeMethod(
+            runtimeType,
+            nameof(LolRuntime.ImportStaticLibrary),
+            [_scopeType, _stringType, _libraryFactoryType]);
         _executeSystemCommandMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ExecuteSystemCommandValue));
         _disposeScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.DisposeScope));
         _transferPublicLibraryResultMethod = GetRequiredRuntimeMethod(
@@ -524,6 +555,11 @@ internal sealed class CodeGenerator
 
     private void EmitLibraryConfiguration()
     {
+        if (_libraryResolution == LolcodeLibraryResolution.Static)
+        {
+            return;
+        }
+
         foreach (ModuleAlias alias in _moduleAliases)
         {
             _il.Emit(OpCodes.Ldloc, _scopeLocal);
@@ -532,6 +568,255 @@ internal sealed class CodeGenerator
             _il.Emit(OpCodes.Ldstr, alias.TypeName);
             _il.Emit(OpCodes.Call, _registerLibraryMethod);
         }
+
+        if (_libraryDescriptors.Count == 0)
+            return;
+
+        _il.Emit(OpCodes.Ldloc, _scopeLocal);
+        _il.Emit(OpCodes.Ldc_I4, _libraryDescriptors.Count);
+        _il.Emit(OpCodes.Newarr, _stringType);
+        for (int index = 0; index < _libraryDescriptors.Count; index++)
+        {
+            _il.Emit(OpCodes.Dup);
+            _il.Emit(OpCodes.Ldc_I4, index);
+            _il.Emit(OpCodes.Ldstr, _libraryDescriptors[index]);
+            _il.Emit(OpCodes.Stelem_Ref);
+        }
+        _il.Emit(OpCodes.Call, _configureLibrariesMethod);
+    }
+
+    private IReadOnlyList<StaticLibraryFactory> ResolveStaticLibraryFactories(
+        MetadataLoadContext? metadataLoadContext)
+    {
+        if (_libraryResolution != LolcodeLibraryResolution.Static)
+            return [];
+
+        if (metadataLoadContext is null)
+        {
+            throw new InvalidOperationException(
+                "Static LOLCODE library resolution requires file-backed target references.");
+        }
+
+        var factories = new Dictionary<string, StaticLibraryFactory>(StringComparer.Ordinal);
+        foreach (string descriptor in _libraryDescriptors)
+        {
+            string[] fields = descriptor.Split('|');
+            if (fields.Length != 6 || fields.Any(string.IsNullOrWhiteSpace))
+            {
+                throw new CodeGenerationDiagnosticException(
+                    DiagnosticDescriptors.StaticFactoryUnavailable,
+                    default,
+                    fields.FirstOrDefault() ?? descriptor);
+            }
+
+            string name = fields[0];
+            Assembly assembly = LoadReferencedAssembly(
+                metadataLoadContext,
+                name,
+                fields[1]);
+            Type factoryType = (assembly.GetType(fields[5], throwOnError: false)
+                ?? throw new CodeGenerationDiagnosticException(
+                    DiagnosticDescriptors.StaticFactoryUnavailable,
+                    default,
+                    name))
+                .UnderlyingSystemType;
+            MethodInfo create = GetFactoryMethod(factoryType, "Create")
+                ?? throw new CodeGenerationDiagnosticException(
+                    DiagnosticDescriptors.StaticFactoryUnavailable,
+                    default,
+                    name);
+            AddStaticFactory(factories, name, create);
+        }
+
+        foreach (string referencePath in _referenceAssemblyPaths)
+        {
+            Assembly assembly;
+            try
+            {
+                assembly = metadataLoadContext.LoadFromAssemblyPath(referencePath);
+            }
+            catch (Exception exception) when (
+                exception is BadImageFormatException or FileLoadException)
+            {
+                continue;
+            }
+
+            if (!assembly.GetReferencedAssemblies().Any(reference =>
+                string.Equals(
+                    reference.Name,
+                    typeof(LolRuntime).Assembly.GetName().Name,
+                    StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            foreach (Type type in GetLoadableTypes(assembly))
+            {
+                if (!type.CustomAttributes.Any(attribute =>
+                    string.Equals(
+                        attribute.AttributeType.FullName,
+                        typeof(LolcodeLibraryAttribute).FullName,
+                        StringComparison.Ordinal)))
+                {
+                    continue;
+                }
+
+                string assemblyName = assembly.GetName().Name ?? type.Name;
+                string typeName = type.FullName ?? type.Name;
+                string libraryName = _moduleAliases.FirstOrDefault(alias =>
+                    string.Equals(
+                        alias.AssemblyName,
+                        assemblyName,
+                        StringComparison.Ordinal) &&
+                    string.Equals(
+                        alias.TypeName,
+                        typeName,
+                        StringComparison.Ordinal))?.Name ?? assemblyName;
+                if (!assembly.GetCustomAttributesData().Any(attribute =>
+                    attribute.AttributeType.FullName ==
+                        typeof(LolcodeStaticLibraryAttribute).FullName))
+                {
+                    throw new CodeGenerationDiagnosticException(
+                        DiagnosticDescriptors.DynamicLibraryDependency,
+                        default,
+                        libraryName);
+                }
+
+                MethodInfo create = GetFactoryMethod(
+                    type.UnderlyingSystemType,
+                    "__CreateLolcodeLibrary")
+                    ?? throw new CodeGenerationDiagnosticException(
+                        DiagnosticDescriptors.StaticFactoryUnavailable,
+                        default,
+                        libraryName);
+                AddStaticFactory(
+                    factories,
+                    libraryName,
+                    create);
+            }
+        }
+
+        return factories.Values.ToArray();
+    }
+
+    private Assembly LoadReferencedAssembly(
+        MetadataLoadContext metadataLoadContext,
+        string libraryName,
+        string assemblyName)
+    {
+        string[] assemblyPaths = _referenceAssemblyPaths
+            .Where(path =>
+            {
+                try
+                {
+                    return string.Equals(
+                        AssemblyName.GetAssemblyName(path).Name,
+                        assemblyName,
+                        StringComparison.OrdinalIgnoreCase);
+                }
+                catch (Exception exception) when (
+                    exception is BadImageFormatException or FileLoadException or
+                    FileNotFoundException)
+                {
+                    return false;
+                }
+            })
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(2)
+            .ToArray();
+        if (assemblyPaths.Length == 0)
+        {
+            throw new CodeGenerationDiagnosticException(
+                DiagnosticDescriptors.StaticImportNotResolved,
+                default,
+                libraryName);
+        }
+        if (assemblyPaths.Length > 1)
+        {
+            throw new CodeGenerationDiagnosticException(
+                DiagnosticDescriptors.StaticImportConflict,
+                default,
+                libraryName);
+        }
+
+        return metadataLoadContext.LoadFromAssemblyPath(assemblyPaths[0]);
+    }
+
+    private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
+    {
+        try
+        {
+            return assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException exception)
+        {
+            return exception.Types.OfType<Type>();
+        }
+    }
+
+    private static MethodInfo? GetFactoryMethod(Type type, string methodName)
+    {
+        if (!type.IsVisible || type.ContainsGenericParameters)
+            return null;
+
+        MethodInfo[] methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Where(method =>
+                method.Name == methodName &&
+                !method.IsGenericMethod &&
+                !method.ContainsGenericParameters &&
+                IsSameMetadataType(
+                    method.ReturnType.UnderlyingSystemType,
+                    typeof(LolObject)) &&
+                method.GetParameters() is [var parameter] &&
+                IsSameMetadataType(
+                    parameter.ParameterType.UnderlyingSystemType,
+                    typeof(LolScope)))
+            .Take(2)
+            .ToArray();
+        return methods.Length == 1 ? methods[0] : null;
+    }
+
+    private static bool IsSameMetadataType(Type actual, Type expected) =>
+        actual.FullName == expected.FullName &&
+        AssemblyName.ReferenceMatchesDefinition(
+            actual.Assembly.GetName(),
+            expected.Assembly.GetName());
+
+    private static void AddStaticFactory(
+        Dictionary<string, StaticLibraryFactory> factories,
+        string name,
+        MethodInfo create)
+    {
+        var factory = new StaticLibraryFactory(name, create);
+        if (factories.TryGetValue(name, out StaticLibraryFactory? existing))
+        {
+            if (existing.CreateMethod.DeclaringType?.FullName ==
+                    factory.CreateMethod.DeclaringType?.FullName &&
+                existing.CreateMethod.Name == factory.CreateMethod.Name)
+            {
+                return;
+            }
+
+            throw new CodeGenerationDiagnosticException(
+                DiagnosticDescriptors.StaticImportConflict,
+                default,
+                name);
+        }
+
+        factories.Add(name, factory);
+    }
+
+    private void EmitStaticLibraryMetadata(PersistedAssemblyBuilder assemblyBuilder)
+    {
+        if (_libraryResolution != LolcodeLibraryResolution.Static)
+            return;
+
+        assemblyBuilder.SetCustomAttribute(new CustomAttributeBuilder(
+            _staticLibraryAttributeType.GetConstructor(Type.EmptyTypes)
+                ?? throw new MissingMethodException(
+                    _staticLibraryAttributeType.FullName,
+                    ".ctor"),
+            []));
     }
 
     private static Type GetRequiredRuntimeType(Assembly runtimeAssembly, Type expectedType)
@@ -1048,6 +1333,49 @@ internal sealed class CodeGenerator
 
     private void EmitImport(BoundImportStatement import)
     {
+        if (_libraryResolution == LolcodeLibraryResolution.Static &&
+            import.Library.DirectName is { } staticName)
+        {
+            StaticLibraryFactory? factory = _staticLibraryFactories.FirstOrDefault(factory =>
+                string.Equals(factory.Name, staticName, StringComparison.Ordinal));
+            if (factory is null)
+            {
+                throw new CodeGenerationDiagnosticException(
+                    DiagnosticDescriptors.StaticImportNotResolved,
+                    GetLocation(import.Syntax),
+                    staticName);
+            }
+
+            try
+            {
+                _il.Emit(OpCodes.Ldloc, _scopeLocal);
+                _il.Emit(OpCodes.Ldstr, staticName);
+                _il.Emit(OpCodes.Ldnull);
+                _il.Emit(OpCodes.Ldftn, factory.CreateMethod);
+                _il.Emit(
+                    OpCodes.Newobj,
+                    _libraryFactoryType.GetConstructor([_systemObjectType, _intPtrType])
+                        ?? throw new MissingMethodException(
+                            _libraryFactoryType.FullName,
+                            ".ctor"));
+                _il.Emit(OpCodes.Call, _importStaticLibraryMethod);
+            }
+            catch (Exception exception)
+            {
+                throw new InvalidOperationException(
+                    $"Static LOLCODE import '{staticName}' emission failed.",
+                    exception);
+            }
+            return;
+        }
+
+        if (_libraryResolution == LolcodeLibraryResolution.Static)
+        {
+            throw new CodeGenerationDiagnosticException(
+                DiagnosticDescriptors.DynamicImportWithoutCandidates,
+                GetLocation(import.Syntax));
+        }
+
         _il.Emit(OpCodes.Ldloc, _scopeLocal);
         if (import.Library.DirectName is { } directName)
         {
@@ -1059,6 +1387,17 @@ internal sealed class CodeGenerator
             _il.Emit(OpCodes.Call, _resolveIdentifierNameMethod);
         }
         _il.Emit(OpCodes.Call, _loadLibraryMethod);
+    }
+
+    private TextLocation GetLocation(SyntaxNode? syntax)
+    {
+        if (syntax is not null &&
+            _syntaxTreeOwners.TryGetValue(syntax, out SyntaxTree? syntaxTree))
+        {
+            return TextLocation.FromSpan(syntaxTree.Text, syntax.Span);
+        }
+
+        return default;
     }
 
     private void EmitGimmeh(BoundGimmehStatement gimmeh)

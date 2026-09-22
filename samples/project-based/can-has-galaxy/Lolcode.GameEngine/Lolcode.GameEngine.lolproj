@@ -6,6 +6,8 @@
     <AssemblyName>GameEngine</AssemblyName>
     <RootNamespace>GameEngine</RootNamespace>
     <LolcodeLibraryTypeName>EngineExports</LolcodeLibraryTypeName>
+    <IsAotCompatible>true</IsAotCompatible>
+    <IsTrimmable>true</IsTrimmable>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.targets" />

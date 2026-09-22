@@ -2,6 +2,7 @@
   <PropertyGroup>
     <RootNamespace>Lolcode.Runtime.String</RootNamespace>
     <IsPackable>false</IsPackable>
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Lolcode.Runtime\Lolcode.Runtime.csproj" />

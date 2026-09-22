@@ -6,6 +6,8 @@
     <AssemblyName>CanHasGalaxy</AssemblyName>
     <RootNamespace>CanHasGalaxy</RootNamespace>
     <LolcodeLibraryTypeName>GalaxyExports</LolcodeLibraryTypeName>
+    <IsAotCompatible>true</IsAotCompatible>
+    <IsTrimmable>true</IsTrimmable>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>

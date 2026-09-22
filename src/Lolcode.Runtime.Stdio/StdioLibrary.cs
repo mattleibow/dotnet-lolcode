@@ -44,11 +44,13 @@ internal static class StdioLibrary
             stream = null;
             return blob;
         }
+
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
             stream?.Dispose();
             return context.RegisterResource(new FileBlob(null, failed: true));
         }
+
     }
 
     public static bool DIAF(object file)
@@ -113,4 +115,40 @@ internal static class StdioLibrary
         value as FileBlob ?? throw new LolRuntimeException("Expected a file BLOB handle");
 
     private static object CreateYarn(byte[] data) => LolRuntime.CreateByteYarn(data);
+}
+
+/// <summary>Creates the official STDIO provider for static LOLCODE imports.</summary>
+public static class StdioLibraryFactory
+{
+    /// <summary>Creates a scope-bound STDIO module without runtime discovery.</summary>
+    /// <param name="scope">The importing LOLCODE scope.</param>
+    /// <returns>The STDIO module.</returns>
+    public static LolObject Create(LolScope scope)
+    {
+        var builder = new LolcodeLibraryBuilder(scope);
+        builder.AddFunction("OPEN", 2, static (context, arguments) =>
+            StdioLibrary.OPEN(
+                context,
+                LolRuntime.CastToYarn(arguments[0]),
+                LolRuntime.CastToYarn(arguments[1])));
+        builder.AddFunction("DIAF", 1, static (_, arguments) => StdioLibrary.DIAF(arguments[0]!));
+        builder.AddFunction("LUK", 2, static (_, arguments) =>
+            StdioLibrary.LUK(arguments[0]!, LolRuntime.CastToNumbr(arguments[1])));
+        builder.AddFunction("SCRIBBEL", 2, static (_, arguments) =>
+        {
+            StdioLibrary.SCRIBBEL(arguments[0]!, arguments[1]!);
+            return null;
+        });
+        builder.AddFunction("AGEIN", 1, static (_, arguments) =>
+        {
+            StdioLibrary.AGEIN(arguments[0]!);
+            return null;
+        });
+        builder.AddFunction("CLOSE", 1, static (_, arguments) =>
+        {
+            StdioLibrary.CLOSE(arguments[0]!);
+            return null;
+        });
+        return builder.Build();
+    }
 }

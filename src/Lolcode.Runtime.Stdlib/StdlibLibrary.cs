@@ -30,3 +30,23 @@ internal static class StdlibLibrary
     public static int BLOW(LolcodeLibraryContext context, int maximum) =>
         context.GetOrCreateState(static () => new RandomState()).Next(maximum);
 }
+
+/// <summary>Creates the official STDLIB provider for static LOLCODE imports.</summary>
+public static class StdlibLibraryFactory
+{
+    /// <summary>Creates a scope-bound STDLIB module without runtime discovery.</summary>
+    /// <param name="scope">The importing LOLCODE scope.</param>
+    /// <returns>The STDLIB module.</returns>
+    public static LolObject Create(LolScope scope)
+    {
+        var builder = new LolcodeLibraryBuilder(scope);
+        builder.AddFunction("MIX", 1, static (context, arguments) =>
+        {
+            StdlibLibrary.MIX(context, LolRuntime.CastToNumbr(arguments[0]));
+            return null;
+        });
+        builder.AddFunction("BLOW", 1, static (context, arguments) =>
+            StdlibLibrary.BLOW(context, LolRuntime.CastToNumbr(arguments[0])));
+        return builder.Build();
+    }
+}

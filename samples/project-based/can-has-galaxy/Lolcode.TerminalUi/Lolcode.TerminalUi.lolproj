@@ -6,6 +6,8 @@
     <AssemblyName>TerminalUi</AssemblyName>
     <RootNamespace>TerminalUi</RootNamespace>
     <LolcodeLibraryTypeName>UiExports</LolcodeLibraryTypeName>
+    <IsAotCompatible>true</IsAotCompatible>
+    <IsTrimmable>true</IsTrimmable>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <Import Project="../../../../src/Lolcode.NET.Sdk/Sdk/Sdk.targets" />

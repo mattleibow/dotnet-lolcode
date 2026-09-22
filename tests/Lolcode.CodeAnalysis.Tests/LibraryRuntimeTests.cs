@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Sockets;
 using Lolcode.Runtime;
+using Lolcode.Runtime.String;
+using Lolcode.Runtime.Stdlib;
 
 namespace Lolcode.CodeAnalysis.Tests;
 
@@ -8,6 +10,84 @@ namespace Lolcode.CodeAnalysis.Tests;
 [Collection(nameof(ConsoleRuntimeCollection))]
 public class LibraryRuntimeTests
 {
+    [Fact]
+    public void DirectStaticImport_DoesNotCreateDuplicateModule()
+    {
+        var scope = CreateScope();
+        int factoryCalls = 0;
+        try
+        {
+            LolObject Factory(LolScope importingScope)
+            {
+                factoryCalls++;
+                return LolRuntime.CreateLibraryObject(importingScope);
+            }
+
+            LolRuntime.ImportStaticLibrary(scope, "TEST", Factory);
+            LolRuntime.ImportStaticLibrary(scope, "TEST", Factory);
+
+            factoryCalls.Should().Be(1);
+        }
+        finally
+        {
+            LolRuntime.DisposeScope(scope);
+        }
+    }
+
+    [Fact]
+    public void DynamicDescriptors_IgnoreOptionalStaticFactoryMetadataForCompatibility()
+    {
+        var scope = CreateScope();
+        try
+        {
+            LolRuntime.ConfigureLibraries(
+                scope,
+                ["STRING|Lolcode.Runtime.String|Lolcode.Runtime.String.StringLibrary|true|1"]);
+            LolRuntime.ConfigureLibraries(
+                scope,
+                [
+                    "STRING|Lolcode.Runtime.String|Lolcode.Runtime.String.StringLibrary|true|1|Lolcode.Runtime.String.StringLibraryFactory"
+                ]);
+
+            LolRuntime.LoadLibrary(scope, "STRING");
+            Invoke(scope, "STRING", "LEN", "HAI").Should().Be(3);
+        }
+        finally
+        {
+            LolRuntime.DisposeScope(scope);
+        }
+    }
+
+    [Fact]
+    public void StaticRegistrations_UseDirectFactoriesAndRetainPerImportState()
+    {
+        var first = CreateScope();
+        var second = CreateScope();
+        LolcodeLibraryRegistration[] registrations =
+        [
+            new("STRING", StringLibraryFactory.Create),
+            new("STDLIB", StdlibLibraryFactory.Create),
+        ];
+
+        LolRuntime.RegisterLibraries(first, registrations);
+        LolRuntime.RegisterLibraries(second, registrations);
+        LolRuntime.ImportRegisteredLibrary(first, "STRING");
+        LolRuntime.ImportRegisteredLibrary(first, "STDLIB");
+        LolRuntime.ImportRegisteredLibrary(second, "STDLIB");
+
+        Invoke(first, "STRING", "LEN", "é").Should().Be(2);
+        Invoke(first, "STDLIB", "MIX", 1234);
+        object? expected = Invoke(first, "STDLIB", "BLOW", 1000000);
+        Invoke(second, "STDLIB", "MIX", 1234);
+        Invoke(second, "STDLIB", "BLOW", 1000000).Should().Be(expected);
+        FluentActions.Invoking(() => LolRuntime.ImportRegisteredLibrary(first, "UNKNOWN"))
+            .Should().Throw<LolRuntimeException>()
+            .WithMessage("*not declared*");
+
+        LolRuntime.DisposeScope(first);
+        LolRuntime.DisposeScope(second);
+    }
+
     [Fact]
     public void Stdio_Slots_ReadWriteRewindClose_AndReportFailedOpen()
     {
@@ -241,8 +321,6 @@ public class LibraryRuntimeTests
         LolRuntime.LoadLibrary(scope, "STRING");
         object? first = Invoke(scope, "STRING", "AT", "é", 0);
         object? second = Invoke(scope, "STRING", "AT", "é", 1);
-        TextWriter originalOutput = Console.Out;
-        TextWriter originalError = Console.Error;
         using var outputBytes = new MemoryStream();
         using var errorBytes = new MemoryStream();
         using var output = new StreamWriter(
@@ -253,19 +331,17 @@ public class LibraryRuntimeTests
             errorBytes,
             new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
             leaveOpen: true);
-        try
+        using (LolRuntime.PushIo(
+            new StringReader(string.Empty),
+            output,
+            error,
+            outputBytes,
+            errorBytes))
         {
-            Console.SetOut(output);
-            Console.SetError(error);
             LolRuntime.Print([first], suppressNewline: true);
             LolRuntime.Print([second], suppressNewline: true, standardError: true);
             output.Flush();
             error.Flush();
-        }
-        finally
-        {
-            Console.SetOut(originalOutput);
-            Console.SetError(originalError);
         }
 
         outputBytes.ToArray().Should().Equal(0xC3);
@@ -279,19 +355,41 @@ public class LibraryRuntimeTests
         LolRuntime.LoadLibrary(scope, "STRING");
         object? first = Invoke(scope, "STRING", "AT", "é", 0);
         object? second = Invoke(scope, "STRING", "AT", "é", 1);
-        TextWriter originalOutput = Console.Out;
         using var output = new StringWriter();
+        using (LolRuntime.PushIo(new StringReader(string.Empty), output, TextWriter.Null))
+        {
+            LolRuntime.Print([first, second], suppressNewline: false);
+        }
+
+        output.ToString().Should().Be("é" + output.NewLine);
+    }
+
+    [Fact]
+    public void Print_HonorsConsoleWriterRedirectionForByteYarns()
+    {
+        var scope = CreateScope();
+        LolRuntime.LoadLibrary(scope, "STRING");
+        object? first = Invoke(scope, "STRING", "AT", "é", 0);
+        object? second = Invoke(scope, "STRING", "AT", "é", 1);
+        TextWriter originalOutput = Console.Out;
+        TextWriter originalError = Console.Error;
+        using var output = new StringWriter();
+        using var error = new StringWriter();
         try
         {
             Console.SetOut(output);
+            Console.SetError(error);
             LolRuntime.Print([first, second], suppressNewline: false);
+            LolRuntime.Print([first, second], suppressNewline: false, standardError: true);
         }
         finally
         {
             Console.SetOut(originalOutput);
+            Console.SetError(originalError);
         }
 
         output.ToString().Should().Be("é" + output.NewLine);
+        error.ToString().Should().Be("é" + error.NewLine);
     }
 
     [Fact]

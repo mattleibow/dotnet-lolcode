@@ -29,6 +29,7 @@
   <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.lolproj'">
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Lolcode.Build\Lolcode.Build.csproj"
                       ReferenceOutputAssembly="false"
-                      PrivateAssets="all" />
+                      PrivateAssets="all"
+                      GlobalPropertiesToRemove="PublishAot;PublishTrimmed;PublishSingleFile;SelfContained;RuntimeIdentifier;IsAotCompatible;IsTrimmable" />
   </ItemGroup>
 </Project>

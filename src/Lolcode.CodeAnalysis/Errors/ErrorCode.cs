@@ -2,7 +2,7 @@ namespace Lolcode.CodeAnalysis.Errors;
 
 /// <summary>
 /// Enumeration of all compiler error codes.
-/// Lexer: LOL0xxx, Parser: LOL1xxx, Binder: LOL2xxx, Internal: LOL9xxx.
+/// Lexer: LOL0xxx, Parser: LOL1xxx, Binder: LOL2xxx, Deployment: LOL3xxx, Internal: LOL9xxx.
 /// </summary>
 public enum ErrorCode
 {
@@ -62,6 +62,23 @@ public enum ErrorCode
     LOL2010,
     /// <summary>Source files in one compilation use different language versions.</summary>
     LOL2011,
+
+    // --- Deployment/static linking (LOL3xxx) ---
+
+    /// <summary>Static import cannot be resolved from declared references.</summary>
+    LOL3001,
+    /// <summary>Static import aliases or factory identities conflict.</summary>
+    LOL3002,
+    /// <summary>Static import contract is missing or incompatible.</summary>
+    LOL3003,
+    /// <summary>Dynamic resolution is incompatible with trimming or NativeAOT.</summary>
+    LOL3005,
+    /// <summary>A referenced LOLCODE module was compiled for dynamic resolution.</summary>
+    LOL3006,
+    /// <summary>Dynamic import has no declared static candidate set.</summary>
+    LOL3007,
+    /// <summary>Existing build output does not match requested deployment options.</summary>
+    LOL3009,
     // --- Internal (LOL9xxx) ---
 
     /// <summary>Internal compiler error.</summary>

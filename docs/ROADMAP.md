@@ -279,3 +279,20 @@ Build phases for the dotnet-lolcode compiler. Each phase builds on the previous 
 - [ ] Record demo GIF for README
 - [ ] Consider: REPL mode
 - [ ] Consider: Language Server Protocol for rich VS Code features
+
+## Phase 10: NativeAOT, Trimming, and Single-File Publishing
+> Publish supported LOLCODE applications through the standard .NET SDK
+> deployment pipeline while preserving ordinary dynamic/JIT behavior.
+>
+> **Depends on:** Phase 7 and the reusable library/game framework work in PR #16
+
+- [ ] Establish ordinary, single-file, trimmed, and NativeAOT publish baselines
+- [ ] Add reflection-free runtime library registration and provider factories
+- [ ] Emit statically resolved provider, managed-library, and LOLCODE-module calls
+- [ ] Add `LOL3xxx` deployment diagnostics for unsupported scenarios
+- [ ] Integrate standard SDK publish properties without replacing publish targets
+- [ ] Validate Galaxy and Catacombs as native applications
+- [ ] Add packed-SDK, platform-aware CI, packaging, and troubleshooting coverage
+
+See [NATIVE_AOT_PLAN.md](NATIVE_AOT_PLAN.md) for the architecture decisions,
+phased implementation, risks, and acceptance criteria.
