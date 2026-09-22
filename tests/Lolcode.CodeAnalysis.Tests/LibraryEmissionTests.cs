@@ -139,6 +139,7 @@ public class LibraryEmissionTests
                         .Should()
                         .BeFalse();
                 }
+
             }
         }
         finally
@@ -149,6 +150,68 @@ public class LibraryEmissionTests
             File.Exists(outputPath).Should().BeFalse();
             File.Exists(Path.ChangeExtension(outputPath, ".pdb")).Should().BeFalse();
             File.Exists(runtimeConfigPath).Should().BeFalse();
+        }
+    }
+
+    [Fact]
+    [InlineLolcodeProgramException("The wrapper ABI test requires a compact generated library source.")]
+    public void LibraryEmission_InstanceWrappersPassArgumentsAndUseCurrentFunctionSlot()
+    {
+        string outputPath = Path.Combine(AppContext.BaseDirectory, $"library-{Guid.NewGuid():N}.dll");
+        try
+        {
+            const string source = """
+                HAI 1.4
+                HOW IZ I JOIN YR first AN YR second
+                    FOUND YR SMOOSH first AN "::" AN second MKAY
+                IF U SAY SO
+                KTHXBYE
+                """;
+            var result = LolcodeCompilation.Create(SyntaxTree.ParseText(source, "Arguments.lol")).Emit(
+                outputPath,
+                typeof(LolRuntime).Assembly.Location,
+                outputType: "Library");
+
+            result.Success.Should().BeTrue(string.Join(Environment.NewLine, result.Diagnostics));
+            var loadContext = new System.Runtime.Loader.AssemblyLoadContext(
+                $"LibraryArguments_{Guid.NewGuid():N}",
+                isCollectible: true);
+            loadContext.Resolving += (_, assemblyName) =>
+                AssemblyName.ReferenceMatchesDefinition(assemblyName, typeof(LolRuntime).Assembly.GetName())
+                    ? typeof(LolRuntime).Assembly
+                    : null;
+            try
+            {
+                Type exports = LoadAssemblyFromCopiedStreams(loadContext, outputPath, result.PdbPath)
+                    .GetType("LolcodeExports")!;
+                using var instance = (IDisposable)Activator.CreateInstance(exports)!;
+                exports.GetMethod("JOIN")!.Invoke(instance, ["LEFT", "RIGHT"])
+                    .Should().Be("LEFT:RIGHT");
+
+                var library = (LolObject)exports.GetProperty("Library")!.GetValue(instance)!;
+                var original = (LolFunction)LolRuntime.GetValue(library, ["JOIN"])!;
+                var resolvers = (LolParameterNameResolver[])typeof(LolFunction)
+                    .GetProperty("ParameterNameResolvers", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(original)!;
+                LolRuntime.AssignValue(
+                    library,
+                    ["JOIN"],
+                    new LolFunction(
+                        2,
+                        static (_, _, arguments, _) => $"REPLACED:{arguments[0]}:{arguments[1]}",
+                        resolvers));
+                exports.GetMethod("JOIN")!.Invoke(instance, ["LEFT", "RIGHT"])
+                    .Should().Be("REPLACED:LEFT:RIGHT");
+            }
+            finally
+            {
+                loadContext.Unload();
+            }
+        }
+        finally
+        {
+            File.Delete(outputPath);
+            File.Delete(Path.ChangeExtension(outputPath, ".pdb"));
         }
     }
 
@@ -185,6 +248,12 @@ public class LibraryEmissionTests
                 .Contain(reference =>
                     metadata.GetString(reference.Name) == "System.Runtime" &&
                     reference.Version.Major == 10);
+            metadata.AssemblyReferences
+                .Select(metadata.GetAssemblyReference)
+                .Select(reference => metadata.GetString(reference.Name))
+                .Should()
+                .NotContain("System.Private.CoreLib",
+                    "generated library metadata must use target-framework members, not host runtime types");
         }
         finally
         {
@@ -337,9 +406,40 @@ public class LibraryEmissionTests
                 .NotContain(path => path.EndsWith(".tmp", StringComparison.Ordinal)
                     || path.EndsWith(".bak", StringComparison.Ordinal));
         }
+
         finally
         {
             Directory.Delete(outputDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LibraryEmission_PdbStagingFallbackPreservesConfiguredLibraryName()
+    {
+        string outputPath = Path.Combine(AppContext.BaseDirectory, $"library-{Guid.NewGuid():N}.dll");
+        try
+        {
+            var compilation = LolcodeCompilation.Create(SyntaxTree.ParseText(
+                CompatibilityFixtureSource("DotNet", "1.4", "Sdk", "library-welcome", "test.lol"),
+                "Welcome.lol"));
+            var result = compilation.Emit(
+                outputPath,
+                typeof(LolRuntime).Assembly.Location,
+                new RuntimeConfigDeletionFailureFileSystem.PdbStagingFailureFileSystem(),
+                outputType: "Library",
+                libraryName: "ConfiguredName");
+
+            result.Success.Should().BeTrue(string.Join(Environment.NewLine, result.Diagnostics));
+            result.PdbPath.Should().BeNull();
+            Assembly.LoadFile(outputPath)
+                .GetType("LolcodeExports")!
+                .GetCustomAttribute<LolcodeLibraryAttribute>()!
+                .Name.Should().Be("ConfiguredName");
+        }
+        finally
+        {
+            File.Delete(outputPath);
+            File.Delete(Path.ChangeExtension(outputPath, ".pdb"));
         }
     }
 
@@ -396,6 +496,25 @@ public class LibraryEmissionTests
                 throw new IOException("Injected runtimeconfig deletion failure.");
 
             File.Delete(path);
+        }
+
+        public sealed class PdbStagingFailureFileSystem : IPathEmitFileSystem
+        {
+            public bool FileExists(string path) => File.Exists(path);
+
+            public void CreateDirectory(string path) => Directory.CreateDirectory(path);
+
+            public Stream CreateNewFile(string path)
+            {
+                if (path.Contains(".pdb.", StringComparison.OrdinalIgnoreCase))
+                    throw new IOException("Injected PDB staging failure.");
+                return new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            }
+
+            public void MoveFile(string sourcePath, string destinationPath, bool overwrite) =>
+                File.Move(sourcePath, destinationPath, overwrite);
+
+            public void DeleteFile(string path) => File.Delete(path);
         }
     }
 }

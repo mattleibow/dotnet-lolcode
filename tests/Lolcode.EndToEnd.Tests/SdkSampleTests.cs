@@ -106,6 +106,40 @@ public class SdkSampleTests
         }
     }
 
+    [Fact]
+    public void LolcodeLibrary_RejectsInvalidExplicitLibraryName()
+    {
+        string projectDirectory = CreateSdkTestDirectory("invalid-library-name");
+        try
+        {
+            string project = WriteMultiFileLibraryProject(
+                projectDirectory,
+                ["Exports.lol"],
+                "ValidAssembly");
+            File.WriteAllText(Path.Combine(projectDirectory, "Exports.lol"), CreateLibraryFunction("FIRST"));
+            string projectContents = File.ReadAllText(project);
+            File.WriteAllText(
+                project,
+                projectContents.Replace(
+                    "</Project>",
+                    """
+                    <PropertyGroup>
+                      <LolcodeLibraryName>not-valid</LolcodeLibraryName>
+                    </PropertyGroup>
+                    </Project>
+                    """,
+                    StringComparison.Ordinal));
+
+            var (exitCode, stdout, stderr) = RunDotnet($"build \"{project}\"", projectDirectory);
+            exitCode.Should().NotBe(0);
+            (stdout + stderr).Should().Contain("LolcodeLibraryName must be a direct LOLCODE identifier");
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
     [Theory]
     [MemberData(nameof(GetFileBasedSamples))]
     public void FileBasedSample_Runs(string sampleFile)
@@ -210,7 +244,7 @@ public class SdkSampleTests
     }
 
     [Fact]
-    public void SdkPack_ContainsStaticPropsAndBundledProviderAssemblies()
+    public void SdkPack_ContainsSdkAndOnlyMergedRuntimeAssembly()
     {
         string sdkProject = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Lolcode.NET.Sdk.csproj");
         string template = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk", "Sdk.props");
@@ -232,11 +266,12 @@ public class SdkSampleTests
                 "Sdk/Sdk.props",
                 "Sdk/Sdk.targets",
                 "tools/net10.0/Lolcode.Runtime.dll",
-                "tools/net10.0/Lolcode.Runtime.String.dll",
-                "tools/net10.0/Lolcode.Runtime.Stdlib.dll",
-                "tools/net10.0/Lolcode.Runtime.Stdio.dll",
-                "tools/net10.0/Lolcode.Runtime.Socks.dll",
             ]);
+            var entries = package.Entries.Select(entry => entry.FullName);
+            entries.Should().NotContain("tools/net10.0/Lolcode.Runtime.String.dll");
+            entries.Should().NotContain("tools/net10.0/Lolcode.Runtime.Stdlib.dll");
+            entries.Should().NotContain("tools/net10.0/Lolcode.Runtime.Stdio.dll");
+            entries.Should().NotContain("tools/net10.0/Lolcode.Runtime.Socks.dll");
             using var reader = new StreamReader(package.GetEntry("Sdk/Sdk.props")!.Open());
             string contents = reader.ReadToEnd();
             contents.Should().NotContain("PackageVersion");
@@ -342,7 +377,7 @@ public class SdkSampleTests
     }
 
     [Fact]
-    public void Publish_IncludesBundledProvidersWithoutTrimming()
+    public void Publish_IncludesOnlyMergedRuntimeWithoutTrimming()
     {
         string projectDirectory = CreateSdkTestDirectory("publish-bundled-providers");
         string publishDirectory = Path.Combine(projectDirectory, "publish");
@@ -358,16 +393,9 @@ public class SdkSampleTests
                 $"publish \"{projectFile}\" --no-restore --configuration Debug -o \"{publishDirectory}\"",
                 RepoRoot);
             exitCode.Should().Be(0, $"publish failed:\n{stderr}\n{stdout}");
-            foreach (string provider in new[]
-            {
-                "Lolcode.Runtime.String.dll",
-                "Lolcode.Runtime.Stdlib.dll",
-                "Lolcode.Runtime.Stdio.dll",
-                "Lolcode.Runtime.Socks.dll",
-            })
-            {
-                File.Exists(Path.Combine(publishDirectory, provider)).Should().BeTrue();
-            }
+            File.Exists(Path.Combine(publishDirectory, "Lolcode.Runtime.dll")).Should().BeTrue();
+            Directory.EnumerateFiles(publishDirectory, "Lolcode.Runtime.*.dll")
+                .Should().BeEmpty();
         }
         finally
         {
@@ -758,11 +786,13 @@ public class SdkSampleTests
     }
 
     [Theory]
-    [InlineData("hyphenated-library", "hyphenated_library")]
-    [InlineData("2leading-library", "_2leading_library")]
+    [InlineLolcodeProgramException("The name-sanitization test creates an isolated LOLCODE consumer fixture.")]
+    [InlineData("hyphenated-library", "hyphenated_library", "hyphenated_library")]
+    [InlineData("2leading-library", "_2leading_library", "L_2leading_library")]
     public void LolcodeLibrary_DerivesSanitizedRootNamespaceConsumableFromCSharp(
         string assemblyName,
-        string expectedIdentifier)
+        string expectedIdentifier,
+        string expectedLibraryName)
     {
         string projectDirectory = CreateSdkTestDirectory($"sanitized-root-{assemblyName}");
 
@@ -795,14 +825,44 @@ public class SdkSampleTests
                 """);
             File.WriteAllText(
                 Path.Combine(projectDirectory, "Program.cs"),
-                $"Console.WriteLine({expectedIdentifier}.{expectedIdentifier}.FIRST());");
+                $"using var library = new {expectedIdentifier}.{expectedIdentifier}();{Environment.NewLine}Console.WriteLine(library.FIRST());");
 
             var (exitCode, stdout, stderr) = RunDotnet(
                 $"run --project \"{consumerProject}\" --no-restore",
                 projectDirectory);
             exitCode.Should().Be(0, $"C# consumer build failed:\n{stderr}\n{stdout}");
             stdout.Trim().Should().Be("FIRST");
+
+            string lolConsumerProject = Path.Combine(projectDirectory, "LolConsumer.lolproj");
+            File.WriteAllText(
+                lolConsumerProject,
+                $$"""
+                <Project>
+                  <Import Project="{{Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk", "Sdk.props")}}" />
+                  <PropertyGroup>
+                    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+                    <_LolcodeBuildTasksDir>{{Path.Combine(RepoRoot, "src", "Lolcode.Build", "bin", "Debug", "net10.0")}}{{Path.DirectorySeparatorChar}}</_LolcodeBuildTasksDir>
+                    <LolcodeRuntimeAssemblyPath>{{Path.Combine(RepoRoot, "src", "Lolcode.Runtime", "bin", "Debug", "net10.0", "Lolcode.Runtime.dll")}}</LolcodeRuntimeAssemblyPath>
+                  </PropertyGroup>
+                  <ItemGroup><ProjectReference Include="{{libraryProject}}" /></ItemGroup>
+                  <Import Project="{{Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk", "Sdk.targets")}}" />
+                </Project>
+                """);
+            File.WriteAllText(
+                Path.Combine(projectDirectory, "Program.lol"),
+                $$"""
+                HAI 1.4
+                CAN HAS {{expectedLibraryName}}?
+                VISIBLE I IZ {{expectedLibraryName}}'Z FIRST MKAY
+                KTHXBYE
+                """);
+            var (lolExitCode, lolStdout, lolStderr) = RunDotnet(
+                $"run --project \"{lolConsumerProject}\" --no-restore",
+                projectDirectory);
+            lolExitCode.Should().Be(0, $"LOLCODE consumer failed:\n{lolStderr}\n{lolStdout}");
+            lolStdout.Trim().Should().Be("FIRST");
         }
+
         finally
         {
             Directory.Delete(projectDirectory, recursive: true);
@@ -850,7 +910,7 @@ public class SdkSampleTests
                 """);
             File.WriteAllText(
                 Path.Combine(projectDirectory, "Program.cs"),
-                $"Console.WriteLine({expectedNamespace}.{assemblyName}.FIRST());");
+                $"using var library = new {expectedNamespace}.{assemblyName}();{Environment.NewLine}Console.WriteLine(library.FIRST());");
 
             var (exitCode, stdout, stderr) = RunDotnet(
                 $"run --project \"{consumerProject}\" --no-restore",
@@ -917,7 +977,7 @@ public class SdkSampleTests
                 """);
             File.WriteAllText(
                 Path.Combine(projectDirectory, "Program.cs"),
-                $"Console.WriteLine({expectedTypeName}.FIRST());");
+                $"using var library = new {expectedTypeName}();{Environment.NewLine}Console.WriteLine(library.FIRST());");
 
             string rootNamespaceArgument = useCommandLineRootNamespace
                 ? " -p:RootNamespace="
@@ -1123,7 +1183,7 @@ public class SdkSampleTests
             .Select(metadata.GetMethodDefinition)
             .Where(method => (method.Attributes & MethodAttributes.MemberAccessMask) == MethodAttributes.Public)
             .Select(method => metadata.GetString(method.Name))
-            .Where(name => name != "__CreateLolcodeLibrary")
+            .Where(name => name is not "__CreateLolcodeLibrary" and not ".ctor" and not "get_Library" and not "Dispose")
             .ToArray();
     }
 

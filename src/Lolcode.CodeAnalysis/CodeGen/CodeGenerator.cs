@@ -7,6 +7,7 @@ using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text;
 using Lolcode.CodeAnalysis.Binding;
 using Lolcode.CodeAnalysis.BoundTree;
 using Lolcode.CodeAnalysis.Symbols;
@@ -62,6 +63,7 @@ internal sealed class CodeGenerator
     private Type _int32Type = null!;
     private Type _doubleType = null!;
     private Type _intPtrType = null!;
+    private Type _exceptionType = null!;
     private Type _libraryAttributeType = null!;
     private Type _disposableType = null!;
 
@@ -203,6 +205,7 @@ internal sealed class CodeGenerator
         _int32Type = GetCoreType(coreAssembly, "System.Int32");
         _doubleType = GetCoreType(coreAssembly, "System.Double");
         _intPtrType = GetCoreType(coreAssembly, "System.IntPtr");
+        _exceptionType = GetCoreType(coreAssembly, "System.Exception");
         _scopeType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolScope));
         _objectType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolObject));
         _functionType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolFunction));
@@ -248,10 +251,11 @@ internal sealed class CodeGenerator
             (_isLibrary ? TypeAttributes.BeforeFieldInit : TypeAttributes.Abstract));
         if (_isLibrary)
         {
-            _typeBuilder.SetCustomAttribute(new CustomAttributeBuilder(
-                typeof(LolcodeLibraryAttribute).GetConstructor([typeof(string)])
-                    ?? throw new MissingMethodException(typeof(LolcodeLibraryAttribute).FullName, ".ctor"),
-                [_libraryName ?? _assemblyName]));
+            ConstructorInfo libraryAttributeConstructor = _libraryAttributeType.GetConstructor([_stringType])
+                ?? throw new MissingMethodException(_libraryAttributeType.FullName, ".ctor");
+            _typeBuilder.SetCustomAttribute(
+                libraryAttributeConstructor,
+                EncodeLibraryAttribute(_libraryName ?? _assemblyName));
             _typeBuilder.AddInterfaceImplementation(_disposableType);
             _libraryScopeField = _typeBuilder.DefineField(
                 "_scope", _scopeType, FieldAttributes.Private | FieldAttributes.InitOnly);
@@ -461,6 +465,39 @@ internal sealed class CodeGenerator
             ? trustedPlatformAssemblies.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             : [];
 
+    private static byte[] EncodeLibraryAttribute(string name)
+    {
+        byte[] nameBytes = Encoding.UTF8.GetBytes(name);
+        var blob = new List<byte> { 1, 0 };
+        AppendCompressedUnsignedInteger(blob, checked((uint)nameBytes.Length));
+        blob.AddRange(nameBytes);
+        blob.Add(0);
+        blob.Add(0);
+        return blob.ToArray();
+    }
+
+    private static void AppendCompressedUnsignedInteger(List<byte> blob, uint value)
+    {
+        if (value <= 0x7F)
+            blob.Add((byte)value);
+        else if (value <= 0x3FFF)
+        {
+            blob.Add((byte)((value >> 8) | 0x80));
+            blob.Add((byte)value);
+        }
+        else if (value <= 0x1FFFFFFF)
+        {
+            blob.Add((byte)((value >> 24) | 0xC0));
+            blob.Add((byte)(value >> 16));
+            blob.Add((byte)(value >> 8));
+            blob.Add((byte)value);
+        }
+        else
+        {
+            throw new ArgumentOutOfRangeException(nameof(value));
+        }
+    }
+
     private static Type GetCoreType(Assembly coreAssembly, string fullName) =>
         coreAssembly.GetType(fullName)
         ?? throw new InvalidOperationException(
@@ -621,32 +658,43 @@ internal sealed class CodeGenerator
             {
                 _il.Emit(OpCodes.Dup);
                 _il.Emit(OpCodes.Ldc_I4, index);
-                _il.Emit(OpCodes.Ldarg, index);
+                _il.Emit(OpCodes.Ldarg, index + 1);
                 _il.Emit(OpCodes.Stelem_Ref);
             }
             _il.Emit(OpCodes.Stloc, arguments);
 
+            var target = _il.DeclareLocal(_functionTargetType);
+            EmitResolvedSlot(declaration.Identifier!, module);
+            _il.Emit(OpCodes.Ldc_I4, declaration.Function.Parameters.Length);
+            _il.Emit(OpCodes.Call, _resolveFunctionSlotMethod);
+            _il.Emit(OpCodes.Stloc, target);
+
             _il.Emit(OpCodes.Ldc_I4, declaration.Function.Parameters.Length);
             _il.Emit(OpCodes.Newarr, _resolvedSlotType);
             _il.Emit(OpCodes.Stloc, parameterSlots);
-            ImmutableArray<MethodBuilder> resolvers = _parameterResolverMethods[declaration];
-            for (int index = 0; index < resolvers.Length; index++)
+            for (int index = 0; index < declaration.Function.Parameters.Length; index++)
             {
                 _il.Emit(OpCodes.Ldloc, parameterSlots);
                 _il.Emit(OpCodes.Ldc_I4, index);
                 _il.Emit(OpCodes.Ldarg_0);
                 _il.Emit(OpCodes.Ldfld, _libraryScopeField!);
-                _il.Emit(OpCodes.Call, resolvers[index]);
+                _il.Emit(OpCodes.Ldloc, target);
+                _il.Emit(OpCodes.Ldc_I4, index);
+                _il.Emit(OpCodes.Call, _resolveParameterNameMethod);
                 _il.Emit(OpCodes.Stelem_Ref);
             }
 
-            _il.Emit(OpCodes.Ldloc, module);
-            _il.Emit(OpCodes.Ldloc, module);
-            _il.Emit(OpCodes.Ldloc, arguments);
+            _il.Emit(OpCodes.Ldarg_0);
+            _il.Emit(OpCodes.Ldfld, _libraryScopeField!);
+            _il.Emit(OpCodes.Ldloc, target);
             _il.Emit(OpCodes.Ldloc, parameterSlots);
-            _il.Emit(OpCodes.Call, _functionMethods[declaration]);
+            _il.Emit(OpCodes.Ldloc, arguments);
+            _il.Emit(OpCodes.Call, _invokeResolvedMethod);
             _il.Emit(OpCodes.Stloc, result);
+            _il.Emit(OpCodes.Ldarg_0);
+            _il.Emit(OpCodes.Ldfld, _libraryScopeField!);
             _il.Emit(OpCodes.Ldloc, result);
+            _il.Emit(OpCodes.Call, _transferPublicLibraryResultMethod);
             _il.EndScope();
             _il.Emit(OpCodes.Ret);
         }
@@ -658,10 +706,11 @@ internal sealed class CodeGenerator
             MethodAttributes.Public, CallingConventions.Standard, Type.EmptyTypes);
         _il = constructor.GetILGenerator();
         _il.Emit(OpCodes.Ldarg_0);
-        _il.Emit(OpCodes.Call, typeof(object).GetConstructor(Type.EmptyTypes)!);
+        _il.Emit(OpCodes.Call, _systemObjectType.GetConstructor(Type.EmptyTypes)!);
         _il.Emit(OpCodes.Ldarg_0);
         _il.Emit(OpCodes.Call, _createScopeMethod);
         _il.Emit(OpCodes.Stfld, _libraryScopeField!);
+        _il.BeginExceptionBlock();
         var module = _il.DeclareLocal(_objectType);
         _il.Emit(OpCodes.Ldarg_0);
         _il.Emit(OpCodes.Ldfld, _libraryScopeField!);
@@ -678,6 +727,15 @@ internal sealed class CodeGenerator
         _il.Emit(OpCodes.Ldnull);
         _il.Emit(OpCodes.Stloc, moduleIt);
         EmitLibraryInitializer();
+        Label complete = _il.DefineLabel();
+        _il.Emit(OpCodes.Leave_S, complete);
+        _il.BeginCatchBlock(_exceptionType);
+        _il.Emit(OpCodes.Ldarg_0);
+        _il.Emit(OpCodes.Ldfld, _libraryScopeField!);
+        _il.Emit(OpCodes.Call, _disposeScopeMethod);
+        _il.Emit(OpCodes.Rethrow);
+        _il.EndExceptionBlock();
+        _il.MarkLabel(complete);
         _il.Emit(OpCodes.Ret);
     }
 
@@ -687,7 +745,7 @@ internal sealed class CodeGenerator
             "get_Library",
             MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.Final |
             MethodAttributes.HideBySig | MethodAttributes.SpecialName,
-            typeof(LolObject),
+            _objectType,
             Type.EmptyTypes);
         _il = getter.GetILGenerator();
         _il.Emit(OpCodes.Ldarg_0);
@@ -696,7 +754,7 @@ internal sealed class CodeGenerator
         _typeBuilder.DefineProperty(
             "Library",
             PropertyAttributes.None,
-            typeof(LolObject),
+            _objectType,
             Type.EmptyTypes).SetGetMethod(getter);
 
         MethodBuilder dispose = _typeBuilder.DefineMethod(

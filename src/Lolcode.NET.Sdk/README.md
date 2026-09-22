@@ -159,6 +159,24 @@ The compiler discovers attributed public sealed instance types from resolved
 reference metadata. There is no assembly-name, filename, alias, or unaware-DLL
 fallback.
 
+## Building LOLCODE libraries
+
+An SDK project with `<OutputType>Library</OutputType>` generates a public,
+sealed, constructible export type that implements `IDisposable`. Its public
+LOLCODE functions are **instance methods**, not static wrappers. Each instance
+owns an isolated, persistent LOLCODE library scope, so state survives calls on
+that instance and cannot leak to another instance. Dispose an instance when it
+is no longer needed:
+
+```csharp
+using var library = new MyLibrary();
+Console.WriteLine(library.WELCOME("WORLD"));
+```
+
+`LolcodeLibraryName` is the direct LOLCODE identifier used by `CAN HAS`. If it
+is omitted, the SDK deterministically derives a valid identifier from
+`AssemblyName`; an explicitly invalid value fails the build.
+
 ## Requirements
 
 - .NET 10 SDK

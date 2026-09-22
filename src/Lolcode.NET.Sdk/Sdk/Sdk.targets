@@ -54,9 +54,28 @@
            Text="LolcodeLibraryTypeName must be a simple, non-keyword CLR/C# identifier without dots. Set RootNamespace to the desired namespace." />
 
     <PropertyGroup Condition="'$(OutputType)' == 'Library'">
-      <LolcodeLibraryName Condition="'$(LolcodeLibraryName)' == ''">$(AssemblyName)</LolcodeLibraryName>
+      <_LolcodeExplicitLibraryName Condition="'$(LolcodeLibraryName)' != ''">$(LolcodeLibraryName)</_LolcodeExplicitLibraryName>
       <_LolcodeEffectiveRootNamespace Condition="'$(RootNamespace)' != ''">$(RootNamespace)</_LolcodeEffectiveRootNamespace>
     </PropertyGroup>
+
+    <MakeValidClrIdentifier Condition="'$(OutputType)' == 'Library'"
+                            Input="$(AssemblyName)"
+                            Lolcode="true">
+      <Output TaskParameter="Identifier" PropertyName="_LolcodeDefaultLibraryName" />
+    </MakeValidClrIdentifier>
+
+    <PropertyGroup Condition="'$(OutputType)' == 'Library'">
+      <LolcodeLibraryName Condition="'$(LolcodeLibraryName)' == ''">$(_LolcodeDefaultLibraryName)</LolcodeLibraryName>
+    </PropertyGroup>
+
+    <MakeValidClrIdentifier Condition="'$(OutputType)' == 'Library'"
+                            Input="$(LolcodeLibraryName)"
+                            Lolcode="true">
+      <Output TaskParameter="Identifier" PropertyName="_LolcodeValidatedLibraryName" />
+    </MakeValidClrIdentifier>
+
+    <Error Condition="'$(OutputType)' == 'Library' and '$(_LolcodeExplicitLibraryName)' != '' and '$(_LolcodeValidatedLibraryName)' != '$(LolcodeLibraryName)'"
+           Text="LolcodeLibraryName must be a direct LOLCODE identifier starting with a letter and containing only letters, digits, or underscores." />
 
     <NormalizeClrNamespace Condition="'$(OutputType)' == 'Library' and '$(_LolcodeEffectiveRootNamespace)' != ''"
                            Input="$(_LolcodeEffectiveRootNamespace)">

@@ -185,10 +185,13 @@ public sealed class MakeValidClrIdentifier : Microsoft.Build.Utilities.Task
     [Output]
     public string Identifier { get; private set; } = "";
 
+    /// <summary>Whether to generate a direct LOLCODE identifier instead of a CLR identifier.</summary>
+    public bool Lolcode { get; set; }
+
     /// <inheritdoc/>
     public override bool Execute()
     {
-        Identifier = Normalize(Input);
+        Identifier = Lolcode ? NormalizeLolcode(Input) : Normalize(Input);
         return true;
     }
 
@@ -247,6 +250,19 @@ public sealed class MakeValidClrIdentifier : Microsoft.Build.Utilities.Task
             UnicodeCategory.ConnectorPunctuation or
             UnicodeCategory.NonSpacingMark or
             UnicodeCategory.SpacingCombiningMark);
+
+    internal static string NormalizeLolcode(string input)
+    {
+        var builder = new StringBuilder();
+        foreach (char character in input)
+            builder.Append(char.IsLetterOrDigit(character) || character == '_' ? character : '_');
+
+        if (builder.Length == 0)
+            return "Library";
+        if (!char.IsLetter(builder[0]))
+            builder.Insert(0, "L_");
+        return builder.ToString();
+    }
 }
 
 /// <summary>
@@ -271,4 +287,5 @@ public sealed class NormalizeClrNamespace : Microsoft.Build.Utilities.Task
             Input.Split('.', StringSplitOptions.None).Select(MakeValidClrIdentifier.Normalize));
         return true;
     }
+
 }

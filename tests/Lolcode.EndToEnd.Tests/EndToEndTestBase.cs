@@ -13,16 +13,8 @@ namespace Lolcode.EndToEnd.Tests;
 public abstract class EndToEndTestBase : IDisposable
 {
     private const int DefaultProgramTimeoutSeconds = 60;
-    private static readonly string[] ProviderAssemblyNames =
-    [
-        "Lolcode.Runtime.String.dll",
-        "Lolcode.Runtime.Stdlib.dll",
-        "Lolcode.Runtime.Stdio.dll",
-        "Lolcode.Runtime.Socks.dll",
-    ];
     private readonly string _tempDir;
     private readonly string _runtimeDll;
-    private readonly string _runtimeDirectory;
 
     /// <summary>Gets the isolated directory used by the current test.</summary>
     protected string TestDirectory => _tempDir;
@@ -45,7 +37,6 @@ public abstract class EndToEndTestBase : IDisposable
         Directory.CreateDirectory(_tempDir);
 
         string testDir = AppContext.BaseDirectory;
-        _runtimeDirectory = testDir;
         _runtimeDll = Path.Combine(testDir, "Lolcode.Runtime.dll");
         if (!File.Exists(_runtimeDll))
             throw new FileNotFoundException($"Runtime DLL not found at: {_runtimeDll}");
@@ -220,18 +211,6 @@ public abstract class EndToEndTestBase : IDisposable
             _runtimeDll,
             Path.Combine(outputDirectory, "Lolcode.Runtime.dll"),
             overwrite: true);
-        foreach (string providerAssemblyName in ProviderAssemblyNames)
-        {
-            string source = Path.Combine(_runtimeDirectory, providerAssemblyName);
-            if (File.Exists(source))
-            {
-                File.Copy(
-                    source,
-                    Path.Combine(outputDirectory, providerAssemblyName),
-                    overwrite: true);
-            }
-        }
-
     }
 
     private static async Task<byte[]> ReadAllBytesAsync(Stream stream)

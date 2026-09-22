@@ -62,8 +62,15 @@ public sealed class InMemoryExecutionTests
     }
 
     [Fact]
+    [InlineLolcodeProgramException("The byte-loaded runtime discovery test emits a focused in-memory program.")]
     public void Emit_ToStreams_WorksWhenCompilerAndRuntimeAreLoadedFromBytes()
     {
+        const string source = """
+            HAI 1.4
+            CAN HAS STRING?
+            VISIBLE I IZ STRING'Z LEN YR "HAI" MKAY
+            KTHXBYE
+            """;
         byte[] compilerImage = File.ReadAllBytes(typeof(LolcodeCompilation).Assembly.Location);
         byte[] runtimeImage = File.ReadAllBytes(typeof(LolRuntime).Assembly.Location);
         var loadContext = new AssemblyLoadContext(
@@ -93,7 +100,7 @@ public sealed class InMemoryExecutionTests
             object syntaxTree = syntaxTreeType.GetMethod(
                 "ParseText",
                 [typeof(string), typeof(string)])!
-                .Invoke(null, [HelloProgram, "memory.lol"])!;
+                .Invoke(null, [source, "memory.lol"])!;
             Array trees = Array.CreateInstance(syntaxTreeType, 1);
             trees.SetValue(syntaxTree, 0);
 
@@ -118,6 +125,21 @@ public sealed class InMemoryExecutionTests
                 .Cast<object>()
                 .Should()
                 .BeEmpty();
+
+            using var emittedStream = new MemoryStream(peStream.ToArray(), writable: false);
+            Assembly emittedAssembly = loadContext.LoadFromStream(emittedStream);
+            var output = new StringWriter();
+            TextWriter originalOutput = Console.Out;
+            try
+            {
+                Console.SetOut(output);
+                emittedAssembly.GetType("Program")!.GetMethod("Main")!.Invoke(null, null);
+            }
+            finally
+            {
+                Console.SetOut(originalOutput);
+            }
+            output.ToString().Should().Be($"3{Environment.NewLine}");
         }
         finally
         {

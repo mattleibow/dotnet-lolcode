@@ -803,13 +803,6 @@ internal static class WindowsJobProcess
 /// <summary>Compiles a fixture with dotnet-lolcode and executes its emitted assembly.</summary>
 internal sealed class DotNetLolcodeEngine : IDisposable
 {
-    private static readonly string[] ProviderAssemblyNames =
-    [
-        "Lolcode.Runtime.String.dll",
-        "Lolcode.Runtime.Stdlib.dll",
-        "Lolcode.Runtime.Stdio.dll",
-        "Lolcode.Runtime.Socks.dll",
-    ];
 
     private readonly string _directory = Path.Combine(
         Path.GetTempPath(),
@@ -859,12 +852,6 @@ internal sealed class DotNetLolcodeEngine : IDisposable
     private void CopyRuntimeDependencies(string targetDirectory)
     {
         Copy(_runtimeAssemblyPath, targetDirectory);
-        foreach (string providerAssemblyName in ProviderAssemblyNames)
-        {
-            string provider = Path.Combine(AppContext.BaseDirectory, providerAssemblyName);
-            if (File.Exists(provider))
-                Copy(provider, targetDirectory);
-        }
     }
 
     private static void Copy(string source, string targetDirectory) =>

@@ -244,7 +244,8 @@ public sealed class LolcodeCompilation
                             dllPath,
                             referenceAssemblyPaths,
                             isLibrary,
-                            libraryTypeName);
+                            libraryTypeName,
+                            libraryName);
                     }
                 }
 
@@ -271,7 +272,8 @@ public sealed class LolcodeCompilation
                         dllPath,
                         referenceAssemblyPaths,
                         isLibrary,
-                        libraryTypeName);
+                        libraryTypeName,
+                        libraryName);
                     var fallbackPath = StageStream(fileSystem, peStream, dllPath);
                     stagedPaths.Add(fallbackPath);
                     return fallbackPath;
@@ -358,7 +360,8 @@ public sealed class LolcodeCompilation
         string dllPath,
         IEnumerable<string>? referenceAssemblyPaths,
         bool isLibrary,
-        string? libraryTypeName)
+        string? libraryTypeName,
+        string? libraryName)
     {
         peStream.SetLength(0);
         peStream.Position = 0;
@@ -373,7 +376,8 @@ public sealed class LolcodeCompilation
             pdbFileName: null,
             referenceAssemblyPaths: referenceAssemblyPaths,
             isLibrary: isLibrary,
-            libraryTypeName: libraryTypeName);
+            libraryTypeName: libraryTypeName,
+            libraryName: libraryName);
     }
 
     /// <summary>

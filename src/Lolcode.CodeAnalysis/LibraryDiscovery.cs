@@ -20,16 +20,14 @@ internal static class LibraryDiscovery
         IEnumerable<string>? referenceAssemblyPaths,
         string? runtimeAssemblyPath)
     {
-        runtimeAssemblyPath ??= typeof(Lolcode.Runtime.LolRuntime).Assembly.Location;
+        Assembly runtimeAssembly = typeof(Lolcode.Runtime.LolRuntime).Assembly;
+        runtimeAssemblyPath ??= runtimeAssembly.Location;
         string[] references = (referenceAssemblyPaths ?? [])
             .Append(runtimeAssemblyPath)
             .Where(static path => !string.IsNullOrWhiteSpace(path) && File.Exists(path))
             .Select(static path => Path.GetFullPath(path!))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray() ?? [];
-        if (references.Length == 0)
-            return new([], []);
-
         IEnumerable<string> frameworkPaths = references.Any(static path =>
             string.Equals(Path.GetFileName(path), "System.Runtime.dll", StringComparison.OrdinalIgnoreCase))
             ? []
@@ -43,6 +41,65 @@ internal static class LibraryDiscovery
         var definitions = ImmutableArray.CreateBuilder<LibraryDefinition>();
         var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
         var names = new Dictionary<string, LibraryDefinition>(StringComparer.Ordinal);
+
+        void ScanAssembly(Assembly assembly, string source)
+        {
+            Type[] types;
+            try { types = assembly.GetTypes(); }
+            catch (Exception ex) when (ex is ReflectionTypeLoadException or FileLoadException or TypeLoadException)
+            {
+                diagnostics.Add(Error(source, $"Unable to read library types: {ex.Message}"));
+                return;
+            }
+
+            foreach (Type type in types.OrderBy(static type => type.FullName, StringComparer.Ordinal))
+            {
+                CustomAttributeData? attribute;
+                try
+                {
+                    attribute = type.GetCustomAttributesData().SingleOrDefault(IsLibraryAttribute);
+                }
+                catch (Exception ex) when (ex is CustomAttributeFormatException or TypeLoadException)
+                {
+                    diagnostics.Add(Error(source, $"Unable to read library attribute: {ex.Message}"));
+                    continue;
+                }
+                if (attribute is null)
+                    continue;
+                if (!TryReadName(attribute, out string? name))
+                {
+                    diagnostics.Add(Error(source, $"Library type '{type.FullName}' has a malformed LolcodeLibraryAttribute."));
+                    continue;
+                }
+                if (!IsValidIdentifier(name!))
+                {
+                    diagnostics.Add(Error(source, $"LOLCODE library name '{name}' is not a valid identifier."));
+                    continue;
+                }
+                if (!IsValidLibraryType(type, out string? reason))
+                {
+                    diagnostics.Add(Error(source, $"LOLCODE library '{name}' has invalid type '{type.FullName}': {reason}"));
+                    continue;
+                }
+
+                var definition = new LibraryDefinition(name!, assembly.GetName().Name!, type.FullName!);
+                if (names.TryGetValue(name!, out LibraryDefinition? prior))
+                {
+                    diagnostics.Add(Error(source, $"LOLCODE library name '{name}' is declared by both '{prior.AssemblyName}:{prior.TypeName}' and '{definition.AssemblyName}:{definition.TypeName}'."));
+                    continue;
+                }
+                names.Add(name!, definition);
+                definitions.Add(definition);
+            }
+        }
+
+        // Stream-only emission can load the runtime from bytes. Its Location is empty,
+        // but its already-loaded metadata is still the authoritative built-in source.
+        if (string.IsNullOrEmpty(runtimeAssembly.Location))
+            ScanAssembly(runtimeAssembly, runtimeAssembly.FullName ?? "Lolcode.Runtime");
+
+        if (references.Length == 0)
+            return new(definitions.ToImmutable(), diagnostics.ToImmutable());
 
         try
         {
@@ -59,53 +116,7 @@ internal static class LibraryDiscovery
                     continue;
                 }
 
-                Type[] types;
-                try { types = assembly.GetTypes(); }
-                catch (Exception ex) when (ex is ReflectionTypeLoadException or FileLoadException or TypeLoadException)
-                {
-                    diagnostics.Add(Error(path, $"Unable to read library types: {ex.Message}"));
-                    continue;
-                }
-
-                foreach (Type type in types.OrderBy(static type => type.FullName, StringComparer.Ordinal))
-                {
-                    CustomAttributeData? attribute;
-                    try
-                    {
-                        attribute = type.GetCustomAttributesData().SingleOrDefault(IsLibraryAttribute);
-                    }
-                    catch (Exception ex) when (ex is CustomAttributeFormatException or TypeLoadException)
-                    {
-                        diagnostics.Add(Error(path, $"Unable to read library attribute: {ex.Message}"));
-                        continue;
-                    }
-                    if (attribute is null)
-                        continue;
-                    if (!TryReadName(attribute, out string? name))
-                    {
-                        diagnostics.Add(Error(path, $"Library type '{type.FullName}' has a malformed LolcodeLibraryAttribute."));
-                        continue;
-                    }
-                    if (!IsValidIdentifier(name!))
-                    {
-                        diagnostics.Add(Error(path, $"LOLCODE library name '{name}' is not a valid identifier."));
-                        continue;
-                    }
-                    if (!IsValidLibraryType(type, out string? reason))
-                    {
-                        diagnostics.Add(Error(path, $"LOLCODE library '{name}' has invalid type '{type.FullName}': {reason}"));
-                        continue;
-                    }
-
-                    var definition = new LibraryDefinition(name!, assembly.GetName().Name!, type.FullName!);
-                    if (names.TryGetValue(name!, out LibraryDefinition? prior))
-                    {
-                        diagnostics.Add(Error(path, $"LOLCODE library name '{name}' is declared by both '{prior.AssemblyName}:{prior.TypeName}' and '{definition.AssemblyName}:{definition.TypeName}'."));
-                        continue;
-                    }
-                    names.Add(name!, definition);
-                    definitions.Add(definition);
-                }
+                ScanAssembly(assembly, path);
             }
         }
         catch (Exception ex) when (ex is FileLoadException or FileNotFoundException or InvalidOperationException or ArgumentException)

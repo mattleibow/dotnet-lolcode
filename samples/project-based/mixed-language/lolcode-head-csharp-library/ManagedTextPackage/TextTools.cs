@@ -1,11 +1,13 @@
 using System.Linq;
+using Lolcode.Runtime;
 
 namespace InteropSamples;
 
-public static class TextTools
+[LolcodeLibrary("ManagedTextPackage")]
+public sealed class TextTools
 {
-    public static string Repeat(string value, int count) =>
+    public string Repeat(string value, int count) =>
         string.Join(" ", Enumerable.Repeat(value, count));
 
-    public static int CountCharacters(string value) => value.Length;
+    public int CountCharacters(string value) => value.Length;
 }
