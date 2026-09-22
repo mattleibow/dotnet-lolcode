@@ -33,10 +33,11 @@ Lolcode.TerminalUi ─┬─> CanHasGalaxy ─> CanHasGalaxy.Cli
 | `Kitteh.Catacombs` | A compact deterministic crawler split into application, domain, presentation, and command features while reusing the same engine and UI. |
 
 `tests/CanHasGalaxy.Tests` is the dedicated C# xUnit test project. It calls
-the generated `CanHasGalaxy.GalaxyExports` and `TerminalUi.UiExports` wrappers,
-tests persistence in isolated temporary directories, and runs both executable
-games. Generic executable-sample discovery stays in `Lolcode.EndToEnd.Tests`;
-detailed Galaxy behavior lives only in the dedicated tests.
+generated `CanHasGalaxy.GalaxyExports` and `TerminalUi.UiExports` instances,
+disposes each imported library after use, tests persistence in isolated
+temporary directories, and runs both executable games. Generic
+executable-sample discovery stays in `Lolcode.EndToEnd.Tests`; detailed Galaxy
+behavior lives only in the dedicated tests.
 
 ## File organization and source order
 
