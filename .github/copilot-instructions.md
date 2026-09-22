@@ -84,9 +84,9 @@ dotnet run                      # Compile and execute
 ```
 
 ## Language Spec Reference
-- Full spec: `docs/LANGUAGE_SPEC.md`
-- Design details: `docs/DESIGN.md`
-- Roadmap: `docs/ROADMAP.md`
+- Full spec: `docs/public/reference/language-spec.md`
+- Design details: `docs/dev/compiler-architecture.md`
+- Roadmap: `docs/dev/roadmap.md`
 
 ## Important LOLCODE 1.2 Rules
 - VISIBLE adds newline by default; `!` suppresses it

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "docfx": {
+      "version": "2.80.1",
+      "commands": [
+        "docfx"
+      ],
+      "rollForward": false
+    },
+    "dotnet-serve": {
+      "version": "1.10.194",
+      "commands": [
+        "dotnet-serve"
+      ],
+      "rollForward": false
+    }
+  }
+}

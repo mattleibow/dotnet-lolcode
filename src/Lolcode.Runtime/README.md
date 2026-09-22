@@ -2,6 +2,9 @@
 
 Runtime support library for compiled **LOLCODE** programs. This package is automatically referenced when building `.lolproj` projects with the `Lolcode.NET.Sdk`.
 
+The usage example uses the latest published `0.2.0` SDK. The repository's
+library and interop work is on the unpublished `0.3.0` source line.
+
 ## What This Package Does
 
 When the LOLCODE compiler generates .NET assemblies from your `.lol` source files, the compiled code calls into this runtime library for:
@@ -59,7 +62,7 @@ The compiler reads reference metadata without executing target code. `CAN HAS
 COUNTER?` constructs one library instance, projects its direct public instance
 methods into one library BUKKIT, and binds that BUKKIT in the importing scope.
 A repeated import in that scope is a no-op; separate scopes receive isolated
-instances. There is no filename fallback or unaware-DLL import.
+instances. Only explicitly attributed library classes participate.
 
 When a library implements `IDisposable`, the importing scope disposes it.
 Returned open `LolBlob` values are automatically adopted by the calling scope;
@@ -82,7 +85,7 @@ direct top-level functions are installed before other top-level initialization,
 so their file order does not matter even though 1.3/1.4 calls still resolve the
 current replaceable function value at runtime. Dynamic/SRS declarations,
 variables, imports, and other initialization remain ordered. Single-file
-1.3/1.4 programs retain textual declaration behavior. Library wrapper
+1.3/1.4 programs retain textual declaration behavior. Generated library
 initialization runs only supported import and declaration forms; it does not run
 arbitrary top-level executable statements.
 

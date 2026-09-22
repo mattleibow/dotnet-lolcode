@@ -1,10 +1,13 @@
 # LOLCODE 1.4 Reference-Implementation Changes
 
+<span class="badge badge-reference">1.4 reference behavior</span>
+<span class="badge badge-supported">Supported except BRAINZ</span>
+
 This document describes observable language changes present in Justin Meza's [`lci` interpreter `future` branch](https://github.com/justinmeza/lci/tree/future), pinned for this review at commit [`9377c404c79a122a4698d98118eef44310c751be`](https://github.com/justinmeza/lci/commit/9377c404c79a122a4698d98118eef44310c751be) (23 February 2026). It is a behavioral delta from the archived [LOLCODE 1.3 Draft](archive/lolcode-spec-v1.3.md), not a community-ratified specification.
 
 > **No archived 1.4 specification is known to this repository.** The local archive and `lolcode-spec` repository stop at the unfinished 1.3 draft. Every rule below is therefore identified from the pinned interpreter source and executable behavior.
 
-Compiler support and .NET-specific guidance are kept in the non-normative [Implementation Profile](LANGUAGE_IMPLEMENTATION.md).
+Compiler support and .NET-specific guidance are kept in the non-normative [Implementation Profile](implementation-profile.md).
 
 ---
 
@@ -34,8 +37,8 @@ inclusion/requirement proposal. In `lci/future`, it loads named libraries
 through BUKKIT semantics. In the .NET compiler, `STRING`, `STDLIB`, `STDIO`,
 and `SOCKS` are attributed library types in `Lolcode.Runtime.dll`. `CAN HAS`
 creates an instance, library BUKKIT and library function slots. Custom types
-must explicitly use `[LolcodeLibrary("NAME")]`; discovery is metadata-only and
-there is no unaware-DLL fallback.
+must explicitly use `[LolcodeLibrary("NAME")]`; discovery is metadata-only,
+with no assembly-name or filename fallback for unattributed DLLs.
 
 ### Syntax
 

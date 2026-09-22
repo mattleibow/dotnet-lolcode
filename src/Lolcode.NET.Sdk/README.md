@@ -2,6 +2,11 @@
 
 MSBuild SDK for compiling **LOLCODE 1.2** programs to .NET assemblies. Write `.lol` files, build with `dotnet build`, run with `dotnet run`.
 
+The repository source version is `0.3.0`, which is not published yet. The quick
+start below uses the latest published `0.2.0` package. Multi-file interop,
+SDK-bundled runtime libraries, managed libraries, and other `0.3.0`
+features require this source checkout or a locally packed feed until release.
+
 ## Quick Start
 
 ### Create a project from template
@@ -68,7 +73,7 @@ Console.WriteLine(phrases.WELCOME("DOTNET", 3));
 ```
 
 Each CLR instance owns one persistent LOLCODE library scope. Repeated calls on
-the same instance observe the same module variables and dynamic function slots;
+the same instance observe the same library variables and dynamic function slots;
 separate instances are isolated. Dispose the instance when it is no longer
 needed so its scope-owned resources are released.
 
@@ -84,7 +89,7 @@ identifier, making a hyphenated or leading-digit default safe for C# consumers.
 For multi-file projects, direct top-level functions are installed before normal
 top-level initialization regardless of `Compile` order. In 1.3/1.4, calls
 continue to dynamically resolve the current function slot, so later
-replacements remain effective. A class-library wrapper initializer evaluates
+replacements remain effective. Constructing the generated library evaluates
 only supported import and declaration forms, never arbitrary top-level
 executable statements.
 
@@ -169,8 +174,7 @@ public sealed class MyLibrary
 ```
 
 The compiler discovers attributed public sealed instance types from resolved
-reference metadata. There is no assembly-name, filename, alias, or unaware-DLL
-fallback.
+reference metadata. Only those explicitly marked types are importable.
 
 ## Building LOLCODE libraries
 
@@ -182,7 +186,7 @@ that instance and cannot leak to another instance. Dispose an instance when it
 is no longer needed:
 
 ```csharp
-using var library = new MyLibrary();
+using var library = new InteropSamples.LolcatExports();
 Console.WriteLine(library.WELCOME("WORLD"));
 ```
 
@@ -197,7 +201,7 @@ is omitted, the SDK deterministically derives a valid identifier from
 ## Links
 
 - [GitHub Repository](https://github.com/mattleibow/dotnet-lolcode)
-- [Language Specification](https://github.com/mattleibow/dotnet-lolcode/blob/main/docs/LANGUAGE_SPEC.md)
+- [Language Specification](https://github.com/mattleibow/dotnet-lolcode/blob/main/docs/public/reference/language-spec.md)
 - [Sample Programs](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples)
 
 ## License

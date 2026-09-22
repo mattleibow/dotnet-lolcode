@@ -1,0 +1,12 @@
+order: 1000
+items:
+- name: Setup overview
+  href: index.md
+- name: Browser playground
+  href: playground.md
+- name: File-based apps
+  href: file-based.md
+- name: Project-based apps
+  href: project-based.md
+- name: Tooling and troubleshooting
+  href: tooling.md

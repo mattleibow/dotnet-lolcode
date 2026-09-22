@@ -174,7 +174,7 @@ The standalone Blazor WebAssembly playground lives in
 [`src/Lolcode.Web`](src/Lolcode.Web) and compiles and runs LOLCODE entirely in
 the browser for deployment to GitHub Pages.
 
-See [the playground documentation](docs/WEB_PLAYGROUND.md) for local
+See [the playground documentation](docs/dev/browser-playground.md) for local
 development, deployment, architecture, and browser execution limitations.
 
 ## Example: Hello World
@@ -294,14 +294,29 @@ dotnet test --filter "StringTests"
 
 ## Documentation
 
+The complete [documentation portal](docs/public/index.md) gives newcomers a
+learning route, a language/SDK reference area, and a compiler-building course.
+Build and preview it with the repository-pinned DocFX tool:
+
+```bash
+dotnet tool restore
+dotnet tool run docfx docs/public/docfx.json
+dotnet tool run docfx serve docs/_site
+```
+
+See [docs/README.md](docs/README.md) for authoring, navigation, and theme
+guidance. The GitHub Pages landing page links to the docs at
+`/dotnet-lolcode/docs/` and publishes the playground at
+`/dotnet-lolcode/playground/`.
+
 | Document | Description |
 |----------|-------------|
-| [Design Document](docs/DESIGN.md) | Architecture, technical decisions, component details |
-| [Language Specification](docs/LANGUAGE_SPEC.md) | Normative LOLCODE 1.2 stable profile |
-| [Implementation Profile](docs/LANGUAGE_IMPLEMENTATION.md) | .NET mappings, support status, and reference decisions |
-| [1.3 Draft Changes](docs/LANGUAGE_SPEC_1.3_CHANGES.md) | Archived 1.2-to-1.3 proposal delta |
-| [1.4 Reference Changes](docs/LANGUAGE_SPEC_1.4_CHANGES.md) | Pinned `lci/future` implementation delta |
-| [Roadmap](docs/ROADMAP.md) | Build phases and progress tracking |
+| [Compiler Architecture](docs/dev/compiler-architecture.md) | Architecture, technical decisions, component details |
+| [Language Specification](docs/public/reference/language-spec.md) | Normative LOLCODE 1.2 stable profile |
+| [Implementation Profile](docs/public/reference/implementation-profile.md) | .NET mappings, support status, and reference decisions |
+| [1.3 Draft Changes](docs/public/reference/language-spec-1.3-changes.md) | Archived 1.2-to-1.3 proposal delta |
+| [1.4 Reference Changes](docs/public/reference/language-spec-1.4-changes.md) | Pinned `lci/future` implementation delta |
+| [Roadmap](docs/dev/roadmap.md) | Build phases and progress tracking |
 | [Contributing](CONTRIBUTING.md) | How to contribute |
 
 ## Technology

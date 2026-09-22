@@ -1,0 +1,16 @@
+order: -1000
+items:
+- name: Course overview
+  href: index.md
+- name: Repository and pipeline
+  href: pipeline.md
+- name: Source text, tokens, and parsing
+  href: syntax.md
+- name: Diagnostics, symbols, and binding
+  href: binding.md
+- name: Bound tree, runtime, and IL
+  href: runtime-il.md
+- name: Assemblies, scripts, and tooling
+  href: tooling.md
+- name: Quality, compatibility, and roadmap
+  href: quality-roadmap.md

@@ -1,0 +1,10 @@
+order: 10000
+items:
+- name: Learn LOLCODE
+  href: learn/index.md
+- name: Language & .NET SDK
+  href: language/index.md
+- name: Build a compiler
+  href: compiler-course/index.md
+- name: API reference
+  uid: Lolcode.CodeAnalysis

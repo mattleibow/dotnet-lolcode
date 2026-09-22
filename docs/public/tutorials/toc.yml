@@ -1,0 +1,10 @@
+order: 1000
+items:
+- name: Walkthroughs
+  href: index.md
+- name: Build FizzBuzz
+  href: fizzbuzz.md
+- name: Build a calculator
+  href: calculator.md
+- name: Build an adventure game
+  href: adventure.md

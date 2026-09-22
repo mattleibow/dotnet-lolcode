@@ -98,7 +98,7 @@ sample demonstrates a LOLCODE executable importing an explicitly attributed
 C# class library with `CAN HAS`.
 
 The [LOLCODE head with a LOLCODE library](project-based/lolcode-head-lolcode-library/)
-sample imports a generated LOLCODE class library by assembly name. Its generated
+sample imports a generated LOLCODE class library by its declared library name. Its generated
 CLR export type is deliberately namespaced differently from that assembly name.
 Its library intentionally uses two complete `.lol` compilation units: the
 caller/state file initializes `greeting` by calling `GREETING` before the later
@@ -117,7 +117,7 @@ the source-built `Lolcode.Build.dll`, so build the solution before running any
 sample. Missing local compiler binaries are an error and never fall back to the
 compiler contained in the package.
 
-Built-in `STRING`, `STDLIB`, `STDIO`, and `SOCKS` assemblies are supplied by the
-SDK for every sample; they are not sample package dependencies. `CAN HAS` is
-the runtime import point. Normal source builds and publish include these assets;
-provider trimming is not implemented yet.
+Built-in `STRING`, `STDLIB`, `STDIO`, and `SOCKS` library classes are supplied
+by the SDK in one `Lolcode.Runtime.dll`; they are not sample package
+dependencies. `CAN HAS` constructs a library instance. Normal source builds
+and publish include the runtime; trimming is not implemented yet.
