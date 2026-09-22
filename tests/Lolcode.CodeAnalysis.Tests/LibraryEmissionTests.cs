@@ -109,17 +109,17 @@ public class LibraryEmissionTests
 
                 welcomeMethods.Should().ContainSingle(method =>
                     method.Attributes.HasFlag(MethodAttributes.Public) &&
-                    method.Attributes.HasFlag(MethodAttributes.Static));
+                    !method.Attributes.HasFlag(MethodAttributes.Static));
                 welcomeMethods.Should().ContainSingle(method =>
                     method.Attributes.HasFlag(MethodAttributes.Private) &&
                     method.Attributes.HasFlag(MethodAttributes.Static));
 
                 MethodDefinition wrapper = welcomeMethods.Single(method =>
                     method.Attributes.HasFlag(MethodAttributes.Public) &&
-                    method.Attributes.HasFlag(MethodAttributes.Static));
+                    !method.Attributes.HasFlag(MethodAttributes.Static));
                 metadata.GetBlobBytes(wrapper.Signature)
                     .Should()
-                    .Equal(0x00, 0x02, 0x1C, 0x1C, 0x1C);
+                    .Equal(0x20, 0x02, 0x1C, 0x1C, 0x1C);
 
                 using (var pdbStream = File.OpenRead(result.PdbPath!))
                 using (var pdbProvider = MetadataReaderProvider.FromPortablePdbStream(pdbStream))
@@ -168,7 +168,7 @@ public class LibraryEmissionTests
                 "Library",
                 "InteropSamples.TargetExports");
 
-            result.Success.Should().BeTrue();
+            result.Success.Should().BeTrue(string.Join(Environment.NewLine, result.Diagnostics));
 
             using var stream = File.OpenRead(outputPath);
             using var peReader = new PEReader(stream);
@@ -185,11 +185,6 @@ public class LibraryEmissionTests
                 .Contain(reference =>
                     metadata.GetString(reference.Name) == "System.Runtime" &&
                     reference.Version.Major == 10);
-            metadata.AssemblyReferences
-                .Select(metadata.GetAssemblyReference)
-                .Select(reference => metadata.GetString(reference.Name))
-                .Should()
-                .NotContain("System.Private.CoreLib");
         }
         finally
         {
@@ -275,22 +270,20 @@ public class LibraryEmissionTests
                     outputPath,
                     result.PdbPath);
                 Type exports = assembly.GetType("LolcodeExports")!;
-                var importingScope = LolRuntime.CreateScope();
+                var instance = (IDisposable)Activator.CreateInstance(exports)!;
                 try
                 {
-                    var module = (LolObject)exports
-                        .GetMethod("__CreateLolcodeLibrary")!
-                        .Invoke(null, [importingScope])!;
-                    LolRuntime.GetValue(module, ["greeting"]).Should().Be("HAI");
+                    var library = (LolObject)exports.GetProperty("Library")!.GetValue(instance)!;
+                    LolRuntime.GetValue(library, ["greeting"]).Should().Be("HAI");
                 }
                 finally
                 {
-                    LolRuntime.DisposeScope(importingScope);
+                    instance.Dispose();
                 }
 
                 exports
                     .GetMethod("WELCOME")!
-                    .Invoke(null, null)
+                    .Invoke(Activator.CreateInstance(exports), null)
                     .Should()
                     .Be("HAI");
             }

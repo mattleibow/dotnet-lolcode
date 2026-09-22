@@ -20,17 +20,22 @@ internal static class LibraryDiscovery
         IEnumerable<string>? referenceAssemblyPaths,
         string? runtimeAssemblyPath)
     {
+        runtimeAssemblyPath ??= typeof(Lolcode.Runtime.LolRuntime).Assembly.Location;
         string[] references = (referenceAssemblyPaths ?? [])
             .Append(runtimeAssemblyPath)
             .Where(static path => !string.IsNullOrWhiteSpace(path) && File.Exists(path))
-            .Select(static path => path!)
+            .Select(static path => Path.GetFullPath(path!))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray() ?? [];
         if (references.Length == 0)
             return new([], []);
 
+        IEnumerable<string> frameworkPaths = references.Any(static path =>
+            string.Equals(Path.GetFileName(path), "System.Runtime.dll", StringComparison.OrdinalIgnoreCase))
+            ? []
+            : GetTrustedPlatformAssemblyPaths();
         string[] resolverPaths = references.Append(runtimeAssemblyPath)
-            .Concat(GetTrustedPlatformAssemblyPaths())
+            .Concat(frameworkPaths)
             .Where(static path => !string.IsNullOrWhiteSpace(path) && File.Exists(path))
             .Select(static path => path!)
             .Distinct(StringComparer.OrdinalIgnoreCase)

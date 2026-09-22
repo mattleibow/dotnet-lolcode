@@ -1,5 +1,6 @@
 using System;
 
-Console.WriteLine(InteropSamples.LolcatExports.WELCOME("DOTNET", 3));
-Console.WriteLine(InteropSamples.LolcatExports.MEOWLEN());
-Console.WriteLine(InteropSamples.LolcatExports.GREETING());
+using var library = new InteropSamples.LolcatExports();
+Console.WriteLine(library.WELCOME("DOTNET", 3));
+Console.WriteLine(library.MEOWLEN());
+Console.WriteLine(library.GREETING());

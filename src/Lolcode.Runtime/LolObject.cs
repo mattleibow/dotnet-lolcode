@@ -1,12 +1,5 @@
 namespace Lolcode.Runtime;
 
-/// <summary>Implemented by generated LOLCODE library export types.</summary>
-public interface ILolcodeLibraryInstance : IDisposable
-{
-    /// <summary>Gets the persistent library BUKKIT for this instance.</summary>
-    LolObject Library { get; }
-}
-
 /// <summary>Represents a runtime LOLCODE namespace.</summary>
 [System.Diagnostics.DebuggerNonUserCode]
 public class LolScope

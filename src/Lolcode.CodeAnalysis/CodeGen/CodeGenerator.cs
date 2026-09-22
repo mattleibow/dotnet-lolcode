@@ -63,7 +63,7 @@ internal sealed class CodeGenerator
     private Type _doubleType = null!;
     private Type _intPtrType = null!;
     private Type _libraryAttributeType = null!;
-    private Type _libraryInstanceType = null!;
+    private Type _disposableType = null!;
 
     private readonly record struct ControlFlowTarget(Label Label, int ExceptionDepth);
 
@@ -212,7 +212,7 @@ internal sealed class CodeGenerator
         _identifierResolverType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolIdentifierResolver));
         _resolvedSlotType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolResolvedSlot));
         _libraryAttributeType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolcodeLibraryAttribute));
-        _libraryInstanceType = typeof(ILolcodeLibraryInstance);
+        _disposableType = GetCoreType(coreAssembly, "System.IDisposable");
 
         var runtimeType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolRuntime));
         ResolveRuntimeMethods(runtimeType);
@@ -252,7 +252,7 @@ internal sealed class CodeGenerator
                 typeof(LolcodeLibraryAttribute).GetConstructor([typeof(string)])
                     ?? throw new MissingMethodException(typeof(LolcodeLibraryAttribute).FullName, ".ctor"),
                 [_libraryName ?? _assemblyName]));
-            _typeBuilder.AddInterfaceImplementation(_libraryInstanceType);
+            _typeBuilder.AddInterfaceImplementation(_disposableType);
             _libraryScopeField = _typeBuilder.DefineField(
                 "_scope", _scopeType, FieldAttributes.Private | FieldAttributes.InitOnly);
             _libraryObjectField = _typeBuilder.DefineField(
@@ -322,7 +322,7 @@ internal sealed class CodeGenerator
         if (_isLibrary)
         {
             EmitGeneratedLibraryConstructor();
-            EmitGeneratedLibraryInterface();
+            EmitGeneratedLibraryMembers();
         }
         EmitPublicFunctionWrappers();
 
@@ -634,7 +634,8 @@ internal sealed class CodeGenerator
             {
                 _il.Emit(OpCodes.Ldloc, parameterSlots);
                 _il.Emit(OpCodes.Ldc_I4, index);
-                _il.Emit(OpCodes.Ldloc, module);
+                _il.Emit(OpCodes.Ldarg_0);
+                _il.Emit(OpCodes.Ldfld, _libraryScopeField!);
                 _il.Emit(OpCodes.Call, resolvers[index]);
                 _il.Emit(OpCodes.Stelem_Ref);
             }
@@ -680,7 +681,7 @@ internal sealed class CodeGenerator
         _il.Emit(OpCodes.Ret);
     }
 
-    private void EmitGeneratedLibraryInterface()
+    private void EmitGeneratedLibraryMembers()
     {
         MethodBuilder getter = _typeBuilder.DefineMethod(
             "get_Library",
@@ -692,6 +693,11 @@ internal sealed class CodeGenerator
         _il.Emit(OpCodes.Ldarg_0);
         _il.Emit(OpCodes.Ldfld, _libraryObjectField!);
         _il.Emit(OpCodes.Ret);
+        _typeBuilder.DefineProperty(
+            "Library",
+            PropertyAttributes.None,
+            typeof(LolObject),
+            Type.EmptyTypes).SetGetMethod(getter);
 
         MethodBuilder dispose = _typeBuilder.DefineMethod(
             nameof(IDisposable.Dispose),

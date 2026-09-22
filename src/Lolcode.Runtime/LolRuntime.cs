@@ -139,9 +139,8 @@ public static class LolRuntime
                     $"LOLCODE library '{name}' is unavailable.");
             object instance = Activator.CreateInstance(type)
                 ?? throw new LolRuntimeException($"LOLCODE library '{name}' returned no instance.");
-            LolObject library = instance is ILolcodeLibraryInstance generated
-                ? generated.Library
-                : CreateManagedLibrary(scope, type, instance);
+            LolObject library = GetGeneratedLibraryObject(type, instance)
+                ?? CreateManagedLibrary(scope, type, instance);
             if (instance is IDisposable disposable)
                 scope.Resources.RegisterLibrary(disposable);
             scope.Values[name] = library;
@@ -165,6 +164,10 @@ public static class LolRuntime
     public static void RegisterLibraryDefinition(
         LolScope scope, string name, string assemblyName, string typeName) =>
         scope.Libraries.Register(name, assemblyName, typeName);
+
+    private static LolObject? GetGeneratedLibraryObject(Type type, object instance) =>
+        type.GetProperty("Library", BindingFlags.Public | BindingFlags.Instance)?.GetValue(instance)
+            as LolObject;
 
     private static LolObject CreateManagedLibrary(LolScope scope, Type type, object instance)
     {

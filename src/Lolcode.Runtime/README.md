@@ -37,40 +37,42 @@ KTHXBYE
 dotnet run    # The runtime is automatically available
 ```
 
-## Library providers
+## LOLCODE libraries
 
-`Lolcode.Runtime` remains the shared value, scope, BUKKIT, invocation, resource,
-and managed-library loading runtime. Official `CAN HAS` libraries are SDK-bundled BCL-like facilities:
-`STRING`, `STDLIB`, `STDIO`, and `SOCKS`. They are not separately installed
-consumer packages. The SDK supplies their assemblies privately, and `CAN HAS`
-is the runtime opt-in/import operation: registration does not load a provider
-until it is imported.
+`Lolcode.Runtime` supplies the shared values, scopes, BUKKITs, invocation and
+resource lifetime support. `STRING`, `STDLIB`, `STDIO`, and `SOCKS` are public
+sealed, explicitly opted-in LOLCODE library types in this one assembly.
 
-Custom referenced assemblies retain the existing managed `CAN HAS` convention:
-a normal `ProjectReference` or `Reference` copies the assembly, and the runtime
-resolves its assembly name and suitable static export type at import time.
-An optional assembly-level `LolcodeModule` attribute maps a friendly import
-alias to an explicit export type. The compiler discovers this metadata from
-resolved references; built-in replacement is not supported.
+Each importable library has one type-level declaration:
 
-Built-in providers use the same typed managed invocation path as ordinary
-managed assemblies and may receive a first, exact `LolcodeLibraryContext`
-parameter for scope-bound BLOB cleanup or per-import state; no mutable global
-runtime context is used. Ordinary convention or aliased plugins cannot receive
-that parameter.
+```csharp
+[LolcodeLibrary("COUNTER")]
+public sealed class CounterLibrary : IDisposable
+{
+    private int counter;
+    public int NEXT() => ++counter;
+    public void Dispose() { }
+}
+```
+
+The compiler reads reference metadata without executing target code. `CAN HAS
+COUNTER?` constructs one library instance, projects its direct public instance
+methods into one library BUKKIT, and binds that BUKKIT in the importing scope.
+A repeated import in that scope is a no-op; separate scopes receive isolated
+instances. There is no filename fallback or unaware-DLL import.
+
+When a library implements `IDisposable`, the importing scope disposes it.
+Returned open `LolBlob` values are automatically adopted by the calling scope;
+closed values are not adopted. Direct C# callers retain normal .NET ownership.
 
 ## Publishing
 
-Normal framework-dependent publishing copies all SDK-bundled provider
-assemblies with the host, including when that host reaches a LOLCODE class
+Normal framework-dependent publishing copies the one SDK-bundled runtime
+assembly with the host, including when that host reaches a LOLCODE class
 library through a normal C# `ProjectReference`. `PublishSingleFile` produces an
 executable bundle rather than a merged DLL; on current .NET SDKs it is
-self-contained. Provider trimming is deliberately deferred, but registration
-does not statically reference provider types so a future trimming policy can
-remove unused providers. Deliberately external plugins must remain adjacent to
-the host.
-
-Dynamic managed libraries are not supported with trimming or NativeAOT.
+self-contained. Trimming is deliberately deferred because reflection-based library discovery
+needs an explicit future rooting policy.
 
 ## Multiple source files
 

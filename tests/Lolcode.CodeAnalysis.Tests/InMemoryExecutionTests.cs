@@ -139,7 +139,7 @@ public sealed class InMemoryExecutionTests
 
             var state = script.Run();
 
-            state.Success.Should().BeTrue();
+            state.Success.Should().BeTrue(state.Exception?.ToString());
             state.Script.Should().BeSameAs(script);
             Directory.EnumerateFileSystemEntries(tempDirectory).Should().BeEmpty();
         }
@@ -257,7 +257,7 @@ public sealed class InMemoryExecutionTests
         var state = LolcodeScript.Run(CompatibilityFixtureSource(
             "DotNet/1.4/FutureFeature/visible-and-invisible-write-selected-raw-bytes-to-process-streams/test.lol"));
 
-        state.Success.Should().BeTrue();
+        state.Success.Should().BeTrue(state.Exception?.ToString());
         state.StandardOutputBytes.Should().Equal(0xC3);
         state.StandardErrorBytes.Should().Equal(0xA9);
         state.StandardOutput.Should().Be("\uFFFD");

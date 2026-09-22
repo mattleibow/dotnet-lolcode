@@ -450,7 +450,8 @@ public class SdkSampleTests
             File.WriteAllText(
                 Path.Combine(projectDirectory, "Program.cs"),
                 $"using System;{Environment.NewLine}{Environment.NewLine}"
-                + $"Console.WriteLine(InteropSamples.{expectedTypeName}.WELCOME(\"DOTNET\", 3));");
+                + $"using var library = new InteropSamples.{expectedTypeName}();{Environment.NewLine}"
+                + "Console.WriteLine(library.WELCOME(\"DOTNET\", 3));");
 
             var (consumerExitCode, consumerStdOut, consumerStdErr) = RunDotnet(
                 $"run --project \"{consumerProject}\"",
