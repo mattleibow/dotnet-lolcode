@@ -285,9 +285,9 @@ public class SdkSampleTests
 
     [Fact]
     [InlineLolcodeProgramException("The custom provider integration test writes a focused LOLCODE fixture.")]
-    public void CustomAttributedProvider_WorksThroughProjectReferenceOnly()
+    public void CustomProvider_WorksThroughProjectReferenceConvention()
     {
-        string projectDirectory = CreateSdkTestDirectory("custom-attributed-provider");
+        string projectDirectory = CreateSdkTestDirectory("custom-provider-convention");
         try
         {
             string sdkDirectory = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk");
@@ -324,8 +324,8 @@ public class SdkSampleTests
                 Path.Combine(projectDirectory, "Program.lol"),
                 """
                 HAI 1.4
-                CAN HAS CustomProviderFixture?
-                VISIBLE I IZ CustomProviderFixture'Z ECHO YR "HAI" MKAY
+                CAN HAS CUSTOM?
+                VISIBLE I IZ CUSTOM'Z ECHO YR "HAI" MKAY
                 KTHXBYE
                 """);
 

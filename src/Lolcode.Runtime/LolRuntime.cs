@@ -134,6 +134,12 @@ public static class LolRuntime
             scope.Values[name] = library;
     }
 
+    /// <summary>Registers a compiler-discovered untrusted friendly module alias.</summary>
+    public static void RegisterLibrary(
+        LolScope scope, string alias, string assemblyName, string typeName,
+        bool trusted, int contractVersion) =>
+        scope.Libraries.Register(alias, assemblyName, typeName, trusted, contractVersion);
+
     private static LolObject? LoadRegisteredLibrary(LolScope scope, string name)
     {
         if (!scope.Libraries.TryGet(name, out LolcodeLibraryDescriptor descriptor) &&
@@ -151,7 +157,9 @@ public static class LolRuntime
                 throw new LolRuntimeException(
                     $"Registered LOLCODE library '{name}' does not contain '{descriptor.ExportTypeName}'.");
             }
-            return CreateManagedLibrary(scope, type, allowContext: true);
+            return type.IsDefined(typeof(LolcodeLibraryAttribute), inherit: false)
+                ? CreateGeneratedLolcodeLibrary(scope, type)
+                : CreateManagedLibrary(scope, type, allowContext: descriptor.IsReserved);
         }
         catch (LolRuntimeException)
         {

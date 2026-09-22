@@ -2,4 +2,5 @@
   <PropertyGroup>
     <AssemblyName>CustomProviderFixture</AssemblyName>
   </PropertyGroup>
+  <ItemGroup><ProjectReference Include="..\..\src\Lolcode.Runtime\Lolcode.Runtime.csproj" /></ItemGroup>
 </Project>

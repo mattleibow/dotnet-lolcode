@@ -74,6 +74,7 @@ internal sealed class CodeGenerator
     // Runtime method references
     private MethodInfo _printMethod = null!;
     private MethodInfo _loadLibraryMethod = null!;
+    private MethodInfo _registerLibraryMethod = null!;
     private MethodInfo _executeSystemCommandMethod = null!;
     private MethodInfo _disposeScopeMethod = null!;
     private MethodInfo _transferPublicLibraryResultMethod = null!;
@@ -458,6 +459,9 @@ internal sealed class CodeGenerator
             nameof(LolRuntime.Print),
             [_systemObjectType.MakeArrayType(), _booleanType, _booleanType]);
         _loadLibraryMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.LoadLibrary));
+        _registerLibraryMethod = GetRequiredRuntimeMethod(
+            runtimeType, nameof(LolRuntime.RegisterLibrary),
+            [_scopeType, _stringType, _stringType, _stringType, _booleanType, _int32Type]);
         _executeSystemCommandMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ExecuteSystemCommandValue));
         _disposeScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.DisposeScope));
         _transferPublicLibraryResultMethod = GetRequiredRuntimeMethod(
@@ -517,8 +521,28 @@ internal sealed class CodeGenerator
 
     private void EmitLibraryConfiguration()
     {
-        // Official libraries are resolved by LolRuntime's single trusted registry.
-        // Convention-based managed imports are resolved at runtime from copied assemblies.
+        using MetadataLoadContext context = CreateMetadataLoadContext();
+        var aliases = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string path in _referenceAssemblyPaths)
+        {
+            Assembly assembly = context.LoadFromAssemblyPath(path);
+            foreach (CustomAttributeData attribute in assembly.GetCustomAttributesData().Where(a =>
+                a.AttributeType.FullName == "Lolcode.Runtime.LolcodeModuleAttribute"))
+            {
+                if (attribute.ConstructorArguments.Count != 2 ||
+                    attribute.ConstructorArguments[0].Value is not string alias ||
+                    attribute.ConstructorArguments[1].Value is not Type type ||
+                    !aliases.Add(alias) || type.FullName is null)
+                    throw new InvalidOperationException("Invalid or duplicate LOLCODE module alias.");
+                _il.Emit(OpCodes.Ldloc, _scopeLocal);
+                _il.Emit(OpCodes.Ldstr, alias);
+                _il.Emit(OpCodes.Ldstr, assembly.GetName().Name!);
+                _il.Emit(OpCodes.Ldstr, type.FullName);
+                _il.Emit(OpCodes.Ldc_I4_0);
+                _il.Emit(OpCodes.Ldc_I4_1);
+                _il.Emit(OpCodes.Call, _registerLibraryMethod);
+            }
+        }
     }
 
     private static Type GetRequiredRuntimeType(Assembly runtimeAssembly, Type expectedType)
