@@ -7,12 +7,15 @@ for structured flow today; lowering has not yet reduced it to a label/goto
 tree. Generated methods call helpers rather than duplicating every dynamic
 operation.
 
-`src/Lolcode.Runtime/LolRuntime.cs` owns coercion, arithmetic, comparison, I/O,
-and LOLCODE's display semantics. Centralizing these rules matters because all
-variables become `System.Object` locals. For example, NUMBAR-to-YARN conversion truncates toward zero to the documented
-two-decimal representation, and invalid NOOB/non-numeric arithmetic
-raises the runtime's defined error behavior. The [implementation profile](../language/implementation.md)
-is the contract to preserve when changing either layer.
+The partial `LolRuntime` facade under `src/Lolcode.Runtime/` groups coercion,
+arithmetic, comparison, I/O, library, scope, string, and value behavior by
+responsibility while keeping one public runtime type. Centralizing these rules
+matters because all variables become `System.Object` locals. For example,
+NUMBAR-to-YARN conversion truncates toward zero to the documented two-decimal
+representation, and invalid NOOB/non-numeric arithmetic raises the runtime's
+defined error behavior. The
+[implementation profile](../language/implementation.md) is the contract to
+preserve when changing either layer.
 
 `LolcodeCompilation.Emit` creates a PE and, where appropriate, a PDB.
 Caller-owned stream emission creates no files, accepts writable PE and optional
