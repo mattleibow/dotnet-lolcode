@@ -85,6 +85,8 @@ internal static class LibraryDiscovery
                 var definition = new LibraryDefinition(name!, assembly.GetName().Name!, type.FullName!);
                 if (names.TryGetValue(name!, out LibraryDefinition? prior))
                 {
+                    if (prior == definition)
+                        continue;
                     diagnostics.Add(Error(source, $"LOLCODE library name '{name}' is declared by both '{prior.AssemblyName}:{prior.TypeName}' and '{definition.AssemblyName}:{definition.TypeName}'."));
                     continue;
                 }
