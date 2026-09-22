@@ -171,4 +171,10 @@ public static class DiagnosticDescriptors
         "Could not remove obsolete output artifact '{0}': {1}",
         "Internal",
         DiagnosticSeverity.Warning);
+
+    /// <summary>A referenced provider assembly has invalid metadata.</summary>
+    public static readonly DiagnosticDescriptor InvalidLibraryProvider = new(
+        "LOL9003", "Invalid library provider",
+        "{0}",
+        "Compiler");
 }

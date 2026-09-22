@@ -40,13 +40,17 @@ dotnet run    # The runtime is automatically available
 ## Library providers
 
 `Lolcode.Runtime` remains the shared value, scope, BUKKIT, invocation, resource,
-and managed-library loading runtime. Official `CAN HAS` libraries are supplied
-by independently distributable packages: `Lolcode.Runtime.String`,
-`Lolcode.Runtime.Stdlib`, `Lolcode.Runtime.Stdio`, and `Lolcode.Runtime.Socks`.
-The SDK references these packages by default and their `buildTransitive`
-descriptors register the appropriate provider. Set
-`<LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>` to opt out and
-reference individual providers instead.
+and managed-library loading runtime. Official `CAN HAS` libraries are SDK-bundled BCL-like facilities:
+`STRING`, `STDLIB`, `STDIO`, and `SOCKS`. They are not separately installed
+consumer packages. The SDK supplies their assemblies privately, and `CAN HAS`
+is the runtime opt-in/import operation: registration does not load a provider
+until it is imported.
+
+Custom referenced providers use the public assembly-level
+`LolcodeLibraryProviderAttribute`. A normal `ProjectReference` or `Reference`
+is sufficient; the compiler discovers metadata only, validates the contract,
+and embeds the registration needed at runtime. Reserved built-in names cannot
+be overridden.
 
 Registered providers use the same typed managed invocation path as ordinary
 managed assemblies. They may receive a first, exact `LolcodeLibraryContext`
@@ -55,12 +59,14 @@ runtime context is used. Ordinary plugins cannot receive that parameter.
 
 ## Publishing
 
-Framework-dependent publishing copies the registered provider assemblies with
-the final host, including when that host reaches a LOLCODE class library through
-a normal C# `ProjectReference`. `PublishSingleFile` produces an executable
-bundle rather than a merged DLL; on current .NET SDKs it is self-contained.
-Registered official providers are bundled and load through the default runtime
-context. Deliberately external plugins must remain adjacent to the host.
+Normal framework-dependent publishing copies all SDK-bundled provider
+assemblies with the host, including when that host reaches a LOLCODE class
+library through a normal C# `ProjectReference`. `PublishSingleFile` produces an
+executable bundle rather than a merged DLL; on current .NET SDKs it is
+self-contained. Provider trimming is deliberately deferred, but registration
+does not statically reference provider types so a future trimming policy can
+remove unused providers. Deliberately external plugins must remain adjacent to
+the host.
 
 Dynamic managed libraries are not supported with trimming or NativeAOT.
 

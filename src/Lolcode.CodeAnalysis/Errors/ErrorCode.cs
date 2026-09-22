@@ -68,4 +68,6 @@ public enum ErrorCode
     LOL9001,
     /// <summary>An obsolete output artifact could not be removed.</summary>
     LOL9002,
+    /// <summary>A referenced provider assembly has invalid metadata.</summary>
+    LOL9003,
 }

@@ -98,7 +98,7 @@ internal sealed record LolcodeLibraryDescriptor(
         bool IsReserved,
         int ContractVersion)
     {
-        internal const int CurrentContractVersion = 1;
+        internal const int CurrentContractVersion = LolcodeLibraryProviderAttribute.CurrentContractVersion;
         internal static readonly IReadOnlyDictionary<string, LolcodeLibraryDescriptor> Official =
             new Dictionary<string, LolcodeLibraryDescriptor>(StringComparer.Ordinal)
             {
@@ -108,21 +108,6 @@ internal sealed record LolcodeLibraryDescriptor(
                 ["SOCKS"] = new("SOCKS", "Lolcode.Runtime.Socks", "Lolcode.Runtime.Socks.SocksLibrary", true, CurrentContractVersion),
             };
 
-        internal static bool TryParse(string value, out LolcodeLibraryDescriptor? descriptor)
-        {
-            string[] fields = value.Split('|');
-            if (fields.Length == 5 &&
-                !fields.Take(3).Any(string.IsNullOrWhiteSpace) &&
-                bool.TryParse(fields[3], out bool reserved) &&
-                int.TryParse(fields[4], out int version))
-            {
-                descriptor = new(fields[0], fields[1], fields[2], reserved, version);
-                return true;
-            }
-
-            descriptor = null;
-            return false;
-        }
     }
 
 internal sealed class LolcodeLibraryRegistry
@@ -130,34 +115,45 @@ internal sealed class LolcodeLibraryRegistry
         private readonly Dictionary<string, LolcodeLibraryDescriptor> _descriptors =
             new(StringComparer.Ordinal);
 
-        internal void Configure(IEnumerable<string> descriptors)
+        internal void Register(
+            string lolName,
+            string assemblyName,
+            string exportTypeName,
+            bool isBuiltIn,
+            int contractVersion)
         {
-            foreach (string encoded in descriptors)
+            if (string.IsNullOrWhiteSpace(lolName) ||
+                string.IsNullOrWhiteSpace(assemblyName) ||
+                string.IsNullOrWhiteSpace(exportTypeName))
             {
-                if (!LolcodeLibraryDescriptor.TryParse(encoded, out LolcodeLibraryDescriptor? descriptor))
-                    throw new LolRuntimeException($"Invalid LOLCODE library descriptor: {encoded}");
-                LolcodeLibraryDescriptor parsed = descriptor
-                        ?? throw new LolRuntimeException($"Invalid LOLCODE library descriptor: {encoded}");
-                if (parsed.ContractVersion != LolcodeLibraryDescriptor.CurrentContractVersion)
-                {
-                        throw new LolRuntimeException(
-                        $"Unsupported LOLCODE library contract version: {parsed.ContractVersion}");
-                }
-                if (LolcodeLibraryDescriptor.Official.TryGetValue(parsed.LolName, out var official) &&
-                    parsed != official)
-                {
-                    throw new LolRuntimeException(
-                        $"Reserved LOLCODE library descriptor does not match the official '{parsed.LolName}' contract.");
-                }
-                if (_descriptors.TryGetValue(parsed.LolName, out var existing))
-                {
-                        if (existing == parsed)
-                            continue;
-                        throw new LolRuntimeException(
-                            $"Ambiguous LOLCODE library descriptor: {parsed.LolName}");
-                }
-                _descriptors.Add(parsed.LolName, parsed);
+                throw new LolRuntimeException("Invalid LOLCODE library provider registration.");
             }
+
+            var provider = new LolcodeLibraryDescriptor(
+                lolName,
+                assemblyName,
+                exportTypeName,
+                isBuiltIn,
+                contractVersion);
+            if (provider.ContractVersion != LolcodeLibraryDescriptor.CurrentContractVersion)
+            {
+                throw new LolRuntimeException(
+                    $"Unsupported LOLCODE library contract version: {provider.ContractVersion}");
+            }
+            if (LolcodeLibraryDescriptor.Official.TryGetValue(provider.LolName, out var official) &&
+                provider != official)
+            {
+                throw new LolRuntimeException(
+                    $"Reserved LOLCODE library provider does not match the official '{provider.LolName}' contract.");
+            }
+            if (_descriptors.TryGetValue(provider.LolName, out var existing))
+            {
+                if (existing == provider)
+                    return;
+                throw new LolRuntimeException(
+                    $"Ambiguous LOLCODE library provider: {provider.LolName}");
+            }
+            _descriptors.Add(provider.LolName, provider);
         }
 
         internal bool TryGet(string name, out LolcodeLibraryDescriptor descriptor) =>

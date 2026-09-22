@@ -42,9 +42,6 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
     /// </summary>
     public string LolcodeLibraryTypeName { get; set; } = "";
 
-    /// <summary>Encoded descriptors supplied by runtime-library packages.</summary>
-    public ITaskItem[] LolcodeLibraries { get; set; } = [];
-
     /// <summary>
     /// When true, skip actual compilation (design-time builds).
     /// Visual Studio calls this during design-time to gather metadata without compiling.
@@ -75,11 +72,6 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
 
         Log.LogMessage(MessageImportance.Normal,
             "Lolc: Compiling {0} source file(s) to {1}", Sources.Length, outputPath);
-        Log.LogMessage(
-            MessageImportance.Normal,
-            "Lolc: Using {0} registered library descriptor(s).",
-            GetLibraryDescriptors().Length);
-
         try
         {
             // Parse all source files
@@ -108,8 +100,7 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
                 RuntimeAssemblyPath,
                 ReferencePath.Select(reference => reference.ItemSpec),
                 OutputType,
-                LolcodeLibraryTypeName,
-                GetLibraryDescriptors());
+                LolcodeLibraryTypeName);
 
             // Report diagnostics in MSBuild format
             foreach (var diagnostic in result.Diagnostics)
@@ -160,11 +151,6 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
             return false;
         }
     }
-
-    private string[] GetLibraryDescriptors() =>
-        LolcodeLibraries
-            .Select(library => library.ItemSpec)
-            .ToArray();
 }
 
 /// <summary>

@@ -10,28 +10,14 @@
   <!-- Setting Language=LOLCODE means it won't find Microsoft.LOLCODE.targets, which is fine -->
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 
-  <!--
-    Defaults are declared in Sdk.props so project bodies can Update or Remove
-    them. Reconcile them after the project body: an explicit Include wins over
-    the same implicit identity, and opt-out/source-library builds remove only
-    the implicit defaults.
-  -->
-  <Target Name="_ConfigureDefaultLolcodeLibraryPackages"
-          BeforeTargets="CollectPackageReferences">
-    <ItemGroup>
-      <_LolcodeExplicitProviderPackageReference Include="@(PackageReference)"
-          Condition="'%(PackageReference.LolcodeDefaultProvider)' != 'true' and ('%(PackageReference.Identity)' == 'Lolcode.Runtime.String' or '%(PackageReference.Identity)' == 'Lolcode.Runtime.Stdlib' or '%(PackageReference.Identity)' == 'Lolcode.Runtime.Stdio' or '%(PackageReference.Identity)' == 'Lolcode.Runtime.Socks')" />
-      <PackageReference Remove="@(_LolcodeExplicitProviderPackageReference)" />
-      <PackageReference Include="@(_LolcodeExplicitProviderPackageReference)" />
-      <PackageReference Remove="@(PackageReference)"
-          Condition="'%(PackageReference.LolcodeDefaultProvider)' == 'true' and ('$(LolcodeUseDefaultLibraries)' != 'true' or '$(LolcodeUseSourceLibraries)' == 'true')" />
-    </ItemGroup>
-  </Target>
-
   <!-- Resolve the compiler task assembly location -->
   <PropertyGroup>
     <_LolcodeBuildTasksDir Condition=" '$(_LolcodeBuildTasksDir)' == '' ">$(MSBuildThisFileDirectory)..\tools\net10.0\</_LolcodeBuildTasksDir>
     <LolcodeRuntimeAssemblyPath Condition=" '$(LolcodeRuntimeAssemblyPath)' == '' ">$(_LolcodeBuildTasksDir)Lolcode.Runtime.dll</LolcodeRuntimeAssemblyPath>
+    <LolcodeRuntimeStringAssemblyPath Condition=" '$(LolcodeRuntimeStringAssemblyPath)' == '' ">$(_LolcodeBuildTasksDir)Lolcode.Runtime.String.dll</LolcodeRuntimeStringAssemblyPath>
+    <LolcodeRuntimeStdlibAssemblyPath Condition=" '$(LolcodeRuntimeStdlibAssemblyPath)' == '' ">$(_LolcodeBuildTasksDir)Lolcode.Runtime.Stdlib.dll</LolcodeRuntimeStdlibAssemblyPath>
+    <LolcodeRuntimeStdioAssemblyPath Condition=" '$(LolcodeRuntimeStdioAssemblyPath)' == '' ">$(_LolcodeBuildTasksDir)Lolcode.Runtime.Stdio.dll</LolcodeRuntimeStdioAssemblyPath>
+    <LolcodeRuntimeSocksAssemblyPath Condition=" '$(LolcodeRuntimeSocksAssemblyPath)' == '' ">$(_LolcodeBuildTasksDir)Lolcode.Runtime.Socks.dll</LolcodeRuntimeSocksAssemblyPath>
     <_LolcodeCompilerOptionsFile>$(IntermediateOutputPath)Lolcode.CompilerOptions.cache</_LolcodeCompilerOptionsFile>
   </PropertyGroup>
 
@@ -43,10 +29,26 @@
   <UsingTask TaskName="Lolcode.Build.NormalizeClrNamespace"
              AssemblyFile="$(_LolcodeBuildTasksDir)Lolcode.Build.dll" />
 
-  <!-- Add Lolcode.Runtime as a reference so it appears in deps.json and gets copied -->
+  <!-- SDK-bundled runtime providers stay runtime assets, not consumer packages. -->
   <ItemGroup>
     <Reference Include="Lolcode.Runtime">
       <HintPath>$(LolcodeRuntimeAssemblyPath)</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Lolcode.Runtime.String">
+      <HintPath>$(LolcodeRuntimeStringAssemblyPath)</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Lolcode.Runtime.Stdlib">
+      <HintPath>$(LolcodeRuntimeStdlibAssemblyPath)</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Lolcode.Runtime.Stdio">
+      <HintPath>$(LolcodeRuntimeStdioAssemblyPath)</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Lolcode.Runtime.Socks">
+      <HintPath>$(LolcodeRuntimeSocksAssemblyPath)</HintPath>
       <Private>true</Private>
     </Reference>
   </ItemGroup>
@@ -88,13 +90,9 @@
           Condition="'$(_LolcodeLibraryFullTypeName)' == ''">$(LolcodeLibraryTypeName)</_LolcodeLibraryFullTypeName>
     </PropertyGroup>
 
-    <PropertyGroup>
-      <_LolcodeLibraryDescriptorStamp>@(LolcodeLibrary, ';')</_LolcodeLibraryDescriptorStamp>
-    </PropertyGroup>
-
     <MakeDir Directories="$(IntermediateOutputPath)" />
     <WriteLinesToFile File="$(_LolcodeCompilerOptionsFile)"
-                      Lines="OutputType=$(OutputType);AssemblyName=$(AssemblyName);RootNamespace=$(_LolcodeSanitizedRootNamespace);LolcodeLibraryTypeName=$(LolcodeLibraryTypeName);LolcodeLibraryFullTypeName=$(_LolcodeLibraryFullTypeName);LolcodeLibraries=$(_LolcodeLibraryDescriptorStamp)"
+                      Lines="OutputType=$(OutputType);AssemblyName=$(AssemblyName);RootNamespace=$(_LolcodeSanitizedRootNamespace);LolcodeLibraryTypeName=$(LolcodeLibraryTypeName);LolcodeLibraryFullTypeName=$(_LolcodeLibraryFullTypeName)"
                       Overwrite="true"
                       WriteOnlyWhenDifferent="true" />
   </Target>
@@ -124,7 +122,6 @@
           OutputType="$(OutputType)"
           AssemblyName="$(AssemblyName)"
           LolcodeLibraryTypeName="$(_LolcodeLibraryFullTypeName)"
-          LolcodeLibraries="@(LolcodeLibrary)"
           SkipCompilerExecution="$(SkipCompilerExecution)" />
 
   </Target>

@@ -1,5 +1,10 @@
 using Lolcode.Runtime;
 
+[assembly: LolcodeLibraryProvider(
+    "STRING",
+    typeof(Lolcode.Runtime.String.StringLibrary),
+    isBuiltIn: true)]
+
 namespace Lolcode.Runtime.String;
 
 internal static class StringLibrary

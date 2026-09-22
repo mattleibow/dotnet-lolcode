@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>Lolcode.Runtime.Stdlib</RootNamespace>
-    <IsPackable>true</IsPackable>
-    <PackageId>Lolcode.Runtime.Stdlib</PackageId>
-    <Description>Official STDLIB provider for LOLCODE.</Description>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Lolcode.Runtime\Lolcode.Runtime.csproj" />
-    <None Include="buildTransitive\Lolcode.Runtime.Stdlib.props" Pack="true" PackagePath="buildTransitive\" />
   </ItemGroup>
 </Project>

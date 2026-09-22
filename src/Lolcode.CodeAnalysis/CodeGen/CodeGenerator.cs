@@ -29,7 +29,6 @@ internal sealed class CodeGenerator
     private readonly IReadOnlyList<string> _referenceAssemblyPaths;
     private readonly bool _isLibrary;
     private readonly string? _libraryTypeName;
-    private readonly IReadOnlyList<string> _libraryDescriptors;
     private readonly IReadOnlyList<SyntaxTree> _syntaxTrees;
     private readonly bool _hoistTopLevelFunctions;
     private readonly IReadOnlyDictionary<SyntaxNode, SyntaxTree> _syntaxTreeOwners;
@@ -75,7 +74,7 @@ internal sealed class CodeGenerator
     // Runtime method references
     private MethodInfo _printMethod = null!;
     private MethodInfo _loadLibraryMethod = null!;
-    private MethodInfo _configureLibrariesMethod = null!;
+    private MethodInfo _registerLibraryProviderMethod = null!;
     private MethodInfo _executeSystemCommandMethod = null!;
     private MethodInfo _disposeScopeMethod = null!;
     private MethodInfo _transferPublicLibraryResultMethod = null!;
@@ -137,8 +136,7 @@ internal sealed class CodeGenerator
         IReadOnlyList<SyntaxTree>? syntaxTrees = null,
         IReadOnlyDictionary<SyntaxNode, SyntaxTree>? syntaxTreeOwners = null,
         bool isLibrary = false,
-        string? libraryTypeName = null,
-        IEnumerable<string>? libraryDescriptors = null)
+        string? libraryTypeName = null)
     {
         _boundTree = boundTree;
         _assemblyName = assemblyName;
@@ -149,7 +147,6 @@ internal sealed class CodeGenerator
         _syntaxTreeOwners = syntaxTreeOwners ?? new Dictionary<SyntaxNode, SyntaxTree>();
         _isLibrary = isLibrary;
         _libraryTypeName = libraryTypeName;
-        _libraryDescriptors = libraryDescriptors?.ToArray() ?? [];
     }
 
     /// <summary>
@@ -462,10 +459,10 @@ internal sealed class CodeGenerator
             nameof(LolRuntime.Print),
             [_systemObjectType.MakeArrayType(), _booleanType, _booleanType]);
         _loadLibraryMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.LoadLibrary));
-        _configureLibrariesMethod = GetRequiredRuntimeMethod(
+        _registerLibraryProviderMethod = GetRequiredRuntimeMethod(
             runtimeType,
-            nameof(LolRuntime.ConfigureLibraries),
-            [_scopeType, _stringType.MakeArrayType()]);
+            nameof(LolRuntime.RegisterLibraryProvider),
+            [_scopeType, _stringType, _stringType, _stringType, _booleanType, _int32Type]);
         _executeSystemCommandMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ExecuteSystemCommandValue));
         _disposeScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.DisposeScope));
         _transferPublicLibraryResultMethod = GetRequiredRuntimeMethod(
@@ -525,20 +522,29 @@ internal sealed class CodeGenerator
 
     private void EmitLibraryConfiguration()
     {
-        if (_libraryDescriptors.Count == 0)
-            return;
-
-        _il.Emit(OpCodes.Ldloc, _scopeLocal);
-        _il.Emit(OpCodes.Ldc_I4, _libraryDescriptors.Count);
-        _il.Emit(OpCodes.Newarr, _stringType);
-        for (int index = 0; index < _libraryDescriptors.Count; index++)
+        ProviderDiscoveryResult discovery = ProviderDiscovery.Discover(
+            _referenceAssemblyPaths,
+            _runtimeAssemblyPath);
+        if (discovery.Errors.Count != 0)
         {
-            _il.Emit(OpCodes.Dup);
-            _il.Emit(OpCodes.Ldc_I4, index);
-            _il.Emit(OpCodes.Ldstr, _libraryDescriptors[index]);
-            _il.Emit(OpCodes.Stelem_Ref);
+            throw new InvalidOperationException(
+                string.Join(Environment.NewLine, discovery.Errors));
         }
-        _il.Emit(OpCodes.Call, _configureLibrariesMethod);
+
+        // The runtime has a trusted fallback for SDK-bundled providers. Emitting
+        // only custom registrations keeps the built-in assembly types unrooted
+        // for a future trimming policy.
+        foreach (LolcodeLibraryProviderDeclaration provider in discovery.Providers.Where(
+            static provider => !provider.IsBuiltIn))
+        {
+            _il.Emit(OpCodes.Ldloc, _scopeLocal);
+            _il.Emit(OpCodes.Ldstr, provider.LolName);
+            _il.Emit(OpCodes.Ldstr, provider.AssemblyName);
+            _il.Emit(OpCodes.Ldstr, provider.ExportTypeName);
+            _il.Emit(provider.IsBuiltIn ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
+            _il.Emit(OpCodes.Ldc_I4, provider.ContractVersion);
+            _il.Emit(OpCodes.Call, _registerLibraryProviderMethod);
+        }
     }
 
     private static Type GetRequiredRuntimeType(Assembly runtimeAssembly, Type expectedType)

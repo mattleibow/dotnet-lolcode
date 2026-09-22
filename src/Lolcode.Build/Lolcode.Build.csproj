@@ -13,6 +13,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Lolcode.CodeAnalysis\Lolcode.CodeAnalysis.csproj" PrivateAssets="all" />
     <ProjectReference Include="..\Lolcode.Runtime\Lolcode.Runtime.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Lolcode.Runtime.String\Lolcode.Runtime.String.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Lolcode.Runtime.Stdlib\Lolcode.Runtime.Stdlib.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Lolcode.Runtime.Stdio\Lolcode.Runtime.Stdio.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Lolcode.Runtime.Socks\Lolcode.Runtime.Socks.csproj" PrivateAssets="all" />
   </ItemGroup>
 
 </Project>
