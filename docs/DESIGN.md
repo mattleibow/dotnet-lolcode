@@ -117,19 +117,16 @@ Source Text (.lol)
   EmitResult (Success, Diagnostics)
 ```
 
-## Built-in library providers
+## LOLCODE libraries
 
-`STRING`, `STDLIB`, `STDIO`, and `SOCKS` are BCL-like assemblies carried by the
-MSBuild SDK package, not implicit consumer package references. `LolRuntime`
-owns the single trusted built-in mapping. `CAN HAS` is the runtime import/load
-boundary, so provider code is not initialized merely by building a program.
-Custom managed imports retain their assembly-name and static-export-type
-convention through normal `ProjectReference`/`Reference` copying. An optional
-assembly-level `LolcodeModule` attribute maps a friendly import alias to one
-explicit export type; the compiler reads the attribute through metadata-only
-reference inspection and emits an untrusted runtime registration. Normal
-publishing currently includes all built-in assemblies; trimming unused
-providers is deferred.
+`STRING`, `STDLIB`, `STDIO`, and `SOCKS` are public attributed library types in
+the one runtime assembly carried by the SDK. `CAN HAS NAME?` creates a library
+instance, library BUKKIT and library function slots in the importing scope.
+Every importable CLR type explicitly declares `[LolcodeLibrary("NAME")]`; the
+compiler reads this metadata without executing references. There is no
+assembly-name or filename fallback. Repeated imports in a scope are no-ops and
+separate scopes create isolated instances. Normal publishing includes one
+runtime DLL. Reflection-based trimming support requires a future rooting policy.
 
 ### Multi-file project compilations
 

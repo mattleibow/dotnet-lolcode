@@ -46,7 +46,7 @@ if (!result.Success)
 
 ## Features
 
-- 🐱 **LOLCODE 1.2 + pinned future behavior** — including BUKKIT/SRS, modular official libraries, `INVISIBLE`, and `I DUZ`
+- 🐱 **LOLCODE 1.2 + pinned future behavior** — including BUKKIT/SRS, LOLCODE libraries, `INVISIBLE`, and `I DUZ`
 - 🎯 **Compiles to .NET IL** — produces real .NET assemblies (not interpreted)
 - 📦 **MSBuild SDK** — `dotnet build` and `dotnet run` for `.lolproj` projects
 - 🚀 **File-based apps** — `dotnet build hello.lol` and `dotnet run --file hello.lol` with no project needed
@@ -144,22 +144,29 @@ cd MyApp && dotnet run
 
 See [samples/project-based/hello-world](samples/project-based/hello-world/) for a complete example.
 
-### Built-in `CAN HAS` providers
+### Built-in `CAN HAS` libraries
 
-`STRING`, `STDLIB`, `STDIO`, and `SOCKS` are BCL-like facilities bundled inside
-`Lolcode.NET.Sdk`; consumers do not add package references for them. Their
-assemblies are build/runtime assets, while `CAN HAS` is the runtime opt-in that
-imports and loads a provider. Normal build and publish currently include all
-built-ins. Trimming unused providers is intentionally deferred.
+`STRING`, `STDLIB`, `STDIO`, and `SOCKS` are BCL-like LOLCODE libraries in the
+single `Lolcode.Runtime.dll` bundled by `Lolcode.NET.Sdk`. `CAN HAS` constructs
+one library instance, creates its library BUKKIT and installs its library
+function slots in the importing scope. Normal build and publish include only
+that runtime DLL; trimming reflection-discovered library types is deferred.
 
-Custom managed imports retain the existing convention: add a normal
-`ProjectReference` or `Reference`, then use its assembly name in `CAN HAS`.
-The runtime loads the copied assembly and selects its single suitable static
-export type. A referenced assembly can opt into a friendlier import name with
-`[assembly: LolcodeModule("FRIENDLY", typeof(MyStaticLibrary))]`; the compiler
-reads that metadata without executing the referenced assembly. The imported
-name becomes a BUKKIT containing the selected type's supported public static
-methods—it does not add those methods directly to the global scope.
+Custom C# libraries use a normal `ProjectReference` and explicit type-level
+opt-in:
+
+```csharp
+[LolcodeLibrary("COUNTER")]
+public sealed class CounterLibrary
+{
+    private int _value;
+    public int NEXT() => ++_value;
+}
+```
+
+The compiler discovers attributes from resolved reference metadata without
+executing them. There is no assembly-name, filename, alias, or unaware-DLL
+fallback. Imports in different LOLCODE scopes create isolated instances.
 
 ## Browser Playground
 

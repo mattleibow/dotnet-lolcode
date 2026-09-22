@@ -134,25 +134,30 @@ KTHXBYE
 The SDK package contains:
 - **LOLCODE compiler** — full lexer → parser → binder → lowerer → code generator pipeline
 - **MSBuild integration** — `Sdk.props` and `Sdk.targets` for seamless `dotnet` CLI experience
-- **Runtime library and providers** — `Lolcode.Runtime.dll` plus the bundled
-  `STRING`, `STDLIB`, `STDIO`, and `SOCKS` provider assemblies are private
-  references, not consumer NuGet dependencies
+- **Runtime library** — one private `Lolcode.Runtime.dll`, containing the
+  bundled `STRING`, `STDLIB`, `STDIO`, and `SOCKS` LOLCODE libraries
 
-## `CAN HAS` providers
+## `CAN HAS` libraries
 
-The built-in providers are SDK-supplied build/runtime assets. `CAN HAS STRING?`
-(and the other built-in names) loads a provider only when the program imports
-it; merely compiling an application does not initialize provider code. Normal
-build and publish include the provider assemblies today. Publish trimming of
-unused providers is a future optimization.
+`CAN HAS STRING?` constructs a library instance, creates its library BUKKIT,
+and installs its library function slots in the importing scope. Merely building
+does not initialize library code. Normal build and publish include the one
+runtime DLL. Reflection trimming is deferred pending an explicit rooting policy.
 
-For a custom managed import, reference the assembly normally and use its
-assembly name in `CAN HAS`. The runtime resolves the copied assembly using the
-existing convention and selects a suitable static export type. To use a
-friendlier module name or select one type explicitly, add
-`[assembly: LolcodeModule("FRIENDLY", typeof(MyStaticLibrary))]`. The compiler
-discovers aliases from resolved reference metadata; the four reserved built-in
-names cannot be replaced.
+For a custom managed import, reference the assembly normally and mark every
+library type explicitly:
+
+```csharp
+[LolcodeLibrary("FRIENDLY")]
+public sealed class MyLibrary
+{
+    public string ECHO(string value) => value;
+}
+```
+
+The compiler discovers attributed public sealed instance types from resolved
+reference metadata. There is no assembly-name, filename, alias, or unaware-DLL
+fallback.
 
 ## Requirements
 
