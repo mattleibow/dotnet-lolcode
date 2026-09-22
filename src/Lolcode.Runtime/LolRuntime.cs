@@ -5,53 +5,6 @@ using System.Text;
 
 namespace Lolcode.Runtime;
 
-internal sealed record LolByteYarn(byte[] Bytes);
-
-internal static class YarnByteSink
-{
-    internal static void Write(TextWriter writer, byte[] bytes, bool suppressNewline)
-    {
-        if (TryGetStream(writer, out Stream stream))
-        {
-            writer.Flush();
-            stream.Write(bytes);
-            if (!suppressNewline)
-                stream.Write(Encoding.UTF8.GetBytes(writer.NewLine));
-            stream.Flush();
-            return;
-        }
-
-        string text = Encoding.UTF8.GetString(bytes);
-        if (suppressNewline)
-            writer.Write(text);
-        else
-            writer.WriteLine(text);
-    }
-
-    private static bool TryGetStream(TextWriter writer, out Stream stream)
-    {
-        var visited = new HashSet<TextWriter>(ReferenceEqualityComparer.Instance);
-        TextWriter? current = writer;
-        while (current is not null && visited.Add(current))
-        {
-            if (current is StreamWriter streamWriter)
-            {
-                stream = streamWriter.BaseStream;
-                return true;
-            }
-
-            current = current.GetType()
-                .GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
-                .Where(static field => typeof(TextWriter).IsAssignableFrom(field.FieldType))
-                .Select(field => field.GetValue(current) as TextWriter)
-                .FirstOrDefault(static nested => nested is not null);
-        }
-
-        stream = null!;
-        return false;
-    }
-}
-
 /// <summary>
 /// Runtime support library for compiled LOLCODE programs.
 /// All LOLCODE values are represented as <see cref="object"/> at runtime.
@@ -1486,13 +1439,4 @@ public static class LolRuntime
     /// <summary>Writes the UTF-8 byte-order mark preserved from source.</summary>
     public static void WriteByteOrderMark() =>
         (CurrentIo.Value?.StandardOutput ?? Console.Out).Write('\uFEFF');
-}
-
-/// <summary>
-/// Exception thrown for runtime errors in LOLCODE programs.
-/// </summary>
-public class LolRuntimeException : Exception
-{
-    public LolRuntimeException(string message) : base(message) { }
-    public LolRuntimeException(string message, Exception inner) : base(message, inner) { }
 }
