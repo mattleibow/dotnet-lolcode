@@ -46,9 +46,11 @@ dotnet publish  # Publish for deployment
 ### Class libraries
 
 Set `OutputType` to `Library` to emit a DLL with no entry point or runtime
-configuration file. Top-level directly named `HOW IZ I` functions become public
-static methods returning and accepting `object`, so C# projects can consume the
-library through a normal `ProjectReference`.
+configuration file. The generated export type is a public sealed,
+`IDisposable` library class. Top-level directly named
+`HOW IZ I` functions become public instance methods returning and accepting
+`object`, so C# projects can consume the library through a normal
+`ProjectReference` while preserving the same per-instance state as `CAN HAS`.
 
 ```xml
 <PropertyGroup>
@@ -56,8 +58,19 @@ library through a normal `ProjectReference`.
   <TargetFramework>net10.0</TargetFramework>
   <RootNamespace>InteropSamples</RootNamespace>
   <LolcodeLibraryTypeName>LolcatExports</LolcodeLibraryTypeName>
+  <LolcodeLibraryName>LOLCAT_PHRASES</LolcodeLibraryName>
 </PropertyGroup>
 ```
+
+```csharp
+using var phrases = new InteropSamples.LolcatExports();
+Console.WriteLine(phrases.WELCOME("DOTNET", 3));
+```
+
+Each CLR instance owns one persistent LOLCODE library scope. Repeated calls on
+the same instance observe the same module variables and dynamic function slots;
+separate instances are isolated. Dispose the instance when it is no longer
+needed so its scope-owned resources are released.
 
 `LolcodeLibraryTypeName` must be a simple type name (without dots). When it is
 omitted, the SDK derives a valid CLR identifier from `AssemblyName` (for

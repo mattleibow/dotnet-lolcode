@@ -1183,7 +1183,7 @@ public class SdkSampleTests
             .Select(metadata.GetMethodDefinition)
             .Where(method => (method.Attributes & MethodAttributes.MemberAccessMask) == MethodAttributes.Public)
             .Select(method => metadata.GetString(method.Name))
-            .Where(name => name is not "__CreateLolcodeLibrary" and not ".ctor" and not "get_Library" and not "Dispose")
+            .Where(name => name is not ".ctor" and not "get_Library" and not "Dispose")
             .ToArray();
     }
 

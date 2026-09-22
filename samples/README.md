@@ -84,8 +84,10 @@ dotnet run --project samples/project-based/hello-world/hello-world.lolproj
 ```
 
 The [C# head with a LOLCODE library](project-based/csharp-head-lolcode-library/)
-sample shows a normal C# `ProjectReference` consuming the public static
-`InteropSamples.LolcatExports` API emitted by a LOLCODE class library:
+sample shows a normal C# `ProjectReference` constructing and disposing the
+public `InteropSamples.LolcatExports` instance API emitted by a LOLCODE class
+library. Calls on the same instance preserve the same library state as one
+LOLCODE `CAN HAS` import:
 
 ```bash
 dotnet run --project samples/project-based/csharp-head-lolcode-library/CSharpHead/CSharpHead.csproj

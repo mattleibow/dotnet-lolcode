@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Lolcode.Runtime;
@@ -62,6 +63,7 @@ public static class LolRuntime
 {
     private sealed record YarnLiteral(string Value);
     private static readonly AsyncLocal<IoContext?> CurrentIo = new();
+    private static readonly ConditionalWeakTable<object, LolObject> GeneratedLibraries = new();
 
     // ==================== Namespaces and BUKKITs ====================
 
@@ -137,13 +139,23 @@ public static class LolRuntime
             if (type is null)
                 throw new LolRuntimeException(
                     $"LOLCODE library '{name}' is unavailable.");
-            object instance = Activator.CreateInstance(type)
-                ?? throw new LolRuntimeException($"LOLCODE library '{name}' returned no instance.");
-            LolObject library = GetGeneratedLibraryObject(type, instance)
-                ?? CreateManagedLibrary(scope, type, instance);
-            if (instance is IDisposable disposable)
-                scope.Resources.RegisterLibrary(disposable);
-            scope.Values[name] = library;
+            object? instance = null;
+            try
+            {
+                instance = Activator.CreateInstance(type)
+                    ?? throw new LolRuntimeException($"LOLCODE library '{name}' returned no instance.");
+                LolObject library = GeneratedLibraries.TryGetValue(instance, out LolObject? generated)
+                    ? generated
+                    : CreateManagedLibrary(scope, type, instance);
+                if (instance is IDisposable disposable)
+                    scope.Resources.RegisterLibrary(disposable);
+                scope.Values[name] = library;
+            }
+            catch
+            {
+                (instance as IDisposable)?.Dispose();
+                throw;
+            }
         }
         catch (TargetInvocationException ex)
         {
@@ -165,9 +177,16 @@ public static class LolRuntime
         LolScope scope, string name, string assemblyName, string typeName) =>
         scope.Libraries.Register(name, assemblyName, typeName);
 
-    private static LolObject? GetGeneratedLibraryObject(Type type, object instance) =>
-        type.GetProperty("Library", BindingFlags.Public | BindingFlags.Instance)?.GetValue(instance)
-            as LolObject;
+    /// <summary>
+    /// Associates a compiler-generated CLR library instance with its persistent
+    /// LOLCODE library BUKKIT.
+    /// </summary>
+    public static void RegisterGeneratedLibraryInstance(object instance, LolObject library)
+    {
+        ArgumentNullException.ThrowIfNull(instance);
+        ArgumentNullException.ThrowIfNull(library);
+        GeneratedLibraries.Add(instance, library);
+    }
 
     private static LolObject CreateManagedLibrary(LolScope scope, Type type, object instance)
     {

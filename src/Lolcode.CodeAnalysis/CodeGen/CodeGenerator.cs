@@ -80,6 +80,7 @@ internal sealed class CodeGenerator
     private MethodInfo _printMethod = null!;
     private MethodInfo _loadLibraryMethod = null!;
     private MethodInfo _registerLibraryDefinitionMethod = null!;
+    private MethodInfo _registerGeneratedLibraryInstanceMethod = null!;
     private MethodInfo _executeSystemCommandMethod = null!;
     private MethodInfo _disposeScopeMethod = null!;
     private MethodInfo _throwIfDisposedMethod = null!;
@@ -520,6 +521,10 @@ internal sealed class CodeGenerator
         _registerLibraryDefinitionMethod = GetRequiredRuntimeMethod(
             runtimeType, nameof(LolRuntime.RegisterLibraryDefinition),
             [_scopeType, _stringType, _stringType, _stringType]);
+        _registerGeneratedLibraryInstanceMethod = GetRequiredRuntimeMethod(
+            runtimeType,
+            nameof(LolRuntime.RegisterGeneratedLibraryInstance),
+            [_systemObjectType, _objectType]);
         _executeSystemCommandMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ExecuteSystemCommandValue));
         _disposeScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.DisposeScope));
         _throwIfDisposedMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ThrowIfDisposed));
@@ -727,6 +732,9 @@ internal sealed class CodeGenerator
         _il.Emit(OpCodes.Ldnull);
         _il.Emit(OpCodes.Stloc, moduleIt);
         EmitLibraryInitializer();
+        _il.Emit(OpCodes.Ldarg_0);
+        _il.Emit(OpCodes.Ldloc, module);
+        _il.Emit(OpCodes.Call, _registerGeneratedLibraryInstanceMethod);
         Label complete = _il.DefineLabel();
         _il.Emit(OpCodes.Leave_S, complete);
         _il.BeginCatchBlock(_exceptionType);
