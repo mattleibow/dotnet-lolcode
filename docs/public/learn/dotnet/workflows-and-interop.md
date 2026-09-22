@@ -17,43 +17,39 @@ details rather than duplicating them here.
 
 A clean solution usually gives each language a narrow responsibility:
 
-- LOLCODE executable calling an eligible managed static adapter;
-- C# executable calling generated public wrappers from a LOLCODE class library;
+- LOLCODE executable calling an attributed managed library;
+- C# executable calling a generated LOLCODE class-library instance;
 - a host embedding `LolcodeScript`;
 - SDK-bundled `STRING`, `STDLIB`, `STDIO`, and `SOCKS` runtime capabilities;
-- referenced managed modules imported by assembly name or a `LolcodeModule` alias.
+- referenced managed libraries marked with `LolcodeLibrary`.
 
-Ordinary managed `CAN HAS` import selects an eligible public, non-nested static
-CLR type and only methods declared directly on that type. Supported public
-static methods need unique names and supported primitive/object signatures.
-Any overload group is excluded even if one member would otherwise qualify.
-
-Generated `[LolcodeLibrary]` export selection is a different path. A generated
-LOLCODE library exposes its marked export type and factory contract; do not
-confuse that with ordinary managed type-name selection.
+`CAN HAS` discovers an eligible attributed library class: public, non-nested,
+sealed, concrete, non-generic, and constructible with a public parameterless
+constructor. Its eligible public instance methods use the supported
+primitive/object boundary. Overloads and unsupported signatures are rejected.
+Generated LOLCODE class libraries use the same instance model.
 
 ## C#, Visual Basic, and F# adapters
 
 Do not assume arbitrary VB or F# source artifacts can be imported directly
-because they compile to IL. Eligibility is based on the resulting public static
-CLR type and method signatures:
+because they compile to IL. Eligibility is based on the resulting public
+attributed instance class and method signatures:
 
-- VB `Module` members often compile to a suitable static type, but inspect the
-  public shape and avoid unsupported overloads or optional/by-reference forms.
+- VB `Module` members compile to a static type and therefore need an
+  instance-class adapter.
 - F# module functions often compile with curried or FSharp.Core-specific
   signatures that are not eligible.
 
-When the emitted surface is unsuitable, add a small C# adapter with one public
-static class and uniquely named methods using `object`, `string`, `int`,
-`double`, `bool`, or `void`. Keep records, discriminated unions, async/task
-types, option values, and complex domain models behind that boundary.
+When the emitted surface is unsuitable, add a small attributed C# instance
+class with uniquely named methods using `object`, `string`, `int`, `double`,
+`bool`, or `void`. Keep records, discriminated unions, async/task types, option
+values, and complex domain models behind that boundary.
 
 ## Publish deliberately
 
-Framework-dependent publishing carries the SDK-bundled libraries and referenced
-modules through normal assets. `PublishSingleFile` bundles SDK/runtime assets;
-deliberately external dynamic managed DLL imports remain beside the host.
-Provider trimming is deferred, and trimming/NativeAOT do not support dynamic
-`CAN HAS` managed imports.
+Framework-dependent publishing carries the single SDK runtime and referenced
+libraries through normal assets. `PublishSingleFile` bundles SDK/runtime
+assets. Trimming is deferred because reflection-based library discovery needs
+an explicit rooting policy.
 
 Continue with your language-specific page or [port a program](port-a-program.md).

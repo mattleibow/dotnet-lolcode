@@ -17,9 +17,10 @@
 
 `KONN` aliases share a socket lease. Closing one alias does not close the
 underlying socket until every lease has closed. Accepted sockets use their own
-lease. Resources register with the invoking caller scope, even when an escaped
-module retains its provider and lexical state.
+lease. Returned resources are adopted by the invoking caller scope rather than
+owned by the library instance.
 
 The calls are intentionally blocking and use the real host network. Apply
-process, network, timeout, and trust boundaries outside the compiler. Provider
-implementation classes are internal rather than generated public API.
+process, network, and timeout boundaries outside the compiler. The public CLR
+class follows the same attributed instance-library contract for direct .NET
+callers.

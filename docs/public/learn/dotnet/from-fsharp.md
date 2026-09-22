@@ -17,13 +17,12 @@ core assumptions do not carry over:
 ## Function and interop shape
 
 An F# function such as `let add x y = x + y` commonly compiles to a curried
-FSharp.Core function shape, not the directly declared primitive public static
-method required by ordinary managed import. F# modules, records, unions,
-options, tuples, and async workflows often expose framework-specific CLR
-types.
+FSharp.Core function shape, not an eligible public library instance method.
+F# modules, records, unions, options, tuples, and async workflows often expose
+framework-specific CLR types.
 
 Do not claim direct F# `CAN HAS` support. Add a C# adapter with non-overloaded
-public static methods and supported parameter/result types when necessary.
+public instance methods and supported parameter/result types when necessary.
 
 ## Sequencing example
 

@@ -1,23 +1,12 @@
-# Runtime libraries
+# Runtime library behavior
 
 <span class="badge badge-reference">1.4 reference behavior</span>
 <span class="badge">Development availability</span>
 
-The SDK keeps file, network, text, and random APIs in separate runtime
-assemblies instead of baking them into the compiler. Those assemblies ship
-inside `Lolcode.NET.Sdk` and are copied as private runtime references:
-
-| LOLCODE import | SDK-bundled assembly | Purpose |
-| --- | --- | --- |
-| `STRING` | `Lolcode.Runtime.String` | UTF-8 byte-oriented string slots |
-| `STDLIB` | `Lolcode.Runtime.Stdlib` | Random-number helpers |
-| `STDIO` | `Lolcode.Runtime.Stdio` | File BLOB operations |
-| `SOCKS` | `Lolcode.Runtime.Socks` | TCP socket BLOB operations |
-
-Applications do not install four extra packages and projects do not configure
-provider metadata. Normal build and publish include the assemblies; `CAN HAS`
-is the runtime opt-in that loads the selected module. The four official names
-are reserved and cannot be replaced by a custom alias or adjacent assembly.
+`STRING`, `STDLIB`, `STDIO`, and `SOCKS` are library classes in the single
+`Lolcode.Runtime.dll` payload supplied by `Lolcode.NET.Sdk`. They are ordinary
+LOLCODE libraries from a consumer's perspective: `CAN HAS` constructs an
+instance and binds its public methods in one library BUKKIT.
 
 ```lolcode
 HAI 1.4
@@ -26,30 +15,32 @@ VISIBLE I IZ STRING'Z LEN YR "MEOW" MKAY
 KTHXBYE
 ```
 
-## State and resource ownership
+Normal builds and publishes include one runtime DLL. There are no separate
+runtime-library packages or per-library runtime files to configure.
 
-One import creates its own `LolcodeLibraryContext`. Its mutable state is shared
-by calls through that import but not by another import; `STDLIB` therefore has
-a per-import PRNG. Each invocation combines that retained state with the
-**invoking caller scope's** resource tracker. Ownership does not follow the
-import/module scope: an escaped module can retain provider and lexical state,
-while handles allocated by later calls belong to each invoking caller.
+## Instance state and disposal
 
-Built-in libraries register returned `LolBlob` values with
-`LolcodeLibraryContext.RegisterResource`. Close and unregister are idempotent.
-Lexical blocks and function calls share the invoking execution's tracker, so a
-handle is not automatically released merely because an ordinary scope or
-function returns. The generated executable or public-wrapper `finally` path
-releases remaining handles when that root invocation completes; use explicit
-`CLOSE` for earlier release. A public class-library wrapper detaches the
-complete returned BLOB graph, which then becomes the managed caller's
-responsibility. SOCKS alias BLOBs share a lease; the underlying socket closes
-only after all leases close.
+One CLR library instance corresponds to one imported LOLCODE library BUKKIT.
+Calls through that BUKKIT share the instance's mutable state; another importing
+scope gets a distinct instance. Importing the same library again in one scope
+does not make another instance.
+
+If a library instance implements `IDisposable`, the importing scope disposes
+it. This is also the model used by generated LOLCODE class libraries. Direct
+C# callers use normal .NET ownership and dispose the instance they construct.
 
 `STRING` indexes UTF-8 bytes, not Unicode scalar values. `LEN` reports byte
-count and `AT` returns a byte-backed YARN. Those bytes survive string
-composition, file/socket I/O, and output until text decoding is necessary.
-Read the [implementation profile](../reference/implementation-profile.md) for
-the complete library and security behavior, especially `I DUZ`, `STDIO`, and
-`SOCKS`. To expose a referenced managed library through `CAN HAS`, continue to
-[custom module authoring](custom-providers.md).
+count and `AT` returns a byte-backed YARN. Read the
+[implementation profile](../reference/implementation-profile.md) for complete
+file, network, and byte-preservation behavior.
+
+## BLOB ownership
+
+An open `LolBlob` returned from a library call is automatically adopted by the
+calling LOLCODE scope; closed values are not adopted. Scope disposal releases
+adopted BLOBs and disposable library instances. `CLOSE` remains useful for
+earlier release and is idempotent. A direct C# caller retains ordinary .NET
+ownership of values it receives.
+
+To expose a managed library through `CAN HAS`, see
+[library authoring](custom-providers.md).

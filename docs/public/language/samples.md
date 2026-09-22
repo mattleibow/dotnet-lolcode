@@ -21,11 +21,11 @@ behavior. See [versions](versions.md) before using them as a 1.2-only lesson.
 | Scenario | What it demonstrates |
 | --- | --- |
 | [Hello world](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples/project-based/hello-world) | `Lolcode.NET.Sdk/0.2.0` project workflow |
-| [C# head / LOLCODE library](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples/project-based/csharp-head-lolcode-library) | C# calling generated public static LOLCODE exports |
-| [LOLCODE head / C# library](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples/project-based/mixed-language) | `CAN HAS` importing an ordinary managed assembly |
+| [C# head / LOLCODE library](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples/project-based/csharp-head-lolcode-library) | C# constructs and disposes a generated LOLCODE library instance |
+| [LOLCODE head / C# library](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples/project-based/lolcode-head-csharp-library) | `CAN HAS` constructs an attributed C# library instance |
 | [LOLCODE head / LOLCODE library](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples/project-based/lolcode-head-lolcode-library) | Generated-library import and explicit `Compile` order: `Welcome.lol`, then `Greeting.lol` |
 
 The last three scenarios document current `0.3.0` source behavior and use the
-repository's source-built compiler/provider projects. The simple hello-world
+repository's source-built compiler and runtime binaries. The simple hello-world
 project and file-based samples retain the published `0.2.0` SDK pin so they
 remain directly restorable from public feeds.

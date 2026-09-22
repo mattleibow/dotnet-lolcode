@@ -26,8 +26,9 @@ O
 
 This is not Unicode scalar or grapheme indexing. ASCII characters occupy one
 byte; other text can occupy several. Byte-backed YARNs preserve exact bytes
-through equality, concatenation, interpolation, provider I/O, and output until
+through equality, concatenation, interpolation, library I/O, and output until
 a text operation must decode them.
 
-Provider implementation classes are internal. Import and call the LOLCODE
-slots rather than depending on a CLR type.
+LOLCODE programs should import and call the library slots. The public CLR
+class also follows the same attributed instance-library contract for direct
+.NET consumers.

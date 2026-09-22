@@ -20,8 +20,8 @@ number exists.
 | --- | --- | --- |
 | **Stable core** | 1.2 values, flow, functions, `VISIBLE`, and normal files | **Supported** |
 | **1.3 draft** | BUKKIT, SRS, `ME`, prototypes, mixins, dynamic names | **Supported**; draft contradictions are resolved by the pinned reference behavior |
-| **1.4 reference behavior** | `CAN HAS`, `INVISIBLE`, `I DUZ`, `HAS AN`, provider libraries | **Supported** except **BRAINZ**, which is **not implemented** |
-| **.NET extension** | `.lolproj`, generated CLR exports, managed DLL imports, bundled libraries, module aliases | **Supported in the source development revision** |
+| **1.4 reference behavior** | `CAN HAS`, `INVISIBLE`, `I DUZ`, `HAS AN`, libraries | **Supported** except **BRAINZ**, which is **not implemented** |
+| **.NET extension** | `.lolproj`, generated CLR library exports, managed libraries, bundled libraries | **Supported in the source development revision** |
 | **Historical source** | 1.0/1.1 and archived drafts | Documentation evidence, not competing compiler rules |
 
 “Partial” is reserved for a feature with an intentionally incomplete
@@ -35,7 +35,7 @@ appears in an archived document.
 | Delivery | What it means |
 | --- | --- |
 | `Lolcode.NET.Sdk/0.2.0` | Latest published package and the pin used by consumer quick starts and file-based samples. |
-| `0.3.0` repository VersionPrefix | Current source feature/version line. Multi-file interop, SDK-bundled libraries, module aliases, and the other development features documented here require a source checkout or locally packed feed until `0.3.0` is published. |
+| `0.3.0` repository VersionPrefix | Current source feature/version line. Multi-file interop, SDK-bundled libraries, and the other development features documented here require a source checkout or locally packed feed until `0.3.0` is published. |
 | .NET host | Projects target `net10.0`; file-based apps need a compatible `dotnet` host and SDK resolution. |
 
 Do not infer package publication merely from a source version. Conversely,

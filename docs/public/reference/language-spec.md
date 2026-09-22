@@ -88,9 +88,10 @@ statements, and other initialization retain the project's `Compile` order, so
 a top-level variable is available only after its declaring file is processed.
 This matches C#/VB declaration-order-independent methods while retaining
 F#-style ordered values; dotnet-lolcode hoists only direct function
-declarations, not general values. Generated class-library wrappers evaluate
-only supported import and declaration forms, not arbitrary top-level executable
-statements. All files in one compilation must use the same `HAI` version.
+declarations, not general values. Generated class-library instance types
+evaluate only supported import and declaration forms, not arbitrary top-level
+executable statements. All files in one compilation must use the same `HAI`
+version.
 
 ```lolcode
 HAI 1.2

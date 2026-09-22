@@ -37,8 +37,8 @@ inclusion/requirement proposal. In `lci/future`, it loads named libraries
 through BUKKIT semantics. In the .NET compiler, `STRING`, `STDLIB`, `STDIO`,
 and `SOCKS` are attributed library types in `Lolcode.Runtime.dll`. `CAN HAS`
 creates an instance, library BUKKIT and library function slots. Custom types
-must explicitly use `[LolcodeLibrary("NAME")]`; discovery is metadata-only and
-there is no unaware-DLL fallback.
+must explicitly use `[LolcodeLibrary("NAME")]`; discovery is metadata-only,
+with no assembly-name or filename fallback for unattributed DLLs.
 
 ### Syntax
 

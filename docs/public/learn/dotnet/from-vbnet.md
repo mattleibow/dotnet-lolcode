@@ -14,18 +14,17 @@ VB and LOLCODE both favor readable keywords, but their semantics differ:
 | `Select Case` chooses cases without implicit fallthrough | `WTF?` falls through unless `GTFO` |
 | `For` declares a chosen range/start | LOLCODE loop counters start at zero and use guard/update forms |
 
-## Module and Shared caveat
+## Class-library caveat
 
-An ordinary managed import requires an eligible public, non-nested static CLR
-type with directly declared, uniquely named public static methods and supported
-signatures. A VB `Module` can compile to a static CLR shape, but that does not
-make every module directly importable. Overloads, `ByRef`, optional-parameter
-patterns, framework-specific types, or compiler-generated shapes may exclude
-members. A `Shared` method on a public class may qualify only if the containing
-type and entire exported method group meet the documented rules.
+A library for `CAN HAS` must be a public, non-nested, sealed, concrete,
+non-generic instance class with a public parameterless constructor and a
+`LolcodeLibrary` attribute. A typical VB `Module` and `Shared` method have a
+static CLR shape, so they do not meet that contract. Use an attributed instance
+class or a small C# adapter.
 
-Do not describe this as direct VB `CAN HAS` compatibility. Inspect the emitted
-assembly or place a small C# static adapter in front of it.
+Overloads, `ByRef`, optional-parameter patterns, framework-specific types, or
+compiler-generated shapes can also exclude methods. Keep library methods to
+the supported value boundary documented in [managed library imports](workflows-and-interop.md).
 
 ## Example translation
 

@@ -2,7 +2,7 @@
 
 <span class="badge badge-reference">1.4 reference behavior</span>
 
-`STDLIB` supplies a per-import pseudo-random generator.
+`STDLIB` supplies a per-library-instance pseudo-random generator.
 
 ```lolcode
 HAI 1.4
@@ -14,12 +14,14 @@ KTHXBYE
 
 | Slot | Result |
 | --- | --- |
-| `MIX YR seed` | reseeds this import's generator; returns NOOB |
+| `MIX YR seed` | reseeds this library instance's generator; returns NOOB |
 | `BLOW YR maximum` | NUMBR from zero (inclusive) to maximum (exclusive); returns 0 when maximum is zero or negative |
 
-State belongs to the imported library context. A separate import/module gets a
-separate generator; state is not a process-global random singleton. Reseeding
-with the same value makes subsequent values reproducible within the same
-runtime implementation, which is useful for tests but not cryptography.
+State belongs to the imported library instance. A separate importing scope gets
+a separate generator; state is not a process-global random singleton.
+Reseeding with the same value makes subsequent values reproducible within the
+same runtime implementation, which is useful for tests but not cryptography.
 
-Provider implementation classes are internal and are not API contracts.
+The public CLR class follows the same attributed instance-library contract.
+Direct .NET callers can construct separate instances when they need isolated
+random state.

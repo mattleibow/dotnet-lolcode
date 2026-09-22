@@ -16,7 +16,7 @@ package availability so readers can tell which contract they are using.
 | Everyday value, scope, and runtime behavior | [Everyday runtime behavior](implementation.md) |
 | Exact syntax and implementation behavior | [Reference hub](reference.md) |
 | Project, interop, and publish workflow | [.NET projects](../projects/index.md) |
-| Official library slots | [Libraries and modules](libraries.md) |
+| Official library slots | [Libraries](libraries.md) |
 | Compiler messages | [Diagnostics](diagnostics.md) |
 | Runnable programs | [Sample gallery](samples.md) |
 

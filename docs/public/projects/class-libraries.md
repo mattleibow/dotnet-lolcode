@@ -1,12 +1,12 @@
-# Class libraries
+# LOLCODE class libraries
 
 <span class="badge badge-dotnet">.NET projects</span>
 <span class="badge">Development availability</span>
 
-Set `OutputType` to `Library` to emit a DLL with public static CLR wrappers for
-the top-level LOLCODE functions. The SDK produces a normal managed class
-library: it has no executable entry point, and its generated export type is
-marked for later LOLCODE imports.
+Set `OutputType` to `Library` to emit a normal managed class library. The
+generated export is a public sealed, constructible `IDisposable` instance type
+whose public instance methods represent direct top-level `HOW IZ I` functions.
+It has no static wrapper, factory, or initializer API.
 
 ```xml
 <PropertyGroup>
@@ -15,17 +15,20 @@ marked for later LOLCODE imports.
   <AssemblyName>LolcatPhraseLibrary</AssemblyName>
   <RootNamespace>InteropSamples</RootNamespace>
   <LolcodeLibraryTypeName>LolcatExports</LolcodeLibraryTypeName>
+  <LolcodeLibraryName>LOLCAT_PHRASES</LolcodeLibraryName>
 </PropertyGroup>
 ```
 
 `AssemblyName` controls the DLL name. `RootNamespace` and
-`LolcodeLibraryTypeName` compose the generated export type, here
-`InteropSamples.LolcatExports`. If the type name is omitted, the SDK derives
-and sanitizes it from `AssemblyName`. An explicit type name must be a simple,
-non-keyword C# identifier without dots. Every `RootNamespace` segment is
-sanitized independently and repeated segments are retained. Setting
-`RootNamespace` explicitly empty emits the type in the global namespace;
-otherwise the .NET SDK's assembly-derived default applies.
+`LolcodeLibraryTypeName` form the CLR type name, here
+`InteropSamples.LolcatExports`. An omitted type name is deterministically
+derived from `AssemblyName`; an explicit value must be a simple, non-keyword
+C# identifier without dots.
+
+`LolcodeLibraryName` is separate from both names: it is the direct `CAN HAS`
+identifier for the generated library. If omitted, the SDK deterministically
+derives it from `AssemblyName`; an explicitly invalid identifier fails the
+build.
 
 ## C# calls LOLCODE
 
@@ -33,38 +36,28 @@ The [C#-head sample](https://github.com/mattleibow/dotnet-lolcode/tree/main/samp
 uses an ordinary `ProjectReference`:
 
 ```csharp
-Console.WriteLine(InteropSamples.LolcatExports.WELCOME("DOTNET", 3));
-Console.WriteLine(InteropSamples.LolcatExports.MEOWLEN());
+using var library = new InteropSamples.LolcatExports();
+Console.WriteLine(library.WELCOME("DOTNET", 3));
+Console.WriteLine(library.MEOWLEN());
 ```
 
-Each public wrapper initializes a fresh LOLCODE module object. Its generated
-initializer executes only initializer-safe direct top-level forms: imports,
-declarations, object definitions, and function definitions. Assignment, I/O,
-control flow, and arbitrary executable statements are skipped. Only direct
-top-level `HOW IZ I` functions become public wrappers; parameters and results
-use `object`.
-
-Public wrapper results detach the complete returned BLOB graph from program
-cleanup and transfer ownership to the managed caller, which must dispose
-handles when appropriate. See [providers](providers.md) for lifetime details.
+Each instance owns a persistent LOLCODE library scope. Calls on that instance
+share its variables and dynamic function slots; another instance is isolated.
+Dispose it when finished to release its scope-owned resources. Returned open
+BLOB values follow normal direct-C# ownership.
 
 ## LOLCODE calls LOLCODE
 
-The [LOLCODE-head sample](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples/project-based/lolcode-head-lolcode-library)
-imports the generated DLL by assembly name:
+LOLCODE can import the generated class by its `LolcodeLibraryName`:
 
 ```lolcode
 HAI 1.4
-CAN HAS LolcatPhraseLibrary?
-VISIBLE I IZ LolcatPhraseLibrary'Z WELCOME MKAY
+CAN HAS LOLCAT_PHRASES?
+VISIBLE I IZ LOLCAT_PHRASES'Z WELCOME MKAY
 KTHXBYE
 ```
 
-Generated libraries are selected by their single `[LolcodeLibrary]` export
-type, not by ordinary managed-import class-name rules. Functions can be
-declared across multiple source files; direct top-level functions are hoisted
-before initializer-safe ordered initialization.
-
-The repository version is `0.3.0`. Check
-[versions and availability](../language/versions.md) before assuming a package
-has been published to the feed you use.
+The [LOLCODE-head LOLCODE library sample](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples/project-based/lolcode-head-lolcode-library)
+demonstrates the same form. Functions can span multiple source files; direct
+top-level functions are available before initializer-safe ordered
+initialization.

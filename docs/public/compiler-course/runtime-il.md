@@ -22,9 +22,10 @@ and propagates PDB write failures. A zero-tree executable is valid.
 Path emission stages and coordinates DLL, optional PDB, and
 `.runtimeconfig.json` output. If optional PDB staging or serialization fails,
 it can still commit a PE without symbols and remove stale PDB state. Library
-output gets a library header and direct-top-level public wrappers instead of an
-entry point. Neither path nor stream emission wildcard-copies provider DLLs;
-SDK, NuGet, and project assets own deployment.
+output gets a library header and a public sealed `IDisposable` instance type
+with direct-top-level public methods instead of an entry point. Neither path
+nor stream emission deploys referenced assets; SDK, NuGet, and project assets
+own deployment.
 
 **Exercise:** Find the code-generation branch for a `VisibleStatementSyntax`
 after it becomes bound/lowered. Identify the `LolRuntime` helper it calls and

@@ -55,32 +55,28 @@ I/O, side effects, and other initialization execute in syntax-tree order. The
 SDK passes `Compile` items in that order, so explicit item lists control
 initialization. Every tree must be a complete unit with the same `HAI` version.
 
-`OutputType=Library` emits a public static CLR export container marked
-`LolcodeLibraryAttribute`. An omitted type name derives and sanitizes from
-`AssemblyName`; an explicit type name must be a simple non-keyword C#
-identifier. `RootNamespace` segments are sanitized independently with repeated
-segments retained, while an explicitly empty namespace emits globally. Only
-direct top-level `HOW IZ I` functions become object-parameter/object-result wrappers.
-Wrapper/factory initialization executes only initializer-safe top-level
-imports, declarations, object definitions, and function definitions; it skips
-assignment, I/O, control flow, and arbitrary executable statements.
+`OutputType=Library` emits a public sealed, constructible `IDisposable` CLR
+type marked `LolcodeLibraryAttribute`. Its direct top-level `HOW IZ I`
+functions become public instance methods. An omitted type name derives and
+sanitizes from `AssemblyName`; an explicit type name must be a simple
+non-keyword C# identifier. `RootNamespace` segments are sanitized
+independently with repeated segments retained, while an explicitly empty
+namespace emits globally. Library initialization executes only supported
+top-level imports and declarations; it skips assignment, I/O, control flow,
+and arbitrary executable statements.
 
-An ordinary managed import is restricted to an application-base-directory
-simple assembly name and a selected public non-nested static class. Only
-methods declared directly on that type participate. It exports unique method
-names with `object`, `string`, `int`, `double`, `bool`, or `void` signatures;
-generic, `ref`/`out`, decimal, and any overload group are not slots, even when
-one overload would otherwise qualify. Generated `[LolcodeLibrary]` selection
-uses its factory contract instead of ordinary class-name selection. A
-referenced assembly may declare `[assembly: LolcodeModule("ALIAS",
-typeof(ExportType))]`; the compiler validates aliases and emits `LOL9003` for
-invalid, duplicate, reserved, or incompatible metadata. Imported methods stay
-inside the module BUKKIT. Built-in modules take precedence over local
-assemblies.
+A referenced C# library has one public, non-nested, sealed, concrete,
+non-generic instance class marked `[LolcodeLibrary("NAME")]` for each
+`CAN HAS` name. The class has a public parameterless constructor and exposes
+eligible public instance methods. Supported parameter and return types are
+`object`, `string`, `int`, `double`, `bool`, and `void`; generic,
+`ref`/`out`, pointer, byref-like, unsupported signatures, and overloads are
+rejected. Imported methods stay inside the library BUKKIT. The compiler
+reports discovery validation through `LOL9003`.
 
 The repository `VersionPrefix` is `0.3.0`, but that package is not published
 yet. Consumer quick starts and file-based samples therefore use the published
-`Lolcode.NET.Sdk/0.2.0` package. The interop, provider, multi-file, and
+`Lolcode.NET.Sdk/0.2.0` package. The interop, library, multi-file, and
 publishing behavior documented here is validated from the `0.3.0` source
 revision and requires a source checkout or a locally packed `0.3.0` feed until
 that release is available. Package availability remains distinct from language
@@ -215,15 +211,12 @@ from a generated `finally` block when `Main` exits. This replaces lci's raw
 pointers and undefined double-close/use-after-close behavior without changing
 successful library calls.
 
-Each built-in `CAN HAS` import owns a `LolcodeLibraryContext`: mutable state is
-shared by calls through that import and isolated from a separate import.
-Resource ownership follows the invoking caller scope, not the import/module
-scope. Escaped modules retain built-in and lexical state while handles created
-by later calls register with each caller's tracker. Close/unregister is
-idempotent. Generated public wrappers detach complete returned BLOB graphs,
-transferring ownership to the managed caller. Custom convention/alias modules
-cannot request `LolcodeLibraryContext`. The four built-in names are reserved;
-invalid or duplicate `LolcodeModule` metadata is diagnosed at compilation.
+Each `CAN HAS` import constructs a library instance. Mutable state is shared by
+calls through its BUKKIT and isolated from another importing scope. A repeated
+import in one scope is a no-op. An open `LolBlob` returned from a library call
+is adopted by the calling LOLCODE scope; close/unregister is idempotent.
+Disposable library instances are released with their importing scope. Direct
+C# consumers retain ordinary .NET ownership.
 
 - `STDIO` maps the six C modes to `FileStream`, shares open files sufficiently
   for lci's repeated-open fixture, encodes ordinary YARNs as UTF-8, and preserves
@@ -236,7 +229,7 @@ invalid or duplicate `LolcodeModule` metadata is diagnosed at compilation.
   receive errors to an empty YARN. Socket aliases use shared leases, so the
   underlying socket closes only when all leases close. Accept and receive
   retain lci's blocking behavior.
-- `STDLIB` uses a per-import managed PRNG, avoiding process-global races while
+- `STDLIB` uses a per-library-instance managed PRNG, avoiding process-global races while
   preserving bounded values, deterministic reseeding, and `BLOW 0 == 0`.
 - `STRING` indexes UTF-8 encoded bytes. `LEN` is the byte count; `AT` returns an
   empty YARN out of bounds and otherwise returns a byte-backed YARN. Equality,
@@ -256,15 +249,14 @@ invalid or duplicate `LolcodeModule` metadata is diagnosed at compilation.
 
 These constraints are implementation guidance, not additions to the language deltas:
 
-- `STRING`, `STDLIB`, `STDIO`, and `SOCKS` are SDK-bundled LOLCODE libraries
-  in one runtime assembly. `CAN HAS` creates a library instance and library
-  BUKKIT; it is not a package-install directive. Reflection trimming is
-  deferred pending an explicit rooting policy.
+- `STRING`, `STDLIB`, `STDIO`, and `SOCKS` are attributed LOLCODE library
+  classes in one SDK-bundled runtime assembly. `CAN HAS` creates a library
+  instance and library BUKKIT; it is not a package-install directive.
+  Reflection trimming is deferred pending an explicit rooting policy.
 - A custom managed library is a normal referenced .NET assembly with a public
   sealed instance type marked `[LolcodeLibrary("NAME")]`. The compiler reads
-  only resolved-reference metadata; no assembly-name, filename or unaware-DLL
-  fallback exists. A library instance owns its state and is isolated per import
-  scope.
+  only resolved-reference metadata. A library instance owns its state and is
+  isolated per importing scope.
 - 1.3's global/local `IT` statements contradict one another and require a language
   decision beyond pinned `lci`'s per-scope `IT`.
 - `I DUZ`, SOCKS, and STDIO intentionally expose process, network, and filesystem

@@ -2,11 +2,11 @@
 
 **Prerequisite:** project workflow and basic functions.
 
-**Outcome:** import a development library, distinguish provider state from
-resource ownership, and use file/network capabilities deliberately.
+**Outcome:** import a development library, understand library-instance state
+and resource ownership, and use file/network capabilities deliberately.
 
 > [!IMPORTANT]
-> `CAN HAS`, official providers, BLOB handles, and related syntax are 1.4
+> `CAN HAS`, official libraries, BLOB handles, and related syntax are 1.4
 > reference behavior in this implementation. They are a development
 > progression, not stable LOLCODE 1.2.
 
@@ -27,7 +27,7 @@ Expected output:
 E
 ```
 
-The project SDK supplies official providers for:
+The project SDK supplies official libraries for:
 
 - `STRING`: UTF-8 byte length and indexing;
 - `STDLIB`: seeded and bounded random values;
@@ -40,11 +40,10 @@ sandbox.
 
 ## Handles have owners
 
-Files and sockets are represented by opaque BLOB handles. A provider call
-allocates returned resources into the **invoking caller scope's** tracker, not
-the import/module scope. An imported module can escape and retain its provider
-and lexical state, while later calls still register new handles with each
-caller that invokes them.
+Files and sockets are represented by opaque BLOB handles. An open BLOB returned
+by a library call is adopted by the **calling LOLCODE scope**. A library
+instance belongs to its importing scope; repeated imports there do not create a
+second instance, while separate importing scopes get separate instances.
 
 `CLOSE` and unregister are idempotent. Public class-library wrappers detach the
 entire returned BLOB graph from program cleanup, transferring responsibility
@@ -93,10 +92,12 @@ The zero-length check prevents asking for a first byte that does not exist.
 - Treating a BLOB as a source-level cast type.
 - Forgetting to close an operating-system handle because generated cleanup
   exists; explicit lifetime remains clearer and matters across wrappers.
-- Assuming provider state belongs globally to the process; it is per import.
-- Using dynamic managed imports in trimmed or NativeAOT applications.
+- Assuming library state belongs globally to the process; it is per library
+  instance.
+- Using reflection-discovered libraries in trimmed applications; trimming is
+  deferred.
 
 ## Checkpoint
 
-You can identify an import, provider state, a caller-owned resource, and the
+You can identify an import, library state, a caller-owned resource, and the
 security boundary. Next: [build and share an application](capstone.md).

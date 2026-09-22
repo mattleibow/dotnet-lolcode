@@ -13,8 +13,9 @@ Use this page to choose the right public surface before entering the generated
 - **Lolcode.Build** exposes the `Lolc` MSBuild task and identifier-normalization
   task used by `Lolcode.NET.Sdk`.
 
-Provider implementation classes are internal details of their packages and are
-not promised as generated public API. User-facing provider behavior belongs in
-the [library documentation](language/libraries.md). For in-memory execution,
-use `LolcodeScript`; for architecture and internals, follow the
-[compiler course](compiler-course/index.md).
+The built-in library classes are public because the runtime discovers the same
+attributed instance contract used by custom libraries. Use the
+[library documentation](language/libraries.md) for their LOLCODE slots and
+behavior; use the generated API pages when calling the CLR types directly. For
+in-memory execution, use `LolcodeScript`; for architecture and internals,
+follow the [compiler course](compiler-course/index.md).

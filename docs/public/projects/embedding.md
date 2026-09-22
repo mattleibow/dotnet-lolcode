@@ -20,7 +20,7 @@ var diagnostics = compilation.GetDiagnostics();
 ```
 
 Syntax trees and diagnostics are immutable public contracts. The binder,
-lowerer, code generator, and provider implementation classes remain internal.
+lowerer, code generator, and library-discovery implementation classes remain internal.
 
 ## Emit to caller-owned streams
 
@@ -37,7 +37,7 @@ Stream emission:
 - resolves the runtime from loaded compiler/runtime assemblies and needs no
   runtime DLL path;
 - propagates PDB stream write failures to the caller;
-- does not deploy runtime or provider DLLs.
+- does not deploy runtime or referenced library assets.
 
 A zero-tree executable compilation is valid. API hosts decide what to do with
 the resulting assembly and its dependencies.
@@ -48,7 +48,7 @@ Path emission requires a runtime assembly path and coordinates the DLL,
 optional PDB, and runtime configuration as one path operation. Staging and
 commit protect existing outputs. If optional PDB staging or serialization
 fails, the compiler can emit the PE without symbols and remove stale symbol
-state. It does not wildcard-copy provider DLLs; provider deployment belongs to
+state. It does not deploy referenced assets; deployment belongs to
 SDK/NuGet/project assets.
 
 ## Run as a script

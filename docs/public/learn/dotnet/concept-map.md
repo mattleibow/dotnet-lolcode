@@ -15,7 +15,7 @@ Use these as starting analogies, not equivalences:
 | `HOW IZ I` | function | isolated from outer program variables |
 | BUKKIT | prototype object | not a CLR class, record, module, or nominal type |
 | `.lolproj` | SDK-style project | `Compile` item order is semantically observable |
-| `CAN HAS` | module/provider import | provider import, generated LOLCODE library, and ordinary managed DLL selection are distinct |
+| `CAN HAS` | library import | constructs an attributed library instance and its BUKKIT |
 
 ## Expressions and results
 

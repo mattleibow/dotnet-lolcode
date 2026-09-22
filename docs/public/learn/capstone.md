@@ -101,9 +101,8 @@ complete output, not a lone DLL.
 
 Create a 1.4 project that imports `STRING` to report UTF-8 byte counts or
 `STDIO` to save a summary. This intentionally moves beyond stable 1.2. State
-that requirement in the README, keep providers as normal project assets, and
-document resource closure. Do not use dynamic managed DLL imports with trimming
-or NativeAOT.
+that requirement in the README, include normal runtime assets, and document
+resource closure. Library discovery with trimming remains deferred.
 
 ## Practice: predict, run, explain, modify, create
 
@@ -124,7 +123,7 @@ or NativeAOT.
 - Are input conversion and unexpected-input behavior deliberate?
 - Do tests include boundaries and failure paths?
 - Does documentation distinguish stable 1.2 from development features?
-- Does published output include normal runtime and provider assets?
+- Does published output include normal runtime and library assets?
 
 If another person cannot run it, repair the instructions before adding another
 feature. A shared program includes its operational knowledge.
@@ -136,7 +135,7 @@ feature. A shared program includes its operational knowledge.
 - Claiming malformed input is supported without a test.
 - Publishing only the application DLL.
 - Depending on source-checkout paths in consumer instructions.
-- Mixing 1.4 providers into a project described as stable 1.2.
+- Mixing 1.4 libraries into a project described as stable 1.2.
 
 ## Checkpoint
 

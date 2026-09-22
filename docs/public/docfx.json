@@ -16,30 +16,6 @@
           ]
         },
         {
-          "src": "../../src/Lolcode.Runtime.String",
-          "files": [
-            "Lolcode.Runtime.String.csproj"
-          ]
-        },
-        {
-          "src": "../../src/Lolcode.Runtime.Stdlib",
-          "files": [
-            "Lolcode.Runtime.Stdlib.csproj"
-          ]
-        },
-        {
-          "src": "../../src/Lolcode.Runtime.Stdio",
-          "files": [
-            "Lolcode.Runtime.Stdio.csproj"
-          ]
-        },
-        {
-          "src": "../../src/Lolcode.Runtime.Socks",
-          "files": [
-            "Lolcode.Runtime.Socks.csproj"
-          ]
-        },
-        {
           "src": "../../src/Lolcode.Build",
           "files": [
             "Lolcode.Build.csproj"

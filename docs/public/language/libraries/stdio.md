@@ -28,12 +28,10 @@ HAI 1.4
 KTHXBYE
 ```
 
-Check `DIAF` after `OPEN` before other operations. Returned handles are
-registered with the invoking execution's shared resource tracker. Ordinary
-block and function exits do not release them; remaining handles are cleaned up
-when the generated `Main` or public-wrapper invocation completes. Use explicit
-`CLOSE` for earlier release. A handle returned through a public CLR wrapper is
-detached for the managed caller to own.
+Check `DIAF` after `OPEN` before other operations. An open returned handle is
+adopted by the calling LOLCODE scope and is released when that scope is
+disposed. Use explicit `CLOSE` for earlier release. A direct C# caller retains
+normal .NET ownership of a value it receives.
 
 The compiler is not a filesystem sandbox. Use host permissions and isolation
 for untrusted code.

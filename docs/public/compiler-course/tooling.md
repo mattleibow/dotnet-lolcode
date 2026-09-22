@@ -11,7 +11,7 @@ The lower-level stream `Emit` overload accepts caller-owned writable PE and
 optional PDB streams, creates no files, needs no runtime path, and propagates
 PDB write failures. Path `Emit` stages coordinated PE/PDB/runtimeconfig output;
 optional symbol failure can produce a valid PE without symbols. A zero-tree
-executable is valid. Direct API consumers deploy resolved runtime/provider
+executable is valid. Direct API consumers deploy resolved runtime and library
 assets explicitly.
 
 The compiler becomes practical through ordinary .NET integration:
@@ -25,11 +25,11 @@ The compiler becomes practical through ordinary .NET integration:
   built compiler, while `#:sdk` enables `dotnet run --file`.
 
 The task parses every selected `.lol` file into one compilation, passes MSBuild
-reference paths to emission, discovers optional `LolcodeModule` aliases from
+reference paths to emission, discovers attributed library classes from
 referenced assembly metadata, and honors `OutputType` for executables or public
-CLR library wrappers. `Sdk.targets` exposes incremental inputs and
+CLR library types. `Sdk.targets` exposes incremental inputs and
 `SkipCompilerExecution` for design-time builds. For bundled runtime libraries,
-custom modules, explicit compile order, source-checkout behavior, and
+managed library authoring, explicit compile order, source-checkout behavior, and
 deployment files, see [.NET projects](../projects/index.md).
 
 File-based execution suppresses the project `**/*.lol` glob so adjacent source

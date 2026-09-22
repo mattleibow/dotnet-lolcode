@@ -25,7 +25,7 @@ items:
 - name: Projects and SDK
   href: ../projects/toc.yml
   topicHref: ../projects/index.md
-- name: Libraries and modules
+- name: Libraries
   items:
   - name: Library overview
     href: libraries.md
@@ -39,7 +39,7 @@ items:
     href: libraries/socks.md
   - name: Runtime library behavior
     href: ../projects/providers.md
-  - name: Custom module authoring
+  - name: Library authoring
     href: ../projects/custom-providers.md
 - name: Specifications and compatibility
   href: ../reference/toc.yml

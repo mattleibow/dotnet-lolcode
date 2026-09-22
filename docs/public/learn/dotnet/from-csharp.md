@@ -24,9 +24,10 @@ best with explicit state variables plus pure functions. When using the 1.3
 object progression, access receiver state through `ME'Z`; a bare name follows
 lexical lookup instead.
 
-For interop, expose small public static adapter methods. An overload group is
-not imported, and inherited static methods are ignored because only methods
-declared directly on the selected type participate.
+For interop, expose a small public, non-nested, sealed instance class marked
+with `[LolcodeLibrary("NAME")]`. It needs a public parameterless constructor.
+Its public instance methods use the supported value boundary; overloads and
+unsupported signatures are rejected.
 
 ## Example translation
 

@@ -53,11 +53,12 @@ If the value comes from `GIMMEH`, it begins as YARN. Convert it before the
 call. Decide how malformed input should behave rather than relying on explicit
 cast-to-zero behavior.
 
-If the classification must remain in an existing C#, VB, or F# library, use an
-eligible public static adapter. Keep complex types behind the adapter and pass
-only supported primitive/object values. Avoid overloads. For VB/F# especially,
-verify the emitted CLR surface instead of assuming source-language constructs
-map directly to importable methods.
+If the classification must remain in an existing C#, VB, or F# library, expose
+an eligible attributed public sealed instance class with a public parameterless
+constructor. Keep complex types behind that library and pass only supported
+primitive/object values. Avoid overloads. For VB/F# especially, verify the
+emitted CLR surface instead of assuming source-language constructs map directly
+to importable methods.
 
 ## Step 4: test boundaries
 
@@ -75,7 +76,7 @@ record it explicitly in both test suites.
 - Review equality and switch identity.
 - Model BUKKITs as prototypes, not CLR classes.
 - Preserve multi-file initialization order.
-- Add adapters for ineligible managed signatures.
+- Add attributed library classes for ineligible managed signatures.
 - Keep `HAI` version, SDK/package version, and host/runtime version as separate
   compatibility facts.
 

@@ -12,7 +12,7 @@ ordinary 1.2 learning material does not need warning labels.
 
 | Feature | Behavior |
 | --- | --- |
-| `CAN HAS` | Imports an official provider or eligible managed assembly into the current scope. |
+| `CAN HAS` | Constructs an official or eligible managed LOLCODE library in the current scope. |
 | `INVISIBLE` | Writes the same infinite-arity display form as `VISIBLE` to standard error; `!` suppresses its newline. |
 | `I DUZ` | Runs a host-shell command and returns stdout as a YARN while forwarding stderr. |
 | `HAS AN` | Is accepted anywhere `HAS A` declares a variable or BUKKIT slot; no vowel-sound check occurs. |
@@ -23,12 +23,12 @@ intentionally capable of process execution; it is not a sandbox. Hosts that
 run untrusted programs must apply their own process, filesystem, and network
 restrictions. `STDIO` and `SOCKS` similarly expose real host capabilities.
 
-Byte-backed YARNs preserve raw UTF-8 data from `STRING`, provider I/O, and
+Byte-backed YARNs preserve raw UTF-8 data from `STRING`, library I/O, and
 command output through composition and byte streams. They decode only when a
 text operation requires it. NUMBAR-to-YARN conversion is different: it
 truncates toward zero to exactly two fractional digits.
 
 `BRAINZ` is **not implemented** despite a historical README claim. The support
 matrix and provenance conventions are in [versions and support](versions.md);
-the exact compatibility contract, resource lifetime, and provider behavior are
+the exact compatibility contract, resource lifetime, and library behavior are
 in the [implementation profile](../reference/implementation-profile.md).

@@ -1,11 +1,10 @@
-# Managed C# imports
+# Managed library imports
 
 <span class="badge badge-dotnet">.NET interop</span>
 <span class="badge">Development availability</span>
 
-`CAN HAS` can load a regular managed DLL located beside the compiled
-application. Add it through an ordinary `ProjectReference`, then import the
-assembly's simple name:
+Reference a managed library with a normal `ProjectReference` or `Reference`,
+then import the name declared by its attributed library class:
 
 ```lolcode
 HAI 1.4
@@ -15,48 +14,36 @@ VISIBLE message
 KTHXBYE
 ```
 
-The [mixed-language sample](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples/project-based/mixed-language)
-imports a C# project whose public `TextTools` type is namespaced independently
-from its `ManagedTextPackage` assembly name.
+The [LOLCODE-head C# library sample](https://github.com/mattleibow/dotnet-lolcode/tree/main/samples/project-based/lolcode-head-csharp-library)
+uses this arrangement.
 
-## Selection and method shape
+## What `CAN HAS` discovers
 
-Without alias metadata, the loader considers public, non-nested, static classes.
-One eligible class is used when it is the only candidate. With several
-candidates, exactly one simple type-name match to the import/assembly name is
-required. A generated type marked `[LolcodeLibrary]` uses its generated
-factory contract instead.
-
-An assembly may opt into a friendly name and explicit export type:
+The compiler discovers public classes marked with:
 
 ```csharp
-[assembly: LolcodeModule("TEXT", typeof(ManagedTextPackage.TextTools))]
+[LolcodeLibrary("ManagedTextPackage")]
+public sealed class TextTools
+{
+    public string Repeat(string value, int count) => string.Concat(Enumerable.Repeat(value, count));
+}
 ```
 
-The compiler discovers aliases from resolved references. The alias must be a
-valid LOLCODE identifier, cannot use the reserved built-in names, and must be
-unique across the reference set. Invalid metadata reports `LOL9003`.
+Each attribute name is a direct import name. The type must be public,
+non-nested, sealed, concrete, non-generic, and constructible with a public
+parameterless constructor. Multiple attributed classes in one assembly are
+multiple libraries.
 
-Only public static methods declared directly on the selected type participate;
-inherited static methods do not. A method name becomes a slot only when its
-entire group contains exactly one method. Any overload group is excluded, even
-when one overload would otherwise have an eligible signature. `object`,
-`string`, `int`, `double`, and `bool` parameters and return values map to
-LOLCODE values; `void` becomes NOOB. Arguments are converted at the call
-boundary. Generic methods, `ref`/`out` parameters, and decimal values are not
-exported. Only SDK-bundled built-ins may accept one first
-`LolcodeLibraryContext` parameter; ordinary and aliased managed imports cannot.
+Methods are public instance methods with supported `object`, `string`, `int`,
+`double`, `bool`, and `void` boundaries. Overloads, generic methods,
+`ref`/`out`, pointers, byref-like values, and unsupported signatures are
+rejected. Imported methods stay in the library BUKKIT and are never global
+functions.
 
-An import name is an assembly *simple name*, not a path. Empty names, path
-separators, rooted paths, drive-qualified names, and `.` or `..` are rejected,
-so an import cannot escape the application base directory. Built-in modules take precedence over a same-named DLL. Imported methods remain
-slots on the module BUKKIT; they are never installed into global scope. Unknown
-imports and duplicate imports leave no new binding, matching the reference
-behavior.
+An importing scope owns the constructed instance. Repeated imports in that
+scope are no-ops; separate importing scopes get separate instances. If the
+class implements `IDisposable`, importing-scope disposal disposes it. Open
+returned `LolBlob` values are adopted by the calling LOLCODE scope.
 
-Generated LOLCODE libraries marked with `[LolcodeLibrary]` use their generated
-factory selection path, distinct from ordinary managed class and method
-selection. Managed imports work from emitted CLR shape, not source language:
-Visual Basic modules and F# modules may require a C# adapter when signatures
-are overloaded, curried, by-reference, or framework-specific. Check
-[versions and support](../language/versions.md) before deployment.
+Only explicitly attributed classes are imported. `LOL9003` remains the catalog
+diagnostic for library-discovery failures.
