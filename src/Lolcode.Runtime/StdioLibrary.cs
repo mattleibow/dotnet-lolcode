@@ -1,5 +1,4 @@
-using Lolcode.Runtime;
-namespace Lolcode.Runtime.Stdio;
+namespace Lolcode.Runtime;
 
 internal sealed class FileBlob(Stream? stream, bool failed, bool appendWrites = false) : LolBlob
 {
@@ -20,9 +19,11 @@ internal sealed class FileBlob(Stream? stream, bool failed, bool appendWrites = 
     }
 }
 
-internal static class StdioLibrary
+[LolcodeLibrary("STDIO")]
+public sealed class StdioLibrary
 {
-    public static object OPEN(LolcodeLibraryContext context, string filename, string mode)
+    /// <summary>Opens a file and returns its BLOB handle.</summary>
+    public object OPEN(string filename, string mode)
     {
         FileStream? stream = null;
         try
@@ -40,24 +41,26 @@ internal static class StdioLibrary
             stream = new FileStream(filename, fileMode, access, FileShare.ReadWrite);
             if (append)
                 stream.Seek(0, SeekOrigin.End);
-            FileBlob blob = context.RegisterResource(new FileBlob(stream, failed: false, append));
+            FileBlob blob = new(stream, failed: false, append);
             stream = null;
             return blob;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
             stream?.Dispose();
-            return context.RegisterResource(new FileBlob(null, failed: true));
+            return new FileBlob(null, failed: true);
         }
     }
 
-    public static bool DIAF(object file)
+    /// <summary>Checks a file BLOB for errors.</summary>
+    public bool DIAF(object file)
     {
         FileBlob blob = RequireFile(file);
         return blob.IsClosed || blob.Stream is null || blob.HasError;
     }
 
-    public static object LUK(object file, int length)
+    /// <summary>Reads from a file BLOB.</summary>
+    public object LUK(object file, int length)
     {
         FileBlob blob = RequireFile(file);
         if (length <= 0)
@@ -75,7 +78,8 @@ internal static class StdioLibrary
         }
     }
 
-    public static void SCRIBBEL(object file, object data)
+    /// <summary>Writes to a file BLOB.</summary>
+    public void SCRIBBEL(object file, object data)
     {
         FileBlob blob = RequireFile(file);
         byte[] bytes = LolRuntime.GetExplicitYarnBytes(data);
@@ -93,7 +97,8 @@ internal static class StdioLibrary
         }
     }
 
-    public static void AGEIN(object file)
+    /// <summary>Rewinds a file BLOB.</summary>
+    public void AGEIN(object file)
     {
         FileBlob blob = RequireFile(file);
         try
@@ -107,7 +112,8 @@ internal static class StdioLibrary
         }
     }
 
-    public static void CLOSE(object file) => RequireFile(file).Dispose();
+    /// <summary>Closes a file BLOB.</summary>
+    public void CLOSE(object file) => RequireFile(file).Dispose();
 
     private static FileBlob RequireFile(object? value) =>
         value as FileBlob ?? throw new LolRuntimeException("Expected a file BLOB handle");

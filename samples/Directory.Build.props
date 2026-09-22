@@ -13,16 +13,5 @@
   <PropertyGroup Condition="'$(_LolcodeUseLocalBuildTasks)' == 'true'">
     <_LolcodeBuildTasksDir>$(_LolcodeLocalBuildTasksDir)</_LolcodeBuildTasksDir>
     <LolcodeRuntimeAssemblyPath>$(MSBuildThisFileDirectory)..\src\Lolcode.Runtime\bin\$(_LolcodeLocalConfiguration)\net10.0\Lolcode.Runtime.dll</LolcodeRuntimeAssemblyPath>
-    <LolcodeRuntimeStringAssemblyPath>$(MSBuildThisFileDirectory)..\src\Lolcode.Runtime.String\bin\$(_LolcodeLocalConfiguration)\net10.0\Lolcode.Runtime.String.dll</LolcodeRuntimeStringAssemblyPath>
-    <LolcodeRuntimeStdlibAssemblyPath>$(MSBuildThisFileDirectory)..\src\Lolcode.Runtime.Stdlib\bin\$(_LolcodeLocalConfiguration)\net10.0\Lolcode.Runtime.Stdlib.dll</LolcodeRuntimeStdlibAssemblyPath>
-    <LolcodeRuntimeStdioAssemblyPath>$(MSBuildThisFileDirectory)..\src\Lolcode.Runtime.Stdio\bin\$(_LolcodeLocalConfiguration)\net10.0\Lolcode.Runtime.Stdio.dll</LolcodeRuntimeStdioAssemblyPath>
-    <LolcodeRuntimeSocksAssemblyPath>$(MSBuildThisFileDirectory)..\src\Lolcode.Runtime.Socks\bin\$(_LolcodeLocalConfiguration)\net10.0\Lolcode.Runtime.Socks.dll</LolcodeRuntimeSocksAssemblyPath>
   </PropertyGroup>
-
-  <ItemGroup Condition="'$(_LolcodeUseLocalBuildTasks)' == 'true'">
-    <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Lolcode.Runtime.String\Lolcode.Runtime.String.csproj" />
-    <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Lolcode.Runtime.Stdlib\Lolcode.Runtime.Stdlib.csproj" />
-    <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Lolcode.Runtime.Stdio\Lolcode.Runtime.Stdio.csproj" />
-    <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Lolcode.Runtime.Socks\Lolcode.Runtime.Socks.csproj" />
-  </ItemGroup>
 </Project>

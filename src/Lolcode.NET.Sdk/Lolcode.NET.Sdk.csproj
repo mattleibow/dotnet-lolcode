@@ -34,20 +34,12 @@
     <TfmSpecificPackageFile Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Build.deps.json" PackagePath="tools/net10.0/Lolcode.Build.deps.json" />
     <TfmSpecificPackageFile Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.CodeAnalysis.dll" PackagePath="tools/net10.0/Lolcode.CodeAnalysis.dll" />
     <TfmSpecificPackageFile Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\Lolcode.Runtime.dll" PackagePath="tools/net10.0/Lolcode.Runtime.dll" />
-    <TfmSpecificPackageFile Include="..\Lolcode.Runtime.String\bin\$(Configuration)\net10.0\Lolcode.Runtime.String.dll" PackagePath="tools/net10.0/Lolcode.Runtime.String.dll" />
-    <TfmSpecificPackageFile Include="..\Lolcode.Runtime.Stdlib\bin\$(Configuration)\net10.0\Lolcode.Runtime.Stdlib.dll" PackagePath="tools/net10.0/Lolcode.Runtime.Stdlib.dll" />
-    <TfmSpecificPackageFile Include="..\Lolcode.Runtime.Stdio\bin\$(Configuration)\net10.0\Lolcode.Runtime.Stdio.dll" PackagePath="tools/net10.0/Lolcode.Runtime.Stdio.dll" />
-    <TfmSpecificPackageFile Include="..\Lolcode.Runtime.Socks\bin\$(Configuration)\net10.0\Lolcode.Runtime.Socks.dll" PackagePath="tools/net10.0/Lolcode.Runtime.Socks.dll" />
     <TfmSpecificPackageFile Include="..\Lolcode.Build\bin\$(Configuration)\net10.0\System.Reflection.MetadataLoadContext.dll" PackagePath="tools/net10.0/System.Reflection.MetadataLoadContext.dll" />
   </ItemGroup>
 
   <!-- Ensure dependencies are built first -->
   <ItemGroup>
     <ProjectReference Include="..\Lolcode.Build\Lolcode.Build.csproj" PrivateAssets="all" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\Lolcode.Runtime.String\Lolcode.Runtime.String.csproj" PrivateAssets="all" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\Lolcode.Runtime.Stdlib\Lolcode.Runtime.Stdlib.csproj" PrivateAssets="all" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\Lolcode.Runtime.Stdio\Lolcode.Runtime.Stdio.csproj" PrivateAssets="all" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\Lolcode.Runtime.Socks\Lolcode.Runtime.Socks.csproj" PrivateAssets="all" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

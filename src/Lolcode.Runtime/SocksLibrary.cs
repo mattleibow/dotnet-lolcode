@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
-using Lolcode.Runtime;
-namespace Lolcode.Runtime.Socks;
+namespace Lolcode.Runtime;
 
 internal sealed class SocketLease(Socket socket) : IDisposable
 {
@@ -60,9 +59,11 @@ internal sealed class SocketBlob(SocketLease? lease, bool failed) : LolBlob
     protected override void DisposeCore() => Lease?.Dispose();
 }
 
-internal static class SocksLibrary
+[LolcodeLibrary("SOCKS")]
+public sealed class SocksLibrary
 {
-    public static string RESOLV(string host)
+    /// <summary>Resolves a host address.</summary>
+    public string RESOLV(string host)
     {
         try
         {
@@ -79,7 +80,8 @@ internal static class SocksLibrary
         }
     }
 
-    public static object BIND(LolcodeLibraryContext context, string addressText, int port)
+    /// <summary>Binds a socket and returns its BLOB handle.</summary>
+    public object BIND(string addressText, int port)
     {
         Socket? socket = null;
         try
@@ -88,24 +90,25 @@ internal static class SocksLibrary
             socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
             socket.Bind(new IPEndPoint(address, port));
-            SocketBlob blob = context.RegisterResource(new SocketBlob(new SocketLease(socket), false));
+            SocketBlob blob = new(new SocketLease(socket), false);
             socket = null;
             return blob;
         }
         catch (Exception ex) when (ex is SocketException or ArgumentException or NotSupportedException)
         {
             socket?.Dispose();
-            return context.RegisterResource(new SocketBlob(null, true));
+            return new SocketBlob(null, true);
         }
     }
 
-    public static object LISTN(LolcodeLibraryContext context, object local)
+    /// <summary>Accepts a connection from a socket BLOB.</summary>
+    public object LISTN(object local)
     {
         try
         {
             Socket socket = RequireSocket(local).GetSocket("accept from");
             socket.Listen(10);
-            return context.RegisterResource(new SocketBlob(new SocketLease(socket.Accept()), false));
+            return new SocketBlob(new SocketLease(socket.Accept()), false);
         }
         catch (Exception ex) when (ex is SocketException or ObjectDisposedException)
         {
@@ -113,13 +116,14 @@ internal static class SocksLibrary
         }
     }
 
-    public static object KONN(LolcodeLibraryContext context, object local, string addressText, int port)
+    /// <summary>Connects a socket BLOB.</summary>
+    public object KONN(object local, string addressText, int port)
     {
         SocketBlob localBlob = RequireSocket(local);
         try
         {
             localBlob.GetSocket("connect").Connect(new IPEndPoint(ResolveAddress(addressText), port));
-            return context.RegisterResource(new SocketBlob(localBlob.Lease?.Acquire(), false));
+            return new SocketBlob(localBlob.Lease?.Acquire(), false);
         }
         catch (Exception ex) when (ex is SocketException or ArgumentException or ObjectDisposedException)
         {
@@ -127,21 +131,24 @@ internal static class SocksLibrary
         }
     }
 
-    public static object CLOSE(object local)
+    /// <summary>Closes a socket BLOB.</summary>
+    public object CLOSE(object local)
     {
         SocketBlob socket = RequireSocket(local);
         socket.Dispose();
         return socket;
     }
 
-    public static int PUT(object local, object remote, object data)
+    /// <summary>Sends data through socket BLOBs.</summary>
+    public int PUT(object local, object remote, object data)
     {
         RequireSocket(local).GetSocket("send from");
         try { return RequireSocket(remote).GetSocket("send to").Send(LolRuntime.GetYarnBytes(data)); }
         catch (Exception ex) when (ex is SocketException or ObjectDisposedException) { return -1; }
     }
 
-    public static object GET(object local, object remote, int amount)
+    /// <summary>Receives data through socket BLOBs.</summary>
+    public object GET(object local, object remote, int amount)
     {
         RequireSocket(local).GetSocket("receive on");
         if (amount <= 0)

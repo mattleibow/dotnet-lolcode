@@ -14,10 +14,6 @@
   <PropertyGroup>
     <_LolcodeBuildTasksDir Condition=" '$(_LolcodeBuildTasksDir)' == '' ">$(MSBuildThisFileDirectory)..\tools\net10.0\</_LolcodeBuildTasksDir>
     <LolcodeRuntimeAssemblyPath Condition=" '$(LolcodeRuntimeAssemblyPath)' == '' ">$(_LolcodeBuildTasksDir)Lolcode.Runtime.dll</LolcodeRuntimeAssemblyPath>
-    <LolcodeRuntimeStringAssemblyPath Condition=" '$(LolcodeRuntimeStringAssemblyPath)' == '' ">$(_LolcodeBuildTasksDir)Lolcode.Runtime.String.dll</LolcodeRuntimeStringAssemblyPath>
-    <LolcodeRuntimeStdlibAssemblyPath Condition=" '$(LolcodeRuntimeStdlibAssemblyPath)' == '' ">$(_LolcodeBuildTasksDir)Lolcode.Runtime.Stdlib.dll</LolcodeRuntimeStdlibAssemblyPath>
-    <LolcodeRuntimeStdioAssemblyPath Condition=" '$(LolcodeRuntimeStdioAssemblyPath)' == '' ">$(_LolcodeBuildTasksDir)Lolcode.Runtime.Stdio.dll</LolcodeRuntimeStdioAssemblyPath>
-    <LolcodeRuntimeSocksAssemblyPath Condition=" '$(LolcodeRuntimeSocksAssemblyPath)' == '' ">$(_LolcodeBuildTasksDir)Lolcode.Runtime.Socks.dll</LolcodeRuntimeSocksAssemblyPath>
     <_LolcodeCompilerOptionsFile>$(IntermediateOutputPath)Lolcode.CompilerOptions.cache</_LolcodeCompilerOptionsFile>
   </PropertyGroup>
 
@@ -29,26 +25,9 @@
   <UsingTask TaskName="Lolcode.Build.NormalizeClrNamespace"
              AssemblyFile="$(_LolcodeBuildTasksDir)Lolcode.Build.dll" />
 
-  <!-- SDK-bundled runtime providers stay runtime assets, not consumer packages. -->
   <ItemGroup>
     <Reference Include="Lolcode.Runtime">
       <HintPath>$(LolcodeRuntimeAssemblyPath)</HintPath>
-      <Private>true</Private>
-    </Reference>
-    <Reference Include="Lolcode.Runtime.String">
-      <HintPath>$(LolcodeRuntimeStringAssemblyPath)</HintPath>
-      <Private>true</Private>
-    </Reference>
-    <Reference Include="Lolcode.Runtime.Stdlib">
-      <HintPath>$(LolcodeRuntimeStdlibAssemblyPath)</HintPath>
-      <Private>true</Private>
-    </Reference>
-    <Reference Include="Lolcode.Runtime.Stdio">
-      <HintPath>$(LolcodeRuntimeStdioAssemblyPath)</HintPath>
-      <Private>true</Private>
-    </Reference>
-    <Reference Include="Lolcode.Runtime.Socks">
-      <HintPath>$(LolcodeRuntimeSocksAssemblyPath)</HintPath>
       <Private>true</Private>
     </Reference>
   </ItemGroup>

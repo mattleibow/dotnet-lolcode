@@ -20,8 +20,10 @@ internal static class LibraryDiscovery
         IEnumerable<string>? referenceAssemblyPaths,
         string? runtimeAssemblyPath)
     {
-        string[] references = referenceAssemblyPaths?
-            .Where(File.Exists)
+        string[] references = (referenceAssemblyPaths ?? [])
+            .Append(runtimeAssemblyPath)
+            .Where(static path => !string.IsNullOrWhiteSpace(path) && File.Exists(path))
+            .Select(static path => path!)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray() ?? [];
         if (references.Length == 0)

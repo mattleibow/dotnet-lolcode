@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <RootNamespace>Lolcode.Runtime.Stdlib</RootNamespace>
-    <IsPackable>false</IsPackable>
-  </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Lolcode.Runtime\Lolcode.Runtime.csproj" />
-  </ItemGroup>
-</Project>
