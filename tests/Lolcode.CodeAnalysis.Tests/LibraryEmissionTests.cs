@@ -431,7 +431,7 @@ public class LibraryEmissionTests
 
             result.Success.Should().BeTrue(string.Join(Environment.NewLine, result.Diagnostics));
             result.PdbPath.Should().BeNull();
-            Assembly.LoadFile(outputPath)
+            Assembly.Load(File.ReadAllBytes(outputPath))
                 .GetType("LolcodeExports")!
                 .GetCustomAttribute<LolcodeLibraryAttribute>()!
                 .Name.Should().Be("ConfiguredName");
