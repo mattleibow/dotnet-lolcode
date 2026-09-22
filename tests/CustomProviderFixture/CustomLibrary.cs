@@ -1,7 +1,3 @@
-using Lolcode.Runtime;
-
-[assembly: LolcodeLibraryProvider("CUSTOM", typeof(CustomProviderFixture.CustomLibrary))]
-
 namespace CustomProviderFixture;
 
 public static class CustomLibrary

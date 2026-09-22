@@ -74,7 +74,6 @@ internal sealed class CodeGenerator
     // Runtime method references
     private MethodInfo _printMethod = null!;
     private MethodInfo _loadLibraryMethod = null!;
-    private MethodInfo _registerLibraryProviderMethod = null!;
     private MethodInfo _executeSystemCommandMethod = null!;
     private MethodInfo _disposeScopeMethod = null!;
     private MethodInfo _transferPublicLibraryResultMethod = null!;
@@ -459,10 +458,6 @@ internal sealed class CodeGenerator
             nameof(LolRuntime.Print),
             [_systemObjectType.MakeArrayType(), _booleanType, _booleanType]);
         _loadLibraryMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.LoadLibrary));
-        _registerLibraryProviderMethod = GetRequiredRuntimeMethod(
-            runtimeType,
-            nameof(LolRuntime.RegisterLibraryProvider),
-            [_scopeType, _stringType, _stringType, _stringType, _booleanType, _int32Type]);
         _executeSystemCommandMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.ExecuteSystemCommandValue));
         _disposeScopeMethod = GetRequiredRuntimeMethod(runtimeType, nameof(LolRuntime.DisposeScope));
         _transferPublicLibraryResultMethod = GetRequiredRuntimeMethod(
@@ -522,29 +517,8 @@ internal sealed class CodeGenerator
 
     private void EmitLibraryConfiguration()
     {
-        ProviderDiscoveryResult discovery = ProviderDiscovery.Discover(
-            _referenceAssemblyPaths,
-            _runtimeAssemblyPath);
-        if (discovery.Errors.Count != 0)
-        {
-            throw new InvalidOperationException(
-                string.Join(Environment.NewLine, discovery.Errors));
-        }
-
-        // The runtime has a trusted fallback for SDK-bundled providers. Emitting
-        // only custom registrations keeps the built-in assembly types unrooted
-        // for a future trimming policy.
-        foreach (LolcodeLibraryProviderDeclaration provider in discovery.Providers.Where(
-            static provider => !provider.IsBuiltIn))
-        {
-            _il.Emit(OpCodes.Ldloc, _scopeLocal);
-            _il.Emit(OpCodes.Ldstr, provider.LolName);
-            _il.Emit(OpCodes.Ldstr, provider.AssemblyName);
-            _il.Emit(OpCodes.Ldstr, provider.ExportTypeName);
-            _il.Emit(provider.IsBuiltIn ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
-            _il.Emit(OpCodes.Ldc_I4, provider.ContractVersion);
-            _il.Emit(OpCodes.Call, _registerLibraryProviderMethod);
-        }
+        // Official libraries are resolved by LolRuntime's single trusted registry.
+        // Convention-based managed imports are resolved at runtime from copied assemblies.
     }
 
     private static Type GetRequiredRuntimeType(Assembly runtimeAssembly, Type expectedType)

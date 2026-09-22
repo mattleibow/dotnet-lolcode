@@ -1,7 +1,3 @@
-using Lolcode.Runtime;
-
-[assembly: LolcodeLibraryProvider("STRING", typeof(LoaderFixtures.STRING))]
-
 namespace LoaderFixtures;
 
 public static class STRING

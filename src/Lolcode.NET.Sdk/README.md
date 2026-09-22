@@ -146,15 +146,10 @@ it; merely compiling an application does not initialize provider code. Normal
 build and publish include the provider assemblies today. Publish trimming of
 unused providers is a future optimization.
 
-To provide `CAN HAS CUSTOM?`, reference a normal .NET assembly and apply:
-
-```csharp
-[assembly: LolcodeLibraryProvider("CUSTOM", typeof(CustomExports))]
-```
-
-The compiler discovers this assembly metadata through resolved references
-without loading the target assembly into MSBuild. The four reserved built-in
-names cannot be replaced by custom assemblies.
+For a custom managed import, reference the assembly normally and use its
+assembly name in `CAN HAS`. The runtime resolves the copied assembly using the
+existing convention and selects a suitable static export type. Aliases are not
+supported; the four reserved built-in names cannot be replaced.
 
 ## Requirements
 

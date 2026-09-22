@@ -1,8 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <AssemblyName>InvalidProviderFixture</AssemblyName>
-  </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\Lolcode.Runtime\Lolcode.Runtime.csproj" />
-  </ItemGroup>
-</Project>

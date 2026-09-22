@@ -121,25 +121,6 @@ public static class LolRuntime
     }
 
     /// <summary>
-    /// Registers provider metadata discovered by the compiler from a referenced assembly.
-    /// Registering metadata does not load the provider assembly; loading remains opt-in
-    /// through <c>CAN HAS</c>.
-    /// </summary>
-    public static void RegisterLibraryProvider(
-        LolScope scope,
-        string lolName,
-        string assemblyName,
-        string exportTypeName,
-        bool isBuiltIn,
-        int contractVersion) =>
-        scope.Libraries.Register(
-            lolName,
-            assemblyName,
-            exportTypeName,
-            isBuiltIn,
-            contractVersion);
-
-    /// <summary>
     /// Loads a named registered or local managed library into the current scope.
     /// Registered libraries take precedence. Unknown names and duplicate imports are ignored.
     /// </summary>

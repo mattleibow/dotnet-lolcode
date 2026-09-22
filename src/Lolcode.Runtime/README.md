@@ -46,11 +46,10 @@ consumer packages. The SDK supplies their assemblies privately, and `CAN HAS`
 is the runtime opt-in/import operation: registration does not load a provider
 until it is imported.
 
-Custom referenced providers use the public assembly-level
-`LolcodeLibraryProviderAttribute`. A normal `ProjectReference` or `Reference`
-is sufficient; the compiler discovers metadata only, validates the contract,
-and embeds the registration needed at runtime. Reserved built-in names cannot
-be overridden.
+Custom referenced assemblies retain the existing managed `CAN HAS` convention:
+a normal `ProjectReference` or `Reference` copies the assembly, and the runtime
+resolves its assembly name and suitable static export type at import time.
+Aliases and built-in replacement are not supported.
 
 Registered providers use the same typed managed invocation path as ordinary
 managed assemblies. They may receive a first, exact `LolcodeLibraryContext`

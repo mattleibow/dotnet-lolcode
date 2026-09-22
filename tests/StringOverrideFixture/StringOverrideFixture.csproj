@@ -3,7 +3,4 @@
     <TargetFramework>net10.0</TargetFramework>
     <AssemblyName>STRING</AssemblyName>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\Lolcode.Runtime\Lolcode.Runtime.csproj" />
-  </ItemGroup>
 </Project>

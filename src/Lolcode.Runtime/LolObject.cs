@@ -98,7 +98,7 @@ internal sealed record LolcodeLibraryDescriptor(
         bool IsReserved,
         int ContractVersion)
     {
-        internal const int CurrentContractVersion = LolcodeLibraryProviderAttribute.CurrentContractVersion;
+        internal const int CurrentContractVersion = 1;
         internal static readonly IReadOnlyDictionary<string, LolcodeLibraryDescriptor> Official =
             new Dictionary<string, LolcodeLibraryDescriptor>(StringComparer.Ordinal)
             {

@@ -1,10 +1,5 @@
 using Lolcode.Runtime;
 
-[assembly: LolcodeLibraryProvider(
-    "STDLIB",
-    typeof(Lolcode.Runtime.Stdlib.StdlibLibrary),
-    isBuiltIn: true)]
-
 namespace Lolcode.Runtime.Stdlib;
 
 internal sealed class RandomState

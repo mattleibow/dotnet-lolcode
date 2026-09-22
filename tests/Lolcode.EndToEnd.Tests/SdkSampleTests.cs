@@ -324,8 +324,8 @@ public class SdkSampleTests
                 Path.Combine(projectDirectory, "Program.lol"),
                 """
                 HAI 1.4
-                CAN HAS CUSTOM?
-                VISIBLE I IZ CUSTOM'Z ECHO YR "HAI" MKAY
+                CAN HAS CustomProviderFixture?
+                VISIBLE I IZ CustomProviderFixture'Z ECHO YR "HAI" MKAY
                 KTHXBYE
                 """);
 

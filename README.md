@@ -152,10 +152,10 @@ assemblies are build/runtime assets, while `CAN HAS` is the runtime opt-in that
 imports and loads a provider. Normal build and publish currently include all
 built-ins. Trimming unused providers is intentionally deferred.
 
-Custom providers are ordinary referenced assemblies: apply
-`[assembly: LolcodeLibraryProvider("NAME", typeof(Exports))]` and add a normal
-`ProjectReference` or `Reference`. The compiler reads that assembly metadata
-without executing it and embeds the registration for `CAN HAS NAME?`.
+Custom managed imports retain the existing convention: add a normal
+`ProjectReference` or `Reference`, then use its assembly name in `CAN HAS`.
+The runtime loads the copied assembly and selects its single suitable static
+export type. Aliasing an assembly to another LOLCODE import name is not supported.
 
 ## Browser Playground
 

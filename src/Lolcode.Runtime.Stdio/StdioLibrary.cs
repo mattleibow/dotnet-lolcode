@@ -1,10 +1,4 @@
 using Lolcode.Runtime;
-
-[assembly: LolcodeLibraryProvider(
-    "STDIO",
-    typeof(Lolcode.Runtime.Stdio.StdioLibrary),
-    isBuiltIn: true)]
-
 namespace Lolcode.Runtime.Stdio;
 
 internal sealed class FileBlob(Stream? stream, bool failed, bool appendWrites = false) : LolBlob

@@ -1,12 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
 using Lolcode.Runtime;
-
-[assembly: LolcodeLibraryProvider(
-    "SOCKS",
-    typeof(Lolcode.Runtime.Socks.SocksLibrary),
-    isBuiltIn: true)]
-
 namespace Lolcode.Runtime.Socks;
 
 internal sealed class SocketLease(Socket socket) : IDisposable

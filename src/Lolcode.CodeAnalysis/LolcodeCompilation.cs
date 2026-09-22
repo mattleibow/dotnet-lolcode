@@ -430,19 +430,6 @@ public sealed class LolcodeCompilation
         string? libraryTypeName = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        ProviderDiscoveryResult providers = ProviderDiscovery.Discover(
-            referenceAssemblyPaths,
-            runtimeAssemblyPath);
-        if (providers.Errors.Count != 0)
-        {
-            ImmutableArray<Diagnostic> providerDiagnostics = diagnostics.AddRange(
-                providers.Errors.Select(error => Diagnostic.Create(
-                    DiagnosticDescriptors.InvalidLibraryProvider,
-                    default,
-                    error)));
-            return new EmitResult(false, providerDiagnostics, null);
-        }
-
         var bindingResult = EnsureBound();
         cancellationToken.ThrowIfCancellationRequested();
         var generator = new CodeGenerator(
