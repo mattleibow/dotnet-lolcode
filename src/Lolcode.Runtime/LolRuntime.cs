@@ -62,8 +62,6 @@ public static class LolRuntime
 {
     private sealed record YarnLiteral(string Value);
     private static readonly AsyncLocal<IoContext?> CurrentIo = new();
-    private static readonly IReadOnlyDictionary<string, LolcodeLibraryDescriptor> OfficialDescriptors =
-        LolcodeLibraryDescriptor.Official;
 
     // ==================== Namespaces and BUKKITs ====================
 
@@ -72,6 +70,9 @@ public static class LolRuntime
 
     /// <summary>Closes all managed BLOB handles created by a program scope.</summary>
     public static void DisposeScope(LolScope scope) => scope.Resources.Dispose();
+
+    /// <summary>Throws when a disposed library instance is invoked.</summary>
+    public static void ThrowIfDisposed(LolScope scope) => scope.Resources.ThrowIfDisposed();
 
     /// <summary>
     /// Transfers a BLOB returned through a public library wrapper to the managed caller.
@@ -120,152 +121,67 @@ public static class LolRuntime
         return value;
     }
 
-    /// <summary>
-    /// Loads a named registered or local managed library into the current scope.
-    /// Registered libraries take precedence. Unknown names and duplicate imports are ignored.
-    /// </summary>
+    /// <summary>Loads an explicitly registered library into the current scope.</summary>
     public static void LoadLibrary(LolScope scope, string name)
     {
         if (scope.Values.ContainsKey(name))
             return;
-        LolObject? library = LoadRegisteredLibrary(scope, name);
-        library ??= LoadManagedLibrary(scope, name);
-        if (library is not null)
-            scope.Values[name] = library;
-    }
-
-    /// <summary>Registers a compiler-discovered untrusted friendly module alias.</summary>
-    public static void RegisterLibrary(
-        LolScope scope, string alias, string assemblyName, string typeName) =>
-        scope.Libraries.Register(
-            alias,
-            assemblyName,
-            typeName,
-            isBuiltIn: false,
-            LolcodeLibraryDescriptor.CurrentContractVersion);
-
-    private static LolObject? LoadRegisteredLibrary(LolScope scope, string name)
-    {
-        if (!scope.Libraries.TryGet(name, out LolcodeLibraryDescriptor descriptor) &&
-            !OfficialDescriptors.TryGetValue(name, out descriptor!))
-        {
-            return null;
-        }
+        if (!scope.Libraries.TryGet(name, out LolcodeLibraryDefinition definition))
+            return;
 
         try
         {
-            Assembly assembly = Assembly.Load(new AssemblyName(descriptor.AssemblyName));
-            Type? type = assembly.GetType(descriptor.ExportTypeName, throwOnError: false);
+            Type? type = Type.GetType(
+                $"{definition.TypeName}, {definition.AssemblyName}",
+                throwOnError: false);
             if (type is null)
-            {
                 throw new LolRuntimeException(
-                    $"Registered LOLCODE library '{name}' does not contain '{descriptor.ExportTypeName}'.");
-            }
-            return type.IsDefined(typeof(LolcodeLibraryAttribute), inherit: false)
-                ? CreateGeneratedLolcodeLibrary(scope, type)
-                : CreateManagedLibrary(scope, type, allowContext: descriptor.IsReserved);
+                    $"LOLCODE library '{name}' is unavailable.");
+            object instance = Activator.CreateInstance(type)
+                ?? throw new LolRuntimeException($"LOLCODE library '{name}' returned no instance.");
+            LolObject library = instance is ILolcodeLibraryInstance generated
+                ? generated.Library
+                : CreateManagedLibrary(scope, type, instance);
+            if (instance is IDisposable disposable)
+                scope.Resources.RegisterLibrary(disposable);
+            scope.Values[name] = library;
+        }
+        catch (TargetInvocationException ex)
+        {
+            throw new LolRuntimeException(
+                ex.InnerException?.Message ?? $"Unable to construct LOLCODE library '{name}'.");
         }
         catch (LolRuntimeException)
         {
             throw;
         }
-        catch (Exception ex) when (
-            ex is FileNotFoundException or FileLoadException or BadImageFormatException or
-            TypeLoadException or ArgumentException)
+        catch (Exception ex)
         {
-            throw new LolRuntimeException($"Unable to load registered LOLCODE library '{name}': {ex.Message}");
+            throw new LolRuntimeException($"Unable to construct LOLCODE library '{name}': {ex.Message}");
         }
     }
 
-    private static LolObject? LoadManagedLibrary(LolScope scope, string name)
-    {
-        if (!TryGetManagedLibraryPath(name, out string path))
-            return null;
-        if (!File.Exists(path))
-            return null;
+    /// <summary>Registers a compiler-discovered library definition for a scope.</summary>
+    public static void RegisterLibraryDefinition(
+        LolScope scope, string name, string assemblyName, string typeName) =>
+        scope.Libraries.Register(name, assemblyName, typeName);
 
-        Assembly assembly;
-        try
-        {
-            assembly = Assembly.LoadFrom(path);
-        }
-        catch (Exception ex) when (
-            ex is BadImageFormatException or FileLoadException or FileNotFoundException or
-            PathTooLongException or ArgumentException or NotSupportedException)
-        {
-            return null;
-        }
-
-        Type? type;
-        try
-        {
-            type = SelectManagedLibraryType(assembly.GetTypes(), name);
-        }
-        catch (Exception ex) when (
-            ex is ReflectionTypeLoadException or FileNotFoundException or FileLoadException or
-            BadImageFormatException)
-        {
-            return null;
-        }
-        if (type is null)
-            return null;
-
-        if (type.IsDefined(typeof(LolcodeLibraryAttribute), inherit: false))
-            return CreateGeneratedLolcodeLibrary(scope, type);
-
-        return CreateManagedLibrary(scope, type, allowContext: false);
-    }
-
-    private static LolObject CreateGeneratedLolcodeLibrary(LolScope scope, Type type)
-    {
-        MethodInfo[] factories = type.GetMethods(
-                BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
-            .Where(method => method.Name == "__CreateLolcodeLibrary")
-            .ToArray();
-        if (factories is not [var factory] ||
-            factory.IsGenericMethodDefinition ||
-            factory.ContainsGenericParameters ||
-            factory.ReturnType != typeof(LolObject) ||
-            factory.GetParameters() is not [{ ParameterType: var parameterType }] ||
-            parameterType != typeof(LolScope))
-        {
-            throw new LolRuntimeException(
-                $"Generated LOLCODE library '{type.FullName}' does not expose a valid module factory.");
-        }
-
-        try
-        {
-            return (LolObject)(factory.Invoke(null, [scope])
-                ?? throw new LolRuntimeException($"Generated LOLCODE library '{type.FullName}' returned no module."));
-        }
-        catch (TargetInvocationException ex)
-        {
-            throw new LolRuntimeException(ex.InnerException?.Message ?? ex.Message);
-        }
-    }
-
-    private static LolObject CreateManagedLibrary(LolScope scope, Type type, bool allowContext)
+    private static LolObject CreateManagedLibrary(LolScope scope, Type type, object instance)
     {
         var library = new LolObject(scope, scope.Caller);
-        LolcodeLibraryContext? importContext = allowContext
-            ? new LolcodeLibraryContext(scope.Resources)
-            : null;
         MethodInfo[] methods = type.GetMethods(
-                BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
-            .Where(static method => !method.IsSpecialName)
+                BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Where(static method => !method.IsSpecialName && method.Name != nameof(IDisposable.Dispose))
             .GroupBy(static method => method.Name, StringComparer.Ordinal)
             .Where(static group => group.Take(2).Count() == 1)
             .Select(static group => group.Single())
-            .Where(method => IsSupportedManagedMethod(method, allowContext))
+            .Where(IsSupportedManagedMethod)
             .OrderBy(static method => method.Name, StringComparer.Ordinal)
             .ToArray();
 
         foreach (MethodInfo method in methods)
         {
-            ParameterInfo[] allParameters = method.GetParameters();
-            bool usesContext = allowContext && allParameters.FirstOrDefault()?.ParameterType ==
-                typeof(LolcodeLibraryContext);
-            ParameterInfo[] parameters = usesContext ? allParameters[1..] : allParameters;
+            ParameterInfo[] parameters = method.GetParameters();
             string[] parameterNames = parameters
                 .Select((parameter, index) => parameter.Name ?? $"arg{index}")
                 .ToArray();
@@ -277,14 +193,7 @@ public static class LolRuntime
                 parameters.Length,
                 (caller, _, arguments, _) =>
                 {
-                    LolcodeLibraryContext? invocationContext =
-                        importContext?.ForInvocation(caller.Resources);
-                    return InvokeManagedMethod(
-                        method,
-                        allParameters,
-                        arguments,
-                        invocationContext,
-                        usesContext ? invocationContext : null);
+                    return InvokeManagedMethod(method, instance, parameters, arguments, caller);
                 },
                 resolvers);
         }
@@ -292,75 +201,7 @@ public static class LolRuntime
         return library;
     }
 
-    internal static bool TryGetManagedLibraryPath(string name, out string path)
-    {
-        path = string.Empty;
-        if (string.IsNullOrWhiteSpace(name) ||
-            name is "." or ".." ||
-            name.IndexOfAny(['/', '\\']) >= 0 ||
-            name.Contains(':', StringComparison.Ordinal) ||
-            Path.IsPathRooted(name) ||
-            Path.IsPathFullyQualified(name))
-        {
-            return false;
-        }
-
-        try
-        {
-            string baseDirectory = Path.GetFullPath(AppContext.BaseDirectory);
-            string candidate = Path.GetFullPath(Path.Combine(baseDirectory, $"{name}.dll"));
-            string normalizedBaseDirectory = Path.TrimEndingDirectorySeparator(baseDirectory);
-            string? candidateDirectory = Path.GetDirectoryName(candidate);
-            if (!string.Equals(
-                    candidateDirectory,
-                    normalizedBaseDirectory,
-                    OperatingSystem.IsWindows()
-                        ? StringComparison.OrdinalIgnoreCase
-                        : StringComparison.Ordinal))
-            {
-                return false;
-            }
-
-            path = candidate;
-            return true;
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
-    }
-
-    internal static Type? SelectManagedLibraryType(IEnumerable<Type> types, string name)
-    {
-        Type[] candidates = types
-            .Where(static candidate => candidate.IsPublic &&
-                !candidate.IsNested &&
-                candidate.IsClass &&
-                candidate.IsAbstract &&
-                candidate.IsSealed)
-            .OrderBy(static candidate => candidate.FullName, StringComparer.Ordinal)
-            .ToArray();
-
-        Type[] marked = candidates
-            .Where(static candidate => candidate.IsDefined(typeof(LolcodeLibraryAttribute), inherit: false))
-            .Take(2)
-            .ToArray();
-        if (marked.Length == 1)
-            return marked[0];
-        if (marked.Length > 1)
-            return null;
-
-        if (candidates.Length == 1)
-            return candidates[0];
-
-        Type[] matchingTypes = candidates
-            .Where(candidate => candidate.Name == name)
-            .Take(2)
-            .ToArray();
-        return matchingTypes.Length == 1 ? matchingTypes[0] : null;
-    }
-
-    internal static bool IsSupportedManagedMethod(MethodInfo method, bool allowContext = false)
+    internal static bool IsSupportedManagedMethod(MethodInfo method)
     {
         if (method.IsGenericMethodDefinition || method.ContainsGenericParameters ||
             method.ReturnType.IsByRef || method.ReturnType.IsPointer || method.ReturnType.IsByRefLike ||
@@ -369,14 +210,7 @@ public static class LolRuntime
             return false;
         }
 
-        ParameterInfo[] parameters = method.GetParameters();
-        bool hasContext = parameters.FirstOrDefault()?.ParameterType == typeof(LolcodeLibraryContext);
-        if (hasContext && !allowContext)
-            return false;
-        if (parameters.Skip(hasContext ? 1 : 0).Any(parameter => parameter.ParameterType == typeof(LolcodeLibraryContext)))
-            return false;
-
-        return parameters.Skip(hasContext ? 1 : 0).All(parameter =>
+        return method.GetParameters().All(parameter =>
             !parameter.IsOut &&
             !parameter.ParameterType.IsByRef &&
             !parameter.ParameterType.IsPointer &&
@@ -413,29 +247,26 @@ public static class LolRuntime
 
     internal static object? InvokeManagedMethod(
         MethodInfo method,
+        object instance,
         ParameterInfo[] parameters,
         object?[] arguments,
-        LolcodeLibraryContext? ownerContext = null,
-        LolcodeLibraryContext? injectedContext = null)
+        LolScope caller)
     {
         try
         {
-            int parameterOffset = injectedContext is null ? 0 : 1;
-            if (parameters.Length != arguments.Length + parameterOffset)
+            if (parameters.Length != arguments.Length)
                 throw new LolRuntimeException("Managed library parameter count does not match LOLCODE call.");
 
             var convertedArguments = new object?[parameters.Length];
-            if (injectedContext is not null)
-                convertedArguments[0] = injectedContext;
             for (int index = 0; index < arguments.Length; index++)
             {
-                convertedArguments[index + parameterOffset] =
-                    ConvertManagedArgument(arguments[index], parameters[index + parameterOffset].ParameterType);
+                convertedArguments[index] =
+                    ConvertManagedArgument(arguments[index], parameters[index].ParameterType);
             }
 
-            object? result = method.Invoke(null, convertedArguments);
-            if (ownerContext is not null && result is LolBlob blob)
-                ownerContext.RegisterResource(blob);
+            object? result = method.Invoke(instance, convertedArguments);
+            if (result is LolBlob blob && !blob.IsClosed)
+                caller.Resources.Register(blob);
             return result;
         }
         catch (TargetInvocationException ex)

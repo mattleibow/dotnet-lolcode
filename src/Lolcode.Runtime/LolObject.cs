@@ -1,5 +1,12 @@
 namespace Lolcode.Runtime;
 
+/// <summary>Implemented by generated LOLCODE library export types.</summary>
+public interface ILolcodeLibraryInstance : IDisposable
+{
+    /// <summary>Gets the persistent library BUKKIT for this instance.</summary>
+    LolObject Library { get; }
+}
+
 /// <summary>Represents a runtime LOLCODE namespace.</summary>
 [System.Diagnostics.DebuggerNonUserCode]
 public class LolScope
@@ -36,128 +43,27 @@ public class LolScope
     }
 }
 
-/// <summary>Marks the generated public export type of a LOLCODE class library.</summary>
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-public sealed class LolcodeLibraryAttribute : Attribute;
-
-/// <summary>
-/// Provides a registered LOLCODE library with scope-bound capabilities.
-/// </summary>
-public sealed class LolcodeLibraryContext
-{
-    private readonly LolcodeLibraryState _state;
-    private readonly LolResourceTracker _resources;
-
-    internal LolcodeLibraryContext(LolResourceTracker resources)
-        : this(new LolcodeLibraryState(), resources)
-    {
-    }
-
-    private LolcodeLibraryContext(LolcodeLibraryState state, LolResourceTracker resources)
-    {
-        _state = state;
-        _resources = resources;
-    }
-
-    internal LolcodeLibraryContext ForInvocation(LolResourceTracker resources) =>
-        new(_state, resources);
-
-    /// <summary>Registers an opaque BLOB handle for automatic scope cleanup.</summary>
-    public T RegisterResource<T>(T resource) where T : LolBlob => _resources.Register(resource);
-
-    /// <summary>Gets or creates mutable state that is isolated to this library import.</summary>
-    public T GetOrCreateState<T>(Func<T> factory) where T : class
-    {
-        ArgumentNullException.ThrowIfNull(factory);
-        return _state.GetOrCreate(factory);
-    }
-}
-
-internal sealed class LolcodeLibraryState
-{
-    private readonly Dictionary<Type, object> _values = [];
-
-    internal T GetOrCreate<T>(Func<T> factory) where T : class
-    {
-        lock (_values)
-        {
-            if (_values.TryGetValue(typeof(T), out object? existing))
-                return (T)existing;
-
-            T created = factory();
-            _values.Add(typeof(T), created);
-            return created;
-        }
-    }
-}
-
-internal sealed record LolcodeLibraryDescriptor(
-        string LolName,
-        string AssemblyName,
-        string ExportTypeName,
-        bool IsReserved,
-        int ContractVersion)
-    {
-        internal const int CurrentContractVersion = 1;
-        internal static readonly IReadOnlyDictionary<string, LolcodeLibraryDescriptor> Official =
-            new Dictionary<string, LolcodeLibraryDescriptor>(StringComparer.Ordinal)
-            {
-                ["STRING"] = new("STRING", "Lolcode.Runtime.String", "Lolcode.Runtime.String.StringLibrary", true, CurrentContractVersion),
-                ["STDLIB"] = new("STDLIB", "Lolcode.Runtime.Stdlib", "Lolcode.Runtime.Stdlib.StdlibLibrary", true, CurrentContractVersion),
-                ["STDIO"] = new("STDIO", "Lolcode.Runtime.Stdio", "Lolcode.Runtime.Stdio.StdioLibrary", true, CurrentContractVersion),
-                ["SOCKS"] = new("SOCKS", "Lolcode.Runtime.Socks", "Lolcode.Runtime.Socks.SocksLibrary", true, CurrentContractVersion),
-            };
-
-    }
+internal sealed record LolcodeLibraryDefinition(string AssemblyName, string TypeName);
 
 internal sealed class LolcodeLibraryRegistry
+{
+    private readonly Dictionary<string, LolcodeLibraryDefinition> _definitions =
+        new(StringComparer.Ordinal);
+
+    internal void Register(string name, string assemblyName, string typeName)
     {
-        private readonly Dictionary<string, LolcodeLibraryDescriptor> _descriptors =
-            new(StringComparer.Ordinal);
-
-        internal void Register(
-            string lolName,
-            string assemblyName,
-            string exportTypeName,
-            bool isBuiltIn,
-            int contractVersion)
+        var definition = new LolcodeLibraryDefinition(assemblyName, typeName);
+        if (_definitions.TryGetValue(name, out LolcodeLibraryDefinition? existing))
         {
-            if (string.IsNullOrWhiteSpace(lolName) ||
-                string.IsNullOrWhiteSpace(assemblyName) ||
-                string.IsNullOrWhiteSpace(exportTypeName))
-            {
-                throw new LolRuntimeException("Invalid LOLCODE library provider registration.");
-            }
-
-            var provider = new LolcodeLibraryDescriptor(
-                lolName,
-                assemblyName,
-                exportTypeName,
-                isBuiltIn,
-                contractVersion);
-            if (provider.ContractVersion != LolcodeLibraryDescriptor.CurrentContractVersion)
-            {
-                throw new LolRuntimeException(
-                    $"Unsupported LOLCODE library contract version: {provider.ContractVersion}");
-            }
-            if (LolcodeLibraryDescriptor.Official.TryGetValue(provider.LolName, out var official) &&
-                provider != official)
-            {
-                throw new LolRuntimeException(
-                    $"Reserved LOLCODE library provider does not match the official '{provider.LolName}' contract.");
-            }
-            if (_descriptors.TryGetValue(provider.LolName, out var existing))
-            {
-                if (existing == provider)
-                    return;
-                throw new LolRuntimeException(
-                    $"Ambiguous LOLCODE library provider: {provider.LolName}");
-            }
-            _descriptors.Add(provider.LolName, provider);
+            if (existing == definition)
+                return;
+            throw new LolRuntimeException($"Ambiguous LOLCODE library: {name}");
         }
+        _definitions.Add(name, definition);
+    }
 
-        internal bool TryGet(string name, out LolcodeLibraryDescriptor descriptor) =>
-            _descriptors.TryGetValue(name, out descriptor!);
+    internal bool TryGet(string name, out LolcodeLibraryDefinition definition) =>
+        _definitions.TryGetValue(name, out definition!);
 }
 
 /// <summary>Represents a LOLCODE BUKKIT and its prototype chain.</summary>
@@ -177,6 +83,20 @@ internal sealed class LolResourceTracker
     private readonly object _gate = new();
     private readonly HashSet<LolBlob> _resources = new(ReferenceEqualityComparer.Instance);
     private bool _disposed;
+    private readonly List<IDisposable> _libraries = [];
+
+    internal void RegisterLibrary(IDisposable library)
+    {
+        lock (_gate)
+        {
+            if (_disposed)
+            {
+                library.Dispose();
+                throw new ObjectDisposedException(nameof(LolScope));
+            }
+            _libraries.Add(library);
+        }
+    }
 
     internal T Register<T>(T resource) where T : LolBlob
     {
@@ -227,6 +147,17 @@ internal sealed class LolResourceTracker
 
         foreach (LolBlob resource in resources)
             resource.Dispose();
+        foreach (IDisposable library in _libraries)
+            library.Dispose();
+    }
+
+    internal void ThrowIfDisposed()
+    {
+        lock (_gate)
+        {
+            if (_disposed)
+                throw new ObjectDisposedException("LOLCODE library instance");
+        }
     }
 }
 

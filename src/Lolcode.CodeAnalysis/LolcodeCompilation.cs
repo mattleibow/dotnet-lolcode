@@ -392,14 +392,14 @@ public sealed class LolcodeCompilation
         => Emit(peStream, pdbStream, referenceAssemblyPaths: null, cancellationToken);
 
     /// <summary>
-    /// Emits to caller-provided streams and discovers friendly module aliases from
-    /// resolved reference assembly metadata.
+    /// Emits to caller-provided streams and discovers explicitly opted-in LOLCODE
+    /// libraries from resolved reference assembly metadata.
     /// </summary>
     /// <param name="peStream">A writable stream that receives the portable executable.</param>
     /// <param name="pdbStream">An optional writable stream that receives portable PDB symbols.</param>
     /// <param name="referenceAssemblyPaths">
     /// Resolved target reference assembly paths. Supply the complete target reference set
-    /// when referenced assemblies use <see cref="LolcodeModuleAttribute"/>.
+    /// when referenced assemblies contain LOLCODE libraries.
     /// </param>
     /// <param name="cancellationToken">A token checked at compilation and emission boundaries.</param>
     /// <returns>The result of the emission.</returns>
@@ -452,11 +452,11 @@ public sealed class LolcodeCompilation
         cancellationToken.ThrowIfCancellationRequested();
         var bindingResult = EnsureBound();
         cancellationToken.ThrowIfCancellationRequested();
-        ModuleAliasDiscoveryResult aliasDiscovery = ModuleAliasDiscovery.Discover(
+        LibraryDiscoveryResult libraryDiscovery = LibraryDiscovery.Discover(
             referenceAssemblyPaths,
             runtimeAssemblyPath);
-        ImmutableArray<Diagnostic> emitDiagnostics = diagnostics.AddRange(aliasDiscovery.Diagnostics);
-        if (aliasDiscovery.Diagnostics.Any(diagnostic =>
+        ImmutableArray<Diagnostic> emitDiagnostics = diagnostics.AddRange(libraryDiscovery.Diagnostics);
+        if (libraryDiscovery.Diagnostics.Any(diagnostic =>
             diagnostic.Severity == DiagnosticSeverity.Error))
         {
             return new EmitResult(false, emitDiagnostics, null);
@@ -470,7 +470,7 @@ public sealed class LolcodeCompilation
             bindingResult.SyntaxTrees,
             isLibrary: isLibrary,
             libraryTypeName: libraryTypeName,
-            moduleAliases: aliasDiscovery.Aliases);
+            libraryDefinitions: libraryDiscovery.Definitions);
         var pdbEmitted = false;
         if (toleratePdbFailure && pdbStream != null && pdbFileName != null)
             pdbEmitted = generator.EmitWithOptionalPdb(peStream, pdbStream, pdbFileName, cancellationToken);
