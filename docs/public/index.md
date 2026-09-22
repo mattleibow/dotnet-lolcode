@@ -42,4 +42,4 @@ KTHXBYE
 > [!NOTE]
 > The repository version is `0.3.0`. Package publication can lag the source
 > branch, so check [versions, support, and availability](language/versions.md)
-> before pinning an SDK or provider package.
+> before pinning an SDK package.

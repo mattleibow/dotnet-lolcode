@@ -139,8 +139,34 @@ body > header {
   gap: 1rem;
 }
 
+.lol-primary-links {
+  display: flex;
+  align-items: center;
+  gap: .15rem;
+  white-space: nowrap;
+}
+
+.lol-primary-links a {
+  padding: .48rem .62rem;
+  color: var(--lol-muted);
+  font-size: .92rem;
+  font-weight: 720;
+  text-decoration: none;
+  border-radius: .4rem;
+}
+
+.lol-primary-links a:hover,
+.lol-primary-links a.active {
+  color: var(--lol-ink);
+  background: var(--lol-panel);
+}
+
+.lol-primary-links a.active {
+  box-shadow: inset 0 -2px 0 var(--lol-amber);
+}
+
 #navbar .search {
-  flex: 1 1 24rem;
+  flex: 1 1 18rem;
   max-width: 34rem;
   margin: 0;
 }
@@ -273,6 +299,65 @@ body > header {
   body:not([data-search]) > main > .content {
     min-width: 0;
     margin-inline: clamp(1.5rem, 3vw, 3.5rem);
+  }
+
+  .docs-home > main {
+    justify-content: center;
+  }
+
+  .docs-home > main > .content {
+    width: min(100%, 78rem);
+  }
+
+  .docs-home > main > .affix {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1100px) {
+  #navbar {
+    gap: .45rem;
+  }
+
+  .lol-primary-links a {
+    padding-inline: .42rem;
+    font-size: .82rem;
+  }
+
+  #navbar .search {
+    flex-basis: 12rem;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .navbar > .container-xxl {
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+
+  #navpanel {
+    padding: .75rem 0 1rem;
+  }
+
+  #navbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .lol-primary-links,
+  .lol-utility-links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .lol-primary-links a,
+  .lol-utility-links a {
+    text-align: center;
+  }
+
+  #navbar .search {
+    flex-basis: auto;
+    max-width: none;
   }
 }
 
@@ -609,34 +694,6 @@ summary {
 @media (max-width: 767.98px) {
   body > header {
     position: relative;
-  }
-
-  .navbar > .container-xxl {
-    flex-wrap: wrap;
-    gap: .5rem;
-  }
-
-  #navpanel {
-    padding: .75rem 0 1rem;
-  }
-
-  #navbar {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  #navbar .search {
-    flex-basis: auto;
-    max-width: none;
-  }
-
-  .lol-utility-links {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .lol-utility-links a {
-    text-align: center;
   }
 
   .task-card-grid {

@@ -1,4 +1,4 @@
-order: -100
+order: -1000
 items:
 - name: Language and SDK home
   href: index.md
@@ -25,7 +25,7 @@ items:
 - name: Projects and SDK
   href: ../projects/toc.yml
   topicHref: ../projects/index.md
-- name: Libraries and providers
+- name: Libraries and modules
   items:
   - name: Library overview
     href: libraries.md
@@ -37,9 +37,9 @@ items:
     href: libraries/stdio.md
   - name: SOCKS
     href: libraries/socks.md
-  - name: Provider configuration
+  - name: Runtime library behavior
     href: ../projects/providers.md
-  - name: Custom provider authoring
+  - name: Custom module authoring
     href: ../projects/custom-providers.md
 - name: Specifications and compatibility
   href: ../reference/toc.yml

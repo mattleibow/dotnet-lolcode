@@ -4,8 +4,8 @@ MSBuild SDK for compiling **LOLCODE 1.2** programs to .NET assemblies. Write `.l
 
 The repository source version is `0.3.0`, which is not published yet. The quick
 start below uses the latest published `0.2.0` package. Multi-file interop,
-modular providers, and other `0.3.0` features require this source checkout or a
-locally packed feed until release.
+SDK-bundled runtime libraries, managed module aliases, and other `0.3.0`
+features require this source checkout or a locally packed feed until release.
 
 ## Quick Start
 

@@ -1,4 +1,4 @@
-order: 1000
+order: 10000
 items:
 - name: Learn LOLCODE
   href: learn/index.md

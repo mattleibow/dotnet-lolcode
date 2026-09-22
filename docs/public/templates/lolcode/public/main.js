@@ -9,15 +9,28 @@ export default {
 
     const relativeRoot =
       document.querySelector('meta[name="docfx:rel"]')?.getAttribute("content") ?? "";
+    const docsRoot = new URL(`${relativeRoot}index.html`, window.location.href);
+    const docsRootPath = docsRoot.pathname.slice(0, -"index.html".length);
+    const documentPath = window.location.pathname.slice(docsRootPath.length);
+    const isDocsHome = documentPath === "" || documentPath === "index.html";
     const brandLink = document.querySelector(".navbar-brand");
+    const navbarElement = document.querySelector(".navbar");
+    const navbarToggle = document.querySelector(
+      "button[data-bs-toggle='collapse'][data-bs-target='#navpanel']");
 
     if (brandLink) {
       brandLink.setAttribute("href", `${relativeRoot}index.html`);
     }
+    navbarElement?.classList.replace("navbar-expand-md", "navbar-expand-lg");
+    navbarToggle?.classList.replace("d-md-none", "d-lg-none");
 
     const main = document.querySelector("body > main");
     const tocMetadata = document.querySelector('meta[name="docfx:tocrel"]');
-    if (main && tocMetadata?.getAttribute("content") && !document.querySelector("#toc")) {
+    if (isDocsHome) {
+      document.body.classList.add("docs-home");
+      tocMetadata?.setAttribute("content", "");
+      main?.querySelector(".toc-offcanvas")?.remove();
+    } else if (main && tocMetadata?.getAttribute("content") && !document.querySelector("#toc")) {
       const sidebar = document.createElement("aside");
       sidebar.id = "docs-sidebar";
       sidebar.className = "toc-offcanvas offcanvas-md offcanvas-start";
@@ -46,6 +59,43 @@ export default {
     }
 
     const navbar = document.querySelector("#navbar");
+    if (navbar && !navbar.querySelector(".lol-primary-links")) {
+      const primary = document.createElement("nav");
+      primary.className = "lol-primary-links";
+      primary.setAttribute("aria-label", "Documentation sections");
+
+      const sections = [
+        ["Learn", "learn/index.html"],
+        ["Language & SDK", "language/index.html"],
+        ["Build the compiler", "compiler-course/index.html"],
+        ["API", "api/Lolcode.CodeAnalysis.html"],
+      ];
+      const activeSection =
+        documentPath === "language/samples.html" ||
+        ["learn/", "getting-started/", "tutorials/"].some((prefix) => documentPath.startsWith(prefix))
+          ? "Learn"
+          : ["language/", "projects/", "reference/"].some((prefix) => documentPath.startsWith(prefix))
+            ? "Language & SDK"
+            : documentPath.startsWith("compiler-course/")
+              ? "Build the compiler"
+              : documentPath.startsWith("api/")
+                ? "API"
+                : null;
+
+      for (const [name, href] of sections) {
+        const link = document.createElement("a");
+        link.href = `${relativeRoot}${href}`;
+        link.textContent = name;
+        if (name === activeSection) {
+          link.classList.add("active");
+          link.setAttribute("aria-current", "page");
+        }
+        primary.append(link);
+      }
+
+      navbar.prepend(primary);
+    }
+
     if (navbar && !navbar.querySelector(".lol-utility-links")) {
       const utilities = document.createElement("nav");
       utilities.className = "lol-utility-links";

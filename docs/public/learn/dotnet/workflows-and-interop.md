@@ -5,7 +5,7 @@
 - A file-based app is the shortest executable experiment. Its `#:sdk` pin is
   part of host configuration, not the `HAI` language version. Adjacent `.lol`
   files are suppressed from the project glob for this workflow.
-- A `.lolproj` records source items, references, output kind, provider assets,
+- A `.lolproj` records source items, references, output kind, runtime assets,
   publishing settings, and incremental inputs.
 - `LolcodeScript` embeds parse/compile/run in a managed host without creating
   path outputs.
@@ -20,7 +20,8 @@ A clean solution usually gives each language a narrow responsibility:
 - LOLCODE executable calling an eligible managed static adapter;
 - C# executable calling generated public wrappers from a LOLCODE class library;
 - a host embedding `LolcodeScript`;
-- separate provider packages for registered runtime capabilities.
+- SDK-bundled `STRING`, `STDLIB`, `STDIO`, and `SOCKS` runtime capabilities;
+- referenced managed modules imported by assembly name or a `LolcodeModule` alias.
 
 Ordinary managed `CAN HAS` import selects an eligible public, non-nested static
 CLR type and only methods declared directly on that type. Supported public
@@ -49,9 +50,10 @@ types, option values, and complex domain models behind that boundary.
 
 ## Publish deliberately
 
-Framework-dependent publishing carries registered providers through normal
-assets. `PublishSingleFile` bundles registered providers and loads them from
-the default context; dynamic managed DLL imports remain external beside the
-host. Trimming and NativeAOT do not support dynamic `CAN HAS` managed imports.
+Framework-dependent publishing carries the SDK-bundled libraries and referenced
+modules through normal assets. `PublishSingleFile` bundles SDK/runtime assets;
+deliberately external dynamic managed DLL imports remain beside the host.
+Provider trimming is deferred, and trimming/NativeAOT do not support dynamic
+`CAN HAS` managed imports.
 
 Continue with your language-specific page or [port a program](port-a-program.md).

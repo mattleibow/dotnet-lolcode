@@ -18,8 +18,9 @@ imports the base SDK and replaces its compile step.
 
 `0.2.0` is the latest published SDK and supports the basic project workflow
 above. This section also documents the repository's `0.3.0` source features,
-including multi-file interop and modular providers. Use a source checkout or a
-locally packed feed for those features until `0.3.0` is published. See
+including multi-file interop, SDK-bundled libraries, and managed module aliases.
+Use a source checkout or a locally packed feed for those features until
+`0.3.0` is published. See
 [versions and support](../language/versions.md).
 
 ## Choose a project task
@@ -30,8 +31,10 @@ locally packed feed for those features until `0.3.0` is published. See
   another LOLCODE project.
 - [Managed imports](managed-imports.md) calls a regular C# library with
   `CAN HAS`.
-- [Runtime providers](providers.md) configures `STRING`, `STDLIB`, `STDIO`,
-  and `SOCKS`.
+- [Runtime libraries](providers.md) explains the SDK-bundled `STRING`,
+  `STDLIB`, `STDIO`, and `SOCKS` modules.
+- [Custom modules](custom-providers.md) explains convention-based imports and
+  the optional `LolcodeModule` alias.
 - [SDK reference](sdk-reference.md) lists the props, targets, task inputs, and
   source-checkout behavior.
 - [Publishing](publishing.md) covers deployment artifacts and runtime files.

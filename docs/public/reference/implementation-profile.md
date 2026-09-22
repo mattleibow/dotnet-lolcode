@@ -71,8 +71,12 @@ methods declared directly on that type participate. It exports unique method
 names with `object`, `string`, `int`, `double`, `bool`, or `void` signatures;
 generic, `ref`/`out`, decimal, and any overload group are not slots, even when
 one overload would otherwise qualify. Generated `[LolcodeLibrary]` selection
-uses its factory contract instead of ordinary class-name selection. Registered
-providers take precedence over local assemblies.
+uses its factory contract instead of ordinary class-name selection. A
+referenced assembly may declare `[assembly: LolcodeModule("ALIAS",
+typeof(ExportType))]`; the compiler validates aliases and emits `LOL9003` for
+invalid, duplicate, reserved, or incompatible metadata. Imported methods stay
+inside the module BUKKIT. Built-in modules take precedence over local
+assemblies.
 
 The repository `VersionPrefix` is `0.3.0`, but that package is not published
 yet. Consumer quick starts and file-based samples therefore use the published
@@ -211,15 +215,15 @@ from a generated `finally` block when `Main` exits. This replaces lci's raw
 pointers and undefined double-close/use-after-close behavior without changing
 successful library calls.
 
-Each `CAN HAS` import owns a `LolcodeLibraryContext`: mutable provider state is
+Each built-in `CAN HAS` import owns a `LolcodeLibraryContext`: mutable state is
 shared by calls through that import and isolated from a separate import.
 Resource ownership follows the invoking caller scope, not the import/module
-scope. Escaped modules retain provider and lexical state while handles created
+scope. Escaped modules retain built-in and lexical state while handles created
 by later calls register with each caller's tracker. Close/unregister is
 idempotent. Generated public wrappers detach complete returned BLOB graphs,
-transferring ownership to the managed caller. Descriptors contain a name,
-assembly, export type, reservation flag, and contract version; malformed,
-ambiguous, incompatible, or replacement official descriptors are rejected.
+transferring ownership to the managed caller. Custom convention/alias modules
+cannot request `LolcodeLibraryContext`. The four built-in names are reserved;
+invalid or duplicate `LolcodeModule` metadata is diagnosed at compilation.
 
 - `STDIO` maps the six C modes to `FileStream`, shares open files sufficiently
   for lci's repeated-open fixture, encodes ordinary YARNs as UTF-8, and preserves

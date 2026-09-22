@@ -1,62 +1,64 @@
-# Custom provider authoring
+# Custom module authoring
 
 <span class="badge badge-dotnet">Advanced .NET extension</span>
 
-A provider package registers a `CAN HAS` name and a managed export type through
-MSBuild metadata. This is different from an ordinary adjacent managed import
-and from a generated LOLCODE class library.
+A custom `CAN HAS` module is an ordinary referenced managed assembly. It does
+not need a provider package, transitive MSBuild props, or `@(LolcodeLibrary)`
+metadata. Add a `ProjectReference` or `Reference`; normal build and publish
+copy the assembly beside the application.
 
 ## Export shape
 
-Provider slots are public static methods. They may use the ordinary supported
-primitive/object parameter and result types. A provider-only extension allows
-one first, exact `LolcodeLibraryContext` parameter for:
+Without extra metadata, the import name is the assembly simple name. The
+runtime selects a public, non-nested static class by the ordinary
+assembly-name/type-name convention. Its eligible public static methods become
+slots on the imported module BUKKIT:
 
-- per-import state through `GetOrCreateState`;
-- registering returned `LolBlob` resources into the invoking caller scope.
-
-Ordinary managed DLL imports cannot request that context. Keep provider
-implementation classes out of consumer source contracts; user code calls slots
-through the imported BUKKIT.
-
-## Register the descriptor
-
-An official provider package contributes a `buildTransitive` props file:
-
-```xml
-<Project>
-  <ItemGroup>
-    <LolcodeLibrary
-      Include="MYLIB|Example.Provider|Example.Provider.Library|false|1" />
-  </ItemGroup>
-</Project>
+```lolcode
+CAN HAS ExampleTools?
+VISIBLE I IZ ExampleTools'Z FORMAT YR "HAI" MKAY
 ```
 
-The fields are LOLCODE name, assembly simple name, export type name, reserved
-flag, and contract version. Current contract version is `1`. Mark third-party
-names unreserved. The runtime rejects malformed, conflicting, wrong-version,
-or attempted replacement descriptors for the four reserved official names.
+Methods are not added to global scope. They use the supported managed boundary
+types and overload rules described in [managed imports](managed-imports.md).
+Only the four trusted built-in libraries can receive
+`LolcodeLibraryContext`; custom modules cannot use that parameter or register
+resources with the built-in execution tracker.
 
-## Resource ownership
+## Add a friendly alias
 
-Register every returned BLOB with the invocation context. Ownership follows the
-caller that invokes the slot, not the import/module that stored provider state.
-Make close/dispose idempotent. If multiple wrappers alias one operating-system
-resource, use shared lease/reference ownership so the resource closes only
-after all aliases release it. Public generated wrappers detach returned BLOB
-graphs for the managed caller to own.
+Use the optional assembly attribute when the desired `CAN HAS` name or export
+type does not match the assembly convention:
 
-## Package and test
+```csharp
+using Lolcode.Runtime;
 
-Reference `Lolcode.Runtime`, include the descriptor as a transitive build asset,
-and test:
+[assembly: LolcodeModule("FRIENDLY", typeof(Example.Tools))]
+```
 
-- duplicate and conflicting registration;
+The export type must be declared in that assembly and must be a public,
+non-nested static class or a valid generated LOLCODE library export. Alias
+names use LOLCODE identifier characters. `STRING`, `STDLIB`, `STDIO`, and
+`SOCKS` are reserved. Invalid metadata, duplicate aliases across references,
+and attempts to claim a reserved name produce compiler diagnostic `LOL9003`.
+
+## State and resources
+
+Custom static methods own any state or host resources they create. Prefer plain
+values at the LOLCODE boundary and keep disposable/native resources behind an
+application-specific managed API. The automatic per-import state and BLOB
+cleanup contract is reserved for the SDK-bundled libraries.
+
+## Validate the module
+
+Test:
+
+- convention and friendly-alias imports;
+- invalid, duplicate, and reserved aliases (`LOL9003`);
 - each supported signature and rejected overload group;
-- state isolation across imports;
-- resource cleanup, explicit close, double close, and use after close;
 - framework-dependent and single-file publish asset behavior;
 - hostile filenames, addresses, sizes, and host failures where relevant.
 
-Consumers can disable implicit official defaults without removing explicit
-references; see [provider configuration](providers.md).
+The SDK-bundled official libraries are always available as runtime assets and
+cannot be disabled or replaced through custom module metadata; see
+[runtime libraries](providers.md).

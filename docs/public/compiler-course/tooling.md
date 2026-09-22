@@ -25,10 +25,11 @@ The compiler becomes practical through ordinary .NET integration:
   built compiler, while `#:sdk` enables `dotnet run --file`.
 
 The task parses every selected `.lol` file into one compilation, passes MSBuild
-reference paths and provider descriptors to emission, and honors `OutputType`
-for executables or public CLR library wrappers. `Sdk.targets` exposes
-incremental inputs and `SkipCompilerExecution` for design-time builds. For
-provider package choices, explicit compile order, source-checkout behavior, and
+reference paths to emission, discovers optional `LolcodeModule` aliases from
+referenced assembly metadata, and honors `OutputType` for executables or public
+CLR library wrappers. `Sdk.targets` exposes incremental inputs and
+`SkipCompilerExecution` for design-time builds. For bundled runtime libraries,
+custom modules, explicit compile order, source-checkout behavior, and
 deployment files, see [.NET projects](../projects/index.md).
 
 File-based execution suppresses the project `**/*.lol` glob so adjacent source
