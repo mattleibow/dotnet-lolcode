@@ -1,9 +1,9 @@
-# Mixed-language projects
+# LOLCODE head with a C# library
 
 Build the local compiler first, then run the LOLCODE executable from the repository root:
 
 ```bash
-dotnet run --project samples/project-based/mixed-language/lolcode-head-csharp-library/LolcodeHead
+dotnet run --project samples/project-based/lolcode-head-csharp-library/LolcodeHead
 ```
 
 `lolcode-head-csharp-library` references a C# project whose public sealed

@@ -200,7 +200,7 @@ public class SdkSampleTests
     public void LolcodeHead_CallsManagedTextPackage()
     {
         AssertProjectOutput(
-            "samples/project-based/mixed-language/lolcode-head-csharp-library/LolcodeHead/LolcodeHead.lolproj",
+            "samples/project-based/lolcode-head-csharp-library/LolcodeHead/LolcodeHead.lolproj",
             "HAI HAI HAI\n11");
     }
 

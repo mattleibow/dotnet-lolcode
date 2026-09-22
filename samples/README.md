@@ -93,8 +93,9 @@ LOLCODE `CAN HAS` import:
 dotnet run --project samples/project-based/csharp-head-lolcode-library/CSharpHead/CSharpHead.csproj
 ```
 
-The [mixed-language project](project-based/mixed-language/) demonstrates a
-LOLCODE executable importing an ordinary C# class library with `CAN HAS`.
+The [LOLCODE head with a C# library](project-based/lolcode-head-csharp-library/)
+sample demonstrates a LOLCODE executable importing an explicitly attributed
+C# class library with `CAN HAS`.
 
 The [LOLCODE head with a LOLCODE library](project-based/lolcode-head-lolcode-library/)
 sample imports a generated LOLCODE class library by assembly name. Its generated
