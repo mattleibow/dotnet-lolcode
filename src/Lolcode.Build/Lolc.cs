@@ -42,6 +42,9 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
     /// </summary>
     public string LolcodeLibraryTypeName { get; set; } = "";
 
+    /// <summary>LOLCODE <c>CAN HAS</c> name for generated library output.</summary>
+    public string LolcodeLibraryName { get; set; } = "";
+
     /// <summary>
     /// When true, skip actual compilation (design-time builds).
     /// Visual Studio calls this during design-time to gather metadata without compiling.
@@ -100,7 +103,8 @@ public sealed class Lolc : Microsoft.Build.Utilities.Task
                 RuntimeAssemblyPath,
                 ReferencePath.Select(reference => reference.ItemSpec),
                 OutputType,
-                LolcodeLibraryTypeName);
+                LolcodeLibraryTypeName,
+                LolcodeLibraryName);
 
             // Report diagnostics in MSBuild format
             foreach (var diagnostic in result.Diagnostics)

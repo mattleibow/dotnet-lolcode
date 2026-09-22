@@ -134,20 +134,25 @@ public sealed class LolcodeCompilation
     /// The fully qualified CLR type name for a library export container. When omitted,
     /// libraries use <c>LolcodeExports</c>; executables always use <c>Program</c>.
     /// </param>
+    /// <param name="libraryName">
+    /// The explicit LOLCODE library name. When omitted it derives from the assembly name.
+    /// </param>
     /// <returns>The result of the emission.</returns>
     public EmitResult Emit(
         string outputPath,
         string runtimeAssemblyPath,
         IEnumerable<string>? referenceAssemblyPaths,
         string outputType = "Exe",
-        string? libraryTypeName = null)
+        string? libraryTypeName = null,
+        string? libraryName = null)
         => Emit(
             outputPath,
             runtimeAssemblyPath,
             PhysicalPathEmitFileSystem.Instance,
             referenceAssemblyPaths: referenceAssemblyPaths,
             outputType: outputType,
-            libraryTypeName: libraryTypeName);
+            libraryTypeName: libraryTypeName,
+            libraryName: libraryName);
 
     internal EmitResult Emit(
         string outputPath,
@@ -156,7 +161,8 @@ public sealed class LolcodeCompilation
         Func<Stream>? pdbStreamFactory = null,
         IEnumerable<string>? referenceAssemblyPaths = null,
         string outputType = "Exe",
-        string? libraryTypeName = null)
+        string? libraryTypeName = null,
+        string? libraryName = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(runtimeAssemblyPath);
@@ -194,7 +200,8 @@ public sealed class LolcodeCompilation
                 toleratePdbFailure: true,
                 referenceAssemblyPaths: referenceAssemblyPaths,
                 isLibrary: isLibrary,
-                libraryTypeName: libraryTypeName);
+                libraryTypeName: libraryTypeName,
+                libraryName: libraryName);
             if (!result.Success)
                 return result;
 
@@ -447,7 +454,8 @@ public sealed class LolcodeCompilation
         CancellationToken cancellationToken = default,
         IEnumerable<string>? referenceAssemblyPaths = null,
         bool isLibrary = false,
-        string? libraryTypeName = null)
+        string? libraryTypeName = null,
+        string? libraryName = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var bindingResult = EnsureBound();
@@ -470,6 +478,7 @@ public sealed class LolcodeCompilation
             bindingResult.SyntaxTrees,
             isLibrary: isLibrary,
             libraryTypeName: libraryTypeName,
+            libraryName: libraryName,
             libraryDefinitions: libraryDiscovery.Definitions);
         var pdbEmitted = false;
         if (toleratePdbFailure && pdbStream != null && pdbFileName != null)

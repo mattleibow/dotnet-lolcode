@@ -50,8 +50,10 @@ public class LibraryEmissionTests
                     outputPath,
                     result.PdbPath);
                 Type exports = assembly.GetType("LolcodeExports")!;
-                exports.GetMethod("FIRST")!.Invoke(null, null).Should().Be("FIRST");
-                exports.GetMethod("SECOND")!.Invoke(null, null).Should().Be("SECOND");
+                using var first = (IDisposable)Activator.CreateInstance(exports)!;
+                using var second = (IDisposable)Activator.CreateInstance(exports)!;
+                exports.GetMethod("FIRST")!.Invoke(first, null).Should().Be("FIRST");
+                exports.GetMethod("SECOND")!.Invoke(second, null).Should().Be("SECOND");
             }
             finally
             {

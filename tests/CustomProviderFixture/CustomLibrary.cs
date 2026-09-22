@@ -1,10 +1,15 @@
-[assembly: Lolcode.Runtime.LolcodeModule("CUSTOM", typeof(CustomProviderFixture.CustomLibrary))]
-
 namespace CustomProviderFixture;
 
-public static class CustomLibrary
+[Lolcode.Runtime.LolcodeLibrary("CUSTOM")]
+public sealed class CustomLibrary
 {
-    public static string ECHO(string value) => $"CUSTOM {value}";
+    public string ECHO(string value) => $"CUSTOM {value}";
 
-    public static int CONTEXT(Lolcode.Runtime.LolcodeLibraryContext context) => 1;
+    public int CONTEXT() => 1;
+}
+
+[Lolcode.Runtime.LolcodeLibrary("SECOND")]
+public sealed class SecondLibrary
+{
+    public int VALUE() => 2;
 }

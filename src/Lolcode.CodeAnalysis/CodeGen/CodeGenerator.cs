@@ -29,6 +29,7 @@ internal sealed class CodeGenerator
     private readonly IReadOnlyList<string> _referenceAssemblyPaths;
     private readonly bool _isLibrary;
     private readonly string? _libraryTypeName;
+    private readonly string? _libraryName;
     private readonly IReadOnlyList<LibraryDefinition> _libraryDefinitions;
     private readonly IReadOnlyList<SyntaxTree> _syntaxTrees;
     private readonly bool _hoistTopLevelFunctions;
@@ -142,6 +143,7 @@ internal sealed class CodeGenerator
         IReadOnlyDictionary<SyntaxNode, SyntaxTree>? syntaxTreeOwners = null,
         bool isLibrary = false,
         string? libraryTypeName = null,
+        string? libraryName = null,
         IEnumerable<LibraryDefinition>? libraryDefinitions = null)
     {
         _boundTree = boundTree;
@@ -153,6 +155,7 @@ internal sealed class CodeGenerator
         _syntaxTreeOwners = syntaxTreeOwners ?? new Dictionary<SyntaxNode, SyntaxTree>();
         _isLibrary = isLibrary;
         _libraryTypeName = libraryTypeName;
+        _libraryName = libraryName;
         _libraryDefinitions = libraryDefinitions?.ToArray() ?? [];
     }
 
@@ -209,7 +212,7 @@ internal sealed class CodeGenerator
         _identifierResolverType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolIdentifierResolver));
         _resolvedSlotType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolResolvedSlot));
         _libraryAttributeType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolcodeLibraryAttribute));
-        _libraryInstanceType = GetRequiredRuntimeType(runtimeAssembly, typeof(ILolcodeLibraryInstance));
+        _libraryInstanceType = typeof(ILolcodeLibraryInstance);
 
         var runtimeType = GetRequiredRuntimeType(runtimeAssembly, typeof(LolRuntime));
         ResolveRuntimeMethods(runtimeType);
@@ -246,16 +249,14 @@ internal sealed class CodeGenerator
         if (_isLibrary)
         {
             _typeBuilder.SetCustomAttribute(new CustomAttributeBuilder(
-                _libraryAttributeType.GetConstructor([_stringType])
-                    ?? throw new MissingMethodException(_libraryAttributeType.FullName, ".ctor"),
-                [_assemblyName]));
+                typeof(LolcodeLibraryAttribute).GetConstructor([typeof(string)])
+                    ?? throw new MissingMethodException(typeof(LolcodeLibraryAttribute).FullName, ".ctor"),
+                [_libraryName ?? _assemblyName]));
             _typeBuilder.AddInterfaceImplementation(_libraryInstanceType);
             _libraryScopeField = _typeBuilder.DefineField(
                 "_scope", _scopeType, FieldAttributes.Private | FieldAttributes.InitOnly);
             _libraryObjectField = _typeBuilder.DefineField(
                 "_library", _objectType, FieldAttributes.Private | FieldAttributes.InitOnly);
-            EmitGeneratedLibraryConstructor();
-            EmitGeneratedLibraryInterface();
         }
 
         int functionIndex = 0;
@@ -318,6 +319,11 @@ internal sealed class CodeGenerator
             }
         }
 
+        if (_isLibrary)
+        {
+            EmitGeneratedLibraryConstructor();
+            EmitGeneratedLibraryInterface();
+        }
         EmitPublicFunctionWrappers();
 
         if (mainMethod is not null)
@@ -582,7 +588,7 @@ internal sealed class CodeGenerator
 
             MethodBuilder wrapper = _typeBuilder.DefineMethod(
                 name,
-                MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig,
+                MethodAttributes.Public | MethodAttributes.HideBySig,
                 _systemObjectType,
                 Enumerable.Repeat(_systemObjectType, declaration.Function.Parameters.Length).ToArray());
             _il = wrapper.GetILGenerator();
@@ -680,15 +686,12 @@ internal sealed class CodeGenerator
             "get_Library",
             MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.Final |
             MethodAttributes.HideBySig | MethodAttributes.SpecialName,
-            _objectType,
+            typeof(LolObject),
             Type.EmptyTypes);
         _il = getter.GetILGenerator();
         _il.Emit(OpCodes.Ldarg_0);
         _il.Emit(OpCodes.Ldfld, _libraryObjectField!);
         _il.Emit(OpCodes.Ret);
-        _typeBuilder.DefineMethodOverride(
-            getter,
-            _libraryInstanceType.GetProperty(nameof(ILolcodeLibraryInstance.Library))!.GetMethod!);
 
         MethodBuilder dispose = _typeBuilder.DefineMethod(
             nameof(IDisposable.Dispose),
@@ -701,9 +704,6 @@ internal sealed class CodeGenerator
         _il.Emit(OpCodes.Ldfld, _libraryScopeField!);
         _il.Emit(OpCodes.Call, _disposeScopeMethod);
         _il.Emit(OpCodes.Ret);
-        _typeBuilder.DefineMethodOverride(
-            dispose,
-            _libraryInstanceType.GetMethod(nameof(IDisposable.Dispose))!);
     }
 
     private void EmitLibraryInitializer()

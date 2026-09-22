@@ -30,6 +30,7 @@ internal static class LibraryDiscovery
             return new([], []);
 
         string[] resolverPaths = references.Append(runtimeAssemblyPath)
+            .Concat(GetTrustedPlatformAssemblyPaths())
             .Where(static path => !string.IsNullOrWhiteSpace(path) && File.Exists(path))
             .Select(static path => path!)
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -176,4 +177,9 @@ internal static class LibraryDiscovery
     private static Diagnostic Error(string path, string message) =>
         Diagnostic.Create(DiagnosticDescriptors.InvalidLibraryProvider,
             new TextLocation(path, default, 0, 0, 0, 0), message);
+
+    private static IEnumerable<string> GetTrustedPlatformAssemblyPaths() =>
+        AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") is string paths
+            ? paths.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            : [];
 }
