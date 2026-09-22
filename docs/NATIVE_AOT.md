@@ -75,10 +75,21 @@ public static class ExampleLibraryFactory
 }
 ```
 
-The package's `buildTransitive` descriptor must include the factory's fully
-qualified name as its sixth field. Factories must create state per import,
-register BLOBs through `LolcodeLibraryContext`, and use direct calls only.
-The first five descriptor fields remain compatible with dynamic builds.
+The official providers are bundled inside `Lolcode.NET.Sdk`, and the SDK
+declares their factory descriptors automatically. A custom SDK extension or
+project can declare the same contract explicitly:
+
+```xml
+<ItemGroup>
+  <LolcodeLibrary
+      Include="EXAMPLE|Example.Provider|Example.Provider.Exports|false|1|Example.Provider.ExampleLibraryFactory" />
+</ItemGroup>
+```
+
+The referenced assembly must be part of the resolved project graph. Factories
+must create state per import, register BLOBs through
+`LolcodeLibraryContext`, and use direct calls only. The first five descriptor
+fields remain compatible with dynamic builds.
 
 ## Boundaries and troubleshooting
 

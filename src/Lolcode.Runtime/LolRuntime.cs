@@ -242,7 +242,9 @@ public static class LolRuntime
                 throw new LolRuntimeException(
                     $"Registered LOLCODE library '{name}' does not contain '{descriptor.ExportTypeName}'.");
             }
-            return CreateManagedLibrary(scope, type, allowContext: true);
+            return type.IsDefined(typeof(LolcodeLibraryAttribute), inherit: false)
+                ? CreateGeneratedLolcodeLibrary(scope, type)
+                : CreateManagedLibrary(scope, type, allowContext: descriptor.IsReserved);
         }
         catch (LolRuntimeException)
         {
