@@ -23,6 +23,9 @@
     <ProjectReference Include="..\..\src\Lolcode.Runtime.String\Lolcode.Runtime.String.csproj" />
     <ProjectReference Include="..\ManagedLibraryFixture\ManagedLibraryFixture.csproj" />
     <ProjectReference Include="..\StringOverrideFixture\StringOverrideFixture.csproj" />
+    <ProjectReference Include="..\CustomProviderFixture\CustomProviderFixture.csproj" />
+    <ProjectReference Include="..\DuplicateProviderFixture\DuplicateProviderFixture.csproj" />
+    <ProjectReference Include="..\InvalidProviderFixture\InvalidProviderFixture.csproj" />
   </ItemGroup>
 
   <ItemGroup>

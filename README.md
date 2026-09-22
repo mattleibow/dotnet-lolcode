@@ -144,6 +144,19 @@ cd MyApp && dotnet run
 
 See [samples/project-based/hello-world](samples/project-based/hello-world/) for a complete example.
 
+### Built-in `CAN HAS` providers
+
+`STRING`, `STDLIB`, `STDIO`, and `SOCKS` are BCL-like facilities bundled inside
+`Lolcode.NET.Sdk`; consumers do not add package references for them. Their
+assemblies are build/runtime assets, while `CAN HAS` is the runtime opt-in that
+imports and loads a provider. Normal build and publish currently include all
+built-ins. Trimming unused providers is intentionally deferred.
+
+Custom providers are ordinary referenced assemblies: apply
+`[assembly: LolcodeLibraryProvider("NAME", typeof(Exports))]` and add a normal
+`ProjectReference` or `Reference`. The compiler reads that assembly metadata
+without executing it and embeds the registration for `CAN HAS NAME?`.
+
 ## Browser Playground
 
 The standalone Blazor WebAssembly playground lives in

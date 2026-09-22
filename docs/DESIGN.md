@@ -117,6 +117,19 @@ Source Text (.lol)
   EmitResult (Success, Diagnostics)
 ```
 
+## Built-in library providers
+
+`STRING`, `STDLIB`, `STDIO`, and `SOCKS` are BCL-like assemblies carried by the
+MSBuild SDK package, not implicit consumer package references. Each provider
+declares `[assembly: LolcodeLibraryProvider(...)]`; the compiler reads those
+custom attributes with `MetadataLoadContext`, never executing a target
+assembly. It validates contract versions, export types, duplicate names, and
+reserved built-in names, then emits metadata registration calls. `CAN HAS` is
+the runtime import/load boundary, so provider code is not initialized merely by
+building a program. The same metadata path supports custom providers supplied
+by ordinary `ProjectReference`/`Reference` items. Normal publishing currently
+includes all built-in assemblies; trimming unused providers is deferred.
+
 ### Multi-file project compilations
 
 Multi-file support is a compiler/project feature; it does not add LOLCODE source

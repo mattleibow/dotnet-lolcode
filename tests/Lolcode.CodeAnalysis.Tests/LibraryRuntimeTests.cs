@@ -508,7 +508,13 @@ public class LibraryRuntimeTests
         var scope = LolRuntime.CreateScope();
         string assemblyName = typeof(ClosedBlobProvider).Assembly.GetName().Name!;
         string typeName = typeof(ClosedBlobProvider).FullName!;
-        LolRuntime.ConfigureLibraries(scope, [$"CLOSED|{assemblyName}|{typeName}|false|1"]);
+        LolRuntime.RegisterLibraryProvider(
+            scope,
+            "CLOSED",
+            assemblyName,
+            typeName,
+            isBuiltIn: false,
+            LolcodeLibraryProviderAttribute.CurrentContractVersion);
         LolRuntime.LoadLibrary(scope, "CLOSED");
 
         object? result = Invoke(scope, "CLOSED", "CLOSED");
@@ -551,9 +557,13 @@ public class LibraryRuntimeTests
         var callingScope = LolRuntime.CreateScope();
         string assemblyName = typeof(InvocationScopeProvider).Assembly.GetName().Name!;
         string typeName = typeof(InvocationScopeProvider).FullName!;
-        LolRuntime.ConfigureLibraries(
+        LolRuntime.RegisterLibraryProvider(
             importingScope,
-            [$"SCOPE|{assemblyName}|{typeName}|false|1"]);
+            "SCOPE",
+            assemblyName,
+            typeName,
+            isBuiltIn: false,
+            LolcodeLibraryProviderAttribute.CurrentContractVersion);
         var module = LolRuntime.CreateLibraryObject(importingScope);
         module.Values["moduleState"] = "from module";
         LolRuntime.LoadLibrary(module, "SCOPE");
@@ -710,13 +720,34 @@ public class LibraryRuntimeTests
     private static LolScope CreateScope()
     {
         var scope = LolRuntime.CreateScope();
-        LolRuntime.ConfigureLibraries(scope,
-        [
-            "STRING|Lolcode.Runtime.String|Lolcode.Runtime.String.StringLibrary|true|1",
-            "STDLIB|Lolcode.Runtime.Stdlib|Lolcode.Runtime.Stdlib.StdlibLibrary|true|1",
-            "STDIO|Lolcode.Runtime.Stdio|Lolcode.Runtime.Stdio.StdioLibrary|true|1",
-            "SOCKS|Lolcode.Runtime.Socks|Lolcode.Runtime.Socks.SocksLibrary|true|1",
-        ]);
+        LolRuntime.RegisterLibraryProvider(
+            scope,
+            "STRING",
+            "Lolcode.Runtime.String",
+            "Lolcode.Runtime.String.StringLibrary",
+            isBuiltIn: true,
+            LolcodeLibraryProviderAttribute.CurrentContractVersion);
+        LolRuntime.RegisterLibraryProvider(
+            scope,
+            "STDLIB",
+            "Lolcode.Runtime.Stdlib",
+            "Lolcode.Runtime.Stdlib.StdlibLibrary",
+            isBuiltIn: true,
+            LolcodeLibraryProviderAttribute.CurrentContractVersion);
+        LolRuntime.RegisterLibraryProvider(
+            scope,
+            "STDIO",
+            "Lolcode.Runtime.Stdio",
+            "Lolcode.Runtime.Stdio.StdioLibrary",
+            isBuiltIn: true,
+            LolcodeLibraryProviderAttribute.CurrentContractVersion);
+        LolRuntime.RegisterLibraryProvider(
+            scope,
+            "SOCKS",
+            "Lolcode.Runtime.Socks",
+            "Lolcode.Runtime.Socks.SocksLibrary",
+            isBuiltIn: true,
+            LolcodeLibraryProviderAttribute.CurrentContractVersion);
         return scope;
     }
 

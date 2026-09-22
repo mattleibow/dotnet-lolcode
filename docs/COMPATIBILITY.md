@@ -1,4 +1,9 @@
-# Compatibility corpus
+# Compatibility
+
+The current fixture inventory is **188 Shared**, **41 KnownLciDivergence**,
+**21 DotNet**, and **325 upstream** registrations. The corpus structure below
+is authoritative; these counts are a concise current snapshot rather than a
+separate status report.
 
 `tests/Lolcode.EndToEnd.Tests/Compatibility` is the canonical source for repository-owned complete
 LOLCODE programs. The fixture root is self-contained and has exactly three

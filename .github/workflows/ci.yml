@@ -179,10 +179,6 @@ jobs:
           expected=(
             Lolcode.CodeAnalysis
             Lolcode.Runtime
-            Lolcode.Runtime.String
-            Lolcode.Runtime.Stdlib
-            Lolcode.Runtime.Stdio
-            Lolcode.Runtime.Socks
             Lolcode.NET.Sdk
             Lolcode.NET.Templates
           )
@@ -191,7 +187,13 @@ jobs:
           [ "$actual" = "$expected_sorted" ] || {
             echo "❌ Unexpected package IDs"; printf 'Actual:\n%s\nExpected:\n%s\n' "$actual" "$expected_sorted"; exit 1;
           }
-          echo "✅ Pack produced the expected 8 packages"
+          SDK_PKG=$(ls artifacts/Lolcode.NET.Sdk.*.nupkg | head -1)
+          for provider in String Stdlib Stdio Socks; do
+            unzip -l "$SDK_PKG" | grep -q "tools/net10.0/Lolcode.Runtime.$provider.dll" || {
+              echo "❌ SDK package is missing bundled provider $provider"; exit 1;
+            }
+          done
+          echo "✅ Pack produced the expected 4 packages and bundled providers"
 
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v4

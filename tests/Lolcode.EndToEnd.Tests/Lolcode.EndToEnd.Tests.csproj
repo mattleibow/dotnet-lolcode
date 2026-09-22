@@ -22,6 +22,7 @@
     <ProjectReference Include="..\..\src\Lolcode.Runtime.Stdio\Lolcode.Runtime.Stdio.csproj" />
     <ProjectReference Include="..\..\src\Lolcode.Runtime.Stdlib\Lolcode.Runtime.Stdlib.csproj" />
     <ProjectReference Include="..\..\src\Lolcode.Runtime.String\Lolcode.Runtime.String.csproj" />
+    <ProjectReference Include="..\CustomProviderFixture\CustomProviderFixture.csproj" />
   </ItemGroup>
 
   <ItemGroup>

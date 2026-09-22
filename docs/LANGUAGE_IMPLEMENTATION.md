@@ -193,6 +193,14 @@ successful library calls.
 
 These constraints are implementation guidance, not additions to the language deltas:
 
+- `STRING`, `STDLIB`, `STDIO`, and `SOCKS` are SDK-bundled BCL-like providers.
+  `CAN HAS` imports and loads them at runtime; it is not a package-install
+  directive. Their assemblies are included by normal build and publish today.
+  Future publish trimming may remove unused providers, but does not yet do so.
+- A custom provider is a normal referenced .NET assembly that declares
+  `LolcodeLibraryProviderAttribute` at assembly scope. Compilation reads this
+  metadata without executing the target assembly. Duplicate names, malformed
+  contracts, and attempts to replace the reserved built-ins are diagnostics.
 - 1.3's global/local `IT` statements contradict one another and require a language
   decision beyond pinned `lci`'s per-scope `IT`.
 - `I DUZ`, SOCKS, and STDIO intentionally expose process, network, and filesystem

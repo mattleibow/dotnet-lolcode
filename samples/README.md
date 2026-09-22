@@ -113,3 +113,8 @@ targets. `samples/Directory.Build.props` always redirects compiler execution to
 the source-built `Lolcode.Build.dll`, so build the solution before running any
 sample. Missing local compiler binaries are an error and never fall back to the
 compiler contained in the package.
+
+Built-in `STRING`, `STDLIB`, `STDIO`, and `SOCKS` assemblies are supplied by the
+SDK for every sample; they are not sample package dependencies. `CAN HAS` is
+the runtime import point. Normal source builds and publish include these assets;
+provider trimming is not implemented yet.

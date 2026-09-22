@@ -131,8 +131,13 @@ namespace Lolcode.CodeAnalysis.Tests
         public void BuiltInLibrary_TakesPrecedenceOverSameNamedManagedAssembly()
         {
             var scope = LolRuntime.CreateScope();
-            LolRuntime.ConfigureLibraries(scope,
-                ["STRING|Lolcode.Runtime.String|Lolcode.Runtime.String.StringLibrary|true|1"]);
+            LolRuntime.RegisterLibraryProvider(
+                scope,
+                "STRING",
+                "Lolcode.Runtime.String",
+                "Lolcode.Runtime.String.StringLibrary",
+                isBuiltIn: true,
+                LolcodeLibraryProviderAttribute.CurrentContractVersion);
             LolRuntime.LoadLibrary(scope, "STRING");
 
             LolRuntime.Invoke(scope, ["STRING"], ["LEN"], ["HAI"]).Should().Be(3);

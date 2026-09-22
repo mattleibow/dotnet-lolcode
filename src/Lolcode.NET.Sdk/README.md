@@ -134,7 +134,27 @@ KTHXBYE
 The SDK package contains:
 - **LOLCODE compiler** — full lexer → parser → binder → lowerer → code generator pipeline
 - **MSBuild integration** — `Sdk.props` and `Sdk.targets` for seamless `dotnet` CLI experience
-- **Runtime library** — automatically referenced for compiled programs
+- **Runtime library and providers** — `Lolcode.Runtime.dll` plus the bundled
+  `STRING`, `STDLIB`, `STDIO`, and `SOCKS` provider assemblies are private
+  references, not consumer NuGet dependencies
+
+## `CAN HAS` providers
+
+The built-in providers are SDK-supplied build/runtime assets. `CAN HAS STRING?`
+(and the other built-in names) loads a provider only when the program imports
+it; merely compiling an application does not initialize provider code. Normal
+build and publish include the provider assemblies today. Publish trimming of
+unused providers is a future optimization.
+
+To provide `CAN HAS CUSTOM?`, reference a normal .NET assembly and apply:
+
+```csharp
+[assembly: LolcodeLibraryProvider("CUSTOM", typeof(CustomExports))]
+```
+
+The compiler discovers this assembly metadata through resolved references
+without loading the target assembly into MSBuild. The four reserved built-in
+names cannot be replaced by custom assemblies.
 
 ## Requirements
 

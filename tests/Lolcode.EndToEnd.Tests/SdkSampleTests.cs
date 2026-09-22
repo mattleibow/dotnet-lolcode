@@ -188,28 +188,6 @@ public class SdkSampleTests
         output.Should().Be(expectedOutput);
     }
 
-    private static void AssertPackedProviderVersion(
-        string sdkProject,
-        string outputRoot,
-        string version,
-        string versionProperty)
-    {
-        string packageDirectory = Path.Combine(outputRoot, version);
-        Directory.CreateDirectory(packageDirectory);
-        var (exitCode, stdout, stderr) = RunDotnet(
-            $"pack \"{sdkProject}\" --configuration Debug --no-build -p:{versionProperty}={version} -o \"{packageDirectory}\"",
-            RepoRoot);
-        exitCode.Should().Be(0, $"dotnet pack failed:\n{stderr}\n{stdout}");
-
-        string packagePath = Path.Combine(packageDirectory, $"Lolcode.NET.Sdk.{version}.nupkg");
-        using ZipArchive package = ZipFile.OpenRead(packagePath);
-        ZipArchiveEntry props = package.GetEntry("Sdk/Sdk.props")!;
-        using var reader = new StreamReader(props.Open());
-        string contents = reader.ReadToEnd();
-        contents.Should().Contain(version);
-        contents.Should().NotContain("LolcodeProviderPackageVersion");
-    }
-
     [Fact]
     public void CSharpHeadLolcodeLibrarySample_Runs_CorrectOutput()
     {
@@ -232,7 +210,7 @@ public class SdkSampleTests
     }
 
     [Fact]
-    public void SdkPack_StampsIndependentProviderVersionsWithoutMutatingTemplate()
+    public void SdkPack_ContainsStaticPropsAndBundledProviderAssemblies()
     {
         string sdkProject = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Lolcode.NET.Sdk.csproj");
         string template = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk", "Sdk.props");
@@ -242,13 +220,158 @@ public class SdkSampleTests
 
         try
         {
-            AssertPackedProviderVersion(sdkProject, outputRoot, "0.3.0-pack-a", "Version");
-            AssertPackedProviderVersion(sdkProject, outputRoot, "0.3.0-pack-b", "PackageVersion");
+            const string version = "0.3.0-pack";
+            var (exitCode, stdout, stderr) = RunDotnet(
+                $"pack \"{sdkProject}\" --configuration Debug --no-build -p:PackageVersion={version} -o \"{outputRoot}\"",
+                RepoRoot);
+            exitCode.Should().Be(0, $"dotnet pack failed:\n{stderr}\n{stdout}");
+            using ZipArchive package = ZipFile.OpenRead(
+                Path.Combine(outputRoot, $"Lolcode.NET.Sdk.{version}.nupkg"));
+            package.Entries.Select(entry => entry.FullName).Should().Contain(
+            [
+                "Sdk/Sdk.props",
+                "Sdk/Sdk.targets",
+                "tools/net10.0/Lolcode.Runtime.dll",
+                "tools/net10.0/Lolcode.Runtime.String.dll",
+                "tools/net10.0/Lolcode.Runtime.Stdlib.dll",
+                "tools/net10.0/Lolcode.Runtime.Stdio.dll",
+                "tools/net10.0/Lolcode.Runtime.Socks.dll",
+            ]);
+            using var reader = new StreamReader(package.GetEntry("Sdk/Sdk.props")!.Open());
+            string contents = reader.ReadToEnd();
+            contents.Should().NotContain("PackageVersion");
             File.ReadAllText(template).Should().Be(original);
         }
         finally
         {
             Directory.Delete(outputRoot, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Sdk_DoesNotInjectProviderPackageReferences()
+    {
+        string projectDirectory = CreateSdkTestDirectory("no-provider-packages");
+        try
+        {
+            string sdkDirectory = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk");
+            string projectFile = Path.Combine(projectDirectory, "NoPackages.lolproj");
+            File.WriteAllText(
+                projectFile,
+                $$"""
+                <Project>
+                  <Import Project="{{Path.Combine(sdkDirectory, "Sdk.props")}}" />
+                  <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+                  <Target Name="WritePackageReferences">
+                    <WriteLinesToFile File="$(MSBuildProjectDirectory)/packages.txt"
+                                      Lines="@(PackageReference->'%(Identity)')"
+                                      Overwrite="true" />
+                  </Target>
+                  <Import Project="{{Path.Combine(sdkDirectory, "Sdk.targets")}}" />
+                </Project>
+                """);
+
+            var (exitCode, stdout, stderr) = RunDotnet(
+                $"msbuild \"{projectFile}\" -t:WritePackageReferences",
+                projectDirectory);
+            exitCode.Should().Be(0, $"package-reference inspection failed:\n{stderr}\n{stdout}");
+            File.ReadAllText(Path.Combine(projectDirectory, "packages.txt")).Trim().Should().BeEmpty();
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    [InlineLolcodeProgramException("The custom provider integration test writes a focused LOLCODE fixture.")]
+    public void CustomAttributedProvider_WorksThroughProjectReferenceOnly()
+    {
+        string projectDirectory = CreateSdkTestDirectory("custom-attributed-provider");
+        try
+        {
+            string sdkDirectory = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk");
+            string buildTasksDirectory = Path.Combine(
+                RepoRoot,
+                "src",
+                "Lolcode.Build",
+                "bin",
+                "Debug",
+                "net10.0") + Path.DirectorySeparatorChar;
+            string providerProject = Path.Combine(
+                RepoRoot,
+                "tests",
+                "CustomProviderFixture",
+                "CustomProviderFixture.csproj");
+            string projectFile = Path.Combine(projectDirectory, "CustomConsumer.lolproj");
+            File.WriteAllText(
+                projectFile,
+                $$"""
+                <Project>
+                  <Import Project="{{Path.Combine(sdkDirectory, "Sdk.props")}}" />
+                  <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net10.0</TargetFramework>
+                    <_LolcodeBuildTasksDir>{{buildTasksDirectory}}</_LolcodeBuildTasksDir>
+                  </PropertyGroup>
+                  <ItemGroup>
+                    <ProjectReference Include="{{providerProject}}" />
+                  </ItemGroup>
+                  <Import Project="{{Path.Combine(sdkDirectory, "Sdk.targets")}}" />
+                </Project>
+                """);
+            File.WriteAllText(
+                Path.Combine(projectDirectory, "Program.lol"),
+                """
+                HAI 1.4
+                CAN HAS CUSTOM?
+                VISIBLE I IZ CUSTOM'Z ECHO YR "HAI" MKAY
+                KTHXBYE
+                """);
+
+            var (exitCode, stdout, stderr) = RunDotnet(
+                $"run --project \"{projectFile}\"",
+                projectDirectory);
+            exitCode.Should().Be(0, $"custom provider build/run failed:\n{stderr}\n{stdout}");
+            stdout.Trim().Should().Be("CUSTOM HAI");
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Publish_IncludesBundledProvidersWithoutTrimming()
+    {
+        string projectDirectory = CreateSdkTestDirectory("publish-bundled-providers");
+        string publishDirectory = Path.Combine(projectDirectory, "publish");
+        try
+        {
+            string projectFile = Path.Combine(
+                RepoRoot,
+                "samples",
+                "project-based",
+                "hello-world",
+                "hello-world.lolproj");
+            var (exitCode, stdout, stderr) = RunDotnet(
+                $"publish \"{projectFile}\" --no-restore --configuration Debug -o \"{publishDirectory}\"",
+                RepoRoot);
+            exitCode.Should().Be(0, $"publish failed:\n{stderr}\n{stdout}");
+            foreach (string provider in new[]
+            {
+                "Lolcode.Runtime.String.dll",
+                "Lolcode.Runtime.Stdlib.dll",
+                "Lolcode.Runtime.Stdio.dll",
+                "Lolcode.Runtime.Socks.dll",
+            })
+            {
+                File.Exists(Path.Combine(publishDirectory, provider)).Should().BeTrue();
+            }
+        }
+        finally
+        {
+            Directory.Delete(projectDirectory, recursive: true);
         }
     }
 
@@ -449,7 +572,6 @@ public class SdkSampleTests
                   <PropertyGroup>
                     <OutputType>Exe</OutputType>
                     <TargetFramework>net10.0</TargetFramework>
-                    <LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>
                     <_LolcodeBuildTasksDir>{{buildTasksDirectory}}</_LolcodeBuildTasksDir>
                   </PropertyGroup>
                   <Import Project="{{Path.Combine(sdkDirectory, "Sdk.targets")}}" />
@@ -503,7 +625,6 @@ public class SdkSampleTests
                   <PropertyGroup>
                     <TargetFramework>net10.0</TargetFramework>
                     <AssemblyName>MultiFile</AssemblyName>
-                    <LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>
                     <_LolcodeBuildTasksDir>{{buildTasksDirectory}}</_LolcodeBuildTasksDir>
                   </PropertyGroup>
                   <ItemGroup>
@@ -819,123 +940,6 @@ public class SdkSampleTests
     }
 
     [Fact]
-    public void Sdk_DefaultProviderPackageReferencesSupportProjectBodyCustomization()
-    {
-        const string packageVersion = "1.2.3";
-        string projectDirectory = CreateSdkTestDirectory("default-provider-references");
-
-        try
-        {
-            string packageFeed = CreateProviderPackageFeed(projectDirectory, packageVersion);
-            string projectFile = WriteDefaultProviderProject(
-                projectDirectory,
-                "ProviderCustomization.lolproj",
-                packageFeed,
-                packageVersion,
-                """
-                <ItemGroup>
-                  <PackageReference Update="Lolcode.Runtime.String">
-                    <PrivateAssets>all</PrivateAssets>
-                  </PackageReference>
-                  <PackageReference Include="Lolcode.Runtime.Stdlib" Version="1.2.3">
-                    <PrivateAssets>all</PrivateAssets>
-                  </PackageReference>
-                  <PackageReference Remove="Lolcode.Runtime.Stdio" />
-                </ItemGroup>
-                """);
-
-            var (itemExitCode, itemStdOut, itemStdErr) = RunDotnet(
-                $"msbuild \"{projectFile}\" -t:WritePackageReferences",
-                projectDirectory);
-            itemExitCode.Should().Be(0, $"package-reference inspection failed:\n{itemStdErr}\n{itemStdOut}");
-
-            string[] references = File.ReadAllLines(Path.Combine(projectDirectory, "package-references.txt"));
-            references.Should().ContainSingle(reference => reference.StartsWith("Lolcode.Runtime.String|", StringComparison.Ordinal));
-            references.Should().ContainSingle(reference => reference.StartsWith("Lolcode.Runtime.Stdlib|", StringComparison.Ordinal));
-            references.Should().ContainSingle(reference => reference.StartsWith("Lolcode.Runtime.Socks|", StringComparison.Ordinal));
-            references.Should().NotContain(reference => reference.StartsWith("Lolcode.Runtime.Stdio|", StringComparison.Ordinal));
-            references.Single(reference => reference.StartsWith("Lolcode.Runtime.String|", StringComparison.Ordinal))
-                .Should().Contain("|1.2.3|all|true");
-            references.Single(reference => reference.StartsWith("Lolcode.Runtime.Stdlib|", StringComparison.Ordinal))
-                .Should().Contain("|1.2.3|all|");
-
-            var (restoreExitCode, restoreStdOut, restoreStdErr) = RunDotnet(
-                $"restore \"{projectFile}\" --force-evaluate -p:TreatWarningsAsErrors=true",
-                projectDirectory);
-            restoreExitCode.Should().Be(0, $"restore with warnings as errors failed:\n{restoreStdErr}\n{restoreStdOut}");
-            $"{restoreStdOut}\n{restoreStdErr}".Should().NotContain("NU1504");
-
-            string optOutProject = WriteDefaultProviderProject(
-                projectDirectory,
-                "ProviderOptOut.lolproj",
-                packageFeed,
-                packageVersion,
-                """
-                <PropertyGroup>
-                  <LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>
-                </PropertyGroup>
-                """);
-            var (optOutExitCode, optOutStdOut, optOutStdErr) = RunDotnet(
-                $"msbuild \"{optOutProject}\" -t:WritePackageReferences",
-                projectDirectory);
-            optOutExitCode.Should().Be(0, $"opt-out package-reference inspection failed:\n{optOutStdErr}\n{optOutStdOut}");
-            File.ReadAllLines(Path.Combine(projectDirectory, "package-references.txt")).Should().BeEmpty();
-        }
-        finally
-        {
-            Directory.Delete(projectDirectory, recursive: true);
-        }
-    }
-
-    [Fact]
-    public void Sdk_DefaultProviderPackageReferencesPreserveProjectVersionUpdates()
-    {
-        const string packageVersion = "2.3.4";
-        const string providerVersion = "1.2.3";
-        string projectDirectory = CreateSdkTestDirectory("default-provider-version-update");
-
-        try
-        {
-            string packageFeed = CreateProviderPackageFeed(projectDirectory, packageVersion);
-            CreateProviderPackageFeed(projectDirectory, providerVersion);
-            string projectFile = WriteDefaultProviderProject(
-                projectDirectory,
-                "ProviderVersionUpdate.lolproj",
-                packageFeed,
-                packageVersion,
-                $$"""
-                <ItemGroup>
-                  <PackageReference Update="Lolcode.Runtime.String">
-                    <Version>{{providerVersion}}</Version>
-                    <PrivateAssets>all</PrivateAssets>
-                  </PackageReference>
-                </ItemGroup>
-                """);
-
-            var (itemExitCode, itemStdOut, itemStdErr) = RunDotnet(
-                $"msbuild \"{projectFile}\" -t:WritePackageReferences",
-                projectDirectory);
-            itemExitCode.Should().Be(0, $"package-reference inspection failed:\n{itemStdErr}\n{itemStdOut}");
-
-            string[] references = File.ReadAllLines(Path.Combine(projectDirectory, "package-references.txt"));
-            references.Single(reference => reference.StartsWith("Lolcode.Runtime.String|", StringComparison.Ordinal))
-                .Should().Contain($"|{providerVersion}|all|true");
-            references.Single(reference => reference.StartsWith("Lolcode.Runtime.Stdlib|", StringComparison.Ordinal))
-                .Should().Contain($"|{packageVersion}||true");
-
-            var (restoreExitCode, restoreStdOut, restoreStdErr) = RunDotnet(
-                $"restore \"{projectFile}\" --force-evaluate -p:TreatWarningsAsErrors=true",
-                projectDirectory);
-            restoreExitCode.Should().Be(0, $"restore with warnings as errors failed:\n{restoreStdErr}\n{restoreStdOut}");
-            $"{restoreStdOut}\n{restoreStdErr}".Should().NotContain("NU1504");
-        }
-        finally
-        {
-            Directory.Delete(projectDirectory, recursive: true);
-        }
-    }
-
-    [Fact]
     public void Sdk_ProjectReferenceRunsWhenBuildOutputsAreRedirected()
     {
         string projectDirectory = CreateSdkTestDirectory("redirected-project-reference");
@@ -978,7 +982,6 @@ public class SdkSampleTests
                     <TargetFramework>net10.0</TargetFramework>
                     <AssemblyName>RedirectedConsumer</AssemblyName>
                     <BaseOutputPath>$(MSBuildProjectDirectory)/published/</BaseOutputPath>
-                    <LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>
                     <_LolcodeBuildTasksDir>{{buildTasksDirectory}}</_LolcodeBuildTasksDir>
                   </PropertyGroup>
                   <ItemGroup>
@@ -1075,7 +1078,7 @@ public class SdkSampleTests
                 <OutputType>Library</OutputType>
                 <TargetFramework>net10.0</TargetFramework>
                 <AssemblyName>{{assemblyName}}</AssemblyName>
-            {{rootNamespaceProperty}}{{libraryTypeNameProperty}}{{additionalProperties}}    <LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>
+            {{rootNamespaceProperty}}{{libraryTypeNameProperty}}{{additionalProperties}}
                 <_LolcodeBuildTasksDir>{{buildTasksDirectory}}</_LolcodeBuildTasksDir>
               </PropertyGroup>
             {{compileItemGroup}}
@@ -1123,71 +1126,6 @@ public class SdkSampleTests
             .ToArray();
     }
 
-    private static string CreateProviderPackageFeed(string projectDirectory, string packageVersion)
-    {
-        string packageFeed = Path.Combine(projectDirectory, "packages");
-        Directory.CreateDirectory(packageFeed);
-        string[] projects =
-        [
-            "Lolcode.Runtime/Lolcode.Runtime.csproj",
-            "Lolcode.Runtime.String/Lolcode.Runtime.String.csproj",
-            "Lolcode.Runtime.Stdlib/Lolcode.Runtime.Stdlib.csproj",
-            "Lolcode.Runtime.Stdio/Lolcode.Runtime.Stdio.csproj",
-            "Lolcode.Runtime.Socks/Lolcode.Runtime.Socks.csproj",
-        ];
-
-        foreach (string relativeProject in projects)
-        {
-            string providerProject = Path.Combine(RepoRoot, "src", relativeProject);
-            var (exitCode, stdout, stderr) = RunDotnet(
-                $"pack \"{providerProject}\" --configuration Debug --no-build -p:PackageVersion={packageVersion} -o \"{packageFeed}\"",
-                RepoRoot);
-            exitCode.Should().Be(0, $"packing {relativeProject} failed:\n{stderr}\n{stdout}");
-        }
-
-        return packageFeed;
-    }
-
-    private static string WriteDefaultProviderProject(
-        string projectDirectory,
-        string projectName,
-        string packageFeed,
-        string packageVersion,
-        string projectBody)
-    {
-        string sdkDirectory = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk");
-        string projectFile = Path.Combine(projectDirectory, projectName);
-        File.WriteAllText(
-            Path.Combine(projectDirectory, "Directory.Build.props"),
-            $$"""
-            <Project>
-              <PropertyGroup>
-                <LolcodeRuntimePackageVersion>{{packageVersion}}</LolcodeRuntimePackageVersion>
-              </PropertyGroup>
-            </Project>
-            """);
-        File.WriteAllText(
-            projectFile,
-            $$"""
-            <Project>
-              <Import Project="{{Path.Combine(sdkDirectory, "Sdk.props")}}" />
-              <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
-                <RestoreSources>{{packageFeed}}</RestoreSources>
-              </PropertyGroup>
-            {{projectBody}}
-              <Target Name="WritePackageReferences"
-                      DependsOnTargets="_ConfigureDefaultLolcodeLibraryPackages">
-                <WriteLinesToFile File="$(MSBuildProjectDirectory)/package-references.txt"
-                                  Lines="@(PackageReference->'%(Identity)|%(Version)|%(PrivateAssets)|%(LolcodeDefaultProvider)')"
-                                  Overwrite="true" />
-              </Target>
-              <Import Project="{{Path.Combine(sdkDirectory, "Sdk.targets")}}" />
-            </Project>
-            """);
-        return projectFile;
-    }
-
     private static string CreateDefaultLibraryProject(string projectDirectory, string assemblyName, string? welcomeSource = null)
     {
         string sdkDirectory = Path.Combine(RepoRoot, "src", "Lolcode.NET.Sdk", "Sdk");
@@ -1209,7 +1147,6 @@ public class SdkSampleTests
                 <TargetFramework>net10.0</TargetFramework>
                 <AssemblyName>{{assemblyName}}</AssemblyName>
                 <RootNamespace>InteropSamples</RootNamespace>
-                <LolcodeUseDefaultLibraries>false</LolcodeUseDefaultLibraries>
                 <_LolcodeBuildTasksDir>{{buildTasksDirectory}}</_LolcodeBuildTasksDir>
               </PropertyGroup>
               <Import Project="{{Path.Combine(sdkDirectory, "Sdk.targets")}}" />
@@ -1250,11 +1187,9 @@ public class SdkSampleTests
     public void FileBasedHelloWorld_Runs_CorrectOutput()
     {
         var sampleDir = Path.Combine(RepoRoot, "samples", "basics", "hello-world");
-        var localBuildTasksDir = Path.Combine(RepoRoot, "src", "Lolcode.Build", "bin", "Debug", "net10.0");
         var (exitCode, stdout, stderr) = RunDotnet("run --file hello.lol --verbosity diagnostic", sampleDir);
 
         exitCode.Should().Be(0, $"dotnet run --file failed:\n{stderr}");
-        stdout.Should().Contain(localBuildTasksDir, "file-based samples should use the source-built compiler");
 
         var output = stdout.Replace("\r\n", "\n").TrimEnd('\n');
         output.Should().EndWith("HAI WORLD!");
