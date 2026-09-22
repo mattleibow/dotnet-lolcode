@@ -274,7 +274,11 @@ jobs:
           test -f hello.lol
           grep -q '^#!/usr/bin/env -S dotnet run --file$' hello.lol
           grep -q "#:sdk Lolcode.NET.Sdk@$VERSION" hello.lol
-          OUTPUT=$(dotnet run --file hello.lol)
+          if ! dotnet run --file hello.lol > hello.out; then
+            cat hello.out
+            exit 1
+          fi
+          OUTPUT=$(cat hello.out)
           [ "$OUTPUT" = "OH HAI!" ] || { echo "❌ Unexpected file-based output: $OUTPUT"; exit 1; }
           echo "✅ File-based template builds and runs"
 
